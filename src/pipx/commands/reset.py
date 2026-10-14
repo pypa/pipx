@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.uninstall", "pipx.util", "pipx.venv"]
+
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final

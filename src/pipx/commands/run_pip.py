@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["packaging.utils", "pipx.commands.common", "pipx.util", "pipx.venv"]
+
 from typing import TYPE_CHECKING
 
 from packaging.utils import canonicalize_name

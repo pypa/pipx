@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["json", "shutil", "typing"]
+
 import json
 import os
 import shutil

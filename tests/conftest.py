@@ -504,10 +504,11 @@ def _pipx_temp_env_helper(
     # Each consumer holds its own ``shared_libs`` reference (via
     # ``from pipx.shared_libs import shared_libs``); patch every importer.
     # a fresh instance per test, for which there is no public factory
-    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())  # ruff:ignore[private-member-access]
-    monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-    monkeypatch.setattr(_pip_backend_module, "shared_libs", shared_libs.shared_libs)
-    monkeypatch.setattr(_UPGRADE_MODULE, "shared_libs", shared_libs.shared_libs)
+    fresh_shared_libs = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]
+    # importers before the module: monkeypatch reads the old value, which on 3.15 resolves their lazy import, and
+    # resolving it after the module is patched would make teardown restore the fresh instance, not the original
+    for module in (venv, _pip_backend_module, _UPGRADE_MODULE, shared_libs):
+        monkeypatch.setattr(module, "shared_libs", fresh_shared_libs)
 
     if "PIPX_DEFAULT_PYTHON" in os.environ:
         monkeypatch.delenv("PIPX_DEFAULT_PYTHON")

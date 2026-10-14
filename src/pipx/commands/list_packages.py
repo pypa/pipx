@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["json", "pipx", "pipx.commands.common", "pipx.pipx_metadata_file", "pipx.venv"]
+
 import json
 import logging
 import sys

@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "pipx",
+    "pipx.commands.common",
+    "pipx.commands.install",
+    "pipx.commands.outdated",
+    "pipx.commands.transaction",
+    "pipx.package_specifier",
+    "pipx.script",
+    "pipx.shared_libs",
+    "pipx.util",
+    "pipx.venv",
+]
+
 import logging
 from dataclasses import dataclass, replace
 from enum import StrEnum

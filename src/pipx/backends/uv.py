@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["importlib", "json", "pathlib", "pipx.util", "shutil", "subprocess"]
+
 import json
 import logging
 import re

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["importlib.util", "packaging", "pathlib", "pipx.self_install", "shutil", "subprocess"]
+
 import logging
 import os
 import shutil

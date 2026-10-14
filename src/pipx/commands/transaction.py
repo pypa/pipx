@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pathlib", "pipx", "pipx.util", "shutil", "tempfile"]
+
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import Error, copytree

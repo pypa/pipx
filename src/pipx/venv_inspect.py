@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "ast",
+    "configparser",
+    "importlib",
+    "json",
+    "packaging.requirements",
+    "packaging.utils",
+    "pathlib",
+    "pipx.requires_python",
+    "pipx.util",
+    "shutil",
+    "textwrap",
+    "tomllib",
+    "urllib.parse",
+]
+
 import ast
 import configparser
 import json

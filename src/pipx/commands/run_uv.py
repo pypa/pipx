@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx.backends.uv", "pipx.util", "shutil"]
+
 import logging
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn

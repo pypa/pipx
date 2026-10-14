@@ -1,5 +1,19 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "functools",
+    "hashlib",
+    "json",
+    "pathlib",
+    "pipx",
+    "pipx.util",
+    "platform",
+    "shutil",
+    "tarfile",
+    "tempfile",
+    "urllib.request",
+]
+
 import datetime as dt
 import hashlib
 import http.client

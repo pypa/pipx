@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["packaging", "pipx", "pipx.commands.reinstall", "pipx.util", "pipx.venv", "subprocess"]
+
 import logging
 import subprocess
 from dataclasses import dataclass

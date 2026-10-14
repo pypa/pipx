@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["json", "pipx.shared_libs", "pipx.util"]
+
 import json
 import logging
 from typing import TYPE_CHECKING, Final

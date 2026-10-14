@@ -1,5 +1,23 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "concurrent.futures",
+    "fcntl",
+    "itertools",
+    "pathlib",
+    "pipx",
+    "pipx.wrap",
+    "pty",
+    "random",
+    "re",
+    "select",
+    "shutil",
+    "string",
+    "struct",
+    "subprocess",
+    "termios",
+]
+
 import codecs
 import errno
 import logging

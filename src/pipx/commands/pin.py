@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["packaging.utils", "pipx.venv"]
+
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final

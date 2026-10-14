@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["functools", "pipx", "pipx.backends", "pipx.interpreter", "pipx.util"]
+
 import os
 from functools import cache
 from typing import TYPE_CHECKING, Final

@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "filecmp",
+    "packaging.utils",
+    "pathlib",
+    "pipx",
+    "pipx.backends",
+    "pipx.package_specifier",
+    "pipx.result",
+    "pipx.util",
+    "pipx.venv",
+    "shlex",
+    "shutil",
+    "tempfile",
+    "userpath",
+]
+
 import filecmp
 import logging
 import os

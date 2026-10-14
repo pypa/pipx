@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx.backends._base", "pipx.backends.pip", "pipx.backends.uv", "pipx.util"]
+
 import os
 from functools import cache
 

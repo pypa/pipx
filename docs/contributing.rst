@@ -218,7 +218,13 @@ Linting runs through `pre-commit <https://pre-commit.com/>`_, wired into the ``l
     $ tox run -e lint
 
 The key hooks are ``ruff-check`` and ``ruff-format`` (lint and format Python), ``codespell`` (spelling), ``mdformat``
-(Markdown, wrapped at 120), ``yamlfmt`` (YAML), and ``pyproject-fmt`` (``pyproject.toml``).
+(Markdown, wrapped at 120), ``yamlfmt`` (YAML), ``pyproject-fmt`` (``pyproject.toml``), and ``flake8-lazy``.
+
+``flake8-lazy`` keeps the ``__lazy_modules__`` list at the top of each module under ``src/pipx`` up to date. On Python
+3.15 and later (:pep:`810`) the modules it lists load on first use rather than at import, which shortens CLI startup;
+older Pythons ignore the list. The hook rewrites the list itself, so when it fails, review and stage its change. A
+module whose import has a side effect that must happen at startup (reading environment variables or terminal state)
+belongs in ``standalone.lazy-exclude-modules`` under ``[tool.flake8-lazy]`` in ``pyproject.toml``.
 
 Type checking
 =============

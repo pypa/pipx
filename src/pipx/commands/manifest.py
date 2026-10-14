@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "collections",
+    "packaging.requirements",
+    "packaging.utils",
+    "pathlib",
+    "pipx.commands.expose",
+    "pipx.commands.install",
+    "pipx.commands.uninstall",
+    "pipx.pipx_metadata_file",
+    "pipx.util",
+    "shutil",
+    "subprocess",
+    "tempfile",
+    "tomllib",
+]
+
 import subprocess
 import tomllib
 from collections import Counter

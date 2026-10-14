@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["json", "pipx.util"]
+
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

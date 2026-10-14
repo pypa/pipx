@@ -1,5 +1,19 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "packaging.utils",
+    "pathlib",
+    "pipx.backends",
+    "pipx.interpreter",
+    "pipx.package_specifier",
+    "pipx.pipx_metadata_file",
+    "pipx.requires_python",
+    "pipx.script",
+    "pipx.shared_libs",
+    "pipx.util",
+    "shutil",
+]
+
 import logging
 import shutil
 import time
