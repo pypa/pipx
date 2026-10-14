@@ -20,6 +20,7 @@ __lazy_modules__ = [
 ]
 
 import json
+import logging
 import re
 import sys
 from dataclasses import dataclass, replace
@@ -47,7 +48,7 @@ from pipx.constants import (
     ExitCode,
     FetchPythonOptions,
 )
-from pipx.emojis import sleep
+from pipx.emojis import hazard, sleep
 from pipx.fanout import fan_out
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
@@ -77,6 +78,7 @@ if TYPE_CHECKING:
 
     from pipx.venv_inspect import VenvMetadata
 
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
@@ -752,6 +754,10 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     interpreter: Final[str | None] = (
         python if python_flag_passed else get_python_interpreter(venv_metadata.source_interpreter) or python
     )
+    # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
+    replay_pip_args: Final[bool] = backend in {None, venv_metadata.backend}
+    if not (pip_args or replay_pip_args):
+        _warn_dropped_pip_args(venv_metadata)
     try:
         with venv_container.venv_lock(venv_dir) as venv_lock:
             package_cooldown = _resolve_cooldown(
@@ -767,7 +773,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 local_bin_dir,
                 local_man_dir,
                 interpreter,
-                pip_args or main_package.pip_args,
+                pip_args or (main_package.pip_args if replay_pip_args else []),
                 venv_args or venv_metadata.venv_args,
                 verbose=verbose,
                 force=force,
@@ -793,7 +799,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                     venv_dir=venv_dir,
                     package_specs=[generate_package_spec(inject_package)],
                     requirement_files=[],
-                    pip_args=pip_args or inject_package.pip_args,
+                    pip_args=pip_args or (inject_package.pip_args if replay_pip_args else []),
                     verbose=verbose,
                     include_apps=inject_package.include_apps,
                     include_dependencies=inject_package.include_dependencies,
@@ -807,6 +813,18 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
         print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return venv_dir.name, False
     return venv_dir.name, True
+
+
+def _warn_dropped_pip_args(venv_metadata: PipxMetadata) -> None:
+    packages: Final[list[PackageInfo]] = [venv_metadata.main_package, *venv_metadata.injected_packages.values()]
+    if dropped := list(dict.fromkeys(argument for package in packages for argument in package.pip_args)):
+        _LOGGER.warning(
+            "%s  Ignoring pip args recorded for the %s backend of %s: %s",
+            hazard,
+            venv_metadata.backend,
+            f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}",
+            " ".join(dropped),
+        )
 
 
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:

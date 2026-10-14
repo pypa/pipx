@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -231,6 +232,46 @@ def test_install_all_restores_recorded_args(
         metadata.main_package.pip_args,
         metadata.injected_packages["pycowsay"].pip_args,
     ) == (["--system-site-packages"], expected_pip_args, expected_pip_args)
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_drops_recorded_pip_args_for_another_backend(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "--pip-args=--progress-bar off", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", "--pip-args=--progress-bar off", PKG["black"]["spec"]])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (metadata.backend, metadata.main_package.pip_args, metadata.injected_packages["black"].pip_args) == (
+        "uv",
+        [],
+        [],
+    )
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_warns_about_dropped_pip_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "--pip-args=--progress-bar off", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
+
+    assert "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off" in caplog.text
 
 
 @pytest.mark.parametrize(
