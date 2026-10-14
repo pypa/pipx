@@ -276,17 +276,61 @@ def static_project_name(package_spec: str) -> str | None:
     """Return the name a local project directory declares statically in its pyproject.toml, if any."""
     try:
         with (Path(_split_path_extras(package_spec)[0]) / "pyproject.toml").open("rb") as file:
-            project = tomllib.load(file).get("project")
+            pyproject = tomllib.load(file)
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
         return None
     if not (
-        isinstance(project, dict)
+        _backend_reads_project_table(pyproject.get("build-system"))
+        and isinstance(project := pyproject.get("project"), dict)
         and isinstance(name := project.get("name"), str)
         and isinstance(dynamic := project.get("dynamic", []), list)
         and "name" not in dynamic
     ):
         return None
     return _valid_name(name)
+
+
+def _backend_reads_project_table(build_system: object) -> bool:
+    # older poetry-core, setuptools and flit-core build from their own tables and ignore [project]
+    minimum_versions: Final[dict[str, tuple[str, str | None]]] = {
+        "flit_core.buildapi": ("flit-core", "3.2"),
+        "hatchling.build": ("hatchling", None),
+        "pdm.backend": ("pdm-backend", None),
+        "poetry.core.masonry.api": ("poetry-core", "2"),
+        "setuptools.build_meta": ("setuptools", "61"),
+        "uv_build": ("uv-build", None),
+    }
+    if not (
+        isinstance(build_system, dict)
+        and "backend-path" not in build_system
+        and isinstance(backend := build_system.get("build-backend"), str)
+        and (known := minimum_versions.get(backend)) is not None
+        and isinstance(requires := build_system.get("requires"), list)
+    ):
+        return False
+    distribution, minimum = known
+    return minimum is None or any(
+        canonicalize_name(requirement.name) == distribution and _newest_allowed_reaches(requirement.specifier, minimum)
+        for requirement in filter(None, (_requirement(entry) for entry in requires if isinstance(entry, str)))
+    )
+
+
+def _newest_allowed_reaches(specifier: SpecifierSet, minimum: str) -> bool:
+    from packaging.version import InvalidVersion, Version  # ruff:ignore[import-outside-top-level]  # slows startup
+
+    # an isolated build installs the newest version the specifier allows, so it reaches the minimum when the minimum is
+    # allowed or a lower bound already sits at or above it
+    if specifier.contains(minimum, prereleases=True):
+        return True
+    for clause in specifier:
+        try:
+            if clause.operator in {">=", ">", "==", "===", "~="} and Version(
+                clause.version.removesuffix(".*")
+            ) >= Version(minimum):
+                return True
+        except InvalidVersion:
+            continue
+    return False
 
 
 def wheel_project_name(package_spec: str) -> str | None:

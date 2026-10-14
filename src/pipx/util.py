@@ -76,6 +76,12 @@ class PipxError(Exception):
             super().__init__(message)
 
 
+class InstalledNameMismatchError(PipxError):
+    def __init__(self, installed_name: str) -> None:
+        self.installed_name: Final[str] = installed_name
+        super().__init__(f"The package spec installed {installed_name!r}, a different name than expected.")
+
+
 @dataclass(frozen=True)
 class RelevantSearch:
     pattern: Pattern[str]
@@ -669,6 +675,7 @@ def is_paths_relative(path: Path, parent: Path) -> bool:
 
 
 __all__ = [
+    "InstalledNameMismatchError",
     "PipxError",
     "RelevantSearch",
     "analyze_pip_output",

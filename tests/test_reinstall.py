@@ -369,3 +369,21 @@ def test_reinstall_reports_the_reinjected_package(installed_with_injection: pyte
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
     assert "injected package black into venv pycowsay" in installed_with_injection.readouterr().out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_records_injected_local_project_under_its_new_name(
+    empty_project_wheel: Path, local_extras_project: Path
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", str(empty_project_wheel)])
+    assert not run_pipx_cli(["inject", "--include-apps", "empty-project", str(local_extras_project)])
+    pyproject: Final[Path] = local_extras_project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace('name = "repeatme"', 'name = "renamed"')
+        + '[tool.flit.module]\nname = "repeatme"\n',
+        encoding="utf-8",
+    )
+
+    assert not run_pipx_cli(["reinstall", "empty-project"])
+
+    assert list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages) == ["renamed"]

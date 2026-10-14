@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "functools",
     "packaging.utils",
     "pathlib",
     "pipx",
@@ -17,6 +18,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -45,13 +47,14 @@ from pipx.result import (
     render_messages,
     render_result,
 )
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import InstalledNameMismatchError, PipxError, pipx_wrap
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Sequence
+    from collections.abc import Callable, Generator, Iterable, Sequence
 
     from pipx.pipx_metadata_file import PackageInfo
+    from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -164,18 +167,21 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     )
     messages: Final[list[OutputMessage]] = []
     with preserve_venv(venv_dir, enabled=bool(include_resources_from)):
-        venv.install_package(
-            package_name=package_name,
-            package_or_url=package_spec,
-            pip_args=pip_args,
-            install_only_pip_args=["--force-reinstall"] if force else None,
-            include_dependencies=include_dependencies,
-            include_resources_from=include_resources_from,
-            include_apps=include_apps,
-            is_main_package=is_main_package,
-            suffix=venv_suffix,
-            pinned=pinned,
-            cooldown_days=cooldown_days,
+        package_name = _install_under_installed_name(
+            partial(
+                venv.install_package,
+                package_or_url=package_spec,
+                pip_args=pip_args,
+                install_only_pip_args=["--force-reinstall"] if force else None,
+                include_dependencies=include_dependencies,
+                include_resources_from=include_resources_from,
+                include_apps=include_apps,
+                is_main_package=is_main_package,
+                suffix=venv_suffix,
+                pinned=pinned,
+                cooldown_days=cooldown_days,
+            ),
+            package_name,
         )
         if include_apps:
             messages.extend(
@@ -216,6 +222,16 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         ),
         emit_output=emit_output,
     )
+
+
+def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:
+    try:
+        install(package_name)
+    except InstalledNameMismatchError as error:
+        # the spec built under another name than the one pipx resolved, so record the package the venv now holds
+        install(error.installed_name)
+        return error.installed_name
+    return package_name
 
 
 def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's flat CLI-facing option set

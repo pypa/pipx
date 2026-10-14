@@ -138,6 +138,37 @@ def make_wheel(tmp_path: Path) -> Callable[[dict[str, str]], Path]:
 
 
 @pytest.fixture
+def project_ignoring_project_table(tmp_path: Path) -> Path:
+    # stands in for poetry-core<2 or setuptools<61: the backend names the wheel itself and never reads [project]
+    project: Final[Path] = tmp_path / "ignores-project-table"
+    project.mkdir()
+    (project / "pyproject.toml").write_text(
+        '[build-system]\nrequires = []\nbuild-backend = "backend"\nbackend-path = ["."]\n'
+        '[project]\nname = "declared-name"\nversion = "1.0"\n',
+        encoding="utf-8",
+    )
+    (project / "backend.py").write_text(
+        """import zipfile
+from pathlib import Path
+
+
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    name = "real_pkg-1.0-py3-none-any.whl"
+    with zipfile.ZipFile(Path(wheel_directory) / name, "w") as archive:
+        archive.writestr("real_pkg.py", "def main():\\n    print('real')\\n")
+        info = "real_pkg-1.0.dist-info"
+        archive.writestr(f"{info}/METADATA", "Metadata-Version: 2.1\\nName: real-pkg\\nVersion: 1.0\\n")
+        archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\\nRoot-Is-Purelib: true\\nTag: py3-none-any\\n")
+        archive.writestr(f"{info}/entry_points.txt", "[console_scripts]\\nrealapp = real_pkg:main\\n")
+        archive.writestr(f"{info}/RECORD", "")
+    return name
+""",
+        encoding="utf-8",
+    )
+    return project
+
+
+@pytest.fixture
 def inline_script(tmp_path: Path) -> Path:
     script: Final[Path] = tmp_path / "hello.py"
     script.write_text(

@@ -62,6 +62,7 @@ from pipx.shared_libs import (
     shared_libs_auto_upgrade_disabled,
 )
 from pipx.util import (
+    InstalledNameMismatchError,
     PipxError,
     exec_app,
     full_package_description,
@@ -428,6 +429,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             else:
                 self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
+        if not self.has_package(package_name) and (installed := self._name_installed_from(package_or_url)) is not None:
+            raise InstalledNameMismatchError(installed)
         venv_metadata: Final[VenvMetadata] = self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
@@ -456,6 +459,19 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 wrap_message=False,
             )
         return venv_metadata
+
+    def _name_installed_from(self, package_or_url: str) -> str | None:
+        import json  # ruff:ignore[import-outside-top-level]  # slows startup
+        from urllib.parse import urlsplit  # ruff:ignore[import-outside-top-level]  # slows startup
+        from urllib.request import url2pathname  # ruff:ignore[import-outside-top-level]  # slows startup
+
+        # installers record the local path a distribution came from (PEP 610), naming what the spec built
+        locations: Final[dict[str, str]] = {
+            url2pathname(urlsplit(json.loads(direct_url).get("url", "")).path): distribution.name
+            for distribution in self._distributions()
+            if (direct_url := distribution.read_text("direct_url.json")) is not None
+        }
+        return locations.get(package_or_url) or locations.get(package_or_url.rpartition("[")[0])
 
     def _install_locked_package(
         self,
@@ -703,7 +719,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             self._site_packages = get_site_packages(self.python_path)
         return self._site_packages
 
-    def _distributions(self, name: str) -> Iterator[Distribution]:
+    def _distributions(self, name: str | None = None) -> Iterator[Distribution]:
         from importlib.metadata import Distribution  # ruff:ignore[import-outside-top-level]  # slows startup
 
         return iter(Distribution.discover(name=name, path=[str(path) for path in self.site_packages]))

@@ -1303,6 +1303,18 @@ def test_install_local_archive(
     assert f"- {app_name('repeatme')}\n" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_local_project_uses_built_name_when_backend_ignores_project_table(
+    project_ignoring_project_table: Path,
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", str(project_ignoring_project_table)])
+
+    assert (
+        PipxMetadata(paths.ctx.venvs / "real-pkg").main_package.package,
+        (paths.ctx.bin_dir / app_name("realapp")).exists(),
+    ) == ("real-pkg", True)
+
+
 @pytest.mark.parametrize(
     ("backend", "package"),
     [pytest.param("pip", "Foo_Bar.X", id="pip"), pytest.param("uv", "foo-bar-x", id="uv")],

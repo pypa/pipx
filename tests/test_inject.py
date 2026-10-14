@@ -359,6 +359,20 @@ def test_inject_include_apps(with_suffix: bool) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_local_project_uses_built_name_when_backend_ignores_project_table(
+    empty_project_wheel: Path, project_ignoring_project_table: Path
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", str(empty_project_wheel)])
+
+    assert not run_pipx_cli(["inject", "--include-apps", "empty-project", str(project_ignoring_project_table)])
+
+    assert (
+        list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages),
+        (paths.ctx.bin_dir / app_name("realapp")).exists(),
+    ) == (["real-pkg"], True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_include_resources_from_dependency(
     local_extras_wheel: Path,
     empty_project_wheel: Path,

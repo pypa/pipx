@@ -252,9 +252,9 @@ def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: s
 def test_package_name_from_spec_reads_static_name_without_building(
     tmp_path: Path, backend: str | None, env_backend: str | None, extras: str, expected: str
 ) -> None:
-    # the build backend does not exist, so any attempt to build the project would fail
+    # the build requirement does not exist, so any attempt to build the project would fail
     (tmp_path / "pyproject.toml").write_text(
-        '[build-system]\nrequires = ["no-such-build-backend"]\nbuild-backend = "no_such_build_backend"\n'
+        '[build-system]\nrequires = ["no-such-build-backend"]\nbuild-backend = "hatchling.build"\n'
         '[project]\nname = "Foo_Bar.X"\n',
         encoding="utf-8",
     )
