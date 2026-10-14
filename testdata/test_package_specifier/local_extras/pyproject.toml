@@ -1,0 +1,28 @@
+[build-system]
+build-backend = "flit_core.buildapi"
+requires = [
+  "flit-core",
+]
+
+[project]
+name = "repeatme"
+version = "0.1"
+description = "Repeat arguments."
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+]
+optional-dependencies.cow = [
+  "pycowsay==0.0.0.2",
+]
+optional-dependencies.tools = [
+  "black==22.8",
+  "pycowsay==0.0.0.2",
+]
+scripts.repeatme = "repeatme.main:main"

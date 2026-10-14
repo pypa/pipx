@@ -592,18 +592,16 @@ def test_run_passes_python_args_to_app(
     (project / "pyproject.toml").write_text(
         """\
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["flit-core"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "flags-app"
 version = "1"
+description = "Record the interpreter flags."
 
 [project.scripts]
 flags-app = "flags_app:main"
-
-[tool.setuptools]
-py-modules = ["flags_app"]
 """,
         encoding="utf-8",
     )
