@@ -154,6 +154,8 @@ else:
 
 def get_site_packages(python: Path) -> list[Path]:
     """Return the interpreter's purelib first, then its platlib when that is a second directory."""
+    if (site_packages := _site_packages_from_layout(python.parent.parent)) is not None:
+        return site_packages
     output = run_subprocess(
         [
             python,
@@ -169,6 +171,18 @@ def get_site_packages(python: Path) -> list[Path]:
     if (platlib_path := Path(platlib)).resolve() == purelib_path.resolve():
         return [purelib_path]
     return [purelib_path, platlib_path]
+
+
+def _site_packages_from_layout(venv: Path) -> list[Path] | None:
+    # reading the directories a CPython venv creates spares starting its interpreter; any other layout asks sysconfig
+    if (windows_site_packages := venv / "Lib" / "site-packages").is_dir():
+        return [windows_site_packages]
+    match list(venv.glob("lib/python3*/site-packages")):
+        case [purelib]:
+            platlib: Final[Path] = venv / "lib64" / purelib.parent.name / "site-packages"
+            return [purelib, platlib] if platlib.is_dir() and not platlib.samefile(purelib) else [purelib]
+        case _:
+            return None
 
 
 def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict[str, str]:

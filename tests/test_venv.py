@@ -20,8 +20,8 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
     venv: Final[Venv] = Venv(tmp_path / "demo")
     venv.python_path.parent.mkdir(parents=True)
     venv.python_path.touch()
-    purelib: Final[Path] = venv.root / "lib" / "site-packages"
-    platlib: Final[Path] = venv.root / "lib64" / "site-packages"
+    purelib: Final[Path] = venv.root / "purelib"
+    platlib: Final[Path] = venv.root / "platlib"
 
     purelib_demo: Final[Path] = purelib / "demo-1.0.dist-info"
     purelib_demo.mkdir(parents=True)
