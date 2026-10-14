@@ -11,6 +11,7 @@ from pipx.package_specifier import (
     parse_specifier_for_install,
     parse_specifier_for_metadata,
     parse_specifier_for_upgrade,
+    static_project_name,
     valid_pypi_name,
 )
 from pipx.util import PipxError
@@ -442,3 +443,32 @@ def test_parse_specifier_for_install_find_links_args(
 ) -> None:
     _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
     assert pip_args_out == pip_args_expected
+
+
+@pytest.mark.parametrize(
+    ("pyproject", "expected"),
+    [
+        pytest.param(b'[project]\nname = "Foo_Bar.X"\n', "Foo_Bar.X", id="static"),
+        pytest.param(b'[project]\nname = "demo"\ndynamic = ["version"]\n', "demo", id="other-field-dynamic"),
+        pytest.param(None, None, id="no-pyproject"),
+        pytest.param(b"[build-system]\nrequires = []\n", None, id="no-project-table"),
+        pytest.param(b'[project]\nversion = "1"\n', None, id="no-name"),
+        pytest.param(b"[project]\nname = 1\n", None, id="name-not-string"),
+        pytest.param(b'[project]\nname = "-bad-"\n', None, id="name-invalid"),
+        pytest.param(b'[project]\nname = "demo"\ndynamic = ["name"]\n', None, id="name-dynamic"),
+        pytest.param(b'[project]\nname = "demo"\ndynamic = "name"\n', None, id="dynamic-not-list"),
+        pytest.param(b"[project\n", None, id="invalid-toml"),
+        pytest.param(b'[project]\nname = "\xff"\n', None, id="not-utf8"),
+    ],
+)
+def test_static_project_name(tmp_path: Path, pyproject: bytes | None, expected: str | None) -> None:
+    if pyproject is not None:
+        (tmp_path / "pyproject.toml").write_bytes(pyproject)
+
+    assert static_project_name(f"{tmp_path}[extra]") == expected
+
+
+def test_static_project_name_unreadable_pyproject(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").mkdir()
+
+    assert static_project_name(str(tmp_path)) is None

@@ -18,10 +18,11 @@ import userpath
 from packaging.utils import canonicalize_name
 
 from pipx import paths
+from pipx.backends import PIP, env_default_backend, resolve_backend_name
 from pipx.colors import bold, red
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
-from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
+from pipx.package_specifier import parse_specifier_for_install, static_project_name, valid_pypi_name
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
@@ -526,6 +527,16 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
 
     # check syntax and clean up spec and pip_args
     (package_spec, pip_args) = parse_specifier_for_install(package_spec, pip_args)
+
+    if (project_name := static_project_name(package_spec)) is not None:
+        backend_name, _ = resolve_backend_name(
+            cli_value=backend, env_value=env_default_backend() if env_backend is None else env_backend
+        )
+        # match what the installer would report: pip lists the declared name, uv the normalized one
+        package_name = project_name if backend_name == PIP else canonicalize_name(project_name)
+        _LOGGER.info("Determined package name: %s", package_name)
+        _LOGGER.info("Package name determined in %.1fs", time.time() - start_time)
+        return package_name
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend, env_backend=env_backend)
