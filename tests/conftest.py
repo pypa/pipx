@@ -323,21 +323,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Start local pypi server and use in tests.",
     )
-    parser.addoption(
-        "--shard",
-        default=None,
-        help="Run only shard INDEX of COUNT, given as INDEX/COUNT (1-based), taking every COUNT-th collected test.",
-    )
-
-
-def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if (shard := config.getoption("shard")) is None:
-        return
-    index, count = (int(part) for part in shard.split("/"))
-    # round-robin over collection order spreads each slow test file across every shard
-    keep: Final[set[int]] = set(range(index - 1, len(items), count))
-    config.hook.pytest_deselected(items=[item for position, item in enumerate(items) if position not in keep])
-    items[:] = [item for position, item in enumerate(items) if position in keep]
 
 
 def pytest_configure(config: pytest.Config) -> None:
