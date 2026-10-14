@@ -258,17 +258,17 @@ def _remove_shared_libs() -> None:
     "break_shared_libs",
     [pytest.param(_truncate_pip_main, id="truncated-pip-module"), pytest.param(_remove_shared_libs, id="removed")],
 )
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
+@pytest.mark.usefixtures("shared_pip_layout")
 def test_install_rebuilds_shared_libs_broken_after_validation(break_shared_libs: Callable[[], None]) -> None:
-    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    assert shared_libs.shared_libs.is_valid
     break_shared_libs()
 
-    assert not run_pipx_cli(["install", "--backend", "pip", "--force", "pycowsay"])
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_install_failure_with_working_pip_keeps_shared_libs() -> None:
-    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    shared_libs.shared_libs.create(pip_args=[])
     (sentinel := shared_libs.shared_libs.root / "sentinel").touch()
 
     return_code = run_pipx_cli(["install", "--backend", "pip", "pipx-package-does-not-exist"])
@@ -295,12 +295,10 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     assert "pip >= 26.1" in install_command
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
+@pytest.mark.usefixtures("shared_pip_layout")
 def test_shared_libs_upgrade_serializes_concurrent_calls(
     mocker: MockerFixture,
 ) -> None:
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
-    shared_libs.shared_libs.has_been_updated_this_run = False
     first_started = Event()
     release_first = Event()
     second_started = Event()
