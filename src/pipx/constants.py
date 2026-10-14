@@ -4,11 +4,11 @@ __lazy_modules__ = ["platform", "sysconfig"]
 
 import enum
 import os
-import platform
+import sys
 import sysconfig
 from pathlib import PurePosixPath
 from textwrap import dedent
-from typing import NewType
+from typing import Final, NewType
 
 
 class FetchPythonOptions(enum.StrEnum):
@@ -91,25 +91,13 @@ EXIT_CODE_REINSTALL_INVALID_PYTHON = ExitCode(1)
 EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND = ExitCode(1)
 
 
-def is_windows() -> bool:
-    return platform.system() == "Windows"
-
-
-def is_macos() -> bool:
-    return platform.system() == "Darwin"
-
-
-def is_linux() -> bool:
-    return platform.system() == "Linux"
-
-
 def is_mingw() -> bool:
     return sysconfig.get_platform().startswith("mingw")
 
 
-WINDOWS: bool = is_windows()
-MACOS: bool = is_macos()
-LINUX: bool = is_linux()
+# not platform.system(): on Windows it queries WMI, adding tens of milliseconds to every startup
+WINDOWS: Final[bool] = sys.platform == "win32"
+MACOS: Final[bool] = sys.platform == "darwin"
 MINGW: bool = is_mingw()
 
 completion_instructions = dedent(
