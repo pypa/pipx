@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Final, Literal, TypeAlias, cast
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import mock_legacy_venv, run_pipx_cli
-from pipx import paths
+from helpers import mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from pipx import paths, util
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
@@ -403,6 +403,24 @@ def test_list_outdated_reports_missing_metadata(
 
     captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "pycowsay: Missing internal pipx metadata.\n")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_outdated_reports_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    remove_venv_interpreter("pycowsay")
+    capsys.readouterr()
+
+    assert run_pipx_cli(["list", "--outdated"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == (
+        "",
+        (
+            f"pycowsay: Invalid python interpreter {util.get_venv_paths(paths.ctx.venvs / 'pycowsay')[1]}. "
+            "To fix, execute: pipx reinstall-all\n"
+        ),
+    )
 
 
 @pytest.mark.parametrize(
