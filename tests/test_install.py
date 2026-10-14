@@ -1559,6 +1559,8 @@ def test_preinstall_specific_version(caplog: pytest.LogCaptureFixture) -> None:
 @pytest.mark.usefixtures("pipx_temp_env", "pipx_session_shared_dir")
 def test_do_not_wait_for_input(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
+    # pip otherwise retries the refused connection five times with backoff
+    monkeypatch.setenv("PIP_RETRIES", "0")
     run_pipx_cli(["install", "pycowsay"])
 
 
