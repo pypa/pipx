@@ -617,6 +617,8 @@ def test_backend_list_outdated_forwards_index_settings(
             "--format=json",
             "--index-url",
             "https://index.example/simple",
+            "--exclude=click",
+            "--exclude=pip",
         ]
     else:
         mocker.patch(
@@ -641,6 +643,8 @@ def test_backend_list_outdated_forwards_index_settings(
             "--format=json",
             "--index-url",
             "https://index.example/simple",
+            "--exclude=click",
+            "--exclude=pip",
         ]
     run_subprocess = mocker.patch(
         f"pipx.backends.{'pip' if backend_name == PIP else 'uv'}.run_subprocess",
@@ -657,6 +661,7 @@ def test_backend_list_outdated_forwards_index_settings(
         venv_root=tmp_path,
         venv_python=tmp_path / "bin" / "python",
         index_args=["--index-url", "https://index.example/simple"],
+        exclude=["click", "pip"],
     )
 
     assert (result, run_subprocess.call_args.args[0]) == (

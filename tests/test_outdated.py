@@ -8,6 +8,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Final, Literal, TypeAlias, cast
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from helpers import mock_legacy_venv, run_pipx_cli
 from pipx import paths
@@ -195,6 +196,42 @@ def test_list_outdated_filters_injected(
 
     captured = capsys.readouterr()
     assert (captured.out, captured.err) == (expected, "")
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.parametrize(
+    ("options", "managed"),
+    [
+        pytest.param([], {"pycowsay"}, id="main-only"),
+        pytest.param(["--include-injected"], {"pycowsay", "black"}, id="include-injected"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_outdated_excludes_unmanaged_distributions(
+    capfd: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    backend: str,
+    options: list[str],
+    managed: set[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--backend", backend])
+    assert not run_pipx_cli(["inject", "pycowsay", "black"])
+    capfd.readouterr()
+    assert not run_pipx_cli(["runpip", "pycowsay", "list", "--format=json"])
+    installed: Final[set[str]] = {canonicalize_name(entry["name"]) for entry in json.loads(capfd.readouterr().out)}
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        f"pipx.backends.{backend}.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr=""),
+    )
+
+    assert not run_pipx_cli(["list", "--outdated", *options])
+
+    assert [
+        arg.removeprefix("--exclude=")
+        for arg in map(str, run_subprocess.call_args.args[0])
+        if arg.startswith("--exclude=")
+    ] == sorted(installed - managed)
 
 
 @pytest.mark.parametrize(

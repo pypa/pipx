@@ -168,9 +168,10 @@ class UvBackend(Backend):
         venv_root: Path,
         venv_python: Path,
         index_args: list[str],
+        exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
-        cmd += ["--outdated", "--format=json", *index_args]
+        cmd += ["--outdated", "--format=json", *index_args, *(f"--exclude={name}" for name in exclude)]
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         return outdated_packages_from_process(process)
 

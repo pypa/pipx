@@ -99,6 +99,7 @@ class Backend(ABC):
         venv_root: Path,
         venv_python: Path,
         index_args: list[str],
+        exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]: ...
 
     @abstractmethod

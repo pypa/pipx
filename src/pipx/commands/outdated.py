@@ -226,7 +226,7 @@ def _collect_outdated(
     package_infos: dict[str, PackageInfo],
 ) -> tuple[list[_OutdatedPackage], list[_FailedEnvironment]]:
     try:
-        outdated = list(venv.list_outdated_packages(list(index_args)))
+        outdated = list(venv.list_outdated_packages(list(index_args), package_infos))
     except PipxError as error:
         return [], [_FailedEnvironment(venv.name, str(error))]
     packages = [

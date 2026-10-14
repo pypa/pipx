@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Iterator, Sequence
+    from collections.abc import Collection, Generator, Iterable, Iterator, Sequence
     from importlib.metadata import Distribution, EntryPoint
     from subprocess import CompletedProcess
 
@@ -674,12 +674,26 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             not_required=not_required,
         )
 
-    def list_outdated_packages(self, index_args: list[str]) -> tuple[OutdatedPackage, ...]:
+    def list_outdated_packages(self, index_args: list[str], packages: Collection[str]) -> tuple[OutdatedPackage, ...]:
+        # pip and uv query the index for every installed distribution unless told to exclude it
         return self.backend.list_outdated(
             venv_root=self.root,
             venv_python=self.python_path,
             index_args=index_args,
+            exclude=sorted(self._installed_distribution_names().difference(packages)),
         )
+
+    def _installed_distribution_names(self) -> set[str]:
+        # the directory name carries the distribution name, so a broken METADATA file cannot fail the listing
+        site_packages: Final[list[Path]] = list(self.site_packages)
+        if (shared_pth := site_packages[0] / PIPX_SHARED_PTH).is_file():
+            site_packages.extend(Path(line) for line in shared_pth.read_text().splitlines())
+        return {
+            canonicalize_name(path.name.partition("-")[0])
+            for directory in site_packages
+            for pattern in ("*.dist-info", "*.egg-info")
+            for path in directory.glob(pattern)
+        }
 
     @property
     def site_packages(self) -> list[Path]:
