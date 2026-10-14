@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 import pytest
 
-from pipx import shared_libs
+from helpers import run_pipx_cli, skip_if_windows
+from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.util import run_subprocess
@@ -181,6 +182,17 @@ def test_shared_libs_create_without_index_when_auto_upgrade_disabled(monkeypatch
     shared_libs.shared_libs.create(pip_args=["--no-index"])
 
     assert shared_libs.shared_libs.is_valid
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_global_install_creates_shared_libs_in_global_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", None)
+
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
+
+    expected_root = (tmp_path / "global" / "pipxhome" / "shared").resolve()
+    assert (shared_libs.shared_libs.root, shared_libs.shared_libs.is_valid) == (expected_root, True)
 
 
 @pytest.mark.parametrize(

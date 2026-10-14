@@ -33,6 +33,7 @@ OVERRIDE_PIPX_GLOBAL_HOME = None
 OVERRIDE_PIPX_GLOBAL_BIN_DIR = None
 OVERRIDE_PIPX_GLOBAL_MAN_DIR = None
 OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR = None
+OVERRIDE_PIPX_GLOBAL_SHARED_LIBS = None
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ class _PathContext:
         self._default_log = self._default_home / "logs"
         self._default_cache = self._default_home / ".cache"
         self._default_trash = self._default_home / "trash"
-        self._base_shared_libs = None
+        self._base_shared_libs = OVERRIDE_PIPX_GLOBAL_SHARED_LIBS
         self._fallback_home = None
         self._home_exists = self._base_home is not None
         self._clear_cached_paths()
@@ -186,6 +187,7 @@ __all__ = [
     "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR",
     "OVERRIDE_PIPX_GLOBAL_HOME",
     "OVERRIDE_PIPX_GLOBAL_MAN_DIR",
+    "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS",
     "OVERRIDE_PIPX_HOME",
     "OVERRIDE_PIPX_MAN_DIR",
     "OVERRIDE_PIPX_SHARED_LIBS",
