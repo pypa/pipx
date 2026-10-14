@@ -20,6 +20,7 @@ from pipx.commands.common import (
     get_exposed_man_paths_for_package,
     get_exposed_paths_for_package,
     group_resource_paths,
+    reuse_resource_dir_scans,
 )
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -47,12 +48,13 @@ def uninstall_all(
     errors: list[OperationError] = []
     messages: list[OutputMessage] = []
     packages: list[_UninstalledPackage] = []
-    for venv_dir in venv_container.iter_venv_dirs():
-        with venv_container.venv_lock(venv_dir):
-            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
-        errors.extend(result.errors)
-        messages.extend(result.messages)
-        packages.extend(result.data.packages)
+    with reuse_resource_dir_scans():
+        for venv_dir in venv_container.iter_venv_dirs():
+            with venv_container.venv_lock(venv_dir):
+                result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+            errors.extend(result.errors)
+            messages.extend(result.messages)
+            packages.extend(result.data.packages)
 
     return OperationResult(
         command=("uninstall-all",),

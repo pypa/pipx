@@ -16,6 +16,7 @@ from pipx.commands.common import (
     get_exposed_paths_for_package,
     package_name_from_spec,
     remove_stale_venv_resources,
+    reuse_resource_dir_scans,
 )
 from pipx.constants import MACOS
 from pipx.venv import Venv
@@ -155,6 +156,72 @@ def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: Mocke
     exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     assert (launcher in exposed) is owned
+
+
+@skip_if_windows
+def test_get_exposed_paths_matches_venv_reached_through_symlinked_dir(tmp_path: Path) -> None:
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (alias := tmp_path / "alias").symlink_to(venv_resource_path)
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (exposed_app := local_resource_dir / "myapp").symlink_to(venv_resource_path / "myapp")
+
+    assert get_exposed_paths_for_package(alias, local_resource_dir) == {exposed_app}
+
+
+@skip_if_windows
+def test_get_exposed_paths_ignores_symlink_into_removed_dir(tmp_path: Path) -> None:
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (local_resource_dir / "myapp").symlink_to(tmp_path / "removed" / "myapp")
+
+    assert get_exposed_paths_for_package(venv_resource_path, local_resource_dir) == set()
+
+
+def test_get_exposed_paths_matches_copied_launcher_with_quoted_interpreter(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    (venv_resource_path := tmp_path / "venv bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (launcher := local_resource_dir / "myapp").write_text(f'#!"{venv_resource_path / "python"}" -E\n')
+
+    assert get_exposed_paths_for_package(venv_resource_path, local_resource_dir) == {launcher}
+
+
+def test_get_exposed_paths_ignores_unreadable_copy(tmp_path: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (local_resource_dir / "myapp").mkdir()
+
+    assert get_exposed_paths_for_package(venv_resource_path, local_resource_dir) == set()
+
+
+def test_get_exposed_paths_matches_copy_by_recorded_source(tmp_path: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    (source := tmp_path / "source" / "myapp.1").parent.mkdir()
+    source.write_text("page")
+    (local_resource_dir := tmp_path / "man1").mkdir()
+    (copy := local_resource_dir / "myapp.1").write_text("page")
+
+    exposed = get_exposed_paths_for_package(tmp_path / "missing", local_resource_dir, {"myapp.1": [source]})
+
+    assert exposed == {copy}
+
+
+def test_reuse_resource_dir_scans_skips_copy_removed_after_scan(tmp_path: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    (venv_resource_path := tmp_path / "venv_man1").mkdir()
+    (venv_resource_path / "myapp.1").write_text("page")
+    (local_resource_dir := tmp_path / "man1").mkdir()
+    (copy := local_resource_dir / "myapp.1").write_text("page")
+
+    with reuse_resource_dir_scans():
+        get_exposed_paths_for_package(tmp_path / "other_venv_man1", local_resource_dir)
+        copy.unlink()
+        exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+
+    assert exposed == set()
 
 
 @pytest.mark.parametrize(

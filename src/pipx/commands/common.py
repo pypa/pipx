@@ -24,6 +24,9 @@ import shlex
 import shutil
 import tempfile
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from re import Pattern
 from shutil import which
@@ -49,7 +52,7 @@ from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Generator, Iterable, Mapping, Sequence
 
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -384,6 +387,22 @@ def get_venv_summary(
     )
 
 
+_RESOURCE_DIR_SCANS: Final[ContextVar[dict[Path, _ResourceDirScan] | None]] = ContextVar(
+    "resource_dir_scans", default=None
+)
+
+
+@contextmanager
+def reuse_resource_dir_scans() -> Generator[None]:
+    # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
+    # command instead of once per venv keeps them linear in the number of venvs
+    token = _RESOURCE_DIR_SCANS.set({})
+    try:
+        yield
+    finally:
+        _RESOURCE_DIR_SCANS.reset(token)
+
+
 def get_exposed_paths_for_package(
     venv_resource_path: Path,
     local_resource_dir: Path,
@@ -392,53 +411,70 @@ def get_exposed_paths_for_package(
     if not local_resource_dir.exists():
         return set()
 
-    return {
+    scan: Final[_ResourceDirScan] = _scan_resource_dir(local_resource_dir)
+    try:
+        exposed = set(scan.by_owner.get(_directory_id(venv_resource_path), ()))
+    except OSError:
+        exposed = set()
+    if can_symlink(local_resource_dir):
+        return exposed
+    # Man pages and completions carry no launcher shebang, so a copy can only match the venv's own file of the same
+    # name or a recorded source; looking up those names avoids comparing every copy with every venv.
+    try:
+        venv_names = [path.name for path in venv_resource_path.iterdir()]
+    except OSError:
+        venv_names = []
+    return exposed | {
         resource_path
-        for resource_path in local_resource_dir.iterdir()
-        if _resource_belongs_to_venv(resource_path, venv_resource_path, local_resource_dir, package_resource_paths)
+        for name in {os.path.normcase(name) for name in (*venv_names, *(package_resource_paths or {}))}
+        for resource_path in scan.by_name.get(name, ())
+        if _copy_matches_source(resource_path, venv_resource_path, package_resource_paths)
     }
 
 
-def _resource_belongs_to_venv(
-    resource_path: Path,
-    venv_resource_path: Path,
-    local_resource_dir: Path,
-    package_resource_paths: Mapping[str, Sequence[Path]] | None,
-) -> bool:
+def _scan_resource_dir(local_resource_dir: Path) -> _ResourceDirScan:
+    if (scans := _RESOURCE_DIR_SCANS.get()) is None:
+        return _build_resource_dir_scan(local_resource_dir)
+    if local_resource_dir not in scans:
+        scans[local_resource_dir] = _build_resource_dir_scan(local_resource_dir)
+    return scans[local_resource_dir]
+
+
+def _build_resource_dir_scan(local_resource_dir: Path) -> _ResourceDirScan:
+    owner_ids: Final = _symlink_owner_ids if can_symlink(local_resource_dir) else _launcher_owner_ids
+    by_owner: Final[dict[tuple[int, int], set[Path]]] = {}
+    by_name: Final[dict[str, list[Path]]] = {}
+    for resource_path in local_resource_dir.iterdir():
+        by_name.setdefault(os.path.normcase(resource_path.name), []).append(resource_path)
+        for owner_id in owner_ids(resource_path):
+            by_owner.setdefault(owner_id, set()).add(resource_path)
+    return _ResourceDirScan(by_owner, by_name)
+
+
+@dataclass(frozen=True)
+class _ResourceDirScan:
+    by_owner: dict[tuple[int, int], set[Path]]
+    by_name: dict[str, list[Path]]
+
+
+def _symlink_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
+    # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
     try:
-        # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
-        if can_symlink(local_resource_dir):
-            return resource_path.is_symlink() and resource_path.resolve().parent.samefile(venv_resource_path)
-        return _copy_belongs_to_venv(resource_path, venv_resource_path, package_resource_paths)
+        return [_directory_id(resource_path.resolve().parent)] if resource_path.is_symlink() else []
     except (FileNotFoundError, RuntimeError):
-        return False
+        return []
 
 
-def _copy_belongs_to_venv(
-    resource_path: Path,
-    venv_resource_path: Path,
-    package_resource_paths: Mapping[str, Sequence[Path]] | None,
-) -> bool:
+def _launcher_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
     # A copied launcher keeps a shebang to the venv interpreter it was built for, so a stale copy is still
     # recognised even after a force reinstall regenerates its source (the rewritten launcher no longer
     # byte-matches, and Windows .exe stubs also embed install-time timestamps), while another venv's colliding
     # copy is not.
-    if _copy_launcher_targets_venv(resource_path, venv_resource_path):
-        return True
-    # Man pages and completions carry no launcher shebang, so match a copy against the venv's own file of the
-    # same name (a static resource copies byte-for-byte) and every recorded source; a colliding copy differs.
-    same_named: Final[Path] = venv_resource_path / resource_path.name
-    if same_named.is_file() and filecmp.cmp(resource_path, same_named, shallow=False):
-        return True
-    sources = package_resource_paths.get(resource_path.name, ()) if package_resource_paths is not None else ()
-    return any(source.is_file() and filecmp.cmp(resource_path, source, shallow=False) for source in sources)
-
-
-def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -> bool:
     try:
         data: Final[bytes] = resource_path.read_bytes()
     except OSError:
-        return False
+        return []
+    owner_ids: Final[list[tuple[int, int]]] = []
     # A console-script launcher embeds a "#!<interpreter>" line: the first line on POSIX, and on Windows a line
     # tucked between the .exe launcher stub and the appended zip. Both point the copy at its owning venv.
     start = 0
@@ -451,14 +487,35 @@ def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -
         else:
             interpreter = parts[0] if (parts := line.split()) else b""
         try:
-            if interpreter and Path(os.fsdecode(interpreter)).parent.samefile(venv_resource_path):
-                return True
+            if interpreter:
+                owner_ids.append(_directory_id(Path(os.fsdecode(interpreter)).parent))
         except (OSError, ValueError):
             # The scan reads every file in the bin directory, so a stray "#!" in a foreign binary leads here with
             # arbitrary bytes rather than a path: os.fsdecode rejects undecodable ones under the surrogatepass
             # codec Windows uses, and stat rejects an embedded NUL. Neither makes the copy ours.
             continue
-    return False
+    return owner_ids
+
+
+def _directory_id(path: Path) -> tuple[int, int]:
+    # the identity Path.samefile compares, so a venv reached through a different spelling still matches
+    return (stat := path.stat()).st_dev, stat.st_ino
+
+
+def _copy_matches_source(
+    resource_path: Path,
+    venv_resource_path: Path,
+    package_resource_paths: Mapping[str, Sequence[Path]] | None,
+) -> bool:
+    # a static resource copies byte-for-byte, while a colliding copy from another package differs
+    try:
+        same_named: Final[Path] = venv_resource_path / resource_path.name
+        if same_named.is_file() and filecmp.cmp(resource_path, same_named, shallow=False):
+            return True
+        sources = (package_resource_paths or {}).get(resource_path.name, ())
+        return any(source.is_file() and filecmp.cmp(resource_path, source, shallow=False) for source in sources)
+    except FileNotFoundError:
+        return False
 
 
 def get_exposed_man_paths_for_package(
@@ -771,6 +828,7 @@ __all__ = [
     "locked_package_message",
     "package_name_from_spec",
     "remove_stale_venv_resources",
+    "reuse_resource_dir_scans",
     "run_post_install_actions",
     "validate_expected_apps",
     "validate_suffix",
