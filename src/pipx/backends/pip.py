@@ -20,7 +20,7 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from pathlib import Path
     from subprocess import CompletedProcess
 
@@ -95,12 +95,16 @@ class PipBackend(Backend):
         if verbose or progress:
             cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
-        process = run_subprocess(
-            cmd,
-            log_stdout=not log_pip_errors,
-            log_stderr=not log_pip_errors,
-            run_dir=str(venv_root),
-            stream_output=verbose or progress,
+        process = _run_with_shared_pip_repair(
+            lambda: run_subprocess(
+                cmd,
+                log_stdout=not log_pip_errors,
+                log_stderr=not log_pip_errors,
+                run_dir=str(venv_root),
+                stream_output=verbose or progress,
+            ),
+            pip_args=pip_args,
+            verbose=verbose,
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process)
@@ -121,7 +125,9 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages]
         if not verbose:
             cmd.append("-q")
-        process = run_subprocess(cmd, run_dir=str(venv_root))
+        process = _run_with_shared_pip_repair(
+            lambda: run_subprocess(cmd, run_dir=str(venv_root)), pip_args=[], verbose=verbose
+        )
         subprocess_post_check(process)
         return process
 
@@ -138,7 +144,7 @@ class PipBackend(Backend):
 
             return list_not_required_packages(venv_python)
         cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
-        process = run_subprocess(cmd)
+        process = _run_with_shared_pip_repair(lambda: run_subprocess(cmd), pip_args=[], verbose=False)
         if process.returncode != 0:
             msg = (
                 f"Failed to execute {process.args}.\n"
@@ -155,9 +161,13 @@ class PipBackend(Backend):
         venv_python: Path,
         index_args: list[str],
     ) -> tuple[OutdatedPackage, ...]:
-        process = run_subprocess(
-            [str(venv_python), "-m", "pip", "list", "--outdated", "--format=json", *index_args],
-            run_dir=str(venv_root),
+        process = _run_with_shared_pip_repair(
+            lambda: run_subprocess(
+                [str(venv_python), "-m", "pip", "list", "--outdated", "--format=json", *index_args],
+                run_dir=str(venv_root),
+            ),
+            pip_args=index_args,
+            verbose=False,
         )
         return outdated_packages_from_process(process)
 
@@ -174,12 +184,26 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", *args]
         if not verbose:
             cmd.append("-q")
-        return run_subprocess(
-            cmd,
-            capture_stdout=capture_stdout,
-            capture_stderr=capture_stderr,
-            run_dir=str(venv_root),
+        return _run_with_shared_pip_repair(
+            lambda: run_subprocess(
+                cmd,
+                capture_stdout=capture_stdout,
+                capture_stderr=capture_stderr,
+                run_dir=str(venv_root),
+            ),
+            pip_args=[],
+            verbose=verbose,
         )
+
+
+def _run_with_shared_pip_repair(
+    run: Callable[[], CompletedProcess[str]], *, pip_args: list[str], verbose: bool
+) -> CompletedProcess[str]:
+    # A failed pip run only implicates the shared pip when pip itself no longer imports, so ordinary install failures
+    # (an unresolvable requirement, a build error) come back untouched.
+    if (process := run()).returncode and shared_libs.rebuild_if_pip_broken(pip_args=pip_args, verbose=verbose):
+        return run()
+    return process
 
 
 __all__ = [

@@ -85,8 +85,8 @@ To rebuild healthy environments too (for example after an old pipx release), use
  Start over from a fresh install
 ********************************
 
-An interrupted install or shared-library upgrade can leave state that ``pipx repair`` cannot mend, such as a shared
-environment whose pip no longer imports. Reset pipx to the state it had at install time:
+An interrupted install or shared-library upgrade can leave state that ``pipx repair`` cannot mend. Reset pipx to the
+state it had at install time:
 
 .. code-block:: console
 

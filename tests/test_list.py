@@ -467,11 +467,16 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
     assert "black 22.8.0 (injected in venv isort)" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:
     fake_venv = venv.Venv(tmp_path / "fake_venv")
     pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
+    shared_python = shared_libs.shared_libs.python_path
+    shared_python.parent.mkdir(parents=True)
+    shared_python.touch()
 
     fake_process.register(pip_list_args, returncode=1, stderr="unit test stderr")
+    fake_process.register([str(shared_python), "-c", "from pip._internal.cli.main import main"])
 
     with pytest.raises(PipxError) as excinfo:
         fake_venv.list_installed_packages()
