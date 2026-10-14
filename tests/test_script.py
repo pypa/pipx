@@ -146,7 +146,7 @@ def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
     response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
-    urlopen = mocker.patch("pipx.script.urllib.request.urlopen", return_value=response)
+    urlopen = mocker.patch("urllib.request.urlopen", return_value=response)
 
     with pytest.raises(PipxError, match="larger than"):
         _read_url("https://example.invalid/big.py")

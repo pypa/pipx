@@ -1230,7 +1230,7 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
     response.read.return_value = b"x" * (run_module._MAX_SCRIPT_BYTES + 1)  # ruff:ignore[private-member-access]  # private helper under test, no public API
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
-    mocker.patch.object(run_module.urllib.request, "urlopen", return_value=response)
+    mocker.patch("urllib.request.urlopen", return_value=response)
 
     with pytest.raises(PipxError, match="larger than"):
         run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
@@ -1272,7 +1272,7 @@ def test_run_cache_key_is_stable(cache_lock_path: Callable[[list[str], list[str]
 @pytest.fixture
 def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
     # Stop at the filesystem boundary before installing conflicting argument sets.
-    lock: Final = mocker.patch("pipx.venv.FileLock", autospec=True)
+    lock: Final = mocker.patch("filelock.FileLock", autospec=True)
     lock.return_value.__enter__.side_effect = OSError("cache lock unavailable")
 
     def capture(dependencies: list[str], pip_args: list[str], venv_args: list[str]) -> Path:
