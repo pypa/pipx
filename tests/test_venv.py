@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import platform
+import shutil
 import subprocess
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
+from helpers import run_pipx_cli
+from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
 
@@ -59,3 +64,14 @@ def test_run_app_rejects_python_args_without_entry_point(
 
     with pytest.raises(PipxError, match="'demo' is not a Python entry point"):
         venv.run_app("demo", "demo", [], python_args=["-b"])
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_records_the_venv_python_version(backend: str) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv binary not on PATH")
+
+    assert not run_pipx_cli(["install", "--backend", backend, "pycowsay"])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"

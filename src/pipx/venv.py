@@ -52,7 +52,6 @@ from pipx.util import (
     get_venv_paths,
     pipx_wrap,
     rmdir,
-    run_subprocess,
     subprocess_post_check,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
@@ -306,7 +305,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # Runtime overrides on existing venvs (e.g. `--backend uv pipx upgrade ...`)
         # must not silently flip the recorded backend.
         self.pipx_metadata.backend = self._backend_name
-        self.pipx_metadata.python_version = self.get_python_version()
+        # update_package_metadata records it from the package inspection, sparing a `python --version` run
+        self.pipx_metadata.python_version = None
         source_interpreter = shutil.which(self.python)
         if source_interpreter:
             self.pipx_metadata.source_interpreter = Path(source_interpreter)
@@ -584,6 +584,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         cooldown_days: int | None = None,
     ) -> VenvMetadata:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
+        if self.pipx_metadata.python_version is None:
+            self.pipx_metadata.python_version = venv_package_metadata.python_version
         if expected_apps is None:
             expected_apps = (
                 self.package_metadata[package_name].expected_apps if package_name in self.package_metadata else ()
@@ -644,9 +646,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
 
         self.pipx_metadata.write()
         return venv_package_metadata
-
-    def get_python_version(self) -> str:
-        return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
     def list_installed_packages(self, *, not_required: bool = False) -> set[str]:
         return self.backend.list_installed(

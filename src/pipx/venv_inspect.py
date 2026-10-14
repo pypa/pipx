@@ -567,7 +567,7 @@ def inspect_venv(  # ruff:ignore[too-many-locals]  # aggregates apps, man pages,
         completions_of_dependencies=completions_of_dependencies,
         completion_paths_of_dependencies=completion_paths_of_dependencies,
         package_version=root_dist.version,
-        python_version=f"Python {venv_python_version}",
+        python_version=f"Python {venv_env['python_full_version']}",
         unsupported_python=unsatisfied_constraint(root_dist.metadata.get("Requires-Python"), venv_python_version),
     )
 
