@@ -15,10 +15,20 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def installed_pycowsay(request: pytest.FixtureRequest, capsys: pytest.CaptureFixture[str]) -> None:
+def installed_pycowsay(
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     request.getfixturevalue("pipx_temp_env")
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
+    # reset deletes the shared libraries; point it at a stand-in so the worker's session copy, which every later test
+    # reuses, does not have to be rebuilt
+    (shared_libs := tmp_path / "reset-shared-libs").mkdir()
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", shared_libs)
+    paths.ctx.make_local()
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
