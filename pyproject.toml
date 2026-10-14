@@ -155,6 +155,9 @@ lint.ignore = [
   "subprocess-without-shell-equals-true",      # using subprocess is alright
   "suspicious-subprocess-import",              # using subprocess is alright
 ]
+lint.per-file-ignores."src/pipx/main.py" = [
+  "import-outside-top-level", # each command loads its module on dispatch to keep CLI startup fast
+]
 lint.per-file-ignores."src/pipx/venv.py" = [
   "stdlib-module-shadowing", # module shadows the standard library
 ]

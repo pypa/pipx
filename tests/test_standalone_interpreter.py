@@ -636,7 +636,7 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
     mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1"])
     mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version)
     download = mocker.patch.object(standalone_python, "download_python_build_standalone")
-    reinstall = mocker.patch("pipx.commands.interpreter.commands.reinstall", autospec=True)
+    reinstall = mocker.patch("pipx.commands.interpreter.reinstall", autospec=True)
     metadata_read = mocker.spy(pipx_metadata_file.PipxMetadata, "read")
 
     assert not run_pipx_cli(["interpreter", "upgrade"])

@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from pipx import commands, constants, paths
+from pipx import constants, paths
 from pipx.animate import animate
+from pipx.commands.reinstall import reinstall
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
@@ -167,7 +168,7 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                             interpreter_full_version,
                             latest_micro_version,
                         )
-                        commands.reinstall(
+                        reinstall(
                             venv_dir=venv.root,
                             local_bin_dir=paths.ctx.bin_dir,
                             local_man_dir=paths.ctx.man_dir,

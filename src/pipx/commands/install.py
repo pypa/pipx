@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx import commands, paths
+from pipx import paths
 from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
@@ -20,6 +20,7 @@ from pipx.commands.common import (
     validate_expected_apps,
     validate_suffix,
 )
+from pipx.commands.inject import inject
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import (
     EXIT_CODE_OK,
@@ -709,7 +710,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     pinned=main_package.pinned,
                 )
                 for inject_package in venv_metadata.injected_packages.values():
-                    commands.inject(
+                    inject(
                         venv_dir=venv_dir,
                         package_specs=[generate_package_spec(inject_package)],
                         requirement_files=[],
