@@ -21,6 +21,7 @@ from urllib.request import urlopen
 from venv import EnvBuilder
 
 import pytest
+from filelock import FileLock
 
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
@@ -346,8 +347,10 @@ def pipx_local_pypiserver(
     pipx_cache_dir = root / _PIPX_TESTS_DIR / "package_cache"
     update_cache = [sys.executable, "scripts/update_package_cache.py"]
     cache_paths = [str(_PIPX_TESTS_PACKAGE_LIST_DIR), str(pipx_cache_dir)]
-    if subprocess.run([*update_cache, "--check-only", *cache_paths], check=False, cwd=root).returncode:
-        subprocess.run([*update_cache, *cache_paths], check=True, cwd=root)
+    # every xdist worker runs this fixture; without the lock they write the list and cache concurrently
+    with FileLock(pipx_cache_dir.with_suffix(".lock")):
+        if subprocess.run([*update_cache, "--check-only", *cache_paths], check=False, cwd=root).returncode:
+            subprocess.run([*update_cache, *cache_paths], check=True, cwd=root)
 
     def find_free_port() -> int:
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
