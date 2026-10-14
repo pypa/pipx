@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import threading
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -12,6 +13,7 @@ import pytest
 
 from helpers import skip_if_windows
 from pipx import paths
+from pipx.fanout import fan_out
 from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_unlink
 
 if TYPE_CHECKING:
@@ -136,6 +138,47 @@ def test_subprocess_pythonsafepath_set_for_python_commands() -> None:
     ])
 
     assert result.stdout == "1"
+
+
+@pytest.mark.parametrize(
+    ("capture_stderr", "stream_output"),
+    [
+        pytest.param(False, False, id="uncaptured"),
+        pytest.param(True, True, id="streamed"),
+    ],
+)
+def test_subprocess_holds_output_of_fan_out_task_waiting_its_turn(
+    capfd: pytest.CaptureFixture[str], capture_stderr: bool, stream_output: bool
+) -> None:
+    second_done: Final[threading.Event] = threading.Event()
+
+    def first() -> None:
+        second_done.wait(timeout=5)
+        sys.stderr.write("first ")
+        sys.stderr.flush()
+
+    def second() -> None:
+        run_subprocess(
+            [sys.executable, "-c", "import sys; sys.stderr.write('second')"],
+            capture_stderr=capture_stderr,
+            stream_output=stream_output,
+        )
+        second_done.set()
+
+    fan_out([first, second], sequential=False)
+
+    assert capfd.readouterr().err == "first second"
+
+
+def test_subprocess_held_uncaptured_stderr_stays_unset() -> None:
+    second_done: Final[threading.Event] = threading.Event()
+
+    def second() -> str | None:
+        stderr = run_subprocess([sys.executable, "-c", "import sys"], capture_stderr=False).stderr
+        second_done.set()
+        return stderr
+
+    assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, None]
 
 
 def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[str]) -> None:

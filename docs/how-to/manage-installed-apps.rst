@@ -51,6 +51,9 @@ Verify:
 Use ``--skip PKG ...`` to leave named environments untouched, and ``--include-injected`` to include injected packages.
 Pinned environments are skipped; see :doc:`pin-packages`.
 
+pipx upgrades up to eight environments at once and prints their output in environment order, as a one-at-a-time run
+would. A failed environment does not stop the others. Pass ``--verbose`` to upgrade them one at a time.
+
 Verify:
 
 .. code-block:: console
@@ -119,6 +122,10 @@ Verify:
 
 Common after installing a new Python version so every app moves to it. Use ``--python`` to target a specific
 interpreter and ``--skip PKG ...`` to exclude environments.
+
+pipx rebuilds up to eight environments at once (fewer on machines with fewer CPUs) and holds back the output of each
+until the ones before it finish, so it reads the same as a one-at-a-time run. A failed environment does not stop the
+others. Pass ``--verbose`` to rebuild them one at a time and watch the pip or uv output as it happens.
 
 Verify:
 

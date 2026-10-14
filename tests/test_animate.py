@@ -15,6 +15,7 @@ from pipx.animate import (
     hide_cursor,
     show_cursor,
 )
+from pipx.fanout import fan_out
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -186,3 +187,37 @@ def test_env_no_animate(
 
     assert not captured.out
     assert captured.err == expected_string
+
+
+def test_animate_skips_spinner_of_task_waiting_its_turn(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
+    monkeypatch.setenv("COLUMNS", "80")
+    second_done: Final[threading.Event] = threading.Event()
+
+    def second() -> None:
+        with pipx.animate.animate("waiting its turn", do_animation=True):
+            time.sleep(0.3)
+        second_done.set()
+
+    fan_out([lambda: second_done.wait(timeout=5), second], sequential=False)
+
+    assert "waiting its turn" not in capsys.readouterr().err
+
+
+def test_animate_spins_for_task_whose_turn_it_is(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
+    monkeypatch.setenv("COLUMNS", "80")
+
+    def first() -> None:
+        with pipx.animate.animate("its turn", do_animation=True):
+            time.sleep(0.3)
+
+    fan_out([first, lambda: None], sequential=False)
+
+    assert "its turn" in capsys.readouterr().err

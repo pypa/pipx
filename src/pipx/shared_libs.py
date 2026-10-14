@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["configparser", "pathlib", "pipx", "pipx.interpreter", "pipx.util"]
+__lazy_modules__ = ["configparser", "pathlib", "pipx", "pipx.fanout", "pipx.interpreter", "pipx.util", "threading"]
 
 import datetime as dt
 import logging
@@ -11,12 +11,14 @@ from configparser import Error as ConfigParserError
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
+from threading import RLock
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
+from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python
 from pipx.util import (
     PipxError,
@@ -90,6 +92,8 @@ class _SharedLibs:
     def __init__(self) -> None:
         self._site_packages: dict[Path, list[Path]] = {}
         self._is_valid: bool | None = None
+        # fan-out tasks check the validity from several threads while one of them may rebuild the shared venv
+        self._lock: Final[RLock] = RLock()
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
@@ -124,7 +128,7 @@ class _SharedLibs:
         return self._site_packages[self.python_path]
 
     def create(self, pip_args: list[str], *, verbose: bool = False, reinstall_pip: bool | None = None) -> None:
-        with self._maintenance_lock():
+        with in_turn(lambda: self._is_valid is True), self._lock, self._maintenance_lock():
             self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
 
     def rebuild_if_pip_broken(self, *, pip_args: list[str], verbose: bool) -> bool:
@@ -139,7 +143,7 @@ class _SharedLibs:
         ):
             return False
         logger.warning("pip in the shared libraries at %s does not import, rebuilding them", self.root)
-        with self._maintenance_lock():
+        with self._lock, self._maintenance_lock():
             self._is_valid = False
             self._create(pip_args, verbose=verbose)
         return True
@@ -200,15 +204,15 @@ class _SharedLibs:
 
     @property
     def is_valid(self) -> bool:
-        if self._is_valid is None:
-            self._is_valid = (
-                self.python_path.is_file()
-                and _venv_python_is_valid(self.python_path)
-                and self.pip_path.is_file()
-                and (self.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").is_file()
-            )
-
-        return self._is_valid
+        with self._lock:
+            if self._is_valid is None:
+                self._is_valid = (
+                    self.python_path.is_file()
+                    and _venv_python_is_valid(self.python_path)
+                    and self.pip_path.is_file()
+                    and (self.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").is_file()
+                )
+            return self._is_valid
 
     @property
     def needs_upgrade(self) -> bool:
@@ -231,7 +235,7 @@ class _SharedLibs:
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
-        with self._maintenance_lock():
+        with in_turn(lambda: self.has_been_updated_this_run), self._lock, self._maintenance_lock():
             self._upgrade(pip_args=pip_args, verbose=verbose, raises=raises)
 
     def _upgrade(self, *, pip_args: list[str], verbose: bool, raises: bool) -> None:

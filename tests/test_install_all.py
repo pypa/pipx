@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -270,3 +272,44 @@ def test_install_all_rejects_bad_spec_file(
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     expected: Final[str] = " ".join(pipx_wrap(expected_error.format(file=spec_file)).split())
     assert (result, expected in error) == (1, True)
+
+
+@pytest.fixture
+def spec_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> Path:
+    for spec in ("pycowsay", PKG["pbr"]["spec"], PKG["black"]["spec"]):
+        assert not run_pipx_cli(["install", spec])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+    capsys.readouterr()
+    return spec_file
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_prints_progress_in_spec_order(
+    capsys: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+    spec_file: Path,
+) -> None:
+    venv_names: Final[list[str]] = list(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"])
+    before_venv_subprocess(paths.ctx.venvs / venv_names[0], lambda: time.sleep(0.3))
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) -> None:
+    spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+    spec["venvs"] = {"pycowsay": spec["venvs"]["pycowsay"], "malformed": {}}
+    spec_file.write_text(json.dumps(spec), encoding="utf-8")
+
+    exit_code: Final[int] = run_pipx_cli(["install-all", str(spec_file)])
+
+    assert (exit_code, sorted(venv_dir.name for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir())) == (
+        1,
+        ["pycowsay"],
+    )

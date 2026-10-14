@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "functools",
     "pipx",
     "pipx.commands.common",
     "pipx.commands.install",
     "pipx.commands.outdated",
     "pipx.commands.transaction",
+    "pipx.fanout",
     "pipx.package_specifier",
     "pipx.script",
     "pipx.shared_libs",
@@ -16,6 +18,7 @@ __lazy_modules__ = [
 import logging
 from dataclasses import dataclass, replace
 from enum import StrEnum
+from functools import partial
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
@@ -32,6 +35,7 @@ from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
+from pipx.fanout import fan_out
 from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
@@ -139,46 +143,32 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
     messages: Final[list[OutputMessage]] = []
     results: Final[list[PackageUpgradeResult]] = []
     skipped: Final[list[SkippedUpgrade]] = []
-
-    for venv_dir in venv_container.iter_venv_dirs():
-        if venv_dir.name in skip:
-            skipped.append(SkippedUpgrade(venv_dir.name, "requested"))
-            continue
-        with venv_container.venv_lock(venv_dir) as venv_lock:
-            venv: Venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-            if "--editable" in venv.pipx_metadata.main_package.pip_args:
-                skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
-                continue
-            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole per-venv upgrade
-                _validate_venv_for_upgrade(venv_dir, venv)
-                _raise_check_failures(venv, check_failures)
-                packages_to_upgrade: set[str] = {
-                    package_name
-                    for package_name, package in venv.package_metadata.items()
-                    if (package_name == venv.main_package_name or include_injected)
-                    and (venv.name, f"{package_name}{package.suffix}") in candidates
-                }
-                package_results: tuple[PackageUpgradeResult, ...] = _upgrade_venv(
-                    venv_dir,
-                    pip_args,
-                    verbose=verbose,
-                    include_injected=include_injected,
-                    force=force,
-                    python_flag_passed=python_flag_passed,
-                    backend=backend,
-                    env_backend=env_backend,
-                    venv=venv,
-                    packages_to_upgrade=packages_to_upgrade,
-                    venv_lock=venv_lock,
-                    cooldown_days=cooldown_days,
-                    extra_messages=messages,
-                )
-                results.extend(package_results)
-                for result in package_results:
-                    messages.extend(_package_messages(result, upgrading_all=True))
-            except PipxError as error:
-                failures.append(FailedUpgrade(venv_dir.name, str(error)))
-                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+    for venv_upgrade in fan_out(
+        [
+            partial(
+                _upgrade_listed_venv,
+                venv_container,
+                venv_dir,
+                verbose=verbose,
+                pip_args=pip_args,
+                include_injected=include_injected,
+                skip=skip,
+                force=force,
+                python_flag_passed=python_flag_passed,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+                candidates=candidates,
+                check_failures=check_failures,
+            )
+            for venv_dir in venv_container.iter_venv_dirs()
+        ],
+        sequential=verbose,
+    ):
+        messages.extend(venv_upgrade.messages)
+        results.extend(venv_upgrade.results)
+        skipped.extend(venv_upgrade.skipped)
+        failures.extend(venv_upgrade.failures)
     if not any(result.status is UpgradeStatus.UPGRADED for result in results):
         messages.append(OutputMessage(f"No packages upgraded after running 'pipx upgrade-all' {sleep}"))
     if failures:
@@ -198,6 +188,64 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
             OperationError(code="package_upgrade_failed", message=f.error, environment=f.environment) for f in failures
         ),
         succeeded=bool(results or skipped),
+    )
+
+
+def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat upgrade-all context for one venv
+    venv_container: VenvContainer,
+    venv_dir: Path,
+    *,
+    verbose: bool,
+    pip_args: list[str],
+    include_injected: bool,
+    skip: Sequence[str],
+    force: bool,
+    python_flag_passed: bool,
+    backend: str | None,
+    env_backend: str | None,
+    cooldown_days: int | None,
+    candidates: set[tuple[str, str]],
+    check_failures: dict[str, list[str]],
+) -> _VenvUpgrade:
+    if venv_dir.name in skip:
+        return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "requested"),))
+    with venv_container.venv_lock(venv_dir) as venv_lock:
+        venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+        if "--editable" in venv.pipx_metadata.main_package.pip_args:
+            return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "editable"),))
+        messages: Final[list[OutputMessage]] = []
+        try:
+            _validate_venv_for_upgrade(venv_dir, venv)
+            _raise_check_failures(venv, check_failures)
+            package_results: Final[tuple[PackageUpgradeResult, ...]] = _upgrade_venv(
+                venv_dir,
+                pip_args,
+                verbose=verbose,
+                include_injected=include_injected,
+                force=force,
+                python_flag_passed=python_flag_passed,
+                backend=backend,
+                env_backend=env_backend,
+                venv=venv,
+                packages_to_upgrade={
+                    package_name
+                    for package_name, package in venv.package_metadata.items()
+                    if (package_name == venv.main_package_name or include_injected)
+                    and (venv.name, f"{package_name}{package.suffix}") in candidates
+                },
+                venv_lock=venv_lock,
+                cooldown_days=cooldown_days,
+                extra_messages=messages,
+            )
+        except PipxError as error:
+            messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+            return _VenvUpgrade(messages=tuple(messages), failures=(FailedUpgrade(venv_dir.name, str(error)),))
+    return _VenvUpgrade(
+        messages=(
+            *messages,
+            *(message for result in package_results for message in _package_messages(result, upgrading_all=True)),
+        ),
+        results=package_results,
     )
 
 
@@ -581,6 +629,14 @@ class SkippedUpgrade:
 class FailedUpgrade:
     environment: str
     error: str
+
+
+@dataclass(frozen=True)
+class _VenvUpgrade:
+    messages: tuple[OutputMessage, ...] = ()
+    results: tuple[PackageUpgradeResult, ...] = ()
+    skipped: tuple[SkippedUpgrade, ...] = ()
+    failures: tuple[FailedUpgrade, ...] = ()
 
 
 @dataclass(frozen=True)

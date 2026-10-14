@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import shutil
 import subprocess
+import time
 from threading import Barrier
 from typing import TYPE_CHECKING, Final
 
@@ -358,3 +361,46 @@ def test_upgrade_all_legacy_venv(
         assert "The following package(s) failed to upgrade: pycowsay" in capsys.readouterr().err
     else:
         assert not run_pipx_cli(["upgrade-all"])
+
+
+@pytest.fixture
+def outdated_venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
+    for app, spec in (("black", PKG["black"]["spec"]), ("isort", PKG["isort"]["spec"])):
+        assert not run_pipx_cli(["install", "--app", app, spec])
+    capsys.readouterr()
+    return [venv_dir.name for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir()]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_prints_progress_in_venv_order(
+    capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
+) -> None:
+    slow: Final[Path] = paths.ctx.venvs / outdated_venv_names[0]
+
+    # the backup of an environment with expected apps precedes its upgrade progress line
+    def backup(source: Path, destination: Path, *, symlinks: bool) -> Path:
+        if source == slow:
+            time.sleep(0.3)
+        return shutil.copytree(source, destination, symlinks=symlinks)
+
+    mocker.patch("pipx.commands.transaction.copytree", side_effect=backup)
+
+    assert not run_pipx_cli(["upgrade-all"])
+
+    assert re.findall(r"^upgrading ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == outdated_venv_names
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_upgrades_the_rest_after_a_failure(
+    capsys: pytest.CaptureFixture[str], outdated_venv_names: list[str]
+) -> None:
+    mock_legacy_venv(outdated_venv_names[0])
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all", "--output", "json"])
+
+    result: Final = json.loads(capsys.readouterr().out)
+    assert (
+        exit_code,
+        [package["environment"] for package in result["data"]["packages"]],
+        [error["environment"] for error in result["errors"]],
+    ) == (1, outdated_venv_names[1:], outdated_venv_names[:1])

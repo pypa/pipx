@@ -707,7 +707,10 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "install-all",
         help="Install all packages",
         formatter_class=LineWrapRawTextHelpFormatter,
-        description="Installs all the packages according to spec metadata file.",
+        description=(
+            "Installs all the packages according to spec metadata file. Installs up to eight environments at once "
+            "and prints the output of each in turn, in file order; --verbose installs them one at a time."
+        ),
         parents=[shared_parser],
     )
     parser.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --output json")
@@ -1116,7 +1119,8 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
             "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE' "
             "('uv pip install --upgrade PACKAGE' under the uv backend). "
             "Apps, manual pages, and shell completions a new version adds are exposed, and those it no longer "
-            "ships are removed."
+            "ships are removed. Upgrades up to eight environments at once and prints the output of each in turn; "
+            "--verbose upgrades them one at a time."
         ),
         parents=[shared_parser],
     )
@@ -1321,6 +1325,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
             with the same options used in the original install of PACKAGE.
             This is useful if you upgraded to a new version of Python and want
             all your packages to use the latest as well.
+
+            Rebuilds up to eight environments at once and prints the output
+            of each in turn; --verbose rebuilds them one at a time.
 
             """
         ),

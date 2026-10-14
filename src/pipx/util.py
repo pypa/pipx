@@ -6,6 +6,7 @@ __lazy_modules__ = [
     "itertools",
     "pathlib",
     "pipx",
+    "pipx.fanout",
     "pipx.wrap",
     "pty",
     "random",
@@ -31,7 +32,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, suppress
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -47,6 +48,7 @@ from typing import (
 from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
+from pipx.fanout import output_is_held
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
@@ -281,16 +283,23 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             env=env,
         )
     else:
+        # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
+        hold_stderr: Final[bool] = not capture_stderr and output_is_held()
         completed_process = subprocess.run(
             cmd_str_list,
             env=env,
             stdout=subprocess.PIPE if capture_stdout else None,
-            stderr=subprocess.PIPE if capture_stderr else None,
+            stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
             encoding="utf-8",
             text=True,
             check=False,
             cwd=run_dir,
         )
+        if hold_stderr:
+            sys.stderr.write(completed_process.stderr)
+            completed_process = subprocess.CompletedProcess(
+                completed_process.args, completed_process.returncode, completed_process.stdout
+            )
 
     if capture_stdout and log_stdout and not stream_output:
         _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
@@ -340,7 +349,8 @@ def _run_streaming_subprocess(
                 if not channel.terminal:
                     channel.close_child()
             futures: Final = [
-                executor.submit(_tee_subprocess_output, channels[name].reader, destination, chunks)
+                # each reader needs the caller's context to buffer the output of a fan-out task waiting its turn
+                executor.submit(copy_context().run, _tee_subprocess_output, channels[name].reader, destination, chunks)
                 for name, destination, chunks in (
                     ("stdout", stdout_destination, stdout_chunks),
                     ("stderr", sys.stderr, stderr_chunks),
