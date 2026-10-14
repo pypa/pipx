@@ -344,6 +344,7 @@ def test_venv_python_is_valid_non_windows() -> None:
         ("0", 1),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_disable_shared_libs_auto_upgrade(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

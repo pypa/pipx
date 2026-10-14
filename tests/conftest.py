@@ -230,6 +230,30 @@ def _is_loopback(host: str) -> bool:
 
 
 @pytest.fixture(autouse=True)
+def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
+    """Keep every pipx location inside the test's ``tmp_path``.
+
+    A test that skips ``pipx_temp_env``, or whose patch misses (as one did under 3.15 lazy imports), would otherwise
+    write logs, cached venvs and shared libs into the developer's real pipx home, or ``pip install --upgrade pip``
+    there. Tests that resolve the defaults themselves clear these overrides in a scoped monkeypatch.
+    """
+    with pytest.MonkeyPatch.context() as scoped:
+        for name, location in (
+            ("OVERRIDE_PIPX_HOME", "subdir/pipxhome"),
+            ("OVERRIDE_PIPX_BIN_DIR", "otherdir/pipxbindir"),
+            ("OVERRIDE_PIPX_MAN_DIR", "otherdir/pipxmandir"),
+            ("OVERRIDE_PIPX_COMPLETION_DIR", "otherdir/pipxcompletiondir"),
+            ("OVERRIDE_PIPX_GLOBAL_HOME", "global/pipxhome"),
+            ("OVERRIDE_PIPX_GLOBAL_BIN_DIR", "global_otherdir/pipxbindir"),
+            ("OVERRIDE_PIPX_GLOBAL_MAN_DIR", "global_otherdir/pipxmandir"),
+            ("OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", "global_otherdir/pipxcompletiondir"),
+        ):
+            scoped.setattr(paths, name, tmp_path / location)
+        paths.ctx.make_local()
+        yield
+
+
+@pytest.fixture(autouse=True)
 def _isolate_pipx_logging() -> Iterator[None]:
     yield
     # setup_logging binds a StreamHandler to whatever sys.stderr is when it runs. pytest swaps that stream per
@@ -443,7 +467,6 @@ def utils_path_dirs(tmp_path_factory: pytest.TempPathFactory) -> list[Path]:
 
 @pytest.fixture
 def pipx_temp_env(
-    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     pipx_session_shared_dir: Path,
     request: pytest.FixtureRequest,
@@ -452,9 +475,7 @@ def pipx_temp_env(
     pipx_local_pypiserver: str,
 ) -> Iterator[None]:
     """Shared libs are built once per session; every other pipx dir is recreated per test function."""
-    _pipx_temp_env_helper(
-        pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver
-    )
+    _pipx_temp_env_helper(pipx_session_shared_dir, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
     paths.ctx.make_local()
@@ -469,9 +490,7 @@ def pipx_ultra_temp_env(
     pipx_local_pypiserver: str,
 ) -> Iterator[None]:
     """Every test function starts as if pipx had never run, shared libs directory included."""
-    _pipx_temp_env_helper(
-        tmp_path / "shareddir", tmp_path, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver
-    )
+    _pipx_temp_env_helper(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
     paths.ctx.make_local()
@@ -479,24 +498,13 @@ def pipx_ultra_temp_env(
 
 def _pipx_temp_env_helper(
     pipx_shared_dir: Path,
-    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
     utils_path_dirs: list[Path],
     *,
     pypi: str,
 ) -> None:
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", tmp_path / "subdir" / "pipxhome")
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_BIN_DIR", tmp_path / "otherdir" / "pipxbindir")
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", tmp_path / "otherdir" / "pipxmandir")
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_COMPLETION_DIR", tmp_path / "otherdir" / "pipxcompletiondir")
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", tmp_path / "global" / "pipxhome")
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", tmp_path / "global_otherdir" / "pipxbindir")
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", tmp_path / "global_otherdir" / "pipxmandir")
-    monkeypatch.setattr(
-        paths, "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", tmp_path / "global_otherdir" / "pipxcompletiondir"
-    )
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", pipx_shared_dir)
     # Refresh paths.ctx to commit the overrides
     paths.ctx.make_local()

@@ -101,6 +101,15 @@ def run_pipx_cli(pipx_args: list[str]) -> int:
         return main.cli()
 
 
+def pipx_subprocess_env() -> dict[str, str]:
+    return os.environ | {
+        "PIPX_BIN_DIR": str(paths.ctx.bin_dir),
+        "PIPX_HOME": str(paths.ctx.home),
+        "PIPX_MAN_DIR": str(paths.ctx.man_dir),
+        "PIPX_SHARED_LIBS": str(paths.ctx.shared_libs),
+    }
+
+
 def unwrap_log_text(log_text: str) -> str:
     """Remove line-break + indent space from log messages
 
