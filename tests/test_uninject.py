@@ -365,3 +365,20 @@ def test_uninject_preserves_shared_deps(capsys: pytest.CaptureFixture[str]) -> N
     captured = capsys.readouterr()
     assert "pylint" in captured.out
     assert "black" not in captured.out
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_editable_removes_its_dependencies(tmp_path: Path) -> None:
+    # a src layout puts the project's own egg-info on the venv's search path until the uninstall drops its .pth
+    (tmp_path / "src" / "editable_dep").mkdir(parents=True)
+    (tmp_path / "src" / "editable_dep" / "__init__.py").touch()
+    (tmp_path / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["setuptools"]\nbuild-backend = "setuptools.build_meta"\n\n'
+        '[project]\nname = "editable-dep"\nversion = "0.1"\ndependencies = ["six"]\n',
+        encoding="utf-8",
+    )
+    assert not run_pipx_cli(["inject", "pycowsay", "--editable", str(tmp_path)])
+
+    assert not run_pipx_cli(["uninject", "pycowsay", "editable-dep"])
+
+    assert not list((paths.ctx.venvs / "pycowsay").rglob("six-*.dist-info"))

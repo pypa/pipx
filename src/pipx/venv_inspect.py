@@ -104,19 +104,22 @@ def get_required_dependency_names(dist: metadata.Distribution, env: dict[str, st
 
 
 def list_not_required_packages(venv_python: Path) -> set[str]:
+    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
+    return not_required_packages(venv_sys_path, venv_env)
+
+
+def not_required_packages(sys_path: list[str], env: dict[str, str]) -> set[str]:
     """Canonical names of installed packages that no other installed package requires.
 
     Mirrors ``pip list --not-required`` from installed distribution metadata so every backend
     (including uv, which lacks the flag) computes the same result.
     """
-    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
-    distributions = tuple(metadata.distributions(path=venv_sys_path))
     installed: set[str] = set()
     required: set[str] = set()
-    for dist in distributions:
+    for dist in metadata.distributions(path=sys_path):
         if (name := _distribution_name(dist)) is not None:
             installed.add(canonicalize_name(name))
-        required |= get_required_dependency_names(dist, venv_env)
+        required |= get_required_dependency_names(dist, env)
     return installed - required
 
 
@@ -579,4 +582,5 @@ __all__ = [
     "get_required_dependency_names",
     "inspect_venv",
     "list_not_required_packages",
+    "not_required_packages",
 ]
