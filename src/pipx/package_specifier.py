@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+import tomllib
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,7 +18,7 @@ from typing import Final
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
-from packaging.utils import canonicalize_name
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import InvalidVersion
 
 from pipx.emojis import hazard
@@ -266,6 +267,27 @@ def valid_pypi_name(package_spec: str) -> str | None:
     return canonicalize_name(package_req.name)
 
 
+def static_project_name(package_spec: str) -> str | None:
+    """Return the name a local project directory declares statically in its pyproject.toml, if any."""
+    try:
+        with (Path(_split_path_extras(package_spec)[0]) / "pyproject.toml").open("rb") as file:
+            project = tomllib.load(file).get("project")
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return None
+    if not (
+        isinstance(project, dict)
+        and isinstance(name := project.get("name"), str)
+        and isinstance(dynamic := project.get("dynamic", []), list)
+        and "name" not in dynamic
+    ):
+        return None
+    try:
+        canonicalize_name(name, validate=True)
+    except InvalidName:
+        return None
+    return name
+
+
 def package_spec_satisfied(
     package_spec: str,
     package_name: str,
@@ -335,5 +357,6 @@ __all__ = [
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
+    "static_project_name",
     "valid_pypi_name",
 ]

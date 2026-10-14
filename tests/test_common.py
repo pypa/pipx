@@ -14,6 +14,7 @@ from pipx.commands.common import (
     add_suffix,
     expose_resources_globally,
     get_exposed_paths_for_package,
+    package_name_from_spec,
     remove_stale_venv_resources,
 )
 from pipx.constants import MACOS
@@ -169,3 +170,37 @@ def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: Mocke
 def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: str) -> None:
     mocker.patch.object(common, "WINDOWS", windows)
     assert add_suffix(name, "@1") == expected
+
+
+@pytest.mark.parametrize(
+    ("backend", "env_backend", "extras", "expected"),
+    [
+        pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
+        pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
+        pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
+        pytest.param(None, "uv", "", "foo-bar-x", id="uv-from-environment"),
+    ],
+)
+def test_package_name_from_spec_reads_static_name_without_building(
+    tmp_path: Path, backend: str | None, env_backend: str | None, extras: str, expected: str
+) -> None:
+    # the build backend does not exist, so any attempt to build the project would fail
+    (tmp_path / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["no-such-build-backend"]\nbuild-backend = "no_such_build_backend"\n'
+        '[project]\nname = "Foo_Bar.X"\n',
+        encoding="utf-8",
+    )
+
+    assert (
+        package_name_from_spec(
+            f"{tmp_path}{extras}", sys.executable, pip_args=[], verbose=False, backend=backend, env_backend=env_backend
+        )
+        == expected
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_name_from_spec_builds_setup_py_project(local_extras_project: Path) -> None:
+    assert package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False) == (
+        "repeatme"
+    )
