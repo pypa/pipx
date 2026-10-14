@@ -494,6 +494,7 @@ def _pipx_temp_env_helper(
     monkeypatch.setattr(
         paths, "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", tmp_path / "global_otherdir" / "pipxcompletiondir"
     )
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", pipx_shared_dir)
     # Refresh paths.ctx to commit the overrides
     paths.ctx.make_local()
 
