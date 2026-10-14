@@ -71,6 +71,7 @@ from pipx.util import (
     pipx_wrap,
     rmdir,
     subprocess_post_check,
+    subprocess_post_check_handle_pip_error,
 )
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -416,6 +417,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                         venv_python=self.python_path,
                         requirements=[install_spec],
                         pip_args=install_pip_args,
+                        log_pip_errors=False,
                         verbose=self.verbose,
                         progress=self.show_progress,
                     )
@@ -424,6 +426,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                     # constraint appears; uv installs regardless, which the caller catches from the metadata instead
                     if constraint := rejected_constraint(process.stderr or ""):
                         raise IncompatiblePythonError(constraint)
+                    subprocess_post_check_handle_pip_error(process, tool_name=self.backend_name)
                     msg = f"Error installing {full_package_description(package_name, package_or_url)}."
                     raise PipxError(msg)
             else:

@@ -170,6 +170,15 @@ def test_install_moves_to_a_python_the_package_supports(
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
+@pytest.mark.usefixtures("older_python")
+def test_install_moving_to_a_supported_python_reports_no_pip_error(
+    project_excluding_this_python: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", str(project_excluding_this_python)])
+
+    assert "Fatal error from pip" not in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_refuses_a_named_python_the_package_rules_out(
