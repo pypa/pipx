@@ -3,15 +3,17 @@ from __future__ import annotations
 import logging
 import shutil
 import time
-from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Iterator, Sequence
+    from importlib.metadata import Distribution, EntryPoint
     from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
+
+    from pipx.venv_inspect import VenvMetadata
 
 from packaging.utils import canonicalize_name
 from packaging.version import Version
@@ -54,7 +56,6 @@ from pipx.util import (
     rmdir,
     subprocess_post_check,
 )
-from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
@@ -562,6 +563,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return package_name
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
+        from pipx.venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
+
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
         _LOGGER.info("get_venv_metadata_for_package: %.0fms", 1e3 * (time.time() - data_start))
@@ -668,6 +671,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return self._site_packages
 
     def _distributions(self, name: str) -> Iterator[Distribution]:
+        from importlib.metadata import Distribution  # ruff:ignore[import-outside-top-level]  # slows startup
+
         return iter(Distribution.discover(name=name, path=[str(path) for path in self.site_packages]))
 
     def _find_entry_point(self, app: str, group: str) -> EntryPoint | None:

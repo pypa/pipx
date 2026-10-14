@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from functools import cache
+from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,11 +23,7 @@ if TYPE_CHECKING:
 
 
 def has_venv() -> bool:
-    try:
-        import venv  # ruff:ignore[unused-import, import-outside-top-level]
-    except ImportError:
-        return False
-    return True
+    return find_spec("venv") is not None
 
 
 class InterpreterResolutionError(PipxError):

@@ -59,6 +59,27 @@ def test_get_default_python_resolves_configured_value(monkeypatch: pytest.Monkey
         pipx.interpreter.get_default_python.cache_clear()
 
 
+def test_has_venv_leaves_venv_unimported() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys, pipx.interpreter; print(pipx.interpreter.has_venv(), 'venv' in sys.modules)",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert (result.returncode, result.stdout.strip()) == (0, "True False")
+
+
+def test_has_venv_without_venv_module(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "venv", None)
+
+    assert pipx.interpreter.has_venv() is False
+
+
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_version(monkeypatch: pytest.MonkeyPatch, venv: bool) -> None:
