@@ -52,7 +52,7 @@ urls."Release Notes" = "https://pipx.pypa.io/latest/changelog.html"
 urls."Source Code" = "https://github.com/pypa/pipx"
 urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
-scripts.pipx = "pipx.main:cli"
+scripts.pipx = "pipx.__main__:cli"
 
 [dependency-groups]
 dev = [

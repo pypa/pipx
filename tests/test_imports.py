@@ -67,6 +67,30 @@ def test_importing_main_defers_heavy_module(root: Path, module: str) -> None:
     assert result.stdout == "False\n", result.stderr
 
 
+@_LAZY_MODULES_HONORED
+@pytest.mark.parametrize(
+    ("module", "loaded"),
+    [
+        pytest.param("tempfile", False, id="third-party-import-deferred"),
+        pytest.param("pipx.colors", True, id="terminal-snapshot-eager"),
+    ],
+)
+def test_cli_startup_loads_module(root: Path, module: str, loaded: bool) -> None:
+    result = subprocess.run(
+        [sys.executable, "-X", "importtime", "-m", "pipx", "--version"],
+        check=True,
+        capture_output=True,
+        cwd=root,
+        env={**os.environ, "PYTHONPATH": str(root / "src")},
+        text=True,
+    )
+
+    imported = {
+        line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")
+    }
+    assert (module in imported) is loaded
+
+
 def test_commands_package_resolves_reexport_from_submodule() -> None:
     assert pipx.commands.install_all is importlib.import_module("pipx.commands.install").install_all
 
