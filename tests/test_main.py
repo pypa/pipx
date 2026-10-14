@@ -506,6 +506,18 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
+    monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
+    find_uv_binary: Final[MagicMock] = mocker.patch(
+        "pipx.backends.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
+    )
+
+    assert not run_pipx_cli(["list"])
+
+    find_uv_binary.assert_not_called()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli([]) == 1
 

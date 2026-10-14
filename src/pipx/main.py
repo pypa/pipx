@@ -413,11 +413,12 @@ def _validate_backend_available(cli_backend: str | None, env_backend: str | None
     """Eagerly surface a missing uv when ``--backend uv`` was passed.
 
     Env-source and auto-detect stay silent so diagnostic commands (which never
-    instantiate a backend) keep working, and so unrelated PATH ``uv`` doesn't
-    pay a ``uv --version`` subprocess on every command.
+    instantiate a backend) keep working. Auto-detection is skipped so commands
+    that never build a backend do not pay for a ``uv --version`` subprocess.
     """
-    name, source = resolve_backend_name(cli_value=cli_backend, env_value=env_backend)
-    _LOGGER.info("Backend resolved to %s (source: %s)", name, source)
+    name, source = resolve_backend_name(cli_value=cli_backend, env_value=env_backend, auto=False)
+    if source in {"cli", "env"}:
+        _LOGGER.info("Backend resolved to %s (source: %s)", name, source)
     if name == UV and source == "cli":
         get_backend(name)
 
