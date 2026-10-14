@@ -127,6 +127,23 @@ class _SharedLibs:
         with self._maintenance_lock():
             self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
 
+    def rebuild_if_pip_broken(self, *, pip_args: list[str], verbose: bool) -> bool:
+        if (
+            self.python_path.is_file()
+            and not run_subprocess(
+                [self.python_path, "-c", "from pip._internal.cli.main import main"],
+                log_cmd_str="<checking pip's availability>",
+                log_stdout=False,
+                log_stderr=False,
+            ).returncode
+        ):
+            return False
+        logger.warning("pip in the shared libraries at %s does not import, rebuilding them", self.root)
+        with self._maintenance_lock():
+            self._is_valid = False
+            self._create(pip_args, verbose=verbose)
+        return True
+
     def _maintenance_lock(self) -> BaseFileLock:
         from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
@@ -188,13 +205,7 @@ class _SharedLibs:
                 self.python_path.is_file()
                 and _venv_python_is_valid(self.python_path)
                 and self.pip_path.is_file()
-                and run_subprocess(
-                    [self.python_path, "-c", "from pip._internal.cli.main import main"],
-                    log_cmd_str="<checking pip's availability>",
-                    log_stdout=False,
-                    log_stderr=False,
-                ).returncode
-                == 0
+                and (self.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").is_file()
             )
 
         return self._is_valid

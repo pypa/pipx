@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -21,7 +22,7 @@ from pipx.util import run_subprocess
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from pytest_mock import MockerFixture
 
@@ -195,30 +196,84 @@ def test_global_install_creates_shared_libs_in_global_home(monkeypatch: pytest.M
     assert (shared_libs.shared_libs.root, shared_libs.shared_libs.is_valid) == (expected_root, True)
 
 
+@pytest.fixture
+def shared_pip_layout(pipx_ultra_temp_env: None) -> dict[str, Path]:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
+    # empty files stand in for pip, sparing a pip install per test
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", shared_libs.shared_libs.root], check=True)
+    shared_libs.shared_libs.pip_path.touch()
+    pip_main = shared_libs.shared_libs.site_packages[0] / "pip" / "_internal" / "cli" / "main.py"
+    pip_main.parent.mkdir(parents=True)
+    pip_main.touch()
+    return {
+        "python": shared_libs.shared_libs.python_path,
+        "pip-script": shared_libs.shared_libs.pip_path,
+        "pip-module": pip_main,
+    }
+
+
 @pytest.mark.parametrize(
-    ("returncode", "expected"),
+    ("removed", "expected"),
     [
-        pytest.param(0, True, id="valid"),
-        pytest.param(1, False, id="broken-pip"),
+        pytest.param(None, True, id="complete"),
+        pytest.param("python", False, id="python-missing"),
+        pytest.param("pip-script", False, id="pip-script-missing"),
+        pytest.param("pip-module", False, id="pip-module-missing"),
     ],
 )
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_shared_libs_validity_check_is_cached(
-    mocker: MockerFixture,
-    returncode: int,
-    expected: bool,
+def test_shared_libs_validity_checks_files(
+    shared_pip_layout: dict[str, Path], removed: str | None, expected: bool
 ) -> None:
-    shared_libs.shared_libs.python_path.parent.mkdir(parents=True)
-    shared_libs.shared_libs.python_path.touch()
-    shared_libs.shared_libs.pip_path.touch()
-    run_subprocess = mocker.patch(
-        "pipx.shared_libs.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=returncode, stdout="", stderr=""),
-    )
+    if removed is not None:
+        shared_pip_layout[removed].unlink()
 
-    assert (shared_libs.shared_libs.is_valid, shared_libs.shared_libs.is_valid) == (expected, expected)
-    run_subprocess.assert_called_once()
+    assert shared_libs.shared_libs.is_valid is expected
+
+
+def test_shared_libs_validity_check_is_cached(shared_pip_layout: dict[str, Path]) -> None:
+    assert shared_libs.shared_libs.is_valid
+    shared_pip_layout["pip-module"].unlink()
+
+    assert shared_libs.shared_libs.is_valid
+
+
+def test_install_rebuilds_shared_libs_missing_pip_before_running_pip(
+    shared_pip_layout: dict[str, Path], caplog: pytest.LogCaptureFixture
+) -> None:
+    shared_pip_layout["pip-module"].unlink()
+
+    return_code = run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+
+    assert (return_code, "does not import" in caplog.text) == (0, False)
+
+
+def _truncate_pip_main() -> None:
+    (shared_libs.shared_libs.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").write_text("")
+
+
+def _remove_shared_libs() -> None:
+    shutil.rmtree(shared_libs.shared_libs.root)
+
+
+@pytest.mark.parametrize(
+    "break_shared_libs",
+    [pytest.param(_truncate_pip_main, id="truncated-pip-module"), pytest.param(_remove_shared_libs, id="removed")],
+)
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_install_rebuilds_shared_libs_broken_after_validation(break_shared_libs: Callable[[], None]) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    break_shared_libs()
+
+    assert not run_pipx_cli(["install", "--backend", "pip", "--force", "pycowsay"])
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_install_failure_with_working_pip_keeps_shared_libs() -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    (sentinel := shared_libs.shared_libs.root / "sentinel").touch()
+
+    return_code = run_pipx_cli(["install", "--backend", "pip", "pipx-package-does-not-exist"])
+
+    assert (return_code, sentinel.exists()) == (1, True)
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
