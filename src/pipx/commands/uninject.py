@@ -169,7 +169,7 @@ def uninject_dep(
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
         logger.info("Original not required packages: %s", orig_not_required_packages)
 
-    venv.uninstall_package(package=package_name, was_injected=True)
+    venv.uninstall_packages(package_name, was_injected=True)
 
     if not leave_deps:
         # inspect again: the uninstall can drop search path entries, such as an editable install's .pth
@@ -182,9 +182,8 @@ def uninject_dep(
             remaining_deps = _get_remaining_dependencies(venv, package_name, venv_sys_path, venv_env)
             deps_of_uninstalled -= remaining_deps
             logger.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
-
-        for dep_package_name in deps_of_uninstalled:
-            venv.uninstall_package(package=dep_package_name, was_injected=False)
+            if deps_of_uninstalled:
+                venv.uninstall_packages(*sorted(deps_of_uninstalled))
 
         deps_string = " and its dependencies"
     else:

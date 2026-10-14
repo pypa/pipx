@@ -354,23 +354,26 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             return
         self.backend.upgrade_packaging_libraries(self.python_path, pip_args, verbose=self.verbose)
 
-    def uninstall_package(self, package: str, *, was_injected: bool = False) -> None:
-        try:
+    def uninstall_packages(self, *packages: str, was_injected: bool = False) -> None:
+        for package in packages:
             _LOGGER.info("Uninstalling %s", package)
-            with animate(f"uninstalling {package}", do_animation=self.do_animation):
+        names = ", ".join(packages)
+        try:
+            with animate(f"uninstalling {names}", do_animation=self.do_animation):
                 self.backend.uninstall(
                     venv_root=self.root,
                     venv_python=self.python_path,
-                    package=package,
+                    packages=packages,
                     verbose=self.verbose,
                 )
         except PipxError as e:
             _LOGGER.info(e)
-            msg = f"Error uninstalling {package}."
+            msg = f"Error uninstalling {names}."
             raise PipxError(msg) from None
 
         if was_injected:
-            self.pipx_metadata.injected_packages.pop(package)
+            for package in packages:
+                self.pipx_metadata.injected_packages.pop(package)
             self.pipx_metadata.write()
 
     def install_package(  # ruff:ignore[too-many-arguments]  # flat install API mirroring the CLI's install options

@@ -24,7 +24,7 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from subprocess import CompletedProcess
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -129,11 +129,11 @@ class UvBackend(Backend):
         *,
         venv_root: Path,
         venv_python: Path,
-        package: str,
+        packages: Sequence[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
         cmd = self._uv_pip_command("uninstall", venv_python, verbose=verbose)
-        cmd.append(package)
+        cmd.extend(packages)
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         subprocess_post_check(process)
         return process
