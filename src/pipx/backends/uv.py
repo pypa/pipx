@@ -20,7 +20,6 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
-from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -145,6 +144,8 @@ class UvBackend(Backend):
         not_required: bool = False,
     ) -> set[str]:
         if not_required:
+            from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
+
             return list_not_required_packages(venv_python)
 
         cmd = self._uv_pip_command("list", venv_python, verbose=False)

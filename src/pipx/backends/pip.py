@@ -16,7 +16,6 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
-from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -132,6 +131,8 @@ class PipBackend(Backend):
     ) -> set[str]:
         del venv_root
         if not_required:
+            from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
+
             return list_not_required_packages(venv_python)
         cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
         process = run_subprocess(cmd)

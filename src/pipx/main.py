@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import logging
-import logging.config
 import os
 import shlex
 import sys
@@ -18,7 +17,7 @@ import urllib.parse
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final, NoReturn, cast
+from typing import TYPE_CHECKING, Any, Final, NoReturn, TextIO, cast
 
 import argcomplete
 import platformdirs
@@ -2038,46 +2037,24 @@ def setup_logging(verbose: int) -> None:
     pipx_str: Final[str] = bold(green("pipx >")) if sys.stdout and sys.stdout.isatty() else "pipx >"
     paths.ctx.log_file = setup_log_file()
 
-    level: Final[str] = logging.getLevelName(min(max(0, logging.WARNING - 10 * verbose), 50))
-
-    # "incremental" is False so previous pytest tests don't accumulate handlers
-    logging_config: Final[dict[str, object]] = {
-        "version": 1,
-        "formatters": {
-            "stream_nonverbose": {
-                "class": "logging.Formatter",
-                "format": "{message}",
-                "style": "{",
-            },
-            "stream_verbose": {
-                "class": "logging.Formatter",
-                "format": pipx_str + "({funcName}:{lineno}): {message}",
-                "style": "{",
-            },
-            "file": {
-                "class": "logging.Formatter",
-                "format": "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}",
-                "style": "{",
-            },
-        },
-        "handlers": {
-            "stream": {
-                "class": "logging.StreamHandler",
-                "formatter": "stream_verbose" if verbose else "stream_nonverbose",
-                "level": level,
-            },
-            "file": {
-                "class": "logging.FileHandler",
-                "formatter": "file",
-                "filename": str(paths.ctx.log_file),
-                "encoding": "utf-8",
-                "level": "DEBUG",
-            },
-        },
-        "loggers": {"pipx": {"handlers": ["stream", "file"], "level": "DEBUG"}},
-        "incremental": False,
-    }
-    logging.config.dictConfig(logging_config)
+    # configured by hand because importing logging.config pulls socket and pickle into every startup
+    stream_handler: Final[logging.StreamHandler[TextIO]] = logging.StreamHandler()
+    stream_handler.setLevel(min(max(0, logging.WARNING - 10 * verbose), 50))
+    stream_handler.setFormatter(
+        logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}" if verbose else "{message}", style="{")
+    )
+    file_handler: Final[logging.FileHandler] = logging.FileHandler(paths.ctx.log_file, encoding="utf-8")
+    file_handler.setFormatter(
+        logging.Formatter("{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{")
+    )
+    pipx_logger: Final[logging.Logger] = logging.getLogger("pipx")
+    # a test can run several commands in one process; without this each one stacks another pair of handlers
+    for handler in pipx_logger.handlers[:]:
+        pipx_logger.removeHandler(handler)
+        handler.close()
+    pipx_logger.setLevel(logging.DEBUG)
+    pipx_logger.addHandler(stream_handler)
+    pipx_logger.addHandler(file_handler)
 
 
 def setup(args: argparse.Namespace) -> None:

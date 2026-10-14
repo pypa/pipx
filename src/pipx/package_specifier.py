@@ -14,15 +14,16 @@ import tomllib
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
-from packaging.version import InvalidVersion
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
+
+if TYPE_CHECKING:
+    from packaging.requirements import Requirement
 
 logger = logging.getLogger(__name__)
 
@@ -77,22 +78,13 @@ def _check_package_path(package_path: str) -> tuple[Path, bool]:
 def _parse_specifier(package_spec: str) -> ParsedPackage:
     """Parse package_spec as would be given to pipx"""
     # Match pip's PyPI precedence by checking local paths only for names that PyPI rejects.
-    valid_pep508 = None
+    valid_pep508 = _requirement(package_spec)
     valid_url = None
     valid_local_path = None
 
-    try:
-        package_req = Requirement(package_spec)
-    except InvalidRequirement:
-        # not a valid PEP508 package specification
-        pass
-    else:
-        # valid PEP508 package specification
-        valid_pep508 = package_req
-
-    if valid_pep508 and package_req.name.endswith(ARCHIVE_EXTENSIONS):
+    if valid_pep508 and valid_pep508.name.endswith(ARCHIVE_EXTENSIONS):
         # It might be a local archive
-        (package_path, package_path_exists) = _check_package_path(package_req.name)
+        (package_path, package_path_exists) = _check_package_path(valid_pep508.name)
 
         if package_path_exists:
             valid_local_path = str(package_path.resolve())
@@ -128,6 +120,18 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         valid_url=valid_url,
         valid_local_path=valid_local_path,
     )
+
+
+def _requirement(package_spec: str) -> Requirement | None:
+    from packaging.requirements import (  # ruff:ignore[import-outside-top-level]  # parser slows startup
+        InvalidRequirement,
+        Requirement,
+    )
+
+    try:
+        return Requirement(package_spec)
+    except InvalidRequirement:
+        return None
 
 
 def package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
@@ -245,6 +249,8 @@ def get_extras(package_spec: str) -> set[str]:
     if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
         return parsed_package.valid_pep508.extras
     if parsed_package.valid_local_path:
+        from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
+
         (_, package_extras_str) = _split_path_extras(parsed_package.valid_local_path)
         return Requirement("notapackage" + package_extras_str).extras
 
@@ -252,10 +258,7 @@ def get_extras(package_spec: str) -> set[str]:
 
 
 def valid_pypi_name(package_spec: str) -> str | None:
-    try:
-        package_req = Requirement(package_spec)
-    except InvalidRequirement:
-        # not a valid PEP508 package specification
+    if (package_req := _requirement(package_spec)) is None:
         return None
 
     if package_req.url or package_req.name.endswith(ARCHIVE_EXTENSIONS):
@@ -295,17 +298,16 @@ def package_spec_satisfied(
     installed_spec: str,
 ) -> bool:
     """Return whether an installed package satisfies a named requirement."""
-    try:
-        requirement = Requirement(package_spec)
-        installed_requirement = Requirement(installed_spec)
-        return (
-            requirement.url is None
-            and canonicalize_name(requirement.name) == canonicalize_name(package_name)
-            and requirement.extras.issubset(installed_requirement.extras)
-            and requirement.specifier.contains(installed_version)
-        )
-    except (InvalidRequirement, InvalidVersion):
+    if (requirement := _requirement(package_spec)) is None or (
+        installed_requirement := _requirement(installed_spec)
+    ) is None:
         return False
+    return (
+        requirement.url is None
+        and canonicalize_name(requirement.name) == canonicalize_name(package_name)
+        and requirement.extras.issubset(installed_requirement.extras)
+        and requirement.specifier.contains(installed_version)
+    )
 
 
 def extract_index_options(pip_args: list[str]) -> list[str]:
@@ -324,10 +326,7 @@ def extract_index_options(pip_args: list[str]) -> list[str]:
 
 
 def fix_package_name(package_or_url: str, package_name: str) -> str:
-    try:
-        package_req = Requirement(package_or_url)
-    except InvalidRequirement:
-        # not a valid PEP508 package specification
+    if (package_req := _requirement(package_or_url)) is None:
         return package_or_url
 
     if package_req.name.endswith(ARCHIVE_EXTENSIONS):

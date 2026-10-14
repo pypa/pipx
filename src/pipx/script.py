@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import hashlib
 import re
 import stat
 import tomllib
@@ -11,9 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Final, cast
-from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
-from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 
@@ -21,6 +18,7 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from zipfile import ZipFile
 
 
 _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
@@ -77,6 +75,11 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
         msg = "Inline script `dependencies` must be an array of strings."
         raise PipxError(msg)
+    from packaging.requirements import (  # ruff:ignore[import-outside-top-level]  # parser slows startup
+        InvalidRequirement,
+        Requirement,
+    )
+
     normalized: Final[list[str]] = []
     try:
         for dependency in dependencies:
@@ -198,6 +201,9 @@ def _normalize_requires_python(value: str | list[str] | None) -> str | None:
 
 
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
+    import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
+    from zipfile import ZIP_DEFLATED, ZipFile  # ruff:ignore[import-outside-top-level]  # slows startup
+
     digest: Final[str] = hashlib.sha256(script.content.encode()).hexdigest()[:12]
     version: Final[str] = f"0+{digest}"
     distribution: Final[str] = re.sub(r"[-_.]+", "_", package_name)
@@ -244,6 +250,8 @@ def _metadata(package_name: str, version: str, metadata: ScriptMetadata) -> byte
 
 
 def _write_member(archive: ZipFile, name: str, data: bytes) -> None:
+    from zipfile import ZIP_DEFLATED, ZipInfo  # ruff:ignore[import-outside-top-level]  # slows startup
+
     info: Final[ZipInfo] = ZipInfo(name)
     info.create_system = 3
     info.external_attr = (stat.S_IFREG | 0o644) << 16
@@ -251,6 +259,8 @@ def _write_member(archive: ZipFile, name: str, data: bytes) -> None:
 
 
 def _digest(data: bytes) -> str:
+    import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
+
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
 
 

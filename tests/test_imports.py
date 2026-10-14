@@ -34,6 +34,12 @@ def test_importing_util_first_succeeds(root: Path) -> None:
     "module",
     [
         pytest.param("filelock", id="filelock"),
+        pytest.param("logging.config", id="logging-config"),
+        pytest.param("packaging.requirements", id="packaging-requirements"),
+        pytest.param("importlib.metadata", id="importlib-metadata"),
+        pytest.param("pipx.venv_inspect", id="venv-inspect"),
+        pytest.param("zipfile", id="zipfile"),
+        pytest.param("hashlib", id="hashlib"),
         pytest.param("urllib.request", id="urllib-request"),
         pytest.param("pipx.standalone_python", id="standalone-python"),
         pytest.param("pipx.commands.install", id="command-module"),
