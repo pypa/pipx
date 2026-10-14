@@ -51,6 +51,9 @@ Verify:
 Use ``--skip PKG ...`` to leave named environments untouched, and ``--include-injected`` to include injected packages.
 Pinned environments are skipped; see :doc:`pin-packages`.
 
+pipx upgrades up to eight environments at once and prints their output in environment order, as a one-at-a-time run
+would. A failed environment does not stop the others. Pass ``--verbose`` to upgrade them one at a time.
+
 Verify:
 
 .. code-block:: console

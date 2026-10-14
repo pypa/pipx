@@ -1116,7 +1116,8 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
             "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE' "
             "('uv pip install --upgrade PACKAGE' under the uv backend). "
             "Apps, manual pages, and shell completions a new version adds are exposed, and those it no longer "
-            "ships are removed."
+            "ships are removed. Upgrades up to eight environments at once and prints the output of each in turn; "
+            "--verbose upgrades them one at a time."
         ),
         parents=[shared_parser],
     )
