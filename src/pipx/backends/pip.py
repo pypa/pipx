@@ -20,7 +20,7 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
     from pathlib import Path
     from subprocess import CompletedProcess
 
@@ -95,7 +95,7 @@ class PipBackend(Backend):
         if verbose or progress:
             cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
-        process = _run_with_shared_pip_repair(
+        process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 cmd,
                 log_stdout=not log_pip_errors,
@@ -125,7 +125,7 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages]
         if not verbose:
             cmd.append("-q")
-        process = _run_with_shared_pip_repair(
+        process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(cmd, run_dir=str(venv_root)), pip_args=[], verbose=verbose
         )
         subprocess_post_check(process)
@@ -144,7 +144,7 @@ class PipBackend(Backend):
 
             return list_not_required_packages(venv_python)
         cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
-        process = _run_with_shared_pip_repair(lambda: run_subprocess(cmd), pip_args=[], verbose=False)
+        process = shared_libs.run_repairing_pip(lambda: run_subprocess(cmd), pip_args=[], verbose=False)
         if process.returncode != 0:
             msg = (
                 f"Failed to execute {process.args}.\n"
@@ -162,7 +162,7 @@ class PipBackend(Backend):
         index_args: list[str],
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
-        process = _run_with_shared_pip_repair(
+        process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 [
                     str(venv_python),
@@ -194,7 +194,7 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", *args]
         if not verbose:
             cmd.append("-q")
-        return _run_with_shared_pip_repair(
+        return shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 cmd,
                 capture_stdout=capture_stdout,
@@ -204,16 +204,6 @@ class PipBackend(Backend):
             pip_args=[],
             verbose=verbose,
         )
-
-
-def _run_with_shared_pip_repair(
-    run: Callable[[], CompletedProcess[str]], *, pip_args: list[str], verbose: bool
-) -> CompletedProcess[str]:
-    # A failed pip run only implicates the shared pip when pip itself no longer imports, so ordinary install failures
-    # (an unresolvable requirement, a build error) come back untouched.
-    if (process := run()).returncode and shared_libs.rebuild_if_pip_broken(pip_args=pip_args, verbose=verbose):
-        return run()
-    return process
 
 
 __all__ = [
