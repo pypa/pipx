@@ -10,6 +10,7 @@ import shutil
 import string
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, suppress
 from contextvars import ContextVar
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 if not WINDOWS:
     import fcntl
     import pty
+    import select
     import struct
     import termios
 
@@ -303,17 +305,25 @@ def _run_streaming_subprocess(
             ThreadPoolExecutor(max_workers=2) as executor,
         ):
             for channel in channels.values():
-                channel.close_child()
-            for future in [
+                if not channel.terminal:
+                    channel.close_child()
+            futures: Final = [
                 executor.submit(_tee_subprocess_output, channels[name].reader, destination, chunks)
                 for name, destination, chunks in (
                     ("stdout", stdout_destination, stdout_chunks),
                     ("stderr", sys.stderr, stderr_chunks),
                 )
                 if name in channels
-            ]:
-                future.result()
+            ]
             returncode: Final[int] = process.wait()
+            for channel in channels.values():
+                if channel.terminal:
+                    # macOS discards what a pseudo-terminal still queues once its last child end closes, so hold
+                    # ours open until the reader has taken everything the exited child wrote
+                    _wait_until_drained(channel.reader)
+                    channel.close_child()
+            for future in futures:
+                future.result()
     finally:
         for channel in channels.values():
             channel.close()
@@ -329,6 +339,7 @@ def _run_streaming_subprocess(
 class _StreamChannel:
     reader: int
     child: int
+    terminal: bool
 
     def close_child(self) -> None:
         if self.child != -1:
@@ -348,15 +359,21 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     if not WINDOWS and destination.isatty():
         reader, child = pty.openpty()
         _match_terminal_size(child)
-        return _StreamChannel(reader, child)
+        return _StreamChannel(reader, child, terminal=True)
     reader, child = os.pipe()
-    return _StreamChannel(reader, child)
+    return _StreamChannel(reader, child, terminal=False)
 
 
 def _match_terminal_size(child: int) -> None:
     size: Final[os.terminal_size] = shutil.get_terminal_size()
     with suppress(OSError):
         fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
+
+
+def _wait_until_drained(reader: int) -> None:
+    poll_seconds: Final[float] = 0.01
+    while select.select([reader], [], [], poll_seconds)[0]:
+        time.sleep(poll_seconds)
 
 
 def _read_stream(source: int) -> bytes:
