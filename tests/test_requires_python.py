@@ -146,15 +146,11 @@ def project_excluding_this_python(tmp_path: Path) -> Path:
     (project / "needs_older").mkdir(parents=True)
     (project / "needs_older" / "__init__.py").touch()
     (project / "needs_older" / "main.py").write_text("def main() -> None:\n    print('needs-older')\n")
-    (project / "setup.py").write_text(
-        "from setuptools import setup\n\n"
-        "setup(\n"
-        "    name='needs-older',\n"
-        "    version='0.1',\n"
-        "    packages=['needs_older'],\n"
-        f"    python_requires='<{sys.version_info.major}.{sys.version_info.minor}',\n"
-        "    entry_points={'console_scripts': ['needs-older=needs_older.main:main']},\n"
-        ")\n"
+    (project / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["flit-core"]\nbuild-backend = "flit_core.buildapi"\n\n'
+        '[project]\nname = "needs-older"\nversion = "0.1"\ndescription = "Need an older Python."\n'
+        f'requires-python = "<{sys.version_info.major}.{sys.version_info.minor}"\n'
+        'scripts.needs-older = "needs_older.main:main"\n'
     )
     return project
 

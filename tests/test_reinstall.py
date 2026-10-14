@@ -88,7 +88,7 @@ def test_reinstall_pylock_restores_source_after_build_failure(
     capsys.readouterr()
     pyproject = project / "pyproject.toml"
     pyproject.write_text(
-        pyproject.read_text(encoding="utf-8").replace("setuptools.build_meta", "missing"),
+        pyproject.read_text(encoding="utf-8").replace("flit_core.buildapi", "missing"),
         encoding="utf-8",
     )
 

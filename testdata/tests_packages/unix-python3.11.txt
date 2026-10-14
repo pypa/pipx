@@ -21,6 +21,7 @@ dill==0.4.0
 distlib==0.4.0
 docutils==0.22.2
 filelock==3.19.1
+flit_core==4.1.0
 id==1.5.0
 idna==3.10
 importlib_metadata==8.7.0
