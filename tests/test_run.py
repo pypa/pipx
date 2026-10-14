@@ -514,7 +514,6 @@ def test_run_ensure_null_pythonpath() -> None:
         ("black", PKG["black"]["spec"], ["black", "--help"], False),
         ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
-        ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")

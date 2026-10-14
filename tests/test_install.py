@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import sys
-import sysconfig
 import threading
 from contextlib import contextmanager
 from functools import partial
@@ -40,8 +39,6 @@ if TYPE_CHECKING:
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
-
-_FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
@@ -1195,29 +1192,18 @@ def test_pip_args_with_windows_path(capsys: pytest.CaptureFixture[str]) -> None:
 @pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_pip_args_with_constraint_relative_path(
-    constraint_flag: str, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    constraint_flag: str, tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    if _FREE_THREADED:
-        pytest.skip("Skipping ipython due to missing free-threaded wheel for psutil")
+    constraints_file = tmp_path / "constraints.txt"
+    constraints_file.write_text("black!=22.10.0")
+    monkeypatch.chdir(tmp_path)
 
-    constraint_file_name = "constraints.txt"
-    package_name = "ipython"
-    package_version = "8.23.0"
+    assert not run_pipx_cli(["install", f"--pip-args='{constraint_flag}constraints.txt'", "black"])
 
-    os.chdir(tmp_path)
-    constraints_file = tmp_path / constraint_file_name
-    constraints_file.write_text(f"{package_name}!={package_version}")
-    constraints_file.touch()
-
-    assert not run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", package_name])
-
-    assert f"{constraint_flag}{constraints_file}" in caplog.text
-
-    subprocess_package_version = subprocess.run(
-        [package_name, "--version"], capture_output=True, text=True, check=False
-    )
-    subprocess_package_version_output = subprocess_package_version.stdout.strip()
-    assert subprocess_package_version_output != package_version
+    assert (
+        f"{constraint_flag}{constraints_file}" in caplog.text,
+        PipxMetadata(paths.ctx.venvs / "black").main_package.package_version,
+    ) == (True, "22.8.0")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -3,7 +3,6 @@ argcomplete==1.12.3
 argcomplete==3.6.2
 astroid==3.0.3
 astroid==3.3.11
-backcall==0.2.0
 backports.tarfile==1.2.0
 black==22.10.0
 black==22.8.0
@@ -19,7 +18,6 @@ cmarkgfm==2024.11.20
 colorama==0.4.6
 colorlog==6.9.0
 cryptography==46.0.1
-decorator==5.2.1
 dill==0.4.0
 distlib==0.4.0
 docutils==0.22.2
@@ -28,8 +26,6 @@ id==1.5.0
 idna==3.10
 importlib_metadata==8.7.0
 iniconfig==2.1.0
-ipython==7.16.1
-ipython==9.6.0
 isort==5.13.2
 isort==5.6.4
 isort==6.0.1
@@ -37,7 +33,6 @@ jaraco.classes==3.4.0
 jaraco.clipboard==2.0.1
 jaraco.context==6.0.1
 jaraco_functools==4.3.0
-jedi==0.19.2
 jeepney==0.9.0
 jinja2==3.1.6
 kaggle==1.6.11
@@ -52,18 +47,13 @@ nh3==0.3.0
 nox==2022.1.7
 nox==2023.4.22
 packaging==25.0
-parso==0.8.5
 pathspec==0.12.1
 pbr==5.6.0
-pexpect==4.9.0
-pickleshare==0.7.5
 pip==23.3.2
 pip==24.0
 pip==26.1.2
 platformdirs==4.4.0
 pluggy==1.6.0
-prompt_toolkit==3.0.52
-ptyprocess==0.7.0
 py==1.11.0
 pycowsay==0.0.0.2
 pycparser==2.23
@@ -94,11 +84,9 @@ tox==3.28.0
 tox==4.30.2
 tox_ini_fmt==0.5.0
 tqdm==4.67.1
-traitlets==5.14.3
 twine==6.2.0
 urllib3==2.5.0
 virtualenv==20.34.0
-wcwidth==0.2.14
 webencodings==0.5.1
 wheel==0.45.1
 zest.releaser==9.1.2

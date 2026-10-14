@@ -252,7 +252,6 @@ def test_inject_rejects_pylock(
         PKG["black"]["spec"],
         PKG["nox"]["spec"],
         PKG["pylint"]["spec"],
-        PKG["ipython"]["spec"],
         "jaraco.clipboard==2.0.1",  # tricky character
     ],
 )
@@ -437,7 +436,7 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
     [
         (),  # no extra packages
         ("black",),  # duplicate from requirements file
-        ("ipython",),  # additional package
+        ("pbr",),  # additional package
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
