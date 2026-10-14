@@ -1305,6 +1305,32 @@ def test_install_local_archive(
     assert f"- {app_name('repeatme')}\n" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("backend", "package"),
+    [pytest.param("pip", "Foo_Bar.X", id="pip"), pytest.param("uv", "foo-bar-x", id="uv")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_local_wheel_records_installer_name(
+    make_wheel: Callable[[dict[str, str]], Path], backend: str, package: str
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv binary not on PATH")
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x/__init__.py": "def main() -> None:\n    pass\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: Foo_Bar.X\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\nfoo-bar-x = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+
+    assert not run_pipx_cli(["install", "--backend", backend, str(wheel)])
+
+    assert (
+        PipxMetadata(paths.ctx.venvs / "foo-bar-x").main_package.package,
+        (paths.ctx.bin_dir / app_name("foo-bar-x")).exists(),
+    ) == (package, True)
+
+
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.parametrize(
     "directory",

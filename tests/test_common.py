@@ -21,6 +21,7 @@ from pipx.constants import MACOS
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -194,6 +195,33 @@ def test_package_name_from_spec_reads_static_name_without_building(
     assert (
         package_name_from_spec(
             f"{tmp_path}{extras}", sys.executable, pip_args=[], verbose=False, backend=backend, env_backend=env_backend
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("backend", "env_backend", "extras", "expected"),
+    [
+        pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
+        pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
+        pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
+        pytest.param(None, "uv", "", "foo-bar-x", id="uv-from-environment"),
+    ],
+)
+def test_package_name_from_spec_reads_wheel_metadata_without_installing(
+    make_wheel: Callable[[dict[str, str]], Path],
+    backend: str | None,
+    env_backend: str | None,
+    extras: str,
+    expected: str,
+) -> None:
+    # without a WHEEL file no installer accepts the archive, so installing it to learn the name would fail
+    wheel: Final[Path] = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"})
+
+    assert (
+        package_name_from_spec(
+            f"{wheel}{extras}", sys.executable, pip_args=[], verbose=False, backend=backend, env_backend=env_backend
         )
         == expected
     )

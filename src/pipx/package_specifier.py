@@ -286,6 +286,30 @@ def static_project_name(package_spec: str) -> str | None:
         and "name" not in dynamic
     ):
         return None
+    return _valid_name(name)
+
+
+def wheel_project_name(package_spec: str) -> str | None:
+    """Return the name a local wheel declares in its metadata, if it has exactly one top-level ``.dist-info``."""
+    if (wheel := Path(_split_path_extras(package_spec)[0])).suffix != ".whl":
+        return None
+    import zipfile  # ruff:ignore[import-outside-top-level]  # slows startup
+    from email.parser import BytesHeaderParser  # ruff:ignore[import-outside-top-level]  # slows startup
+
+    try:
+        with zipfile.ZipFile(wheel) as archive:
+            match [entry for entry in archive.namelist() if re.fullmatch(r"[^/]+\.dist-info/METADATA", entry)]:
+                case [metadata]:
+                    name = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
+                case _:
+                    return None
+    except (OSError, zipfile.BadZipFile):
+        return None
+    # a non-ASCII header comes back as an email Header object, never a valid project name
+    return _valid_name(name) if isinstance(name, str) else None
+
+
+def _valid_name(name: str) -> str | None:
     try:
         canonicalize_name(name, validate=True)
     except InvalidName:
@@ -360,4 +384,5 @@ __all__ = [
     "parse_specifier_for_upgrade",
     "static_project_name",
     "valid_pypi_name",
+    "wheel_project_name",
 ]

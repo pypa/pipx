@@ -38,7 +38,12 @@ from pipx.backends import PIP, env_default_backend, resolve_backend_name
 from pipx.colors import bold, red
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
-from pipx.package_specifier import parse_specifier_for_install, static_project_name, valid_pypi_name
+from pipx.package_specifier import (
+    parse_specifier_for_install,
+    static_project_name,
+    valid_pypi_name,
+    wheel_project_name,
+)
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
@@ -544,7 +549,7 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
     # check syntax and clean up spec and pip_args
     (package_spec, pip_args) = parse_specifier_for_install(package_spec, pip_args)
 
-    if (project_name := static_project_name(package_spec)) is not None:
+    if (project_name := static_project_name(package_spec) or wheel_project_name(package_spec)) is not None:
         backend_name, _ = resolve_backend_name(
             cli_value=backend, env_value=env_default_backend() if env_backend is None else env_backend
         )
