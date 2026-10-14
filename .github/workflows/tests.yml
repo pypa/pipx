@@ -17,7 +17,7 @@ permissions:
   contents: read
 jobs:
   test:
-    name: 🧪 test ${{ matrix.py }} - ${{ matrix.os }}
+    name: 🧪 test ${{ matrix.py }} - ${{ matrix.os }}${{ matrix.shard && format(' ({0})', matrix.shard) || '' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -25,11 +25,26 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         py: ["3.15", "3.15t", "3.14", "3.13", "3.12", "3.11"]
+        # the Windows and macOS runners are the slowest jobs, so split their tests across parallel shards
         include:
           - os: windows-2025
             py: "3.15"
+            shard: "1/4"
+          - os: windows-2025
+            py: "3.15"
+            shard: "2/4"
+          - os: windows-2025
+            py: "3.15"
+            shard: "3/4"
+          - os: windows-2025
+            py: "3.15"
+            shard: "4/4"
           - os: macos-15
             py: "3.15"
+            shard: "1/2"
+          - os: macos-15
+            py: "3.15"
+            shard: "2/2"
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,7 +100,7 @@ jobs:
         run: tox run --skip-pkg-install -e ${{ matrix.py }}
         timeout-minutes: 30
         env:
-          PYTEST_ADDOPTS: "-vv --durations=20"
+          PYTEST_ADDOPTS: -vv --durations=20${{ matrix.shard && format(' --shard={0}', matrix.shard) || '' }}
   type:
     name: 🔍 Type check
     runs-on: ubuntu-24.04
