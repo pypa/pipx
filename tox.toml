@@ -30,7 +30,7 @@ commands = [
       "-n",
       "auto",
       "--dist",
-      "loadfile",
+      "worksteal",
       "tests",
     ], extend = true },
   ],
