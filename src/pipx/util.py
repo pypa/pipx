@@ -607,7 +607,8 @@ def subprocess_post_check_handle_pip_error(
 
     ``tool_name="pip"`` keeps the historical wording that log-scrapers /
     tests built around. uv writes a uv-labelled log and skips the pip output
-    analyser, whose regexes don't match uv's error format.
+    analyser, whose regexes don't match uv's error format; its stderr is
+    printed as is instead.
     """
     if not completed_process.returncode:
         return
@@ -632,6 +633,10 @@ def subprocess_post_check_handle_pip_error(
     )
     if tool_name == "pip":
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
+    elif uv_errors := [line for line in (completed_process.stderr or "").splitlines() if line.strip()]:
+        print("\nSome possibly relevant errors from uv install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        for line in uv_errors:
+            print(f"    {line}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
 
 def exec_app(

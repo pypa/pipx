@@ -1278,6 +1278,21 @@ def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], lo
     assert not (paths.ctx.man_dir / "man1" / "local-manpage.1").exists()
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_uv_failure_shows_uv_error(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--backend", "uv", str(project)])
+
+    assert re.search(
+        r"Some possibly relevant errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
+        capsys.readouterr().err,
+    )
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
