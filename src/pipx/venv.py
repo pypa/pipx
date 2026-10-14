@@ -7,11 +7,11 @@ from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
-from filelock import BaseFileLock, FileLock
-
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Iterator, Sequence
     from subprocess import CompletedProcess
+
+    from filelock import BaseFileLock
 
 from packaging.utils import canonicalize_name
 from packaging.version import Version
@@ -155,6 +155,8 @@ class VenvContainer:
                 lock.release()
 
     def venv_lock(self, venv_dir: Path) -> BaseFileLock:
+        from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
         self._root.mkdir(parents=True, exist_ok=True)
         return FileLock(self._root / f".{canonicalize_name(venv_dir.name)}.lock")
 

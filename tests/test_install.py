@@ -1421,7 +1421,7 @@ def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -
     response.read.return_value = inline_script.read_bytes()
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
-    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, return_value=response)
+    mocker.patch("urllib.request.urlopen", autospec=True, return_value=response)
 
     assert not run_pipx_cli(["install", "https://example.invalid/hello.py"])
 
@@ -1430,7 +1430,7 @@ def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url_error(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
-    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, side_effect=OSError("unavailable"))
+    mocker.patch("urllib.request.urlopen", autospec=True, side_effect=OSError("unavailable"))
 
     assert run_pipx_cli(["install", "--output", "json", "https://example.invalid/hello.py"])
 
@@ -1555,11 +1555,12 @@ def test_preinstall_specific_version(caplog: pytest.LogCaptureFixture) -> None:
     assert "black==22.8.0" in caplog.text
 
 
-@pytest.mark.xfail
 @pytest.mark.usefixtures("pipx_temp_env", "pipx_session_shared_dir")
 def test_do_not_wait_for_input(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
-    run_pipx_cli(["install", "pycowsay"])
+    # pip otherwise retries the refused connection five times with backoff
+    monkeypatch.setenv("PIP_RETRIES", "0")
+    assert run_pipx_cli(["install", "pycowsay"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

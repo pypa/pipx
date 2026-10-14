@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from pipx import commands, constants, paths, standalone_python
+from pipx import constants, paths
 from pipx.animate import animate
+from pipx.commands.reinstall import reinstall
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
@@ -116,6 +117,8 @@ def get_latest_micro_version(
 
 
 def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> OperationResult[InterpreterData]:
+    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
     with animate("Getting the index of the latest standalone python builds", do_animation=not verbose):
         latest_pythons = standalone_python.list_pythons(use_cache=False)
 
@@ -165,7 +168,7 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                             interpreter_full_version,
                             latest_micro_version,
                         )
-                        commands.reinstall(
+                        reinstall(
                             venv_dir=venv.root,
                             local_bin_dir=paths.ctx.bin_dir,
                             local_man_dir=paths.ctx.man_dir,

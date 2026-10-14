@@ -293,6 +293,19 @@ def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
     assert which_mock.call_count == 1
 
 
+def test_resolve_uv_binary_runs_uv_version_once(mocker: MockerFixture) -> None:
+    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    run: Final[MagicMock] = mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess(["uv", "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+
+    resolve_uv_binary()
+
+    assert run.call_count == 1
+
+
 def test_resolve_uv_binary_reports_a_hanging_version_probe(mocker: MockerFixture) -> None:
     binary: Final[Path] = Path("/usr/local/bin/uv")
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))

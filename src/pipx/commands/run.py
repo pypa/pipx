@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import urllib.parse
-import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import which
@@ -14,7 +13,6 @@ from typing import TYPE_CHECKING, Final, NoReturn
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
@@ -565,6 +563,8 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
 
 @contextmanager
 def _locked_venv_cache(venv_dir: Path) -> Generator[None, None, None]:
+    from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
     venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venv_cache)
     for cached_venv_dir in sorted(venv_container.iter_venv_dirs()):
         if cached_venv_dir == venv_dir:
@@ -613,8 +613,10 @@ def _reject_oversized_script(url: str, data: bytes) -> None:
 
 
 def _http_get_request(url: str) -> str:
+    from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # ruff:ignore[suspicious-url-open-usage]  # scheme validated upstream
+        with urlopen(url, timeout=_URL_TIMEOUT) as res:  # ruff:ignore[suspicious-url-open-usage]  # scheme validated upstream
             data = res.read(_MAX_SCRIPT_BYTES + 1)
             _reject_oversized_script(url, data)
             return data.decode(res.headers.get_content_charset() or "utf-8")

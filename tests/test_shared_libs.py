@@ -13,9 +13,11 @@ from unittest.mock import patch
 
 import pytest
 
-from pipx import shared_libs
+from helpers import run_pipx_cli, skip_if_windows
+from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.util import run_subprocess
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -98,9 +100,16 @@ def test_venv_python_is_valid_existing_interpreter(tmp_path: Path) -> None:
     assert shared_libs._venv_python_is_valid(python_exe) is True  # ruff:ignore[private-member-access]  # private helper under test has no public wrapper
 
 
+@pytest.mark.parametrize(
+    "pip_args",
+    [
+        pytest.param([], id="default"),
+        pytest.param(["setuptools"], id="installed-with-pip"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_shared_libs_excludes_setuptools() -> None:
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+def test_shared_libs_excludes_setuptools(pip_args: list[str]) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=pip_args)
     result = subprocess.run(
         [str(shared_libs.shared_libs.python_path), "-m", "pip", "list", "--format=json"],
         capture_output=True,
@@ -119,6 +128,46 @@ def test_shared_libs_create_does_not_warn_about_missing_setuptools(capfd: pytest
     assert "Skipping setuptools" not in capfd.readouterr().err
 
 
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="venvs bundle setuptools before Python 3.12")
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_create_skips_setuptools_uninstall_when_absent(mocker: MockerFixture) -> None:
+    spy = mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=run_subprocess)
+
+    shared_libs.shared_libs.create(pip_args=[])
+
+    assert [call.args[0] for call in spy.call_args_list if "uninstall" in call.args[0]] == []
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_create_without_bundled_pip_wheel(mocker: MockerFixture) -> None:
+    def hide_bundled_pip(
+        cmd: Sequence[str | Path],
+        *,
+        log_cmd_str: str | None = None,
+        log_stdout: bool = True,
+        log_stderr: bool = True,
+        run_dir: str | None = None,
+        env_overrides: dict[str, str | None] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        process = run_subprocess(
+            cmd,
+            log_cmd_str=log_cmd_str,
+            log_stdout=log_stdout,
+            log_stderr=log_stderr,
+            run_dir=run_dir,
+            env_overrides=env_overrides,
+        )
+        if "--without-pip" in cmd:
+            process.stdout = ""
+        return process
+
+    mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=hide_bundled_pip)
+
+    shared_libs.shared_libs.create(pip_args=[])
+
+    assert shared_libs.shared_libs.is_valid
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_create_preserves_pip_args() -> None:
     pip_args = ["--disable-pip-version-check"]
@@ -133,6 +182,17 @@ def test_shared_libs_create_without_index_when_auto_upgrade_disabled(monkeypatch
     shared_libs.shared_libs.create(pip_args=["--no-index"])
 
     assert shared_libs.shared_libs.is_valid
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_global_install_creates_shared_libs_in_global_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", None)
+
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
+
+    expected_root = (tmp_path / "global" / "pipxhome" / "shared").resolve()
+    assert (shared_libs.shared_libs.root, shared_libs.shared_libs.is_valid) == (expected_root, True)
 
 
 @pytest.mark.parametrize(
@@ -190,7 +250,9 @@ def test_shared_libs_upgrade_serializes_concurrent_calls(
     release_first = Event()
     second_started = Event()
 
-    def run_upgrade(_command: Sequence[str | Path]) -> subprocess.CompletedProcess[str]:
+    def run_upgrade(
+        _command: Sequence[str | Path], **_kwargs: dict[str, str | None] | None
+    ) -> subprocess.CompletedProcess[str]:
         if first_started.is_set():
             second_started.set()
         else:

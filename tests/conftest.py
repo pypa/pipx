@@ -192,7 +192,7 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     find_uv_binary.cache_clear()
     uv_meets_minimum_version.cache_clear()
     # cache reset has no public API
-    _uv_backend_module._uv_version.cache_clear()  # ruff:ignore[private-member-access]
+    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
@@ -494,6 +494,7 @@ def _pipx_temp_env_helper(
     monkeypatch.setattr(
         paths, "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", tmp_path / "global_otherdir" / "pipxcompletiondir"
     )
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", pipx_shared_dir)
     # Refresh paths.ctx to commit the overrides
     paths.ctx.make_local()
 

@@ -13,7 +13,6 @@ from packaging import version
 
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.self_install import get_environment_value
-from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
@@ -100,8 +99,10 @@ def find_unix_command_python(python_version: str) -> str | None:
 
 
 def _fetch_standalone_interpreter(python_version: str) -> str:
+    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
     try:
-        return download_python_build_standalone(python_version)
+        return standalone_python.download_python_build_standalone(python_version)
     except PipxError as e:
         raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
-from pipx import commands, paths
+from pipx import paths
 from pipx.colors import bold, red
 from pipx.commands.common import (
     expose_package_resources,
@@ -14,6 +14,7 @@ from pipx.commands.common import (
     remove_stale_venv_resources,
     validate_expected_apps,
 )
+from pipx.commands.install import install as install_package
 from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
@@ -229,7 +230,7 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
 ) -> tuple[PackageUpgradeResult, ...]:
     if not venv_dir.is_dir():
         if install:
-            installed = commands.install(
+            installed = install_package(
                 venv_dir=None,
                 venv_args=venv_args or [],
                 package_names=None,
