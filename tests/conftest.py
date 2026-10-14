@@ -389,6 +389,10 @@ def pipx_local_pypiserver(
     ]
     pypiserver_process = subprocess.Popen(cmd, cwd=root)
     try:
+        while not _accepts_connections(port):
+            if pypiserver_process.poll() is not None:
+                pytest.fail(f"pypiserver exited with {pypiserver_process.returncode} before listening on {port}")
+            time.sleep(0.05)
         url = f"http://127.0.0.1:{port}/simple/"
         while True:
             try:
@@ -402,6 +406,17 @@ def pipx_local_pypiserver(
         pypiserver_process.terminate()
         # reap the child before the Popen is collected, else its finalizer raises ResourceWarning
         pypiserver_process.wait()
+
+
+def _accepts_connections(port: int) -> bool:
+    try:
+        sock = socket.create_connection(("127.0.0.1", port), timeout=1)
+    except OSError:
+        return False
+    with closing(sock):
+        # while nothing listens, the OS may hand the client the target port as its own source port, so it connects
+        # to itself, reads its own request back, and holds the port the server still has to bind
+        return sock.getsockname() != sock.getpeername()
 
 
 @pytest.fixture(scope="session")
