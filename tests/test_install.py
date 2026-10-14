@@ -228,7 +228,7 @@ def test_install_package_spec_pinned(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    install_packages(capsys, caplog, [PKG["pylint"]["spec"]], ["pylint"])
+    install_packages(capsys, caplog, [PKG["isort"]["spec"]], ["isort"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

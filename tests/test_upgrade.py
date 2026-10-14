@@ -196,7 +196,7 @@ def test_upgrade_suffix_legacy_venv(metadata_version: str) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_specifier(capsys: pytest.CaptureFixture[str]) -> None:
-    name = "pylint"
+    name = "isort"
     pkg_spec = PKG[name]["spec"]
     initial_version = pkg_spec.split("==")[-1]
 
@@ -285,12 +285,12 @@ def test_upgrade_local_path_does_not_claim_latest(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
     captured = capsys.readouterr()
-    assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
+    assert not run_pipx_cli(["upgrade", "--include-injected", "isort"])
     captured = capsys.readouterr()
-    assert "upgraded package pylint" in captured.out
+    assert "upgraded package isort" in captured.out
     assert "upgraded package black" in captured.out
 
 
@@ -351,12 +351,12 @@ def test_upgrade_include_injected_with_suffix_keeps_package_name() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_no_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
     captured = capsys.readouterr()
-    assert not run_pipx_cli(["upgrade", "pylint"])
+    assert not run_pipx_cli(["upgrade", "isort"])
     captured = capsys.readouterr()
-    assert "upgraded package pylint" in captured.out
+    assert "upgraded package isort" in captured.out
     assert "upgraded package black" not in captured.out
 
 
@@ -369,15 +369,15 @@ def test_upgrade_install_missing(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_install_missing_honors_specifier(capsys: pytest.CaptureFixture[str]) -> None:
-    pkg_spec = PKG["pylint"]["spec"]
+    pkg_spec = PKG["isort"]["spec"]
     assert not run_pipx_cli(["upgrade", pkg_spec, "--install"])
     captured = capsys.readouterr()
-    assert f"installed package pylint {pkg_spec.split('==')[-1]}" in captured.out
+    assert f"installed package isort {pkg_spec.split('==')[-1]}" in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_multiple(capsys: pytest.CaptureFixture[str]) -> None:
-    name = "pylint"
+    name = "isort"
     pkg_spec = PKG[name]["spec"]
     initial_version = pkg_spec.split("==")[-1]
     assert not run_pipx_cli(["install", pkg_spec])

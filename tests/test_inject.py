@@ -455,7 +455,7 @@ def test_inject_with_req_file(
                 {PKG["black"]["spec"]} # a comment inline
                 {PKG["nox"]["spec"]}
 
-                {PKG["pylint"]["spec"]}
+                {PKG["isort"]["spec"]}
                 # comment on separate line
             """
         ).strip()
@@ -473,7 +473,7 @@ def test_inject_with_req_file(
     packages = [
         ("black", PKG["black"]["spec"]),
         ("nox", PKG["nox"]["spec"]),
-        ("pylint", PKG["pylint"]["spec"]),
+        ("isort", PKG["isort"]["spec"]),
     ]
     packages.extend((pkg, PKG[pkg]["spec"]) for pkg in with_packages)
     packages = sorted(set(packages))

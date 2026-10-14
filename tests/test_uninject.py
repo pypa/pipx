@@ -313,12 +313,12 @@ def test_uninject_removes_dependency_app_symlinks(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"], "--include-deps", "--include-apps"])
+    assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0", "--include-deps", "--include-apps"])
     captured = capsys.readouterr()
-    assert "isort" in captured.out
-    assert not run_pipx_cli(["uninject", "pycowsay", "pylint", "--verbose"])
+    assert "normalizer" in captured.out
+    assert not run_pipx_cli(["uninject", "pycowsay", "requests", "--verbose"])
     assert "removed file" in caplog.text
-    assert "isort" in caplog.text
+    assert "normalizer" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

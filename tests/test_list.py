@@ -219,14 +219,14 @@ def test_list_json(capsys: pytest.CaptureFixture[str]) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_short(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     captured = capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--short"])
     captured = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
-    assert "pylint 3.0.4" in captured.out
+    assert "isort 5.6.4" in captured.out
 
 
 @pytest.mark.parametrize("option", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
@@ -245,33 +245,33 @@ def test_list_json_rejects_human_filter(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_selected_package_text(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "pycowsay"])
 
     captured = capsys.readouterr()
-    assert ("package pycowsay 0.0.0.2," in captured.out, "package pylint" in captured.out) == (True, False)
+    assert ("package pycowsay 0.0.0.2," in captured.out, "package isort" in captured.out) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_selected_packages_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "pycowsay", "pylint", "--json"])
+    assert not run_pipx_cli(["list", "pycowsay", "isort", "--json"])
 
-    assert sorted(json.loads(capsys.readouterr().out)["venvs"]) == ["pycowsay", "pylint"]
+    assert sorted(json.loads(capsys.readouterr().out)["venvs"]) == ["isort", "pycowsay"]
 
 
 @pytest.mark.parametrize(
     "packages",
     [
-        pytest.param(["pylint"], id="single"),
-        pytest.param(["pylint", "pylint"], id="repeated"),
-        pytest.param(["pylint", "PyLint"], id="mixed-case"),
-        pytest.param(["pylint", "pylint==3.0.4"], id="with-specifier"),
+        pytest.param(["isort"], id="single"),
+        pytest.param(["isort", "isort"], id="repeated"),
+        pytest.param(["isort", "ISort"], id="mixed-case"),
+        pytest.param(["isort", "isort==5.6.4"], id="with-specifier"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -280,12 +280,12 @@ def test_list_selected_package_short(
     packages: list[str],
 ) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", *packages, "--short"])
 
-    assert capsys.readouterr().out == "pylint 3.0.4\n"
+    assert capsys.readouterr().out == "isort 5.6.4\n"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -301,13 +301,13 @@ def test_list_selected_package_with_suffix(capsys: pytest.CaptureFixture[str]) -
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_selected_package_pinned(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["pin", "pylint"])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["pin", "isort"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "pylint", "--pinned"])
+    assert not run_pipx_cli(["list", "isort", "--pinned"])
 
-    assert capsys.readouterr().out == "pylint 3.0.4\n"
+    assert capsys.readouterr().out == "isort 5.6.4\n"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -325,12 +325,12 @@ def test_list_injected_apps_without_symlinks(
 ) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"], "--include-apps"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["isort"]["spec"], "--include-apps"])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--include-injected"])
 
-    assert f"    - {PKG['pylint']['apps'][0]}" in capsys.readouterr().out.splitlines()
+    assert f"    - {PKG['isort']['apps'][0]}" in capsys.readouterr().out.splitlines()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -407,7 +407,7 @@ def test_list_standalone_interpreter(monkeypatch: pytest.MonkeyPatch, capsys: py
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_does_not_trigger_maintenance() -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
 
     now = time.time()
     shared_libs.shared_libs.create(verbose=True, pip_args=[])
@@ -450,10 +450,10 @@ def test_list_pinned_packages(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"], PKG["nox"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"], PKG["nox"]["spec"]])
+    assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
 
-    assert not run_pipx_cli(["pin", "pylint"])
+    assert not run_pipx_cli(["pin", "isort"])
     assert not run_pipx_cli(["pin", "nox"])
 
     captured = capsys.readouterr()
@@ -463,8 +463,8 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
     captured = capsys.readouterr()
 
     assert "nox 2023.4.22" in captured.out
-    assert "pylint 3.0.4" in captured.out
-    assert "black 22.8.0 (injected in venv pylint)" in captured.out
+    assert "isort 5.6.4" in captured.out
+    assert "black 22.8.0 (injected in venv isort)" in captured.out
 
 
 def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:

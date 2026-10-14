@@ -172,14 +172,14 @@ def test_reinstall_keeps_injected_package_suffix() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_specifier(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "pylint==3.0.4"])
+    assert not run_pipx_cli(["install", "isort==5.6.4"])
 
     # clear capsys before reinstall
     captured = capsys.readouterr()
 
-    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pylint"])
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "isort"])
     captured = capsys.readouterr()
-    assert "installed package pylint 3.0.4" in captured.out
+    assert "installed package isort 5.6.4" in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

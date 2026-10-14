@@ -512,7 +512,6 @@ def test_run_ensure_null_pythonpath() -> None:
         ("pycowsay", "pycowsay", ["pycowsay", "hello"], False),
         ("shell-functools", PKG["shell-functools"]["spec"], ["filter", "--help"], True),
         ("black", PKG["black"]["spec"], ["black", "--help"], False),
-        ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
     ],
 )
