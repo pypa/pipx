@@ -185,7 +185,8 @@ the backend output beside its log, as ``cmd_<timestamp>_pip_errors.log`` or ``cm
 
 pipx keeps the logs of the last 10 commands, counting the one that is running, and separately the last 10 error logs.
 Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest command's log stays, because a failing
-command points you at its error log.
+command points you at its error log. pipx never deletes the logs of a command that is still running in another pipx
+process, so concurrent commands can briefly leave more logs than the limit.
 
 .. _sudo-pipx-not-found:
 

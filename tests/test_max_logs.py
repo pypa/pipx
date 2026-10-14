@@ -2,64 +2,24 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import errno
+from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 
 from helpers import run_pipx_cli
-from pipx import constants, main
-from pipx.main import (
-    _setup_log_file,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
-    delete_oldest_logs,
-)
+from pipx import constants, main, paths
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-
-def test_delete_oldest_logs_keeps_specified_number(tmp_path: Path) -> None:
-    """Test that delete_oldest_logs keeps only the specified number of newest files."""
-    # Create 5 log files
-    log_files = []
-    for i in range(5):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.0{i}.log"
-        log_file.touch()
-        log_files.append(log_file)
-
-    # Keep only 2
-    delete_oldest_logs(log_files, keep_number=2)
-
-    # Check that only the 2 newest files remain
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 2
+    from pytest_mock import MockerFixture
 
 
-def test_delete_oldest_logs_keeps_none(tmp_path: Path) -> None:
-    """Test that delete_oldest_logs with keep_number=0 deletes every file."""
-    log_files = []
-    for i in range(5):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.0{i}.log"
-        log_file.touch()
-        log_files.append(log_file)
-
-    delete_oldest_logs(log_files, keep_number=0)
-
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert remaining == []
-
-
-def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
-    """Test that delete_oldest_logs keeps all files when under the limit."""
-    log_files = []
-    for i in range(3):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.0{i}.log"
-        log_file.touch()
-        log_files.append(log_file)
-
-    delete_oldest_logs(log_files, keep_number=10)
-
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 3
+@pytest.fixture
+def log_dir() -> Path:
+    paths.ctx.logs.mkdir(parents=True)
+    return paths.ctx.logs
 
 
 @pytest.mark.parametrize(
@@ -72,29 +32,55 @@ def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
         pytest.param("0", 15, 1, id="zero-keeps-current-run"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_max_logs_counts_the_new_log(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, max_logs: str | None, existing: int, expected: int
+    log_dir: Path, monkeypatch: pytest.MonkeyPatch, max_logs: str | None, existing: int, expected: int
 ) -> None:
     if max_logs is None:
         monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
     else:
         monkeypatch.setenv("PIPX_MAX_LOGS", max_logs)
     for i in range(existing):
-        (tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log").touch()
+        (log_dir / f"cmd_2024-01-01_00.00.{i:02d}.log").touch()
 
-    _setup_log_file(pipx_log_dir=tmp_path)
+    assert not run_pipx_cli(["list"])
 
-    assert len(list(tmp_path.glob("cmd_*[0-9].log"))) == expected
+    assert len(list(log_dir.glob("cmd_*[0-9].log"))) == expected
 
 
-def test_max_logs_rotates_every_backend_error_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_rotates_every_backend_error_log(log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIPX_MAX_LOGS", "2")
     for i, backend in enumerate(["uv", "pip", "uv", "pip"]):
-        (tmp_path / f"cmd_2024-01-01_00.00.{i:02d}_{backend}_errors.log").touch()
+        (log_dir / f"cmd_2024-01-01_00.00.{i:02d}_{backend}_errors.log").touch()
 
-    _setup_log_file(pipx_log_dir=tmp_path)
+    assert not run_pipx_cli(["list"])
 
-    assert sorted(path.name for path in tmp_path.glob("cmd_*_errors.log")) == ["cmd_2024-01-01_00.00.03_pip_errors.log"]
+    assert sorted(path.name for path in log_dir.glob("cmd_*_errors.log")) == ["cmd_2024-01-01_00.00.03_pip_errors.log"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_orders_same_second_logs_by_counter(log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "2")
+    for counter in ("", "_1"):
+        (log_dir / f"cmd_2024-01-01_00.00.00{counter}_uv_errors.log").touch()
+
+    assert not run_pipx_cli(["list"])
+
+    assert [path.name for path in log_dir.glob("cmd_*_errors.log")] == ["cmd_2024-01-01_00.00.00_1_uv_errors.log"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_keeps_logs_of_running_command(log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "1")
+    assert not run_pipx_cli(["list"])
+    # the first command's log handler stays open until the next command replaces it, like a concurrent pipx process
+    log: Final[Path] = cast("Path", paths.ctx.log_file)
+    (error_log := log.with_name(f"{log.stem}_uv_errors.log")).touch()
+
+    assert not run_pipx_cli(["list"])
+
+    assert {log, error_log} <= set(log_dir.iterdir())
 
 
 @pytest.mark.parametrize(
@@ -134,3 +120,17 @@ def test_cli_blank_env_max_logs_falls_back_to_default(
     assert not run_pipx_cli(["list"])
 
     assert "ValueError" not in capsys.readouterr().err
+
+
+@pytest.mark.skipif(constants.WINDOWS, reason="file locks only guard logs on POSIX")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_rotates_without_lock_support(
+    log_dir: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "1")
+    (log_dir / "cmd_2024-01-01_00.00.00.log").touch()
+    mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"))
+
+    assert not run_pipx_cli(["list"])
+
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]

@@ -7,6 +7,7 @@ from __future__ import annotations
 __lazy_modules__ = [
     "argcomplete",
     "contextlib",
+    "fcntl",
     "packaging.utils",
     "pathlib",
     "pipx.backends",
@@ -17,6 +18,7 @@ __lazy_modules__ = [
     "pipx.venv",
     "pipx.version",
     "platformdirs",
+    "re",
     "shlex",
     "urllib.parse",
 ]
@@ -25,6 +27,7 @@ import argparse
 import contextlib
 import logging
 import os
+import re
 import shlex
 import sys
 import textwrap
@@ -77,7 +80,12 @@ from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, stream_subprocess_stdo
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 
+if not WINDOWS:
+    import fcntl
+
 if TYPE_CHECKING:
+    from io import TextIOWrapper
+
     from pipx.commands.cache import CacheData
     from pipx.commands.expose import ExposureData
     from pipx.commands.health import HealthData, RepairData
@@ -2013,16 +2021,7 @@ def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
     return ExitCode(0)
 
 
-def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
-    file_list = sorted(file_list)
-    # Count from the front rather than slicing with -keep_number: file_list[:-0] is
-    # file_list[:0], so keeping none used to delete none. max() guards the other end,
-    # where keep_number exceeds the list and a negative bound would delete instead.
-    for existing_file in file_list[: max(0, len(file_list) - keep_number)]:
-        existing_file.unlink(missing_ok=True)
-
-
-def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
+def _setup_log_file(pipx_log_dir: Path | None = None) -> TextIOWrapper:
     # parse through the shared _compute_max_logs so blank values fall back to the
     # default here too: raw int() re-parsing crashed on PIPX_MAX_LOGS="" or "   "
     # even though dispatch validation had already passed them as unset
@@ -2030,27 +2029,70 @@ def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
+    log_stream: Final[TextIOWrapper] = _create_log_file(pipx_log_dir)
+    _rotate_logs(Path(log_stream.name), max_logs)
+    return log_stream
 
-    # the log created below counts toward the limit and must outlive its run, since a failure points the user at its
+
+def _create_log_file(pipx_log_dir: Path) -> TextIOWrapper:
+    datetime_str: Final[str] = time.strftime("%Y-%m-%d_%H.%M.%S")
+    counter = 0
+    while True:
+        with contextlib.suppress(FileExistsError):
+            log_stream = (pipx_log_dir / f"cmd_{datetime_str}{f'_{counter}' if counter else ''}.log").open(
+                "x", encoding="utf-8"
+            )
+            break
+        counter += 1
+    # a concurrent pipx skips deleting a locked log; Windows already refuses to delete a file another process has open
+    if not WINDOWS:
+        # a filesystem without lock support only loses the protection, never the run
+        with contextlib.suppress(OSError):
+            fcntl.flock(log_stream, fcntl.LOCK_SH)
+    return log_stream
+
+
+def _rotate_logs(current: Path, max_logs: int) -> None:
+    # the current log counts toward the limit and must outlive its run, since a failure points the user at its
     # error log, so 0 keeps that one log
     keep_old: Final[int] = max(max_logs - 1, 0)
-    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*[0-9].log")), keep_old)
-    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*_errors.log")), keep_old)
+    name_pattern: Final[re.Pattern[str]] = re.compile(
+        r"cmd_(\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)(?:_(\d+))?(_[a-z]+_errors)?\.log"
+    )
+    command_logs: dict[tuple[str, int], Path] = {}
+    error_logs: list[tuple[tuple[str, int], Path]] = []
+    for path in current.parent.glob("cmd_*.log"):
+        if path != current and (match := name_pattern.fullmatch(path.name)):
+            run = (match[1], int(match[2] or 0))
+            if match[3]:
+                error_logs.append((run, path))
+            else:
+                command_logs[run] = path
+    ordered: Final[list[tuple[tuple[str, int], Path]]] = sorted(command_logs.items())
+    for _, path in ordered[: max(0, len(ordered) - keep_old)]:
+        _delete_unless_running(path)
+    error_logs.sort()
+    for run, path in error_logs[: max(0, len(error_logs) - keep_old)]:
+        if run not in command_logs or not command_logs[run].exists():
+            path.unlink(missing_ok=True)
 
-    datetime_str: Final[str] = time.strftime("%Y-%m-%d_%H.%M.%S")
-    log_file = pipx_log_dir / f"cmd_{datetime_str}.log"
-    counter = 1
-    max_same_second_logs: Final = 10
-    while log_file.exists() and counter < max_same_second_logs:
-        log_file = pipx_log_dir / f"cmd_{datetime_str}_{counter}.log"
-        counter += 1
 
-    log_file.touch()
+def _delete_unless_running(log: Path) -> None:
+    if WINDOWS:
+        with contextlib.suppress(FileNotFoundError, PermissionError):
+            log.unlink()
+        return
+    with contextlib.suppress(FileNotFoundError), log.open("rb") as stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        except OSError:
+            pass  # no lock support on this filesystem: rotate as if no other pipx were running
+        log.unlink()
 
-    return log_file
 
-
-def setup_log_file() -> Path:
+def setup_log_file() -> TextIOWrapper:
     try:
         return _setup_log_file()
     except PermissionError:
@@ -2059,7 +2101,8 @@ def setup_log_file() -> Path:
 
 def setup_logging(verbose: int) -> None:
     pipx_str: Final[str] = bold(green("pipx >")) if sys.stdout and sys.stdout.isatty() else "pipx >"
-    paths.ctx.log_file = setup_log_file()
+    log_stream: Final[TextIOWrapper] = setup_log_file()
+    paths.ctx.log_file = Path(log_stream.name)
 
     # configured by hand because importing logging.config pulls socket and pickle into every startup
     stream_handler: Final[logging.StreamHandler[TextIO]] = logging.StreamHandler()
@@ -2067,7 +2110,8 @@ def setup_logging(verbose: int) -> None:
     stream_handler.setFormatter(
         logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}" if verbose else "{message}", style="{")
     )
-    file_handler: Final[logging.FileHandler] = logging.FileHandler(paths.ctx.log_file, encoding="utf-8")
+    file_handler: Final[logging.FileHandler] = logging.FileHandler(paths.ctx.log_file, encoding="utf-8", delay=True)
+    file_handler.stream = log_stream
     file_handler.setFormatter(
         logging.Formatter("{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{")
     )
@@ -2252,6 +2296,5 @@ if __name__ == "__main__":
 __all__ = [
     "build_parser",
     "cli",
-    "delete_oldest_logs",
     "get_command_parser",
 ]
