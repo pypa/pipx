@@ -53,6 +53,8 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
     from packaging.specifiers import SpecifierSet
 
+    from pipx.venv_inspect import VenvMetadata
+
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
@@ -858,13 +860,13 @@ class _EnvironmentBuild:
     cooldown_days: int | None
     pinned: bool
 
-    def run(self, venv: Venv) -> None:
+    def run(self, venv: Venv) -> VenvMetadata:
         venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
         venv.pipx_metadata.exposure_enabled = self.exposure_enabled
         venv.pipx_metadata.environment = venv.root.name
         for dependency in self.preinstall_packages or []:
             venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
-        venv.install_package(
+        return venv.install_package(
             package_name=self.package_name,
             package_or_url=self.package_spec,
             pip_args=self.pip_args,
@@ -894,9 +896,8 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     messages: list[OutputMessage],
 ) -> Venv:
     try:
-        build.run(venv)
         # pip refuses an interpreter the package rules out, while uv installs onto it, so ask the metadata as well
-        constraint = venv.unsupported_python(build.package_name)
+        constraint = build.run(venv).unsupported_python
     except IncompatiblePythonError as error:
         constraint = error.constraint
     if constraint is None:

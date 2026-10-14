@@ -17,11 +17,14 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+from pipx.requires_python import unsatisfied_constraint
 from pipx.util import PipxError, run_subprocess
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
     from subprocess import CompletedProcess
+
+    from packaging.specifiers import SpecifierSet
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,7 @@ class VenvMetadata(NamedTuple):
     completion_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
     python_version: str
+    unsupported_python: SpecifierSet | None
 
 
 def _distribution_name(dist: metadata.Distribution) -> str | None:
@@ -477,7 +481,7 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
     return (
         venv_info["sys_path"],
         venv_info["environment"],
-        f"Python {venv_info['python_version']}",
+        venv_info["python_version"],
     )
 
 
@@ -563,7 +567,8 @@ def inspect_venv(  # ruff:ignore[too-many-locals]  # aggregates apps, man pages,
         completions_of_dependencies=completions_of_dependencies,
         completion_paths_of_dependencies=completion_paths_of_dependencies,
         package_version=root_dist.version,
-        python_version=venv_python_version,
+        python_version=f"Python {venv_python_version}",
+        unsupported_python=unsatisfied_constraint(root_dist.metadata.get("Requires-Python"), venv_python_version),
     )
 
 
