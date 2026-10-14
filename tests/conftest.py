@@ -16,7 +16,7 @@ import zipfile
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 from venv import EnvBuilder
@@ -47,11 +47,34 @@ _LOOPBACK_HOSTS: Final[frozenset[str]] = frozenset({"localhost", "127.0.0.1", ":
 _PIPX_TESTS_DIR: Final[Path] = Path(".pipx_tests")
 _PIPX_TESTS_PACKAGE_LIST_DIR: Final[Path] = Path("testdata/tests_packages")
 _IGNORE_PROJECT_OUTPUT: Final[Callable[[str, list[str]], set[str]]] = shutil.ignore_patterns("build", "*.egg-info")
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
 
 @pytest.fixture(scope="session")
 def root() -> Path:
     return Path(__file__).parents[1]
+
+
+@pytest.fixture
+def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[], None]], None]:
+    """Run an action before every subprocess pipx starts for one venv, such as a delay or an interrupt."""
+
+    def patch(venv_dir: Path, action: Callable[[], None]) -> None:
+        # the command list is matched through its repr, which escapes the backslashes of a Windows path
+        marker: Final[str] = repr(str(venv_dir))[1:-1]
+        mocker.patch.object(subprocess, "run", side_effect=_preceded(subprocess.run, marker, action))
+
+    return patch
+
+
+def _preceded(call: Callable[_P, _R], marker: str, action: Callable[[], None]) -> Callable[_P, _R]:
+    def preceded(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        if marker in str(args[0]):
+            action()
+        return call(*args, **kwargs)
+
+    return preceded
 
 
 @pytest.fixture

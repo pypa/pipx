@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["logging", "shutil", "threading"]
+__lazy_modules__ = ["logging", "pipx.fanout", "shutil", "threading"]
 
 import logging
 import shutil
@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Final
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
+from pipx.fanout import output_is_held
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
@@ -47,6 +48,11 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
 
     if not do_animation or not _env_supports_animation():
         sys.stderr.write(f"{message}...\n")
+        yield
+        return
+
+    # a spinner leaves nothing on screen once cleared, and replaying its frames later would only flicker
+    if output_is_held():
         yield
         return
 

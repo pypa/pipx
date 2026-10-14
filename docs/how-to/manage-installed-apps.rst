@@ -120,6 +120,10 @@ Verify:
 Common after installing a new Python version so every app moves to it. Use ``--python`` to target a specific
 interpreter and ``--skip PKG ...`` to exclude environments.
 
+pipx rebuilds up to eight environments at once (fewer on machines with fewer CPUs) and holds back the output of each
+until the ones before it finish, so it reads the same as a one-at-a-time run. A failed environment does not stop the
+others. Pass ``--verbose`` to rebuild them one at a time and watch the pip or uv output as it happens.
+
 Verify:
 
 .. code-block:: console

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 import importlib
+import json
+import re
 import sys
+import time
+from dataclasses import replace
+from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
@@ -13,7 +18,9 @@ from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Callable
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -114,3 +121,86 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
     assert (venv_dir / "pipx_metadata.json").read_text() == metadata_before
     assert not (venv_dir / "partial-install").exists()
     assert not any(path.name.endswith("-pipx-reinstall") for path in paths.ctx.venvs.iterdir())
+
+
+@pytest.fixture
+def venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
+    for spec in ("pycowsay", PKG["pbr"]["spec"], PKG["black"]["spec"]):
+        assert not run_pipx_cli(["install", spec])
+    capsys.readouterr()
+    return [venv_dir.name for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir()]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_prints_progress_in_venv_order(
+    capsys: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+    venv_names: list[str],
+) -> None:
+    before_venv_subprocess(paths.ctx.venvs / venv_names[0], lambda: time.sleep(0.3))
+
+    assert not run_pipx_cli(["reinstall-all"])
+
+    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_reinstalls_the_rest_after_a_failure(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], venv_names: list[str]
+) -> None:
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / venv_names[0])
+    metadata.main_package = replace(metadata.main_package, package_or_url=str(tmp_path / "missing"))
+    metadata.write()
+
+    exit_code: Final[int] = run_pipx_cli(["reinstall-all", "--output", "json"])
+
+    result: Final = json.loads(capsys.readouterr().out)
+    assert (
+        exit_code,
+        [environment["environment"] for environment in result["data"]["environments"]],
+        [error["environment"] for error in result["errors"]],
+    ) == (1, venv_names[1:], venv_names[:1])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_refreshes_stale_shared_pip_once(
+    capsys: pytest.CaptureFixture[str], venv_names: list[str]
+) -> None:
+    del venv_names
+    set_shared_pip_age(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60)
+
+    assert not run_pipx_cli(["reinstall-all"])
+
+    assert capsys.readouterr().err.count("upgrading shared libraries") == 1
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_restores_interrupted_venv_among_several(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
+) -> None:
+    interrupted: Final[Path] = paths.ctx.venvs / venv_names[0]
+    metadata_before: Final[str] = (interrupted / "pipx_metadata.json").read_text()
+
+    def interrupt() -> NoReturn:
+        raise KeyboardInterrupt
+
+    before_venv_subprocess(interrupted, interrupt)
+
+    assert (run_pipx_cli(["reinstall-all"]), (interrupted / "pipx_metadata.json").read_text()) == (1, metadata_before)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    rename: Final = Path.rename
+    held: Final[list[Path]] = [paths.ctx.venvs / "pycowsay"]
+
+    def rename_once_released(source: Path, target: Path) -> Path:
+        if source in held:
+            held.remove(source)
+            raise PermissionError(source)
+        return rename(source, target)
+
+    mocker.patch.object(Path, "rename", autospec=True, side_effect=rename_once_released)
+
+    assert not run_pipx_cli(["reinstall-all"])

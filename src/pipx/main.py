@@ -1322,6 +1322,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
             This is useful if you upgraded to a new version of Python and want
             all your packages to use the latest as well.
 
+            Rebuilds up to eight environments at once and prints the output
+            of each in turn; --verbose rebuilds them one at a time.
+
             """
         ),
         parents=[shared_parser],
