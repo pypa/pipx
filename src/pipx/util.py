@@ -628,15 +628,12 @@ def subprocess_post_check_handle_pip_error(
         raise PipxError(msg)
     error_file = paths.ctx.log_file.parent / f"{paths.ctx.log_file.stem}_{tool_name}_errors.log"
     upper_label = tool_name.upper()
+    # one write per block, as the fan-out tasks of an -all command append their failures to the same file at once
     with error_file.open("a", encoding="utf-8") as error_fh:
-        print(f"{upper_label} STDOUT", file=error_fh)
-        print("----------", file=error_fh)
-        if completed_process.stdout is not None:
-            print(completed_process.stdout, file=error_fh, end="")
-        print(f"\n{upper_label} STDERR", file=error_fh)
-        print("----------", file=error_fh)
-        if completed_process.stderr is not None:
-            print(completed_process.stderr, file=error_fh, end="")
+        error_fh.write(
+            f"{upper_label} STDOUT\n----------\n{completed_process.stdout or ''}"
+            f"\n{upper_label} STDERR\n----------\n{completed_process.stderr or ''}"
+        )
 
     _LOGGER.error(
         "Fatal error from %s prevented installation. Full %s output in file:\n    %s", tool_name, tool_name, error_file

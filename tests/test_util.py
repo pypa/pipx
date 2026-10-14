@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import sys
 import threading
+from functools import partial
 from io import BytesIO, StringIO, TextIOWrapper
+from itertools import groupby
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from venv import EnvBuilder
@@ -14,11 +17,16 @@ import pytest
 from helpers import skip_if_windows
 from pipx import paths
 from pipx.fanout import fan_out
-from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_unlink
+from pipx.util import (
+    exec_app,
+    get_site_packages,
+    rmdir,
+    run_subprocess,
+    safe_unlink,
+    subprocess_post_check_handle_pip_error,
+)
 
 if TYPE_CHECKING:
-    import subprocess
-
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
@@ -422,3 +430,18 @@ def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp
     (tmp_path / "lib" / "python3.0" / "site-packages").mkdir(parents=True)
 
     assert get_site_packages(tmp_path / "bin" / "python") == expected
+
+
+def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+    tags: Final[str] = "ABCDEFGH"
+
+    def fail(tag: str) -> None:
+        output: Final[str] = f"{tag * 79}\n" * 2000
+        subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, output, output))
+
+    fan_out([partial(fail, tag) for tag in tags], sequential=False)
+
+    lines: Final[list[str]] = (tmp_path / "cmd_pip_errors.log").read_text(encoding="utf-8").splitlines()
+    blocks: Final[list[str]] = [tag for tag, _ in groupby(line[0] for line in lines if line[:1] in set(tags))]
+    assert sorted(blocks) == sorted(tags)
