@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -82,7 +83,14 @@ def create_test_packages_list(package_list_dir_path: Path, primary_package_list_
         futures = {pool.submit(download, pkg) for pkg in primary_test_packages}
         downloaded_list = set()
         for future in as_completed(futures):
-            downloaded_list.update(future.result())
+            try:
+                downloaded_list.update(future.result())
+            except subprocess.CalledProcessError as error:
+                sys.stderr.write(f"{shlex.join(error.cmd)} failed:\n{error.stderr}")
+                exit_code = 1
+    # a partial list would stick around and fail tests with "no matching distribution", so write none
+    if exit_code:
+        return exit_code
 
     all_packages = []
     for downloaded_path in downloaded_list:
@@ -110,7 +118,7 @@ def download(test_package: dict[str, str]) -> set[str]:
     no_deps = test_package.get("no-deps", False)
     with tempfile.TemporaryDirectory() as download_dir:
         cmd_list = ["pip", "download"] + (["--no-deps"] if no_deps else []) + [test_package["spec"], "-d", download_dir]
-        subprocess.run(cmd_list, capture_output=True, text=True, check=False)
+        subprocess.run(cmd_list, capture_output=True, text=True, check=True)
         return {i.name for i in Path(download_dir).iterdir()}
 
 
