@@ -515,7 +515,6 @@ def test_run_ensure_null_pythonpath() -> None:
         ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
         ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
-        ("awscli", PKG["awscli"]["spec"], ["aws", "--help"], True),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")

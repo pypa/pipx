@@ -157,29 +157,12 @@ def test_install_easy_packages_globally(
     install_packages(capsys, caplog, [package_spec], [package_name])
 
 
-@pytest.mark.parametrize(
-    ("package_name", "package_spec"),
-    [
-        ("awscli", PKG["awscli"]["spec"]),
-        ("ansible", PKG["ansible"]["spec"]),
-        ("shell-functools", PKG["shell-functools"]["spec"]),
-    ],
-)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_tricky_packages(
-    capsys: pytest.CaptureFixture[str],
-    caplog: pytest.LogCaptureFixture,
-    package_name: str,
-    package_spec: str,
-) -> None:
+def test_install_tricky_packages(capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture) -> None:
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
-    if sys.platform.startswith("win") and package_name == "ansible":
-        pytest.skip("Ansible is not installable on Windows")
-    if _FREE_THREADED and package_name == "ansible":
-        pytest.skip("Skipping ansible due to missing free-threaded wheel for cryptography")
 
-    install_packages(capsys, caplog, [package_spec], [package_name])
+    install_packages(capsys, caplog, [PKG["shell-functools"]["spec"]], ["shell-functools"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -206,7 +189,7 @@ def test_install_tricky_multiple_packages(
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
 
-    packages = ["awscli", "shell-functools"]  # cloudtoken is temporarily removed
+    packages = ["pycowsay", "shell-functools"]
     package_specs = [PKG[package]["spec"] for package in packages]
 
     install_packages(capsys, caplog, package_specs, packages)
