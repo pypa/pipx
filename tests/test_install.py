@@ -299,7 +299,8 @@ def test_install_no_apps_guidance(
 ) -> None:
     return_code = run_pipx_cli(["install", *install_args])
 
-    error = capsys.readouterr().err
+    # the message is wrapped to the terminal width, which can split any of the phrases below across lines
+    error = " ".join(capsys.readouterr().err.split())
     assert (
         return_code,
         f"No apps associated with package {display_name}" in error,
