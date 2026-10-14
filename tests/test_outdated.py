@@ -234,6 +234,19 @@ def test_list_outdated_excludes_unmanaged_distributions(
     ] == sorted(installed - managed)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_outdated_uv_skips_invalid_distribution_names(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--backend", "uv"])
+    # pip renames a distribution being replaced to ``~<name>`` and leaves it behind when interrupted
+    next((paths.ctx.venvs / "pycowsay").rglob("pycowsay-*.dist-info")).with_name("~arkdown-3.4.dist-info").mkdir()
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--outdated"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
+
+
 @pytest.mark.parametrize(
     ("outdated_environment", "expected_error"),
     [

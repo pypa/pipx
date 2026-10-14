@@ -26,10 +26,11 @@ if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
+    from packaging.utils import NormalizedName
 
     from pipx.venv_inspect import VenvMetadata
 
-from packaging.utils import canonicalize_name
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
 from pipx.animate import STDERR_IS_TTY, animate
@@ -689,10 +690,11 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if (shared_pth := site_packages[0] / PIPX_SHARED_PTH).is_file():
             site_packages.extend(Path(line) for line in shared_pth.read_text().splitlines())
         return {
-            canonicalize_name(path.name.partition("-")[0])
+            name
             for directory in site_packages
             for pattern in ("*.dist-info", "*.egg-info")
             for path in directory.glob(pattern)
+            if (name := _distribution_name(path))
         }
 
     @property
@@ -843,6 +845,14 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             cmd_str = " ".join(str(c) for c in process.args)
             _LOGGER.error("%r failed", cmd_str)
         return ExitCode(process.returncode)
+
+
+def _distribution_name(metadata_dir: Path) -> NormalizedName | None:
+    # an interrupted pip leaves ``~name-1.0.dist-info`` behind, and uv rejects such a name as an ``--exclude`` value
+    try:
+        return canonicalize_name(metadata_dir.name.partition("-")[0], validate=True)
+    except InvalidName:
+        return None
 
 
 __all__ = [
