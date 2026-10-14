@@ -1108,7 +1108,7 @@ def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: a
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "upgrade-shared",
         help="Upgrade shared libraries.",
-        description="Upgrade shared libraries.",
+        description="Upgrade shared libraries now. Other commands refresh them once they are over 30 days old.",
         parents=[shared_parser],
     )
     parser.add_argument(

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import datetime as dt
 import importlib
 import sys
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, set_shared_pip_age
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
@@ -66,15 +67,21 @@ def test_reinstall_all_suffix_legacy_venv(metadata_version: str) -> None:
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
 
 
+@pytest.mark.parametrize(
+    ("age_sec", "refreshed"),
+    [
+        pytest.param(dt.timedelta(days=1).total_seconds(), False, id="recent"),
+        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, True, id="stale"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_all_triggers_shared_libs_upgrade(caplog: pytest.LogCaptureFixture) -> None:
+def test_reinstall_all_refreshes_shared_pip_only_when_stale(age_sec: float, refreshed: bool) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    caplog.clear()
+    last_upgrade: Final[float] = set_shared_pip_age(age_sec)
 
     assert not run_pipx_cli(["reinstall-all"])
-    assert "Upgrading shared libraries in" in caplog.text
+
+    assert (shared_libs.shared_libs.pip_path.stat().st_mtime != last_upgrade) is refreshed
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -180,7 +180,7 @@ venv and pip arguments the snapshot recorded unless you pass your own:
  upgrade-shared
 ***************
 
-Upgrade the shared libraries:
+Upgrade the shared libraries now, instead of waiting for the automatic refresh once they are more than 30 days old:
 
 .. code-block:: bash
 

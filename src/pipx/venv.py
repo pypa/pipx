@@ -217,7 +217,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def backend_source(self) -> str:
         return self._backend_source
 
-    def check_upgrade_shared_libs(self, *, verbose: bool, pip_args: list[str], force_upgrade: bool = False) -> None:
+    def check_upgrade_shared_libs(self, *, verbose: bool, pip_args: list[str]) -> None:
         """
         If necessary, run maintenance tasks to keep the shared libs up-to-date.
 
@@ -228,9 +228,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         """
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                if force_upgrade:
-                    shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
-                elif shared_libs_auto_upgrade_disabled():
+                if shared_libs_auto_upgrade_disabled():
                     _LOGGER.info(
                         "Skipping shared libs auto-upgrade because %s is set.", DISABLE_SHARED_LIBS_AUTO_UPGRADE
                     )
@@ -353,8 +351,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             )
 
     def upgrade_packaging_libraries(self, pip_args: list[str]) -> None:
+        # check_upgrade_shared_libs owns the shared pip, refreshing it at most every 30 days unless disabled
         if self.uses_shared_libs:
-            shared_libs.upgrade(pip_args=pip_args, verbose=self.verbose)
             return
         # Short-circuit before instantiating UvBackend so ``upgrade-all`` over
         # uv venvs still works after uv has been uninstalled (the no-op upgrade
