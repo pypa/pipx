@@ -707,7 +707,10 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "install-all",
         help="Install all packages",
         formatter_class=LineWrapRawTextHelpFormatter,
-        description="Installs all the packages according to spec metadata file.",
+        description=(
+            "Installs all the packages according to spec metadata file. Installs up to eight environments at once "
+            "and prints the output of each in turn, in file order; --verbose installs them one at a time."
+        ),
         parents=[shared_parser],
     )
     parser.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --output json")
