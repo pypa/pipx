@@ -262,3 +262,15 @@ def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> 
             capture_stderr=False,
             stream_output=True,
         )
+
+
+def test_zz_stress_pty_output(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
+    monkeypatch.delenv("COLUMNS", raising=False)
+    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
+    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    lost = sum(
+        run_subprocess([sys.executable, "-c", "print('payload')"], stream_output=True).stdout.strip() != "payload"
+        for _ in range(300)
+    )
+    assert lost == 0, f"lost output in {lost}/300 runs"
