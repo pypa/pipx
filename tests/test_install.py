@@ -42,12 +42,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 _FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
-# Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
-_JUPYTER_PYTHON_ARGS: Final[tuple[str, ...]] = (
-    ("--python", os.environ.get("PIPX_TEST_JUPYTER_PYTHON", "3.14"))
-    if sys.platform == "win32" and sys.version_info >= (3, 15)
-    else ()
-)
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:

@@ -19,7 +19,6 @@ cmarkgfm==2024.11.20
 colorama==0.4.6
 colorlog==6.9.0
 cryptography==46.0.1
-cython==3.1.4
 decorator==5.2.1
 dill==0.4.0
 distlib==0.4.0

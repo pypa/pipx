@@ -5,7 +5,6 @@
 
 # spec  no-deps
 chardet
-Cython                  # in 'setup_requires' of jupyter dep pywinpty on Win
 black==22.8.0
 black==22.10.0
 # cloudtoken==2.1.0
