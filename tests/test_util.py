@@ -262,3 +262,21 @@ def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> 
             capture_stderr=False,
             stream_output=True,
         )
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="only macOS drops what a closing pseudo-terminal still queues")
+def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
+    mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
+    monkeypatch.delenv("COLUMNS", raising=False)
+    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
+    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+
+    # the loss hit about 1 run in 75 on a CI macOS runner, so a few hundred runs catch it reliably
+    outputs: Final[set[str]] = {
+        run_subprocess([sys.executable, "-c", "print('payload')"], stream_output=True).stdout.strip()
+        for _ in range(300)
+    }
+
+    assert outputs == {"payload"}
