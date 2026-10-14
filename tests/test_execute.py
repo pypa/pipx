@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize(
     ("setup_commands", "environment_name", "application"),
     [
-        pytest.param([["install", "pylint==3.0.4"]], "pylint", "isort", id="dependency"),
+        pytest.param([["install", "requests==2.31.0", "--include-deps"]], "requests", "normalizer", id="dependency"),
         pytest.param(
             [["install", "pycowsay"], ["inject", "pycowsay", "black"]],
             "pycowsay",

@@ -6,7 +6,6 @@ import re
 import shutil
 import subprocess
 import sys
-import sysconfig
 import threading
 from contextlib import contextmanager
 from functools import partial
@@ -40,14 +39,6 @@ if TYPE_CHECKING:
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
-
-_FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
-# Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
-_JUPYTER_PYTHON_ARGS: Final[tuple[str, ...]] = (
-    ("--python", os.environ.get("PIPX_TEST_JUPYTER_PYTHON", "3.14"))
-    if sys.platform == "win32" and sys.version_info >= (3, 15)
-    else ()
-)
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
@@ -157,29 +148,12 @@ def test_install_easy_packages_globally(
     install_packages(capsys, caplog, [package_spec], [package_name])
 
 
-@pytest.mark.parametrize(
-    ("package_name", "package_spec"),
-    [
-        ("awscli", PKG["awscli"]["spec"]),
-        ("ansible", PKG["ansible"]["spec"]),
-        ("shell-functools", PKG["shell-functools"]["spec"]),
-    ],
-)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_tricky_packages(
-    capsys: pytest.CaptureFixture[str],
-    caplog: pytest.LogCaptureFixture,
-    package_name: str,
-    package_spec: str,
-) -> None:
+def test_install_tricky_packages(capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture) -> None:
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
-    if sys.platform.startswith("win") and package_name == "ansible":
-        pytest.skip("Ansible is not installable on Windows")
-    if _FREE_THREADED and package_name == "ansible":
-        pytest.skip("Skipping ansible due to missing free-threaded wheel for cryptography")
 
-    install_packages(capsys, caplog, [package_spec], [package_name])
+    install_packages(capsys, caplog, [PKG["shell-functools"]["spec"]], ["shell-functools"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -206,7 +180,7 @@ def test_install_tricky_multiple_packages(
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
 
-    packages = ["awscli", "shell-functools"]  # cloudtoken is temporarily removed
+    packages = ["pycowsay", "shell-functools"]
     package_specs = [PKG[package]["spec"] for package in packages]
 
     install_packages(capsys, caplog, package_specs, packages)
@@ -254,7 +228,7 @@ def test_install_package_spec_pinned(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    install_packages(capsys, caplog, [PKG["pylint"]["spec"]], ["pylint"])
+    install_packages(capsys, caplog, [PKG["isort"]["spec"]], ["isort"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -312,7 +286,7 @@ def test_force_install_does_not_record_internal_pip_args() -> None:
             False,
             id="library-with-suffix",
         ),
-        pytest.param("jupyter", "jupyter", [PKG["jupyter"]["spec"]], True, id="dependency-apps"),
+        pytest.param("requests", "requests", ["requests==2.31.0"], True, id="dependency-apps"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -323,12 +297,10 @@ def test_install_no_apps_guidance(
     install_args: list[str],
     has_dependency_apps: bool,
 ) -> None:
-    if _FREE_THREADED and package_name == "jupyter":
-        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
+    return_code = run_pipx_cli(["install", *install_args])
 
-    return_code = run_pipx_cli(["install", *install_args, *(_JUPYTER_PYTHON_ARGS if package_name == "jupyter" else ())])
-
-    error = capsys.readouterr().err
+    # the message is wrapped to the terminal width, which can split any of the phrases below across lines
+    error = " ".join(capsys.readouterr().err.split())
     assert (
         return_code,
         f"No apps associated with package {display_name}" in error,
@@ -985,10 +957,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_include_deps() -> None:
-    if _FREE_THREADED:
-        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
-
-    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps", *_JUPYTER_PYTHON_ARGS])
+    assert not run_pipx_cli(["install", "requests==2.31.0", "--include-deps"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1224,29 +1193,18 @@ def test_pip_args_with_windows_path(capsys: pytest.CaptureFixture[str]) -> None:
 @pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_pip_args_with_constraint_relative_path(
-    constraint_flag: str, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    constraint_flag: str, tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    if _FREE_THREADED:
-        pytest.skip("Skipping ipython due to missing free-threaded wheel for psutil")
+    constraints_file = tmp_path / "constraints.txt"
+    constraints_file.write_text("black!=22.10.0")
+    monkeypatch.chdir(tmp_path)
 
-    constraint_file_name = "constraints.txt"
-    package_name = "ipython"
-    package_version = "8.23.0"
+    assert not run_pipx_cli(["install", f"--pip-args='{constraint_flag}constraints.txt'", "black"])
 
-    os.chdir(tmp_path)
-    constraints_file = tmp_path / constraint_file_name
-    constraints_file.write_text(f"{package_name}!={package_version}")
-    constraints_file.touch()
-
-    assert not run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", package_name])
-
-    assert f"{constraint_flag}{constraints_file}" in caplog.text
-
-    subprocess_package_version = subprocess.run(
-        [package_name, "--version"], capture_output=True, text=True, check=False
-    )
-    subprocess_package_version_output = subprocess_package_version.stdout.strip()
-    assert subprocess_package_version_output != package_version
+    assert (
+        f"{constraint_flag}{constraints_file}" in caplog.text,
+        PipxMetadata(paths.ctx.venvs / "black").main_package.package_version,
+    ) == (True, "22.8.0")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

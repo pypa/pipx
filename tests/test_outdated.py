@@ -57,7 +57,7 @@ def test_list_outdated_selected_package(
     mocker: MockerFixture,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["install", "pylint"])
+    assert not run_pipx_cli(["install", "isort"])
     capsys.readouterr()
     list_outdated = mocker.patch(
         "pipx.backends.pip.run_subprocess",

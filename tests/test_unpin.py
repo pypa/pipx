@@ -107,7 +107,7 @@ def test_unpin_not_installed_package(capsys: pytest.CaptureFixture[str]) -> None
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_unpin_injected_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "black"])
-    assert not run_pipx_cli(["inject", "black", "nox", "pylint"])
+    assert not run_pipx_cli(["inject", "black", "nox", "isort"])
     assert not run_pipx_cli(["pin", "black"])
     assert not run_pipx_cli(["unpin", "black"])
 

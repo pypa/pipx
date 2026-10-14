@@ -242,12 +242,12 @@ def test_uninstall_preserves_colliding_dependency_resource(
 def test_uninstall_injected() -> None:
     pycowsay_app_paths = [paths.ctx.bin_dir / app for app in PKG["pycowsay"]["apps"]]
     pycowsay_man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
-    pylint_app_paths = [paths.ctx.bin_dir / app for app in PKG["pylint"]["apps"]]
-    app_paths = pycowsay_app_paths + pylint_app_paths
+    isort_app_paths = [paths.ctx.bin_dir / app for app in PKG["isort"]["apps"]]
+    app_paths = pycowsay_app_paths + isort_app_paths
     man_page_paths = pycowsay_man_page_paths
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["inject", "--include-apps", "pycowsay", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["inject", "--include-apps", "pycowsay", PKG["isort"]["spec"]])
 
     for app_path in app_paths:
         assert app_path.exists()

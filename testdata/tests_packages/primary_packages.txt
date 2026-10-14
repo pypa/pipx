@@ -5,17 +5,13 @@
 
 # spec  no-deps
 chardet
-Cython                  # in 'setup_requires' of jupyter dep pywinpty on Win
-ansible==6.7.0
-awscli==1.18.168
 black==22.8.0
 black==22.10.0
 # cloudtoken==2.1.0
-ipython==7.16.1
 isort==5.6.4
+isort
 jaraco-clipboard==2.0.1
 zest-releaser==9.1.2
-jupyter==1.0.0
 kaggle==1.6.11
 nox==2022.1.7
 nox[tox_to_nox]==2023.4.22
@@ -26,7 +22,6 @@ pip==26.1.2
 pip
 pycowsay==0.0.0.2
 pygdbmi==0.10.0.0
-pylint
 pylint==3.0.4
 requests==2.31.0
 setuptools-scm

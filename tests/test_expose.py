@@ -51,18 +51,18 @@ def test_expose_restores_resources(unexposed_pycowsay: Path, capsys: pytest.Capt
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["install", "pylint==3.0.4"]) == 0
-    assert run_pipx_cli(["unexpose", "pylint"]) == 0
-    venv_dir = paths.ctx.venvs / "pylint"
+    assert run_pipx_cli(["install", "isort==5.6.4"]) == 0
+    assert run_pipx_cli(["unexpose", "isort"]) == 0
+    venv_dir = paths.ctx.venvs / "isort"
     previous_version = PipxMetadata(venv_dir).main_package.package_version
     capsys.readouterr()
 
-    assert run_pipx_cli(["upgrade", "pylint"]) == 0
+    assert run_pipx_cli(["upgrade", "isort"]) == 0
     capsys.readouterr()
 
     metadata = PipxMetadata(venv_dir)
     assert metadata.main_package.package_version != previous_version
-    assert not (paths.ctx.bin_dir / app_name("pylint")).exists()
+    assert not (paths.ctx.bin_dir / app_name("isort")).exists()
     assert metadata.exposure_enabled is False
 
 
@@ -112,12 +112,12 @@ def test_unexposed_environment_does_not_expose_injected_apps(
     unexposed_pycowsay: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert run_pipx_cli(["inject", "--include-apps", "pycowsay", "pylint"]) == 0
+    assert run_pipx_cli(["inject", "--include-apps", "pycowsay", "isort"]) == 0
     capsys.readouterr()
 
     metadata = PipxMetadata(unexposed_pycowsay)
-    assert "pylint" in metadata.injected_packages
-    assert not (paths.ctx.bin_dir / app_name("pylint")).exists()
+    assert "isort" in metadata.injected_packages
+    assert not (paths.ctx.bin_dir / app_name("isort")).exists()
     assert metadata.exposure_enabled is False
 
 

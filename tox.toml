@@ -18,7 +18,7 @@ description = "run tests with {env_name}"
 default_base_python = [ "3.15" ]
 package = "wheel"
 dependency_groups = [ "test" ]
-pass_env = [ "PIPX_TEST_JUPYTER_PYTHON", "PYTEST_ADDOPTS" ]
+pass_env = [ "PYTEST_ADDOPTS" ]
 set_env.COVERAGE_FILE = "{work_dir}{/}.coverage.{env_name}"
 commands = [
   [

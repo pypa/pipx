@@ -67,7 +67,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          uv python install "${{ matrix.py }}" 3.14
+          uv python install "${{ matrix.py }}"
           $pythonPath = uv python find "${{ matrix.py }}" --system
           $registryPath = "HKCU:\Software\Python\PythonCore\${{ matrix.py }}"
           New-Item "$registryPath\InstallPath" -Force -Value (Split-Path $pythonPath) | Out-Null
@@ -75,7 +75,6 @@ jobs:
           New-ItemProperty $registryPath -Name SysVersion -Value "${{ matrix.py }}" -Force | Out-Null
           New-ItemProperty $registryPath -Name SysArchitecture -Value "64bit" -Force | Out-Null
           py -${{ matrix.py }} -c "import sys; print(sys.executable)"
-          "PIPX_TEST_JUPYTER_PYTHON=$(uv python find 3.14 --system)" >> $env:GITHUB_ENV
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
@@ -89,13 +88,6 @@ jobs:
         run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
       - name: 📦 Seed package cache
         run: tox exec -e ${{ matrix.py }} -- python scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache/
-      - name: Cache Windows Jupyter dependencies for Python 3.14
-        if: runner.os == 'Windows' && matrix.py == '3.15'
-        # Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
-        shell: pwsh
-        run: |
-          Remove-Item .pipx_tests/package_cache/3.15/pywinpty-*.tar.gz -ErrorAction SilentlyContinue
-          python -m pip download --only-binary=:all: --python-version 3.14 jupyter==1.0.0 -d .pipx_tests/package_cache/3.15
       - name: 🏃 Run test suite
         run: tox run --skip-pkg-install -e ${{ matrix.py }}
         timeout-minutes: 30

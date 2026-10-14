@@ -204,7 +204,7 @@ def test_pin_injected_packages_only(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["isort"]["spec"]])
 
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
 
@@ -212,12 +212,12 @@ def test_pin_injected_packages_only(
 
     assert "pipx pinned 2 packages in venv pycowsay" in captured.out
     assert "black" in captured.out
-    assert "pylint" in captured.out
+    assert "isort" in captured.out
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--include-injected"])
 
     assert "Not upgrading pinned package black in venv pycowsay" in caplog.text
-    assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
+    assert "Not upgrading pinned package isort in venv pycowsay" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -227,7 +227,7 @@ def test_pin_injected_packages_only_when_main_package_pinned(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["isort"]["spec"]])
 
     _ = capsys.readouterr()
     caplog.clear()
@@ -238,14 +238,14 @@ def test_pin_injected_packages_only_when_main_package_pinned(
 
     assert "pipx pinned 2 packages in venv pycowsay" in captured.out
     assert "black" in captured.out
-    assert "pylint" in captured.out
+    assert "isort" in captured.out
     assert "pipx already pins package pycowsay" not in caplog.text
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--include-injected"])
 
     assert "Not upgrading pinned package pycowsay" in caplog.text
     assert "Not upgrading pinned package black in venv pycowsay" in caplog.text
-    assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
+    assert "Not upgrading pinned package isort in venv pycowsay" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -253,7 +253,7 @@ def test_pin_injected_packages_with_skip(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "black"])
-    assert not run_pipx_cli(["inject", "black", PKG["pylint"]["spec"], PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["inject", "black", PKG["pbr"]["spec"], PKG["isort"]["spec"]])
 
     _ = capsys.readouterr()
 
@@ -261,7 +261,7 @@ def test_pin_injected_packages_with_skip(
 
     captured = capsys.readouterr()
 
-    assert "pylint" in captured.out
+    assert "pbr" in captured.out
     assert "isort" not in captured.out
 
 

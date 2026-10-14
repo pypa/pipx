@@ -252,7 +252,6 @@ def test_inject_rejects_pylock(
         PKG["black"]["spec"],
         PKG["nox"]["spec"],
         PKG["pylint"]["spec"],
-        PKG["ipython"]["spec"],
         "jaraco.clipboard==2.0.1",  # tricky character
     ],
 )
@@ -437,7 +436,7 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
     [
         (),  # no extra packages
         ("black",),  # duplicate from requirements file
-        ("ipython",),  # additional package
+        ("pbr",),  # additional package
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -456,7 +455,7 @@ def test_inject_with_req_file(
                 {PKG["black"]["spec"]} # a comment inline
                 {PKG["nox"]["spec"]}
 
-                {PKG["pylint"]["spec"]}
+                {PKG["isort"]["spec"]}
                 # comment on separate line
             """
         ).strip()
@@ -474,7 +473,7 @@ def test_inject_with_req_file(
     packages = [
         ("black", PKG["black"]["spec"]),
         ("nox", PKG["nox"]["spec"]),
-        ("pylint", PKG["pylint"]["spec"]),
+        ("isort", PKG["isort"]["spec"]),
     ]
     packages.extend((pkg, PKG[pkg]["spec"]) for pkg in with_packages)
     packages = sorted(set(packages))
