@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-26.04]
         py: ["3.15", "3.15t", "3.14", "3.13", "3.12", "3.11"]
         # the Windows and macOS runners are the slowest jobs, so split their tests across parallel shards
         include:
@@ -95,7 +95,7 @@ jobs:
           PYTEST_ADDOPTS: -vv --durations=20${{ matrix.shard && format(' --shard={0}', matrix.shard) || '' }}
   type:
     name: 🔍 Type check
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -111,7 +111,7 @@ jobs:
         run: tox run -e type
   man:
     name: 📖 Build man page
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -129,7 +129,7 @@ jobs:
         run: man -l build/man/pipx.1
   zipapp:
     name: 📦 Build zipapp
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
