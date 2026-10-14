@@ -234,6 +234,13 @@ type = [
 
 [tool.flake8-lazy]
 standalone.line-length = 120
-# these read terminal state and environment variables at import (and run colorama.init() on Windows), so they stay
-# eager to take that snapshot at startup on every Python version
-standalone.lazy-exclude-modules = [ "pipx.animate", "pipx.colors", "pipx.constants", "pipx.emojis" ]
+standalone.lazy-exclude-modules = [
+  # records whether stderr is a terminal at startup, which decides if spinners animate
+  "pipx.animate",
+  # records whether stdout is a terminal at startup and runs colorama.init() on Windows before anything prints
+  "pipx.colors",
+  # reads PIPX_FETCH_PYTHON and PIPX_FETCH_MISSING_PYTHON at startup
+  "pipx.constants",
+  # reads PIPX_USE_EMOJI and USE_EMOJI at startup
+  "pipx.emojis",
+]
