@@ -39,7 +39,7 @@ dynamic = [
 dependencies = [
   "argcomplete>=3.7.2",
   "colorama>=0.4.6; sys_platform=='win32'",
-  "filelock>=4.0.9",
+  "filelock>=4.2",
   "packaging>=26.3",
   "platformdirs>=4.12.2",
   "userpath!=1.9,>=1.9.2",
