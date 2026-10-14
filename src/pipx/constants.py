@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["platform", "sysconfig"]
+__lazy_modules__ = ["sysconfig"]
 
 import enum
 import os
