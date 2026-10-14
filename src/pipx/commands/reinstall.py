@@ -126,7 +126,6 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
     local_man_dir: Path,
     python: str,
     verbose: bool,
-    force_reinstall_shared_libs: bool = False,
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -156,9 +155,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         )
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-    venv.check_upgrade_shared_libs(
-        pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose, force_upgrade=force_reinstall_shared_libs
-    )
+    venv.check_upgrade_shared_libs(pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package_or_url is not None:
         package_or_url = venv.pipx_metadata.main_package.package_or_url
@@ -271,10 +268,6 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
     reinstalled: list[_ReinstalledEnvironment] = []
     messages: list[OutputMessage] = []
 
-    # iterate on all packages and reinstall them
-    # for the first one, we also trigger
-    # a reinstall of shared libs beforehand
-    first_reinstall = True
     for venv_dir in venv_container.iter_venv_dirs():
         if venv_dir.name in skip:
             continue
@@ -286,7 +279,6 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
                     local_man_dir=local_man_dir,
                     python=python,
                     verbose=verbose,
-                    force_reinstall_shared_libs=first_reinstall,
                     python_flag_passed=python_flag_passed,
                     backend=backend,
                     env_backend=env_backend,
@@ -303,7 +295,6 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
             errors.extend(outcome.errors)
             messages.extend(outcome.messages)
             if not outcome.errors:
-                first_reinstall = False
                 reinstalled.extend(outcome.data.environments)
     if not reinstalled:
         messages.append(OutputMessage(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}"))

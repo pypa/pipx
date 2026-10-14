@@ -283,18 +283,16 @@ def test_venv_python_is_valid_non_windows() -> None:
 
 
 @pytest.mark.parametrize(
-    ("env_value", "force_upgrade", "expected_calls"),
+    ("env_value", "expected_calls"),
     [
-        ("1", False, 0),
-        ("1", True, 1),
-        ("0", False, 1),
+        ("1", 0),
+        ("0", 1),
     ],
 )
 def test_disable_shared_libs_auto_upgrade(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     env_value: str,
-    force_upgrade: bool,
     expected_calls: int,
 ) -> None:
     venv_path = tmp_path / "venv"
@@ -321,6 +319,6 @@ def test_disable_shared_libs_auto_upgrade(
         lambda **kwargs: upgrade_calls.append(kwargs),
     )
 
-    venv.check_upgrade_shared_libs(verbose=True, pip_args=[], force_upgrade=force_upgrade)
+    venv.check_upgrade_shared_libs(verbose=True, pip_args=[])
 
     assert len(upgrade_calls) == expected_calls

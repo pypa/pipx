@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import subprocess
 from typing import TYPE_CHECKING, Final, cast
@@ -14,11 +15,12 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    set_shared_pip_age,
     skip_if_windows,
     unwrap_log_text,
 )
 from package_info import PKG
-from pipx import paths
+from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 
 if TYPE_CHECKING:
@@ -41,6 +43,30 @@ def test_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay"])
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
+
+
+@pytest.mark.parametrize(
+    ("age_sec", "disable_auto_upgrade", "upgrade_args", "refreshed"),
+    [
+        pytest.param(dt.timedelta(days=1).total_seconds(), "0", [], False, id="recent"),
+        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "0", [], True, id="stale"),
+        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "1", [], False, id="stale-auto-upgrade-disabled"),
+        pytest.param(
+            shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "0", ["--skip-maintenance"], False, id="stale-skip-maintenance"
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_refreshes_shared_pip_only_when_due(
+    monkeypatch: pytest.MonkeyPatch, age_sec: float, disable_auto_upgrade: str, upgrade_args: list[str], refreshed: bool
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, disable_auto_upgrade)
+    last_upgrade: Final[float] = set_shared_pip_age(age_sec)
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
+
+    assert (shared_libs.shared_libs.pip_path.stat().st_mtime != last_upgrade) is refreshed
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
