@@ -445,13 +445,12 @@ def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates t
 
 
 def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
-    message: Final[str] = str(error)
     return OperationResult(
         command=("install",),
         data=InstallData(packages=(), skipped=()),
-        messages=(OutputMessage(message, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        messages=(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
-        errors=(OperationError(code="package_install_failed", message=message, environment=environment),),
+        errors=(OperationError(code="package_install_failed", message=_error_report(error), environment=environment),),
     )
 
 
@@ -461,8 +460,13 @@ def _record_install_failure(
     environment: str,
     error: PipxError,
 ) -> None:
-    failures.append(_FailedInstall(environment, str(error)))
+    failures.append(_FailedInstall(environment, _error_report(error)))
     messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+def _error_report(error: PipxError) -> str:
+    # the envelope is all a JSON consumer reads, so it keeps the installer's reason the terminal showed beside it
+    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
 
 
 def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
@@ -473,7 +477,7 @@ def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) 
             tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
             quiet=0,
         )
-        raise PipxError(result.errors[0].message)
+        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
     render_result(result, output=OutputFormat.HUMAN, quiet=0)
     return result
 

@@ -68,8 +68,10 @@ _STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to
 
 
 class PipxError(Exception):
-    def __init__(self, message: str, *, wrap_message: bool = True) -> None:
+    def __init__(self, message: str, *, wrap_message: bool = True, backend_output: str = "") -> None:
         self.raw_message: Final[str] = message
+        # what pip or uv said, for a result envelope to carry when the terminal already showed it live
+        self.backend_output: Final[str] = backend_output
         if wrap_message:
             super().__init__(pipx_wrap(message))
         else:

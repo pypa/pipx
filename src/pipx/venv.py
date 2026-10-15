@@ -431,7 +431,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                         process, tool_name=self.backend_name, streamed=self.verbose or self.show_progress
                     )
                     msg = f"Error installing {full_package_description(package_name, package_or_url)}."
-                    raise PipxError(msg)
+                    raise PipxError(msg, backend_output=_as_displayed(process.stderr or process.stdout or ""))
             else:
                 self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
@@ -585,7 +585,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 Error determining package name from spec {package_or_url!r}.
                 See installer output for details.
                 """
-            raise PipxError(msg)
+            raise PipxError(msg, backend_output=_as_displayed(error_output))
 
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
@@ -866,6 +866,11 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if process.returncode:
             _LOGGER.error("%r failed", redact_url_credentials(" ".join(str(c) for c in process.args)))
         return ExitCode(process.returncode)
+
+
+def _as_displayed(output: str) -> str:
+    # a progress bar redraws its line after each carriage return, so a terminal keeps only the text after the last one
+    return "\n".join(line.rpartition("\r")[2].rstrip() for line in output.split("\n")).strip()
 
 
 def _distribution_name(metadata_dir: Path) -> NormalizedName | None:

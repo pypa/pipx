@@ -1359,6 +1359,42 @@ def test_install_name_probe_failure_streamed_prints_the_error_once(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("backend", _BACKENDS)
+@pytest.mark.parametrize("terminal", [pytest.param(True, id="terminal"), pytest.param(False, id="pipe")])
+def test_install_json_failure_carries_the_installer_error(
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    backend: str,
+    terminal: bool,
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--output", "json", "--backend", backend, str(project)])
+
+    assert "no-such-dependency-for-pipx" in json.loads(capsys.readouterr().out)["errors"][0]["message"]
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_json_failure_keeps_what_the_terminal_showed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
+    (project := tmp_path / "redraws").mkdir()
+    (project / "setup.py").write_text(
+        "import sys\nsys.stderr.write('pipx-redrawn-frame\\rpipx-final-frame\\n')\nraise SystemExit(1)\n",
+        encoding="utf-8",
+    )
+
+    assert run_pipx_cli(["install", "--output", "json", "--backend", "uv", str(project)])
+
+    message: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
+    assert ("pipx-final-frame" in message, "pipx-redrawn-frame" in message) == (True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
     captured = capsys.readouterr()

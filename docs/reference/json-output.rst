@@ -31,7 +31,7 @@ The envelope is a JSON object with these keys (serialized with sorted keys):
       - Command-specific payload object. Its fields depend on the command.
     - - ``errors``
       - List of error objects. Each has ``code``, ``message``, and the optional identity fields ``environment`` and
-        ``package``.
+        ``package``. When pip or uv fails an ``install``, its ``message`` ends with the installer's error output.
 
 .. code-block:: json
 
