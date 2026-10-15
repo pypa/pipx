@@ -9,8 +9,9 @@ import sys
 import threading
 from contextlib import contextmanager
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
+from socketserver import ThreadingTCPServer
 from typing import TYPE_CHECKING, Final
 from unittest import mock
 
@@ -215,7 +216,8 @@ def _served_archive_spec(project: Path) -> Generator[str, None, None]:
         shutil.make_archive(str(project.parent / "empty-project-0.1.0"), "zip", project.parent, project.name)
     )
     handler = partial(SimpleHTTPRequestHandler, directory=str(project.parent))
-    with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
+    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
+    with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
             yield f"http://127.0.0.1:{server.server_address[1]}/{archive.name}"
