@@ -21,6 +21,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 from venv import EnvBuilder
 
+import platformdirs
 import pytest
 from filelock import FileLock
 from flit_core.wheel import make_wheel_in
@@ -351,6 +352,8 @@ def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
             ("OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", "global_otherdir/pipxcompletiondir"),
         ):
             scoped.setattr(paths, name, tmp_path / location)
+        # where pipx logs when the pipx home refuses a log file; resolved per call, so it needs its own redirect
+        scoped.setattr(platformdirs, "user_log_path", lambda *_args, **_kwargs: tmp_path / "fallback_logs")
         paths.ctx.make_local()
         yield
 
