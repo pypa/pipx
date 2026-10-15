@@ -7,7 +7,6 @@ import os
 import re
 import signal
 import sys
-import threading
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -255,18 +254,19 @@ def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
     venv_dirs: Final[list[Path]] = [paths.ctx.venvs / name for name in venv_names]
     for venv_dir in venv_dirs:
         (venv_dir / "marker").touch()
-    interrupted: Final[threading.Event] = threading.Event()
 
     def interrupt() -> None:
         # signals this process only, as kill -INT <pid> does, so the running pip and venv children carry on
         os.kill(os.getpid(), signal.SIGINT)
-        interrupted.set()
 
     def hold() -> None:
-        interrupted.wait(timeout=5)
+        # until pipx has acted on the signal and restored the first venv, or another one could finish first and rightly
+        # keep its new venv
+        deadline: Final[float] = time.monotonic() + 5
+        while not (venv_dirs[0] / "marker").exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
 
     before_venv_subprocess(venv_dirs[0], interrupt)
-    # the other venvs stay mid-reinstall until the signal, or one could finish first and rightly keep its new venv
     for venv_dir in venv_dirs[1:]:
         before_venv_subprocess(venv_dir, hold)
 

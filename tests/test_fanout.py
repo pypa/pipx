@@ -153,6 +153,17 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     assert rolled_back == ["first"]
 
 
+@skip_if_windows
+def test_fan_out_interrupted_by_signal_another_thread_handles() -> None:
+    def interrupted() -> None:
+        # a signal sent to the whole process can land on any thread; the interpreter runs its handler on the main thread
+        signal.pthread_kill(threading.get_ident(), signal.SIGINT)
+        run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
+
+    with pytest.raises(KeyboardInterrupt):
+        fan_out([interrupted, int], sequential=False)
+
+
 def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -> None:
     first_lock: Final[Path] = tmp_path / "first.lock"
     second_lock: Final[Path] = tmp_path / "second.lock"

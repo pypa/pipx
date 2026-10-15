@@ -86,13 +86,20 @@ def _raise_interrupt(_number: int, _frame: FrameType | None) -> NoReturn:
 
 def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
     for future, next_slot in zip(futures, slots[1:], strict=False):
-        wait((future,))
+        _wait_interruptibly((future,))
         if not future.cancelled() and future.exception() is not None:
             for later in futures:
                 later.cancel()
         next_slot.go_live()
     # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
-    wait(futures)
+    _wait_interruptibly(futures)
+
+
+def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
+    # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
+    # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
+    while wait(futures, timeout=0.1).not_done:
+        pass
 
 
 def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
@@ -111,7 +118,7 @@ def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Chil
             # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
             for slot in slots:
                 slot.go_live()
-            wait(futures)
+            _wait_interruptibly(futures)
         except KeyboardInterrupt:
             _interrupt(futures, children)
         else:
