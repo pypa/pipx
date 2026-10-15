@@ -292,8 +292,8 @@ Initiating a Release
 
 Navigate to the **Actions** tab in the GitHub repository and select the **Pre-release** workflow. Click **Run
 workflow** and choose the appropriate version bump strategy. The ``auto`` option intelligently determines whether a
-minor or patch bump is needed by examining the types of changelog fragments present. If new features or removals exist,
-it performs a minor version bump; otherwise, it increments the patch version. Alternatively, you can explicitly select
+minor or patch bump is needed by examining the types of changelog fragments present. If new features, performance
+improvements or removals exist, it performs a minor version bump; otherwise, it increments the patch version. Alternatively, you can explicitly select
 ``major``, ``minor``, or ``patch`` to control the version increment directly.
 
 What Happens During Release
@@ -312,7 +312,7 @@ release assets.
 Version Calculation Examples
 ============================
 
-Starting from version ``1.8.0``, the version bump types produce the following results: ``auto`` with feature fragments
-becomes ``1.9.0``, while ``auto`` with only bugfixes becomes ``1.8.1``. Selecting ``major`` explicitly jumps to
+Starting from version ``1.8.0``, the version bump types produce the following results: ``auto`` with feature or performance
+fragments becomes ``1.9.0``, while ``auto`` with only bugfixes becomes ``1.8.1``. Selecting ``major`` explicitly jumps to
 ``2.0.0``, ``minor`` moves to ``1.9.0``, and ``patch`` increments to ``1.8.1``. This automation eliminates the need for
 manual version management and ensures consistency across releases.
