@@ -446,6 +446,33 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
 
 
 @pytest.mark.parametrize(
+    "requirements",
+    [
+        pytest.param("", id="no-apps"),
+        pytest.param("Requires-Dist: pycowsay==0.0.0.2\n", id="apps-only-in-dependencies"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_include_apps_without_apps_rolls_back(
+    make_wheel: Callable[[dict[str, str]], Path], empty_project_wheel: Path, requirements: str
+) -> None:
+    library: Final[Path] = make_wheel({
+        "foo_bar_x.py": "",
+        "foo_bar_x-1.dist-info/METADATA": f"Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n{requirements}",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
+
+    assert run_pipx_cli(["inject", "empty-project", str(library), "--include-apps"])
+
+    assert (
+        run_pipx_cli(["runpip", "empty-project", "show", "foo-bar-x"]),
+        PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages,
+    ) == (1, {})
+
+
+@pytest.mark.parametrize(
     "with_packages",
     [
         (),  # no extra packages

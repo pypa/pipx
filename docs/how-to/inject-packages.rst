@@ -40,7 +40,8 @@ Injected packages do not add their entry points to your ``PATH`` by default. Use
     $ pipx inject ipython black --include-apps
 
 ``--include-deps`` exposes apps and manual pages from every dependency. Use ``--include-resources-from PACKAGE`` to
-expose one dependency, repeating it to select more. Both options imply ``--include-apps``.
+expose one dependency, repeating it to select more. Both options imply ``--include-apps``. As with ``pipx install``, a
+package with no app to expose fails the inject and leaves the environment as it was.
 
 .. code-block:: console
 

@@ -166,7 +166,11 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
     messages: Final[list[OutputMessage]] = []
-    with preserve_venv(venv_dir, enabled=bool(include_resources_from)), marked_unfinished(venv_dir):
+    # like install, a package without the apps --include-apps asked for leaves the venv as it was
+    with (
+        preserve_venv(venv_dir, enabled=include_apps or bool(include_resources_from)),
+        marked_unfinished(venv_dir),
+    ):
         package_name = _install_under_installed_name(
             partial(
                 venv.install_package,
