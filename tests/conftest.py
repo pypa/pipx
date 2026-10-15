@@ -6,12 +6,14 @@ import io
 import ipaddress
 import logging
 import os
+import pkgutil
 import shutil
 import socket
 import subprocess
 import sys
 import tarfile
 import time
+import types
 import zipfile
 from contextlib import closing
 from http import HTTPStatus
@@ -26,6 +28,7 @@ import pytest
 from filelock import FileLock
 from flit_core.wheel import make_wheel_in
 
+import pipx
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 from pipx.backends import get_backend
@@ -330,6 +333,23 @@ def _is_loopback(host: str) -> bool:
         return ipaddress.ip_address(host).is_loopback
     except ValueError:  # a hostname that never resolved, so it cannot be loopback
         return False
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _resolve_lazy_imports() -> None:
+    """Load every import pipx's modules declare lazy (PEP 810), as a long-running pipx process would have.
+
+    ``mock.patch`` reads the original from the module ``__dict__``, where an unresolved lazy import is still a proxy:
+    ``autospec`` then builds a non-callable mock, and whether a test hits that depends on which tests ran before it.
+    """
+    if (lazy_type := getattr(types, "LazyImportType", None)) is None:
+        return
+    for module_info in pkgutil.walk_packages(pipx.__path__, "pipx."):
+        importlib.import_module(module_info.name)
+    for module in [module for name, module in sys.modules.items() if name == "pipx" or name.startswith("pipx.")]:
+        for name, value in list(vars(module).items()):
+            if type(value) is lazy_type:
+                getattr(module, name)
 
 
 @pytest.fixture(autouse=True)
