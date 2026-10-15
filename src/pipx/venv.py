@@ -69,6 +69,7 @@ from pipx.util import (
     get_site_packages,
     get_venv_paths,
     pipx_wrap,
+    redact_url_credentials,
     rmdir,
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
@@ -863,8 +864,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             verbose=self.verbose,
         )
         if process.returncode:
-            cmd_str = " ".join(str(c) for c in process.args)
-            _LOGGER.error("%r failed", cmd_str)
+            _LOGGER.error("%r failed", redact_url_credentials(" ".join(str(c) for c in process.args)))
         return ExitCode(process.returncode)
 
 

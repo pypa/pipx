@@ -20,9 +20,11 @@ from pipx.fanout import fan_out
 from pipx.util import (
     exec_app,
     get_site_packages,
+    redact_url_credentials,
     rmdir,
     run_subprocess,
     safe_unlink,
+    subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
 
@@ -477,3 +479,28 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
     lines: Final[list[str]] = (tmp_path / "cmd_pip_errors.log").read_text(encoding="utf-8").splitlines()
     blocks: Final[list[str]] = [tag for tag, _ in groupby(line[0] for line in lines if line[:1] in set(tags))]
     assert sorted(blocks) == sorted(tags)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "pip --index-url https://alice:s3cr3t@host/simple",
+            "pip --index-url https://alice:****@host/simple",
+            id="user-and-password",
+        ),
+        pytest.param("pip git+https://t0ken@host/repo.git", "pip git+https://****@host/repo.git", id="token"),
+        pytest.param("pip foo @ https://host/a@b.whl", "pip foo @ https://host/a@b.whl", id="no-credentials"),
+    ],
+)
+def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None:
+    assert redact_url_credentials(text) == expected
+
+
+def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: pytest.LogCaptureFixture) -> None:
+    process: Final = subprocess.CompletedProcess(["pip", "--index-url", "https://alice:s3cr3t@host/simple"], 1, "", "")
+
+    with caplog.at_level(logging.INFO, logger="pipx.util"):
+        subprocess_post_check(process, raise_error=False)
+
+    assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]

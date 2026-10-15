@@ -12,7 +12,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 from unittest import mock
 
 import pytest
@@ -1314,6 +1314,21 @@ def test_install_uv_failure_streamed_prints_uv_error_once(
     assert run_pipx_cli(["install", "--backend", "uv", *flags, str(project)])
 
     assert capsys.readouterr().err.count("No solution found when resolving dependencies") == 1
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_verbose_masks_index_credentials(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+    index_args: Final[str] = "--no-index --index-url=https://alice:s3cr3t@127.0.0.1:9/simple/"
+
+    assert run_pipx_cli(["install", "--verbose", "--backend", "uv", f"--pip-args={index_args}", str(project)])
+
+    output: Final[str] = capsys.readouterr().err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "alice:****@127.0.0.1" in output
+    assert "s3cr3t" not in output
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

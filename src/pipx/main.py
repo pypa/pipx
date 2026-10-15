@@ -76,7 +76,7 @@ from pipx.interpreter import (
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import skip_shared_libs_maintenance
-from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, stream_subprocess_stdout_to_stderr
+from pipx.util import PipxError, mkdir, pipx_wrap, redact_url_credentials, rmdir, stream_subprocess_stdout_to_stderr
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 
@@ -2144,7 +2144,7 @@ def setup(args: argparse.Namespace) -> None:
     paths.ctx.log_warnings()
 
     _LOGGER.debug("%s", time.strftime("%Y-%m-%d %H:%M:%S"))
-    _LOGGER.debug("%s", " ".join(sys.argv))
+    _LOGGER.debug("%s", redact_url_credentials(" ".join(sys.argv)))
     _LOGGER.info("pipx version is %s", __version__)
     _LOGGER.info("Default python interpreter is '%s'", get_default_python())
 

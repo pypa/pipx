@@ -266,9 +266,7 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
         else:
             env[key] = value
 
-    if log_cmd_str is None:
-        log_cmd_str = " ".join(str(c) for c in cmd)
-    _LOGGER.info("running %s", log_cmd_str)
+    _LOGGER.info("running %s", _command_line(cmd) if log_cmd_str is None else log_cmd_str)
     if run_dir:
         Path(run_dir).mkdir(parents=True, exist_ok=True)
     # windows cannot take Path objects, only strings
@@ -326,6 +324,16 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     _LOGGER.debug("returncode: %s", completed_process.returncode)
 
     return completed_process
+
+
+def _command_line(cmd: Sequence[str | Path]) -> str:
+    return redact_url_credentials(" ".join(str(c) for c in cmd))
+
+
+def redact_url_credentials(text: str) -> str:
+    # index and package URLs can carry credentials, which must not reach the log file or the verbose output; masked the
+    # way pip masks them in its own messages
+    return re.sub(r"(?<=://)([^\s/@:]+:)?[^\s/@]+@", lambda match: f"{match[1] or ''}****@", text)
 
 
 def _run_streaming_subprocess(
@@ -490,9 +498,9 @@ def subprocess_post_check(completed_process: subprocess.CompletedProcess[str], *
         if completed_process.stderr is not None:
             print(completed_process.stderr, file=sys.stderr, end="")  # ruff:ignore[print]  # relays subprocess output to the user
         if raise_error:
-            msg = f"{' '.join([str(x) for x in completed_process.args])!r} failed"
+            msg = f"{_command_line(completed_process.args)!r} failed"
             raise PipxError(msg)
-        _LOGGER.info("%r failed", " ".join(completed_process.args))
+        _LOGGER.info("%r failed", _command_line(completed_process.args))
 
 
 def dedup_ordered(input_list: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
@@ -631,7 +639,7 @@ def subprocess_post_check_handle_pip_error(
     """
     if not completed_process.returncode:
         return
-    _LOGGER.info("%r failed", " ".join(completed_process.args))
+    _LOGGER.info("%r failed", _command_line(completed_process.args))
     if paths.ctx.log_file is None:
         msg = "Pipx internal error: No log_file present."
         raise PipxError(msg)
@@ -680,7 +688,7 @@ def exec_app(
     # make sure we show cursor again before handing over control
     show_cursor()
 
-    _LOGGER.info("exec_app: %s", " ".join(str(c) for c in cmd))
+    _LOGGER.info("exec_app: %s", _command_line(cmd))
 
     if WINDOWS:
         sys.exit(subprocess.run(cmd, env=env, check=False).returncode)
@@ -711,6 +719,7 @@ __all__ = [
     "is_paths_relative",
     "mkdir",
     "pipx_wrap",
+    "redact_url_credentials",
     "rmdir",
     "run_pypackage_bin",
     "run_subprocess",
