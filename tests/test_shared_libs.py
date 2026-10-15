@@ -379,6 +379,8 @@ def test_disable_shared_libs_auto_upgrade(
     assert len(upgrade_calls) == expected_calls
 
 
+# rebuilds the shared libraries and reinstalls two venvs: just over 10 s on a free-threaded 2-core CI runner
+@pytest.mark.timeout(60)
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_reinstall_all_rebuilds_broken_shared_pip_once(caplog: pytest.LogCaptureFixture) -> None:
     for suffix in ("_a", "_b"):

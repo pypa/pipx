@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import threading
+from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
 from io import BytesIO, StringIO, TextIOWrapper
 from itertools import groupby
@@ -29,7 +30,7 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
@@ -404,6 +405,27 @@ def test_subprocess_stream_propagates_ctrl_c() -> None:
             ],
             stream_output=True,
         )
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("terminal_stdout")
+def test_subprocess_stream_propagates_ctrl_c_while_readers_start(mocker: MockerFixture) -> None:
+    submit: Final = ThreadPoolExecutor.submit
+
+    def interrupted_second_reader(
+        executor: ThreadPoolExecutor, fn: Callable[..., None], /, *args: object
+    ) -> Future[None]:
+        # Ctrl-C lands after the terminal's reader started but before the next one did, as seen on free-threaded CI
+        if submitted:
+            raise KeyboardInterrupt
+        submitted.append(True)
+        return submit(executor, fn, *args)
+
+    submitted: Final[list[bool]] = []
+    mocker.patch.object(ThreadPoolExecutor, "submit", autospec=True, side_effect=interrupted_second_reader)
+
+    with pytest.raises(KeyboardInterrupt):
+        run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"], stream_output=True)
 
 
 @pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])

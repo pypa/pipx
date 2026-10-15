@@ -48,7 +48,7 @@ from typing import (
 from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
-from pipx.fanout import output_is_held, stopped_on_interrupt
+from pipx.fanout import output_is_held, stop_process_group, stopped_on_interrupt
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
@@ -413,21 +413,27 @@ def _run_streaming_subprocess(
                 if not channel.terminal:
                     channel.close_child()
             sinks: Final = {"stdout": (stdout_destination, stdout_chunks), "stderr": (sys.stderr, stderr_chunks)}
-            futures: Final[dict[str, Future[None]]] = {
-                # each reader needs the caller's context to buffer the output of a fan-out task waiting its turn
-                name: executor.submit(copy_context().run, _tee_subprocess_output, channel.reader, *sinks[name])
-                for name, channel in channels.items()
-            }
+            futures: dict[str, Future[None]] = {}
             try:
+                futures = {
+                    # each reader needs the caller's context to buffer the output of a fan-out task waiting its turn
+                    name: executor.submit(copy_context().run, _tee_subprocess_output, channel.reader, *sinks[name])
+                    for name, channel in channels.items()
+                }
                 returncode: Final[int] = process.wait()
                 for name, channel in channels.items():
                     if channel.terminal:
                         # macOS discards what a pseudo-terminal still queues once its last child end closes, so hold
                         # ours open until the reader has taken everything the exited child wrote
                         _wait_until_drained(channel.reader, futures[name])
+            except BaseException:
+                # the readers return only once nothing holds the child's ends, a build backend the child started
+                # included, so the whole group must go before the executor joins them
+                stop_process_group(process)
+                raise
             finally:
                 # a pseudo-terminal reader returns only once every child end is closed, so ours must close before the
-                # executor joins the readers, also when Ctrl-C interrupts the wait
+                # executor joins the readers, also when Ctrl-C lands while the readers start or the child runs
                 for channel in channels.values():
                     channel.close_child()
             for future in futures.values():
