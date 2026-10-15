@@ -75,10 +75,9 @@ def install_packages(
 @pytest.mark.parametrize("backend", ["pip", "uv"])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_wheel_from_file_url(dotted_app_wheel: Path, tmp_path: Path, backend: str) -> None:
-    wheel_dir = tmp_path / "wheels with spaces"
+    wheel_dir: Final[Path] = tmp_path / "wheels with spaces"
     wheel_dir.mkdir()
-    wheel = dotted_app_wheel.rename(wheel_dir / dotted_app_wheel.name)
-    package_spec = wheel.as_uri()
+    package_spec: Final[str] = dotted_app_wheel.rename(wheel_dir / dotted_app_wheel.name).as_uri()
 
     assert not run_pipx_cli(["install", "--backend", backend, package_spec])
 

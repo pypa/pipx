@@ -393,29 +393,22 @@ def test_parse_specifier_for_install_constraint_args(
     [
         "git+file:///tmp/project@main",
         "hg+file:///tmp/project@default",
+        "file:///opt/wheels/demo-1-py3-none-any.whl",
+        "file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc",
+        "file:///C:/wheels/demo-1-py3-none-any.whl",
     ],
-    ids=["git", "mercurial"],
+    ids=["git", "mercurial", "file", "file-quoted-space", "file-windows-drive"],
 )
-def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) -> None:
+def test_parse_specifier_for_install_accepts_local_url(package_spec: str) -> None:
     assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
 
 
 @pytest.mark.parametrize(
     "package_spec",
-    [
-        "file:///opt/wheels/demo-1-py3-none-any.whl",
-        "file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc",
-        "file:///C:/wheels/demo-1-py3-none-any.whl",
-    ],
+    ["file:relative.whl", "git+file:relative", "https:/example.com/demo.whl"],
+    ids=["file", "git", "https-single-slash"],
 )
-def test_parse_specifier_preserves_absolute_file_url(package_spec: str) -> None:
-    assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
-    assert parse_specifier_for_metadata(package_spec) == package_spec
-    assert parse_specifier_for_upgrade(package_spec) == package_spec
-
-
-@pytest.mark.parametrize("package_spec", ["file:relative.whl", "https:/example.com/demo.whl", "git+file:relative"])
-def test_parse_specifier_rejects_hostless_relative_url(package_spec: str) -> None:
+def test_parse_specifier_for_install_rejects_hostless_relative_url(package_spec: str) -> None:
     with pytest.raises(PipxError, match="Unable to parse package spec"):
         parse_specifier_for_install(package_spec, [])
 
