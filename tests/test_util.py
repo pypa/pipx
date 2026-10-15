@@ -516,6 +516,15 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
         ),
         pytest.param("pip git+https://t0ken@host/repo.git", "pip git+https://****@host/repo.git", id="token"),
         pytest.param("pip foo @ https://host/a@b.whl", "pip foo @ https://host/a@b.whl", id="no-credentials"),
+        pytest.param("https://host?x=a@b", "https://host?x=a@b", id="at-in-query"),
+        pytest.param("https://host#egg=x@1", "https://host#egg=x@1", id="at-in-fragment"),
+        pytest.param("https://u:p@w@host/x", "https://u:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("git+ssh://git@github.com/a/b", "git+ssh://****@github.com/a/b", id="bare-user"),
+        pytest.param(
+            "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
+            "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
+            id="two-urls",
+        ),
     ],
 )
 def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None:
