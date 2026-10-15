@@ -50,7 +50,7 @@ from pipx.constants import (
     FetchPythonOptions,
 )
 from pipx.emojis import hazard, sleep
-from pipx.fanout import fan_out
+from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
@@ -761,7 +761,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     if not (pip_args or replay_pip_args):
         _warn_dropped_pip_args(venv_metadata)
     try:
-        with venv_container.venv_lock(venv_dir) as venv_lock:
+        with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             package_cooldown = _resolve_cooldown(
                 main_package.lock_file,
                 cooldown_days,

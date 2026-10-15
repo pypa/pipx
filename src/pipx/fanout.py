@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
     from subprocess import Popen
 
+    from filelock import BaseFileLock
+
     _Child = Popen[str] | Popen[bytes]
 
 _ResultT = TypeVar("_ResultT")
@@ -35,13 +37,15 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
     turn: Final[Condition] = Condition()
     # the turn's lock also guards the children, which no task holds while waiting for a child to exit
     children: Final[_Children] = _Children(turn, Event())
-    slots: Final[list[_Slot]] = [_Slot(turn, children, live=index == 0) for index in range(len(tasks))]
+    slots: Final[list[_Slot]] = []
+    for _ in tasks:
+        slots.append(_Slot(turn, children, live=not slots, after=slots[-1] if slots else None))
     executor: Final[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=workers)
     with _routed_output():
         futures: Final[list[Future[_ResultT]]] = []
         try:
             futures.extend(
-                executor.submit(_in_slot(slot, partial(_once_submitted, children, task)))
+                executor.submit(_in_slot(slot, partial(_once_submitted, slot, task)))
                 for slot, task in zip(slots, tasks, strict=True)
             )
             children.submitted.set()
@@ -115,6 +119,23 @@ def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
 
 
 @contextmanager
+def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
+    """Take the lock only once the earlier tasks of a fan-out have taken theirs or finished.
+
+    A task waiting for its turn holds its lock, so two pipx runs taking the same locks in different task orders could
+    each wait for the other forever; taking them in task order leaves no task waiting its turn on a lock another run
+    holds while it waits for this run.
+    """
+    if (slot := _SLOT.get()) is not None:
+        with slot.turn:
+            slot.turn.wait_for(lambda: slot.live or slot.after is None or slot.after.locked)
+    with lock:
+        if slot is not None:
+            slot.pass_lock()
+        yield lock
+
+
+@contextmanager
 def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
     """Terminate the child process when the fan-out running this task is interrupted, then interrupt the task too."""
     if (slot := _SLOT.get()) is None:
@@ -153,7 +174,14 @@ class _Slot:
     turn: Condition
     children: _Children
     live: bool
+    after: _Slot | None
+    locked: bool = False
     chunks: list[tuple[TextIO, str]] = field(default_factory=list)
+
+    def pass_lock(self) -> None:
+        with self.turn:
+            self.locked = True
+            self.turn.notify_all()
 
     def go_live(self) -> None:
         with self.turn:
@@ -172,13 +200,17 @@ def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT
     return partial(context.run, task)
 
 
-def _once_submitted(children: _Children, task: Callable[[], _ResultT]) -> _ResultT:
+def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
     # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
     # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
-    children.submitted.wait()
-    if children.interrupted:
-        raise KeyboardInterrupt
-    return task()
+    try:
+        slot.children.submitted.wait()
+        if slot.children.interrupted:
+            raise KeyboardInterrupt
+        return task()
+    finally:
+        # a task that ends without taking a lock must not hold back the later tasks waiting to take theirs
+        slot.pass_lock()
 
 
 @contextmanager
@@ -230,6 +262,7 @@ class _RoutedStream:
 __all__ = [
     "fan_out",
     "in_turn",
+    "locked_in_order",
     "output_is_held",
     "stopped_on_interrupt",
 ]

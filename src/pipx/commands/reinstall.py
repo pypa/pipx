@@ -40,7 +40,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import error, sleep, stars
-from pipx.fanout import fan_out
+from pipx.fanout import fan_out, locked_in_order
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, rmdir, safe_unlink
@@ -355,7 +355,7 @@ def _reinstall_locked(  # ruff:ignore[too-many-arguments]  # forwards the full r
     env_backend: str | None,
 ) -> OperationResult[ReinstallData]:
     try:
-        with venv_container.venv_lock(venv_dir) as venv_lock:
+        with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             return reinstall(
                 venv_dir=venv_dir,
                 local_bin_dir=local_bin_dir,

@@ -37,7 +37,7 @@ from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
-from pipx.fanout import fan_out
+from pipx.fanout import fan_out, locked_in_order
 from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -217,7 +217,7 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
 ) -> _VenvUpgrade:
     if venv_dir.name in skip:
         return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "requested"),))
-    with venv_container.venv_lock(venv_dir) as venv_lock:
+    with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
         venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
         if "--editable" in venv.pipx_metadata.main_package.pip_args:
             return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "editable"),))

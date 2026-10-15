@@ -5,12 +5,16 @@ import signal
 import sys
 import threading
 import time
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
+from filelock import FileLock, Timeout
 
 from helpers import skip_if_windows
-from pipx.fanout import fan_out, in_turn, output_is_held
+from pipx.fanout import fan_out, in_turn, locked_in_order, output_is_held
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture
@@ -146,3 +150,39 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
         fan_out([rolling_back, int], sequential=False)
 
     assert rolled_back == ["first"]
+
+
+def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -> None:
+    first_lock: Final[Path] = tmp_path / "first.lock"
+    second_lock: Final[Path] = tmp_path / "second.lock"
+    other_run_holds_first: Final[threading.Event] = threading.Event()
+    second_task_locked: Final[threading.Event] = threading.Event()
+    other_run: Final[list[str]] = []
+
+    def take_locks_in_reverse() -> None:
+        with FileLock(first_lock):
+            other_run_holds_first.set()
+            second_task_locked.wait(timeout=0.5)
+            try:
+                with FileLock(second_lock, timeout=2):
+                    other_run.append("took both")
+            except Timeout:
+                other_run.append("deadlocked")
+
+    def first() -> bool:
+        with locked_in_order(FileLock(first_lock)) as lock:
+            return lock.is_locked
+
+    def second() -> str:
+        with locked_in_order(FileLock(second_lock)):
+            second_task_locked.set()
+            with in_turn(lambda: False):
+                return "in turn"
+
+    thread: Final[threading.Thread] = threading.Thread(target=take_locks_in_reverse)
+    thread.start()
+    other_run_holds_first.wait(timeout=5)
+    fan_out([first, second], sequential=False)
+    thread.join()
+
+    assert other_run == ["took both"]
