@@ -2076,21 +2076,19 @@ def _rotate_logs(current: Path, max_logs: int) -> None:
     error_logs.sort()
     for run, path in error_logs[: max(0, len(error_logs) - keep_old)]:
         if run not in command_logs or not command_logs[run].exists():
-            path.unlink(missing_ok=True)
+            _remove_log(path)
 
 
 def _delete_unless_running(log: Path) -> None:
     if WINDOWS:
-        with contextlib.suppress(FileNotFoundError, PermissionError):
-            log.unlink()
+        _remove_log(log)
         return
     try:
         stream = log.open("rb")
-    except (FileNotFoundError, PermissionError):
-        # a log this user cannot read (another user's run, or chmod 000) cannot be checked for a running owner; it is
-        # old enough to rotate, so remove it if the directory allows and otherwise leave it rather than fail the setup
-        with contextlib.suppress(PermissionError):
-            log.unlink(missing_ok=True)
+    except OSError:
+        # a log this user cannot read (another user's run, chmod 000, a symlink loop or to a directory) cannot be
+        # checked for a running owner; it is old enough to rotate, so remove it
+        _remove_log(log)
         return
     with stream:
         try:
@@ -2099,7 +2097,14 @@ def _delete_unless_running(log: Path) -> None:
             return
         except OSError:
             pass  # no lock support on this filesystem: rotate as if no other pipx were running
-        log.unlink(missing_ok=True)
+        _remove_log(log)
+
+
+def _remove_log(log: Path) -> None:
+    # rotation only tidies up, so a log the directory will not let go of (a shared read-only log dir) stays rather
+    # than moving logging to the fallback directory
+    with contextlib.suppress(OSError):
+        log.unlink()
 
 
 def setup_log_file() -> TextIOWrapper:

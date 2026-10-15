@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Final, cast
 
 import pytest
@@ -12,8 +13,6 @@ from helpers import run_pipx_cli
 from pipx import constants, main, paths
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 
@@ -148,3 +147,36 @@ def test_max_logs_rotates_an_unreadable_log(log_dir: Path, monkeypatch: pytest.M
     assert not run_pipx_cli(["list"])
 
     assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+
+
+@pytest.mark.skipif(constants.WINDOWS, reason="creating symlinks needs developer mode on Windows")
+@pytest.mark.parametrize("target", [pytest.param("loop", id="symlink-loop"), pytest.param("dir", id="symlink-to-dir")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_rotates_a_log_that_cannot_open(log_dir: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "1")
+    (log := log_dir / "cmd_2024-01-01_00.00.00.log").symlink_to(log if target == "loop" else log_dir)
+
+    assert not run_pipx_cli(["list"])
+
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        pytest.param("cmd_2024-01-01_00.00.00.log", id="command-log"),
+        pytest.param("cmd_2024-01-01_00.00.00_uv_errors.log", id="error-log"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_keeps_logging_beside_a_log_it_cannot_remove(
+    log_dir: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, name: str
+) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "1")
+    (log_dir / name).touch()
+    # a sticky shared directory lets this user create a log but not remove another user's
+    mocker.patch.object(Path, "unlink", autospec=True, side_effect=PermissionError(errno.EPERM, "Not permitted"))
+
+    assert not run_pipx_cli(["list"])
+
+    assert cast("Path", paths.ctx.log_file).parent == log_dir
