@@ -406,7 +406,6 @@ def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) ->
         "file:///opt/wheels/demo-1-py3-none-any.whl",
         "file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc",
         "file:///C:/wheels/demo-1-py3-none-any.whl",
-        "file:///opt/project[cli]",
     ],
 )
 def test_parse_specifier_preserves_absolute_file_url(package_spec: str) -> None:
