@@ -14,6 +14,69 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.15 <https://github.com/pypa/pipx/tree/1.17.15>`_ - 2026-10-15
+===================================================================
+
+Bugfixes
+--------
+
+- Warn that `--system-site-packages` is ignored by `inject` and `upgrade-all`. (:issue:`2089`)
+- Fall back to pip with a warning when the auto-detected uv is older than 0.9.17. (:issue:`2092`)
+- Use the default Python for scripts when it satisfies `requires-python`. (:issue:`2093`)
+- Make `interpreter upgrade` move venvs off a patch-pinned standalone Python. (:issue:`2094`)
+- Keep pins of injected packages through `reinstall`, `install-all` and `--force`. (:issue:`2095`)
+- Restore recorded venv and pip args in `install-all` and reject bad spec files. (:issue:`2096`)
+- Remove apps, man pages and completions an upgraded package no longer ships. (:issue:`2097`)
+- Keep the interpreter on `install --force --python` and put `--suffix` last, except before a Windows file extension. Apps
+  exposed by 1.17.14 keep their old name until pipx next exposes them, which renames them. (:issue:`2098`)
+- Make `pipx expose` relink resources missing after a collision or a deletion. (:issue:`2099`)
+- Print only the envelope on `--output json` stdout and fix `health` JSON status. (:issue:`2101`)
+- Keep users of a global pipx on their own paths and explain unwritable homes. (:issue:`2102`)
+- Keep `PIPX_MAX_LOGS` logs, not one extra, and rotate uv error logs too. (:issue:`2103`)
+- Keep the last output of a child process streamed to a terminal on macOS. (:issue:`2111`)
+- Report apps whose Python is missing in `upgrade-all` instead of crashing. (:issue:`2141`)
+- Show child output that is not valid UTF-8 instead of crashing. (:issue:`2144`)
+- Mask passwords in index and package URLs in pipx's output and log files. (:issue:`2144`)
+- Retry uv-backend installs on a Python matching requires-python, as pip does. (:issue:`2144`)
+
+
+Performance
+-----------
+
+- Read a local project's name from `pyproject.toml` instead of building it twice. (:issue:`2108`)
+- Start every pipx command 50 to 130 ms faster by importing only what it uses. (:issue:`2113`)
+- Create the shared libraries 35 to 50% faster by skipping a redundant pip run. (:issue:`2114`)
+- `upgrade` and `reinstall-all` refresh shared pip only after 30 days. (:issue:`2116`)
+- Run `pipx upgrade-shared` to refresh shared pip sooner. (:issue:`2116`)
+- Start half as many helper processes per install by reusing what pipx knows. (:issue:`2118`)
+- Skip a WMI query on Windows at startup by detecting the OS with `sys.platform`. (:issue:`2125`)
+- Uninject orphaned dependencies in one pip call, reported on one line. (:issue:`2126`)
+- Check only pipx-managed packages for updates, not every installed dependency. (:issue:`2127`)
+- Start pipx commands up to 30 ms faster by loading more modules on first use. (:issue:`2128`)
+- Start pipx 10 to 50 ms faster on Python 3.15 through lazy imports. (:issue:`2129`)
+- Check shared pip by its files instead of starting Python on every command. (:issue:`2131`)
+- Defer every import, dependencies included, on Python 3.15 for faster startup. (:issue:`2132`)
+- Set `PYTHON_LAZY_IMPORTS=normal` to opt out; the entry point is `pipx.__main__`. (:issue:`2132`)
+- Read a local wheel's package name from its metadata instead of a probe venv. (:issue:`2134`)
+- Run `reinstall-all`, `upgrade-all` and `install-all` across venvs at once. (:issue:`2137`)
+- Scan exposed app and man page dirs once per `list` and `uninstall-all`. (:issue:`2138`)
+- Require filelock 4.2, whose lighter import speeds up most pipx commands. (:issue:`2142`)
+
+
+Improved Documentation
+----------------------
+
+- Correct the log directory in the platformdirs migration table. (:issue:`2086`)
+- Correct docs that described pip-only behavior or outdated defaults and paths. (:issue:`2088`)
+- Match help text, troubleshooting and samples to how pipx behaves today. (:issue:`2105`)
+
+
+Miscellaneous internal changes
+------------------------------
+
+- :issue:`2090`, :issue:`2091`, :issue:`2100`, :issue:`2104`, :issue:`2106`, :issue:`2107`, :issue:`2109`, :issue:`2112`, :issue:`2115`, :issue:`2117`, :issue:`2119`, :issue:`2120`, :issue:`2124`, :issue:`2133`, :issue:`2135`, :issue:`2139`, :issue:`2140`, :issue:`2143`, :issue:`2144`
+
+
 `1.17.14 <https://github.com/pypa/pipx/tree/1.17.14>`_ - 2026-10-12
 ===================================================================
 
