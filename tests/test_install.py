@@ -1225,10 +1225,10 @@ def test_pip_args_with_attached_constraint_records_absolute_path(
 @pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_pip_args_with_wrong_constraint_fail(
-    constraint_flag: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    constraint_flag: str, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     constraint_file_name = "constraints.txt"
-    os.chdir(tmp_path)
+    monkeypatch.chdir(tmp_path)
 
     assert run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", "pycowsay"])
 
