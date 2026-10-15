@@ -2082,14 +2082,22 @@ def _delete_unless_running(log: Path) -> None:
         with contextlib.suppress(FileNotFoundError, PermissionError):
             log.unlink()
         return
-    with contextlib.suppress(FileNotFoundError), log.open("rb") as stream:
+    try:
+        stream = log.open("rb")
+    except (FileNotFoundError, PermissionError):
+        # a log this user cannot read (another user's run, or chmod 000) cannot be checked for a running owner; it is
+        # old enough to rotate, so remove it if the directory allows and otherwise leave it rather than fail the setup
+        with contextlib.suppress(PermissionError):
+            log.unlink(missing_ok=True)
+        return
+    with stream:
         try:
             fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return
         except OSError:
             pass  # no lock support on this filesystem: rotate as if no other pipx were running
-        log.unlink()
+        log.unlink(missing_ok=True)
 
 
 def setup_log_file() -> TextIOWrapper:

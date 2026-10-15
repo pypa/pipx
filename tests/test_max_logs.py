@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import errno
+import os
 from typing import TYPE_CHECKING, Final, cast
 
 import pytest
@@ -130,6 +131,19 @@ def test_max_logs_rotates_without_lock_support(
     monkeypatch.setenv("PIPX_MAX_LOGS", "1")
     (log_dir / "cmd_2024-01-01_00.00.00.log").touch()
     mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"))
+
+    assert not run_pipx_cli(["list"])
+
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+
+
+@pytest.mark.skipif(constants.WINDOWS, reason="POSIX permission bits decide whether the log can be opened")
+@pytest.mark.skipif(not constants.WINDOWS and os.geteuid() == 0, reason="root reads any file")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_max_logs_rotates_an_unreadable_log(log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "1")
+    (unreadable := log_dir / "cmd_2024-01-01_00.00.00.log").touch()
+    unreadable.chmod(0)
 
     assert not run_pipx_cli(["list"])
 
