@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 
 _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.write(1, b'after\\n')"
+_COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
 @pytest.mark.parametrize("windows", [pytest.param(False, id="posix"), pytest.param(True, id="windows")])
@@ -246,6 +247,30 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",
     )
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+def test_subprocess_captures_output_without_terminal_escapes(mocker: MockerFixture, stream_output: bool) -> None:
+    mocker.patch("pipx.util.sys.stdout", StringIO())
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", f"import sys; sys.stdout.write({_COLOURED_OUTPUT!r})"],
+        capture_stderr=False,
+        stream_output=stream_output,
+    )
+
+    assert result.stdout == "satisfy\n      Python>=3.12 link\n"
+
+
+def test_subprocess_stream_keeps_terminal_escapes_on_screen(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch("pipx.util.sys.stdout", destination)
+    run_subprocess(
+        [sys.executable, "-c", f"import sys; sys.stdout.write({_COLOURED_OUTPUT!r})"],
+        capture_stderr=False,
+        stream_output=True,
+    )
+
+    assert destination.getvalue() == _COLOURED_OUTPUT
 
 
 @pytest.mark.parametrize(

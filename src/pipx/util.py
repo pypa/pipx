@@ -327,12 +327,14 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
                 # like subprocess.run, so an interrupt does not leave the child running
                 process.kill()
                 raise
-        completed_process = subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
         if hold_stderr:
-            sys.stderr.write(completed_process.stderr)
-            completed_process = subprocess.CompletedProcess(
-                completed_process.args, completed_process.returncode, completed_process.stdout
-            )
+            sys.stderr.write(stderr)
+        completed_process = subprocess.CompletedProcess(
+            process.args,
+            process.returncode,
+            _without_terminal_escapes(stdout),
+            None if hold_stderr else _without_terminal_escapes(stderr),
+        )
 
     if capture_stdout and log_stdout and not stream_output:
         _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
@@ -341,6 +343,14 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     _LOGGER.debug("returncode: %s", completed_process.returncode)
 
     return completed_process
+
+
+def _without_terminal_escapes(output: str | None) -> str | None:
+    # a child colours what it writes to a terminal, or to a pipe under FORCE_COLOR, and the escapes split the words pipx
+    # reads out of the captured copy
+    if output is None:
+        return None
+    return re.sub(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])", "", output)
 
 
 def _command_line(cmd: Sequence[str | Path]) -> str:
@@ -421,8 +431,8 @@ def _run_streaming_subprocess(
     return subprocess.CompletedProcess(
         cmd,
         returncode,
-        "".join(stdout_chunks) if capture_stdout else None,
-        "".join(stderr_chunks) if capture_stderr else None,
+        _without_terminal_escapes("".join(stdout_chunks) if capture_stdout else None),
+        _without_terminal_escapes("".join(stderr_chunks) if capture_stderr else None),
     )
 
 
