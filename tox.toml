@@ -20,8 +20,9 @@ package = "wheel"
 dependency_groups = [ "test" ]
 pass_env = [ "PYTEST_ADDOPTS" ]
 set_env.COVERAGE_FILE = "{work_dir}{/}.coverage.{env_name}"
-# a hung subprocess fails its test instead of the job; process creation on Windows CI makes some tests take 25 s
-set_env.PYTEST_TIMEOUT = { replace = "if", condition = "factor.win32", then = "60", else = "10" }
+# a hung subprocess fails its test instead of the job; slow process creation on the Windows and macOS CI runners
+# makes some tests take 10 to 25 s there
+set_env.PYTEST_TIMEOUT = { replace = "if", condition = "factor.win32 or factor.darwin", then = "60", else = "10" }
 commands = [
   [
     "pytest",
