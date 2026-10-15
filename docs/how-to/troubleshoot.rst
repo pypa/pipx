@@ -214,6 +214,17 @@ found". Use the full path:
 To avoid this, install pipx through your distribution's package manager (``apt install pipx``, ``dnf install pipx``) or
 system-wide with ``sudo pip install pipx`` (without ``--user``).
 
+*************************************
+ A suffixed app runs under a new name
+*************************************
+
+pipx 1.17.14 and earlier put ``--suffix`` before the last dot of an app name, so ``pipx install pip --suffix=_old``
+exposed ``pip3_old.12``. Later releases put it at the end, ``pip3.12_old``; on Windows it still goes before a file
+extension such as ``.exe`` or ``.py``, so the file keeps opening. After you upgrade pipx, an app keeps its old name and
+``pipx list`` shows it under that name. The next ``pipx upgrade``, ``reinstall``, ``inject``, or ``expose`` of the
+environment renames it and logs ``Renamed pip3_old.12 to pip3.12_old``. Update scripts and aliases that call the old
+name.
+
 ******************************************
  ``Cannot create ...: permission denied``
 ******************************************

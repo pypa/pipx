@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
 from pipx import paths
 from pipx.commands.common import (
-    add_suffix,
     can_symlink,
     get_exposed_man_paths_for_package,
     get_exposed_paths_for_package,
+    group_app_paths,
     group_resource_paths,
     reuse_resource_dir_scans,
 )
@@ -223,13 +223,7 @@ def _get_venv_resource_paths(
 
 
 def _get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
-    return get_exposed_paths_for_package(
-        venv_bin_path,
-        local_bin_dir,
-        group_resource_paths(
-            (add_suffix(path.name, package_info.suffix), path) for path in package_info.app_paths_to_expose
-        ),
-    )
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
 
 
 def _get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:

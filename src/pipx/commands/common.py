@@ -145,9 +145,7 @@ def expose_resources_globally(
         if not dest_dir.is_dir():
             mkdir(dest_dir)
         with _in_turn_if_shared(dest_dir / add_suffix(path.name, suffix)):
-            if not can_symlink(dest_dir):
-                collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
-            elif (
+            if (
                 collision := _symlink_package_resource(
                     dest_dir,
                     path,
@@ -155,10 +153,12 @@ def expose_resources_globally(
                     suffix=suffix,
                     executable=(resource_type == "app"),
                 )
+                if can_symlink(dest_dir)
+                else _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
             ) is None:
-                _remove_link_named_before_last_dot(dest_dir, path, suffix)
-        if collision is not None:
-            collisions.append(collision)
+                _remove_resource_named_before_last_dot(dest_dir, path, suffix)
+            else:
+                collisions.append(collision)
     return collisions
 
 
@@ -314,15 +314,21 @@ def _symlink_package_resource(
     return None
 
 
-def _remove_link_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
-    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), which the new name replaces
-    legacy: Final[Path] = dest_dir / f"{path.stem}{suffix}{path.suffix}"
-    if (
-        legacy != dest_dir / add_suffix(path.name, suffix)
-        and legacy.is_symlink()
-        and legacy.resolve() == path.resolve()
-    ):
-        legacy.unlink()
+def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
+    new_name: Final[str] = add_suffix(path.name, suffix)
+    for legacy in (dest_dir / name for name in exposed_app_names(path.name, suffix) - {new_name}):
+        if legacy.is_symlink():
+            owned = legacy.resolve() == path.resolve()
+        else:
+            # a launcher rebuilt since then no longer matches byte for byte, but its shebang still names this venv
+            owned = legacy.is_file() and (
+                filecmp.cmp(legacy, path, shallow=False) or _directory_id(path.parent) in _launcher_owner_ids(legacy)
+            )
+        if owned:
+            legacy.unlink()
+            _LOGGER.warning(
+                "%s  Renamed %s to %s, as pipx now puts --suffix at the end of app names", hazard, legacy.name, new_name
+            )
 
 
 def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
@@ -366,16 +372,14 @@ def _get_exposed_resource_names(
         if new_install
         else tuple(metadata for metadata in venv.package_metadata.values() if metadata.include_apps)
     )
-    app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
-        (add_suffix(path.name, metadata.suffix), path)
-        for metadata in resource_packages
-        for path in metadata.app_paths_to_expose
-    )
+    app_paths: Final[dict[str, list[Path]]] = group_app_paths(resource_packages)
     exposed_app_paths = get_exposed_paths_for_package(venv.bin_path, paths.ctx.bin_dir, app_paths)
     exposed_binary_names = sorted(path.name for path in exposed_app_paths)
-    unavailable_binary_names = sorted(
-        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
-    )
+    unavailable_binary_names = sorted({
+        add_suffix(name, package_metadata.suffix)
+        for name in package_metadata.apps
+        if not exposed_app_names(name, package_metadata.suffix) & set(exposed_binary_names)
+    })
     exposed_man_paths = set()
     man_paths: Final[list[Path]] = [path for metadata in resource_packages for path in metadata.man_paths_to_expose]
     for man_section in MAN_SECTIONS:
@@ -582,6 +586,15 @@ def get_exposed_man_paths_for_package(
     )
 
 
+def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
+    return group_resource_paths(
+        (name, path)
+        for package in packages
+        for path in package.app_paths_to_expose
+        for name in exposed_app_names(path.name, package.suffix)
+    )
+
+
 def group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
     grouped: dict[str, list[Path]] = {}
     for name, path in resource_paths:
@@ -757,12 +770,9 @@ def remove_stale_venv_resources(
 
 
 def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
-        (add_suffix(path.name, package.suffix), path)
-        for package in venv.package_metadata.values()
-        for path in package.app_paths_to_expose
+    owned: set[Path] = get_exposed_paths_for_package(
+        venv.bin_path, local_bin_dir, group_app_paths(venv.package_metadata.values())
     )
-    owned: set[Path] = get_exposed_paths_for_package(venv.bin_path, local_bin_dir, app_paths)
     man_paths: Final[list[Path]] = [
         path for package in venv.package_metadata.values() for path in package.man_paths_to_expose
     ]
@@ -856,11 +866,19 @@ def validate_suffix(suffix: str) -> str:
 
 
 def add_suffix(name: str, suffix: str) -> str:
-    # app names such as pip3.14 contain dots, so only a Windows launcher extension may follow the suffix
+    # Windows opens a file by its extension, so hello.py becomes hello@1.py there; the 14 of pip3.14 is a version, not
+    # an extension, and POSIX ignores extensions, so elsewhere the suffix goes last
     app: Final[Path] = Path(name)
-    if WINDOWS and app.suffix.upper() in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").upper().split(";"):
+    if WINDOWS and app.suffix and not app.suffix[1:].isdigit():
         return f"{app.stem}{suffix}{app.suffix}"
     return f"{name}{suffix}"
+
+
+def exposed_app_names(name: str, suffix: str) -> set[str]:
+    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), and an app exposed back then
+    # keeps that name until pipx exposes it again
+    app: Final[Path] = Path(name)
+    return {add_suffix(name, suffix), f"{app.stem}{suffix}{app.suffix}"}
 
 
 def locked_package_message(package_name: str) -> str:
@@ -874,10 +892,12 @@ __all__ = [
     "expose_package_resources",
     "expose_resources_globally",
     "expose_shared_resources_in_order",
+    "exposed_app_names",
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
+    "group_app_paths",
     "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",

@@ -138,6 +138,19 @@ def make_wheel(tmp_path: Path) -> Callable[[dict[str, str]], Path]:
 
 
 @pytest.fixture
+def dotted_app_wheel(make_wheel: Callable[[dict[str, str]], Path]) -> Path:
+    # tool.12 carries no shebang, so only its content ties a copy of it to the venv
+    return make_wheel({
+        "foo_bar_x.py": "def main() -> None:\n    pass\n",
+        "foo_bar_x-1.data/scripts/tool.12": "print('tool')\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\ntool3.12 = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+
+
+@pytest.fixture
 def project_ignoring_project_table(tmp_path: Path) -> Path:
     # stands in for poetry-core<2 or setuptools<61: the backend names the wheel itself and never reads [project]
     project: Final[Path] = tmp_path / "ignores-project-table"

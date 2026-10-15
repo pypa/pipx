@@ -10,6 +10,7 @@ import pytest
 from helpers import app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import paths
+from pipx.commands import common
 from pipx.constants import WINDOWS
 from pipx.util import pipx_wrap
 
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from _pytest.capture import CaptureResult
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -408,3 +410,18 @@ def test_uninject_reports_failed_dependency_uninstall(capsys: pytest.CaptureFixt
     assert run_pipx_cli(["uninject", "pycowsay", "requests"])
 
     assert "Error uninstalling certifi, charset-normalizer, idna, urllib3." in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_removes_copied_app_named_before_last_dot(
+    mocker: MockerFixture, empty_project_wheel: Path, dotted_app_wheel: Path
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", str(empty_project_wheel), "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "empty-project@1", str(dotted_app_wheel), "--include-apps", "--with-suffix"])
+    # the name pipx 1.17.14 gave the app, with the suffix before the last dot
+    legacy: Final[Path] = (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
+
+    assert not run_pipx_cli(["uninject", "empty-project@1", "foo-bar-x@1"])
+
+    assert not legacy.exists()

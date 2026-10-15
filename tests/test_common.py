@@ -233,6 +233,9 @@ def test_reuse_resource_dir_scans_skips_copy_removed_after_scan(tmp_path: Path, 
         pytest.param("pip3.14.exe", True, "pip3.14@1.exe", id="windows-exe"),
         pytest.param("tool.CMD", True, "tool@1.CMD", id="windows-cmd-any-case"),
         pytest.param("pip3.14", True, "pip3.14@1", id="windows-dotted-without-extension"),
+        pytest.param("hello.py", True, "hello@1.py", id="windows-script-extension"),
+        pytest.param("hello.ps1", True, "hello@1.ps1", id="windows-extension-outside-pathext"),
+        pytest.param("hello.py", False, "hello.py@1", id="posix-script-extension"),
     ],
 )
 def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: str) -> None:
@@ -299,3 +302,53 @@ def test_package_name_from_spec_builds_setup_py_project(local_extras_project: Pa
     assert package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False) == (
         "repeatme"
     )
+
+
+@pytest.fixture
+def app_named_before_last_dot(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    dotted_app_wheel: Path,
+) -> None:
+    assert not run_pipx_cli(["install", "--suffix=@1", str(dotted_app_wheel)])
+    # the name pipx 1.17.14 gave the app, with the suffix before the last dot
+    (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("app_named_before_last_dot")
+def test_list_accepts_app_named_before_last_dot(capsys: pytest.CaptureFixture[str]) -> None:
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert "unexpected location" not in capsys.readouterr().out
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("app_named_before_last_dot")
+def test_expose_warns_when_renaming_app_named_before_last_dot(caplog: pytest.LogCaptureFixture) -> None:
+    assert not run_pipx_cli(["upgrade", "foo-bar-x@1"])
+
+    assert "Renamed tool@1.12 to tool.12@1" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["uninstall", "foo-bar-x@1"], id="uninstall"),
+        pytest.param(["uninstall-all"], id="uninstall-all"),
+        pytest.param(["reinstall-all"], id="reinstall-all"),
+        pytest.param(["upgrade-all"], id="upgrade-all"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_copied_app_named_before_last_dot_is_removed(
+    mocker: MockerFixture, dotted_app_wheel: Path, command: list[str]
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", "--suffix=@1", str(dotted_app_wheel)])
+    legacy: Final[Path] = (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
+
+    assert not run_pipx_cli(command)
+
+    assert not legacy.exists()

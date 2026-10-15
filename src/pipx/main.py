@@ -649,7 +649,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         default="",
         help=(
             "Optional suffix for virtual environment and executable names. It goes at the end of each app name "
-            "(pip3.14 becomes pip3.14_a), before the launcher extension on Windows (pip3.14_a.exe)."
+            "(pip3.14 becomes pip3.14_a), before the file extension on Windows (pip3.14_a.exe, hello_a.py)."
         ),
     )
     add_python_options(parser)
