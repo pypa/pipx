@@ -38,6 +38,8 @@ class OutputMessage:
     text: str
     stream: OutputStream = OutputStream.STDOUT
     level: OutputLevel = OutputLevel.NORMAL
+    # a choice pipx made on the user's behalf, which JSON output still reports on stderr beside the envelope
+    notice: bool = False
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,9 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
             result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
         )
         print(envelope)  # ruff:ignore[print]  # the JSON envelope is the command's machine-readable stdout payload
+        for message in result.messages:
+            if message.notice:
+                print(message.text, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return result.exit_code
 
     render_messages(result.messages, quiet=quiet)

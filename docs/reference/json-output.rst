@@ -4,7 +4,8 @@
 
 Most pipx commands accept ``--output json`` to print a single machine-readable result envelope on stdout instead of
 human-readable text. Selecting JSON suppresses pipx's own progress messages and sends whatever pip or uv print while
-installing to stderr, so the envelope is the only thing on stdout.
+installing to stderr, so the envelope is the only thing on stdout. When ``install`` moves to another Python because the
+package's ``requires-python`` rules out the default one, pipx says so on stderr as well.
 
 **********
  Envelope

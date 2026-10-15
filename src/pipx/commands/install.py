@@ -1052,7 +1052,7 @@ def _supported_python(
         )
         raise PipxError(msg)
     interpreter: Final[str] = interpreter_for(constraint, fetch_python)
-    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}."))
+    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}.", notice=True))
     return interpreter
 
 

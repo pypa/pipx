@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
+    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 
@@ -218,6 +220,25 @@ def test_install_uv_moves_off_a_default_python_below_the_lower_bound(
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert not recorded.startswith(f"Python {older_python.rsplit('python', 1)[1]}.")
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+def test_install_json_reports_the_python_it_moved_to_on_stderr(
+    make_needs_project: Callable[[str], Path],
+    older_python: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    backend: str,
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv binary not on PATH")
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", older_python)
+    project: Final[Path] = make_needs_project(f">={sys.version_info.major}.{sys.version_info.minor}")
+
+    assert not run_pipx_cli(["install", "--output", "json", "--backend", backend, str(project)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out)["status"], "This package needs Python >=" in captured.err) == ("success", True)
 
 
 @pytest.mark.usefixtures("older_python")
