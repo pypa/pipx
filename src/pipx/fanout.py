@@ -50,7 +50,7 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
         signalled.set()
         with _LOOSE_CHILDREN_LOCK:
             for process in _LOOSE_CHILDREN:
-                _stop(process)
+                stop_process_group(process)
         raise KeyboardInterrupt
 
     # Windows has no SIGHUP
@@ -252,7 +252,7 @@ def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
     with children.lock:
         children.running[process] = slot
         if children.stops(slot):
-            _stop(process)
+            stop_process_group(process)
     try:
         yield
     finally:
@@ -262,7 +262,8 @@ def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
         raise KeyboardInterrupt
 
 
-def _stop(process: _Child) -> None:
+def stop_process_group(process: _Child) -> None:
+    """Stop a child started in a process group of its own, together with everything it started."""
     if WINDOWS:
         process.terminate()
         return
@@ -297,7 +298,7 @@ class _Children:
             self.stopping = True
             for process, slot in self.running.items():
                 if self.stops(slot):
-                    _stop(process)
+                    stop_process_group(process)
             return 0 if self.interrupted else len(self.finishing)
 
     def stops(self, slot: _Slot) -> bool:
@@ -411,6 +412,7 @@ __all__ = [
     "in_turn",
     "locked_in_order",
     "output_is_held",
+    "stop_process_group",
     "stopped_on_interrupt",
     "stopping_children_on_signals",
 ]
