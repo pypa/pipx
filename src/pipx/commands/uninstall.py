@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 from pipx import paths
 from pipx.commands.common import (
     can_symlink,
+    drop_copies_claimed_elsewhere,
     get_exposed_man_paths_for_package,
     get_exposed_paths_for_package,
     group_app_paths,
@@ -108,7 +109,7 @@ def uninstall(
             package_infos,
         )
 
-    for path in resource_paths:
+    for path in drop_copies_claimed_elsewhere(resource_paths, venv.bin_path):
         _remove_resource(path)
 
     package_info = next(

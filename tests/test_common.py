@@ -352,3 +352,71 @@ def test_copied_app_named_before_last_dot_is_removed(
     assert not run_pipx_cli(command)
 
     assert not legacy.exists()
+
+
+@pytest.fixture
+def static_scripts_wheel(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    mocker: MockerFixture,
+    make_wheel: Callable[[dict[str, str]], Path],
+) -> Path:
+    # scripts without a shebang copy byte for byte, so nothing in a copy says which venv exposed it
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    return make_wheel({
+        "foo_bar_x-1.data/scripts/run": "echo static\n",
+        "foo_bar_x-1.data/scripts/run.2": "echo static\n",
+        "foo_bar_x-1.data/scripts/run.cmd": "echo static\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["uninstall", "foo-bar-x@2"], id="uninstall"),
+        pytest.param(["reinstall", "foo-bar-x@2"], id="reinstall"),
+        pytest.param(["unexpose", "foo-bar-x@2"], id="unexpose"),
+    ],
+)
+def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_removal(
+    static_scripts_wheel: Path, command: list[str]
+) -> None:
+    assert not run_pipx_cli(["install", str(static_scripts_wheel)])
+    assert not run_pipx_cli(["install", "--suffix=@2", str(static_scripts_wheel)])
+
+    assert not run_pipx_cli(command)
+
+    assert (paths.ctx.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
+
+
+def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_uninject(
+    static_scripts_wheel: Path, empty_project_wheel: Path
+) -> None:
+    assert not run_pipx_cli(["install", str(static_scripts_wheel)])
+    assert not run_pipx_cli(["install", "--suffix=@2", str(empty_project_wheel)])
+    assert not run_pipx_cli(["inject", "empty-project@2", str(static_scripts_wheel), "--include-apps", "--with-suffix"])
+
+    assert not run_pipx_cli(["uninject", "empty-project@2", "foo-bar-x"])
+
+    assert (paths.ctx.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["uninstall", "foo-bar-xb"], id="uninstall"),
+        pytest.param(["reinstall", "foo-bar-xb"], id="reinstall"),
+    ],
+)
+def test_copied_static_app_named_like_another_venvs_legacy_name_survives(
+    static_scripts_wheel: Path, command: list[str]
+) -> None:
+    # runb.2 is both the name pipx 1.17.14 gave run.2 under suffix b and the name run gets under suffix b.2
+    assert not run_pipx_cli(["install", "--suffix=b", str(static_scripts_wheel)])
+    assert not run_pipx_cli(["install", "--suffix=b.2", str(static_scripts_wheel)])
+
+    assert not run_pipx_cli(command)
+
+    assert (paths.ctx.bin_dir / "runb.2").read_text(encoding="utf-8") == "echo static\n"

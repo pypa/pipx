@@ -9,6 +9,7 @@ __lazy_modules__ = [
     "pipx.backends",
     "pipx.fanout",
     "pipx.package_specifier",
+    "pipx.pipx_metadata_file",
     "pipx.result",
     "pipx.util",
     "pipx.venv",
@@ -51,14 +52,15 @@ from pipx.package_specifier import (
     valid_pypi_name,
     wheel_project_name,
 )
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
-from pipx.venv import Venv
+from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
 
-    from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+    from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _IGNORE_ENVIRONMENT_FLAG: Final[bytes] = b" -E"
@@ -324,7 +326,7 @@ def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: s
             owned = legacy.is_file() and (
                 filecmp.cmp(legacy, path, shallow=False) or _directory_id(path.parent) in _launcher_owner_ids(legacy)
             )
-        if owned:
+        if owned and drop_copies_claimed_elsewhere({legacy}, path.parent):
             legacy.unlink()
             _LOGGER.warning(
                 "%s  Renamed %s to %s, as pipx now puts --suffix at the end of app names", hazard, legacy.name, new_name
@@ -445,6 +447,7 @@ def get_venv_summary(
 _RESOURCE_DIR_SCANS: Final[ContextVar[dict[Path, _ResourceDirScan] | None]] = ContextVar(
     "resource_dir_scans", default=None
 )
+_VENV_CLAIMS: Final[ContextVar[dict[Path, set[Path]] | None]] = ContextVar("venv_claims", default=None)
 
 
 @contextmanager
@@ -452,9 +455,11 @@ def reuse_resource_dir_scans() -> Generator[None]:
     # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
     # command instead of once per venv keeps them linear in the number of venvs
     token = _RESOURCE_DIR_SCANS.set({})
+    claims_token = _VENV_CLAIMS.set({})
     try:
         yield
     finally:
+        _VENV_CLAIMS.reset(claims_token)
         _RESOURCE_DIR_SCANS.reset(token)
 
 
@@ -484,6 +489,58 @@ def get_exposed_paths_for_package(
         for name in {os.path.normcase(name) for name in (*venv_names, *(package_resource_paths or {}))}
         for resource_path in scan.by_name.get(name, ())
         if _copy_matches_source(resource_path, venv_resource_path, package_resource_paths)
+    }
+
+
+def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
+    # a static script copies byte for byte, so the copy another venv exposes under a name this venv also answers to
+    # (tool's run.cmd for tool@2) matches by content; unless its shebang names this venv, it belongs to the other one
+    own_id: Final[tuple[int, int] | None] = _directory_id_or_none(venv_bin_path)
+    copies: Final[set[Path]] = {
+        path for path in resource_paths if not path.is_symlink() and own_id not in _launcher_owner_ids(path)
+    }
+    return resource_paths - (copies & _claimed_by_other_venvs(venv_bin_path)) if copies else resource_paths
+
+
+def _directory_id_or_none(path: Path) -> tuple[int, int] | None:
+    try:
+        return _directory_id(path)
+    except OSError:
+        return None
+
+
+def _claimed_by_other_venvs(venv_bin_path: Path) -> set[Path]:
+    # a venv removed since the claims were read, as uninstall-all does one by one, no longer holds its paths
+    return {
+        path
+        for venv_dir, claimed in _venv_claims_by_dir().items()
+        if not venv_bin_path.is_relative_to(venv_dir) and venv_dir.is_dir()
+        for path in claimed
+    }
+
+
+def _venv_claims_by_dir() -> dict[Path, set[Path]]:
+    if (cache := _VENV_CLAIMS.get()) is None:
+        return _read_venv_claims()
+    if not cache:
+        cache.update(_read_venv_claims())
+    return cache
+
+
+def _read_venv_claims() -> dict[Path, set[Path]]:
+    return {venv_dir: _venv_claims(venv_dir) for venv_dir in VenvContainer(paths.ctx.venvs).iter_venv_dirs()}
+
+
+def _venv_claims(venv_dir: Path) -> set[Path]:
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    if not metadata.exposure_enabled or metadata.main_package.package is None:
+        return set()
+    packages: Final[list[PackageInfo]] = [metadata.main_package, *metadata.injected_packages.values()]
+    return _expected_resource_paths(metadata, packages, paths.ctx.bin_dir, paths.ctx.man_dir) | {
+        paths.ctx.bin_dir / name
+        for package in packages
+        for path in package.app_paths_to_expose
+        for name in exposed_app_names(path.name, package.suffix)
     }
 
 
@@ -765,7 +822,9 @@ def remove_stale_venv_resources(
     current_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
     # only remove a dropped destination pipx still owns, so a replacement the user or another package put there stays
     owned: Final[set[Path]] = _venv_owned_resource_paths(venv, local_bin_dir, local_man_dir)
-    for path in sorted((previous_resource_paths - current_resource_paths) & owned):
+    for path in sorted(
+        drop_copies_claimed_elsewhere((previous_resource_paths - current_resource_paths) & owned, venv.bin_path)
+    ):
         safe_unlink(path)
 
 
@@ -889,6 +948,7 @@ __all__ = [
     "VenvProblems",
     "add_suffix",
     "can_symlink",
+    "drop_copies_claimed_elsewhere",
     "expose_package_resources",
     "expose_resources_globally",
     "expose_shared_resources_in_order",

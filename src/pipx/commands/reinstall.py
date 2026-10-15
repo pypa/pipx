@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.commands.common import add_suffix, expose_shared_resources_in_order
+from pipx.commands.common import add_suffix, drop_copies_claimed_elsewhere, expose_shared_resources_in_order
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
@@ -263,7 +263,9 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         new_resource_paths = _get_expected_reinstall_resource_paths(
             Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir
         )
-        _remove_stale_reinstall_resources(old_resource_paths - new_resource_paths)
+        _remove_stale_reinstall_resources(
+            drop_copies_claimed_elsewhere(old_resource_paths - new_resource_paths, venv.bin_path)
+        )
     except PipxError:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
         # an expected failure (e.g. pip could not install the package) that the CLI reports itself, so like the CLI

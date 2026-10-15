@@ -20,7 +20,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold
-from pipx.commands.common import exposed_app_names
+from pipx.commands.common import drop_copies_claimed_elsewhere, exposed_app_names
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
@@ -163,7 +163,9 @@ def uninject_dep(
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     need_app_uninstall: Final[bool] = package.include_apps
 
-    new_resource_paths = get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir)
+    new_resource_paths = drop_copies_claimed_elsewhere(
+        get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir), venv.bin_path
+    )
 
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
