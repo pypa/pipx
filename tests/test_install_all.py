@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import sys
@@ -257,21 +258,74 @@ def test_install_all_drops_recorded_pip_args_for_another_backend(
     )
 
 
+@pytest.fixture
+def make_pip_backend_snapshot(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> Callable[[str], Path]:
+    def create(pip_args: str) -> Path:
+        assert not run_pipx_cli(["install", "--backend", "pip", f"--pip-args={pip_args}", "pycowsay"])
+        capsys.readouterr()
+        assert not run_pipx_cli(["list", "--json"])
+        (spec_file := tmp_path / "pipx.json").write_text(capsys.readouterr().out, encoding="utf-8")
+        assert not run_pipx_cli(["uninstall-all"])
+        return spec_file
+
+    return create
+
+
+@pytest.fixture
+def credentialed_index_url(pipx_temp_env: None) -> str:  # ruff:ignore[unused-function-argument]  # it sets the index
+    scheme, _, location = os.environ["PIP_INDEX_URL"].partition("://")
+    return f"{scheme}://user:s3cret@{location}"
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
-@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all_warns_about_dropped_pip_args(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    make_pip_backend_snapshot: Callable[[str], Path], caplog: pytest.LogCaptureFixture
 ) -> None:
-    assert not run_pipx_cli(["install", "--backend", "pip", "--pip-args=--progress-bar off", "pycowsay"])
-    capsys.readouterr()
-    assert not run_pipx_cli(["list", "--json"])
-    spec_file: Final[Path] = tmp_path / "pipx.json"
-    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
-    assert not run_pipx_cli(["uninstall-all"])
+    spec_file: Final[Path] = make_pip_backend_snapshot("--progress-bar off")
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
-    assert "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off" in caplog.text
+    assert "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off\n" in caplog.text
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_install_all_warning_redacts_index_credentials(
+    make_pip_backend_snapshot: Callable[[str], Path], credentialed_index_url: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    spec_file: Final[Path] = make_pip_backend_snapshot(f"--progress-bar off --index-url {credentialed_index_url}")
+
+    assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
+
+    redacted: Final[str] = credentialed_index_url.replace("s3cret", "****")
+    assert (
+        "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off; keeping the index options uv "
+        f"also accepts: --index-url {redacted}\n"
+    ) in caplog.text
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    "index_args",
+    [
+        pytest.param(["--index-url", "{url}"], id="separate-value"),
+        pytest.param(["--index-url={url}"], id="joined-value"),
+        pytest.param(["-i{url}"], id="short-joined-value"),
+        pytest.param(["--extra-index-url", "{url}", "--find-links", "{url}"], id="extra-index-and-find-links"),
+    ],
+)
+def test_install_all_keeps_recorded_index_args_for_another_backend(
+    make_pip_backend_snapshot: Callable[[str], Path], credentialed_index_url: str, index_args: list[str]
+) -> None:
+    recorded: Final[list[str]] = [argument.format(url=credentialed_index_url) for argument in index_args]
+    spec_file: Final[Path] = make_pip_backend_snapshot(" ".join(["--progress-bar", "off", *recorded]))
+
+    assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == recorded
 
 
 @pytest.mark.parametrize(

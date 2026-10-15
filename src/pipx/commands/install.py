@@ -67,7 +67,7 @@ from pipx.result import (
     render_result,
 )
 from pipx.script import script_name_from_spec
-from pipx.util import PipxError, pipx_wrap, rmdir
+from pipx.util import PipxError, pipx_wrap, redact_url_credentials, rmdir
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -759,7 +759,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
     replay_pip_args: Final[bool] = backend in {None, venv_metadata.backend}
     if not (pip_args or replay_pip_args):
-        _warn_dropped_pip_args(venv_metadata)
+        _warn_dropped_pip_args(venv_metadata, backend)
     try:
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             package_cooldown = _resolve_cooldown(
@@ -775,7 +775,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 local_bin_dir,
                 local_man_dir,
                 interpreter,
-                pip_args or (main_package.pip_args if replay_pip_args else []),
+                pip_args or _recorded_pip_args(main_package, same_backend=replay_pip_args),
                 venv_args or venv_metadata.venv_args,
                 verbose=verbose,
                 force=force,
@@ -801,7 +801,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                     venv_dir=venv_dir,
                     package_specs=[generate_package_spec(inject_package)],
                     requirement_files=[],
-                    pip_args=pip_args or (inject_package.pip_args if replay_pip_args else []),
+                    pip_args=pip_args or _recorded_pip_args(inject_package, same_backend=replay_pip_args),
                     verbose=verbose,
                     include_apps=inject_package.include_apps,
                     include_dependencies=inject_package.include_dependencies,
@@ -817,16 +817,42 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     return venv_dir.name, True
 
 
-def _warn_dropped_pip_args(venv_metadata: PipxMetadata) -> None:
-    packages: Final[list[PackageInfo]] = [venv_metadata.main_package, *venv_metadata.injected_packages.values()]
-    if dropped := list(dict.fromkeys(argument for package in packages for argument in package.pip_args)):
+def _warn_dropped_pip_args(venv_metadata: PipxMetadata, backend: str | None) -> None:
+    split: Final[list[tuple[list[str], list[str]]]] = [
+        _split_index_pip_args(package.pip_args)
+        for package in (venv_metadata.main_package, *venv_metadata.injected_packages.values())
+    ]
+    if dropped := list(dict.fromkeys(" ".join(other) for _, other in split if other)):
+        kept: Final[list[str]] = list(dict.fromkeys(" ".join(index) for index, _ in split if index))
         _LOGGER.warning(
-            "%s  Ignoring pip args recorded for the %s backend of %s: %s",
+            "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
             hazard,
             venv_metadata.backend,
             f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}",
-            " ".join(dropped),
+            redact_url_credentials(" ".join(dropped)),
+            f"; keeping the index options {backend} also accepts: {redact_url_credentials(' '.join(kept))}"
+            if kept
+            else "",
         )
+
+
+def _recorded_pip_args(package: PackageInfo, *, same_backend: bool) -> list[str]:
+    return package.pip_args if same_backend else _split_index_pip_args(package.pip_args)[0]
+
+
+def _split_index_pip_args(pip_args: list[str]) -> tuple[list[str], list[str]]:
+    # pip and uv both take these, so a snapshot moved to the other backend keeps installing from its recorded index
+    with_value: Final[set[str]] = {"--index-url", "-i", "--extra-index-url", "--find-links", "-f"}
+    index_args: Final[list[str]] = []
+    other_args: Final[list[str]] = []
+    for position, argument in enumerate(pip_args):
+        is_index = (
+            argument in {*with_value, "--no-index"}
+            or argument.startswith(("--index-url=", "--extra-index-url=", "--find-links=", "-i", "-f"))
+            or (position > 0 and pip_args[position - 1] in with_value)
+        )
+        (index_args if is_index else other_args).append(argument)
+    return index_args, other_args
 
 
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:

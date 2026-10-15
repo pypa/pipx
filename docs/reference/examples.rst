@@ -153,8 +153,10 @@ Narrow the output or change the format; the package filter works with every form
 
 Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`). Each environment gets the
 venv and pip arguments the snapshot recorded unless you pass your own. A ``--backend`` other than the recorded one skips
-the recorded pip arguments with a warning, since they can hold options only the old backend accepts. Up to eight
-environments install at once, with their output printed in snapshot order:
+the recorded pip arguments with a warning, since they can hold options only the old backend accepts. It keeps
+``--index-url``, ``--extra-index-url``, ``--find-links``, and ``--no-index``, which pip and uv both accept, so the
+environment still installs from the recorded index. Up to eight environments install at once, with their output printed
+in snapshot order:
 
 .. code-block:: console
 
