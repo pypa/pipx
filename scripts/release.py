@@ -52,7 +52,7 @@ def resolve_version(version_str: str, repo: Repo) -> Version:
         parts = [parts[0], parts[1] + 1, 0]
     elif version_str == "patch":
         parts[2] += 1
-    elif any(CHANGELOG_DIR.glob("*.feature.md")) or any(CHANGELOG_DIR.glob("*.removal.md")):
+    elif any(any(CHANGELOG_DIR.glob(f"*.{kind}*.md")) for kind in ("feature", "performance", "removal")):
         parts = [parts[0], parts[1] + 1, 0]
     else:
         parts[2] += 1
