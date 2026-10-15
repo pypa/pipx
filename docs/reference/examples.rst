@@ -153,10 +153,28 @@ Narrow the output or change the format; the package filter works with every form
 
 Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`). Each environment gets the
 venv and pip arguments the snapshot recorded unless you pass your own. A ``--backend`` other than the recorded one skips
-the recorded pip arguments with a warning, since they can hold options only the old backend accepts. It keeps
-``--index-url``, ``--extra-index-url``, ``--find-links``, and ``--no-index``, which pip and uv both accept, so the
-environment still installs from the recorded index. Up to eight environments install at once, with their output printed
-in snapshot order:
+the recorded pip arguments with a warning, since they can hold options only the old backend accepts. Options with an
+exact equivalent are translated instead, so the environment still installs from the recorded index:
+
+=============================== ======================================================
+pip                             uv
+=============================== ======================================================
+``--index-url``, ``-i``         ``--default-index``
+``--extra-index-url``           ``--index`` (a ``name=`` prefix is dropped for pip)
+``--find-links``, ``-f``        ``--find-links`` (split on commas for pip)
+``--no-index``                  ``--no-index``
+``--pre``                       ``--prerelease allow``
+``--trusted-host HOST``         ``--allow-insecure-host HOST``
+``--constraint``, ``-c``        ``--constraints``
+``--keyring-provider``          ``--keyring-provider`` (``disabled`` or ``subprocess``)
+(always picks the best match)   ``--index-strategy unsafe-best-match``
+=============================== ======================================================
+
+When a recorded index option has no equivalent, such as a uv ``--index-strategy`` other than ``unsafe-best-match``, an
+``--allow-insecure-host`` URL, or pip's ``--keyring-provider import``, pipx refuses to install that environment rather
+than fall back to PyPI. pip searches every index for the best version, while uv stops at the first index that has the
+package, so a uv ``--index`` moved to pip can pick a newer release from PyPI. Pass ``--pip-args`` to replace the
+recorded options. Up to eight environments install at once, with their output printed in snapshot order:
 
 .. code-block:: console
 

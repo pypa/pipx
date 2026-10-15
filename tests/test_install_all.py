@@ -259,13 +259,13 @@ def test_install_all_drops_recorded_pip_args_for_another_backend(
 
 
 @pytest.fixture
-def make_pip_backend_snapshot(
+def make_backend_snapshot(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
-) -> Callable[[str], Path]:
-    def create(pip_args: str) -> Path:
-        assert not run_pipx_cli(["install", "--backend", "pip", f"--pip-args={pip_args}", "pycowsay"])
+) -> Callable[[str, str], Path]:
+    def create(backend: str, pip_args: str) -> Path:
+        assert not run_pipx_cli(["install", "--backend", backend, f"--pip-args={pip_args}", "pycowsay"])
         capsys.readouterr()
         assert not run_pipx_cli(["list", "--json"])
         (spec_file := tmp_path / "pipx.json").write_text(capsys.readouterr().out, encoding="utf-8")
@@ -283,9 +283,9 @@ def credentialed_index_url(pipx_temp_env: None) -> str:  # ruff:ignore[unused-fu
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 def test_install_all_warns_about_dropped_pip_args(
-    make_pip_backend_snapshot: Callable[[str], Path], caplog: pytest.LogCaptureFixture
+    make_backend_snapshot: Callable[[str, str], Path], caplog: pytest.LogCaptureFixture
 ) -> None:
-    spec_file: Final[Path] = make_pip_backend_snapshot("--progress-bar off")
+    spec_file: Final[Path] = make_backend_snapshot("pip", "--progress-bar off")
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
@@ -294,38 +294,115 @@ def test_install_all_warns_about_dropped_pip_args(
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 def test_install_all_warning_redacts_index_credentials(
-    make_pip_backend_snapshot: Callable[[str], Path], credentialed_index_url: str, caplog: pytest.LogCaptureFixture
+    make_backend_snapshot: Callable[[str, str], Path], credentialed_index_url: str, caplog: pytest.LogCaptureFixture
 ) -> None:
-    spec_file: Final[Path] = make_pip_backend_snapshot(f"--progress-bar off --index-url {credentialed_index_url}")
+    spec_file: Final[Path] = make_backend_snapshot("pip", f"--progress-bar off --index-url {credentialed_index_url}")
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
     redacted: Final[str] = credentialed_index_url.replace("s3cret", "****")
     assert (
-        "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off; keeping the index options uv "
-        f"also accepts: --index-url {redacted}\n"
+        "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off; translated for uv: "
+        f"--default-index {redacted}\n"
     ) in caplog.text
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.parametrize(
-    "index_args",
+    ("recorded_backend", "recorded_args", "expected_args"),
     [
-        pytest.param(["--index-url", "{url}"], id="separate-value"),
-        pytest.param(["--index-url={url}"], id="joined-value"),
-        pytest.param(["-i{url}"], id="short-joined-value"),
-        pytest.param(["--extra-index-url", "{url}", "--find-links", "{url}"], id="extra-index-and-find-links"),
+        pytest.param("pip", "--index-url {url}", "--default-index {url}", id="pip-index-url"),
+        pytest.param("pip", "--index-url={url}", "--default-index {url}", id="pip-joined-value"),
+        pytest.param("pip", "-i{url}", "--default-index {url}", id="pip-short-joined-value"),
+        pytest.param(
+            "pip",
+            "--extra-index-url {url} --find-links {links} --no-index",
+            "--index {url} --find-links {links} --no-index",
+            id="pip-extra-index-and-find-links",
+        ),
+        pytest.param(
+            "pip",
+            "--pre --trusted-host localhost -c {constraints} --keyring-provider disabled",
+            "--prerelease allow --allow-insecure-host localhost --constraints {constraints} "
+            "--keyring-provider disabled",
+            id="pip-resolver-options",
+        ),
+        pytest.param("uv", "--default-index {url}", "--index-url {url}", id="uv-default-index"),
+        pytest.param("uv", "--index=private={url}", "--extra-index-url {url}", id="uv-named-index"),
+        pytest.param(
+            "uv",
+            "--no-index -f {links},{links}",
+            "--no-index --find-links {links} --find-links {links}",
+            id="uv-find-links-list",
+        ),
+        pytest.param(
+            "uv",
+            "--prerelease=allow --allow-insecure-host localhost --constraints {constraints}",
+            "--pre --trusted-host localhost --constraint {constraints}",
+            id="uv-resolver-options",
+        ),
+        pytest.param("uv", "--index-strategy unsafe-best-match", "", id="uv-pip-index-strategy"),
+        pytest.param("uv", "--prerelease if-necessary", "", id="uv-prerelease-without-pip-equivalent"),
     ],
 )
-def test_install_all_keeps_recorded_index_args_for_another_backend(
-    make_pip_backend_snapshot: Callable[[str], Path], credentialed_index_url: str, index_args: list[str]
+def test_install_all_translates_recorded_pip_args_for_another_backend(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
+    make_backend_snapshot: Callable[[str, str], Path],
+    root: Path,
+    tmp_path: Path,
+    credentialed_index_url: str,
+    recorded_backend: str,
+    recorded_args: str,
+    expected_args: str,
 ) -> None:
-    recorded: Final[list[str]] = [argument.format(url=credentialed_index_url) for argument in index_args]
-    spec_file: Final[Path] = make_pip_backend_snapshot(" ".join(["--progress-bar", "off", *recorded]))
+    (constraints := tmp_path / "constraints.txt").write_text("pycowsay\n", encoding="utf-8")
+    values: Final[dict[str, str]] = {
+        "url": credentialed_index_url,
+        "links": str(root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME),
+        "constraints": str(constraints),
+    }
+    spec_file: Final[Path] = make_backend_snapshot(recorded_backend, recorded_args.format(**values))
+    other_backend: Final[str] = "uv" if recorded_backend == "pip" else "pip"
 
-    assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
+    assert not run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
 
-    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == recorded
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == expected_args.format(**values).split()
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    ("recorded_backend", "recorded_args", "untranslatable"),
+    [
+        pytest.param("uv", "--index-strategy first-index", "--index-strategy first-index", id="uv-index-strategy"),
+        pytest.param(
+            "uv",
+            "--allow-insecure-host http://localhost",
+            "--allow-insecure-host http://localhost",
+            id="uv-insecure-host-url",
+        ),
+        pytest.param("pip", "--keyring-provider import", "--keyring-provider import", id="pip-keyring-provider"),
+    ],
+)
+def test_install_all_refuses_untranslatable_index_args(
+    make_backend_snapshot: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+    recorded_backend: str,
+    recorded_args: str,
+    untranslatable: str,
+) -> None:
+    spec_file: Final[Path] = make_backend_snapshot(recorded_backend, recorded_args)
+    other_backend: Final[str] = "uv" if recorded_backend == "pip" else "pip"
+
+    result: Final[int] = run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
+
+    expected: Final[str] = (
+        f"Cannot install pycowsay with the {other_backend} backend: its recorded index option {untranslatable} has "
+        f"no {other_backend} equivalent, and dropping it could install from a different index."
+    )
+    assert (result, expected in " ".join(capsys.readouterr().err.split()), (paths.ctx.venvs / "pycowsay").exists()) == (
+        1,
+        True,
+        False,
+    )
 
 
 @pytest.mark.parametrize(
