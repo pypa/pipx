@@ -426,7 +426,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                     # constraint appears; uv installs regardless, which the caller catches from the metadata instead
                     if constraint := rejected_constraint(process.stderr or ""):
                         raise IncompatiblePythonError(constraint)
-                    subprocess_post_check_handle_pip_error(process, tool_name=self.backend_name)
+                    subprocess_post_check_handle_pip_error(
+                        process, tool_name=self.backend_name, streamed=self.verbose or self.show_progress
+                    )
                     msg = f"Error installing {full_package_description(package_name, package_or_url)}."
                     raise PipxError(msg)
             else:

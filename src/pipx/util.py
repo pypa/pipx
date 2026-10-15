@@ -619,13 +619,15 @@ def _log_failed_builds(
 def subprocess_post_check_handle_pip_error(
     completed_process: subprocess.CompletedProcess[str],
     tool_name: str = "pip",
+    *,
+    streamed: bool = False,
 ) -> None:
     """Persist subprocess output; run pip-specific heuristics for the pip path.
 
     ``tool_name="pip"`` keeps the historical wording that log-scrapers /
     tests built around. uv writes a uv-labelled log and skips the pip output
     analyser, whose regexes don't match uv's error format; its stderr is
-    printed as is instead.
+    printed as is instead, unless ``streamed`` says the user already saw it live.
     """
     if not completed_process.returncode:
         return
@@ -647,7 +649,9 @@ def subprocess_post_check_handle_pip_error(
     )
     if tool_name == "pip":
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
-    elif uv_errors := [line for line in (completed_process.stderr or "").splitlines() if line.strip()]:
+    elif not streamed and (
+        uv_errors := [line for line in (completed_process.stderr or "").splitlines() if line.strip()]
+    ):
         print("\nSome possibly relevant errors from uv install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         for line in uv_errors:
             print(f"    {line}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output

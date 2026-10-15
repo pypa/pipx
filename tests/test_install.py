@@ -1295,6 +1295,27 @@ def test_install_uv_failure_shows_uv_error(
     )
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize(
+    ("terminal", "flags"),
+    [pytest.param(True, [], id="terminal"), pytest.param(False, ["--verbose"], id="verbose")],
+)
+def test_install_uv_failure_streamed_prints_uv_error_once(
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    terminal: bool,
+    flags: list[str],
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--backend", "uv", *flags, str(project)])
+
+    assert capsys.readouterr().err.count("No solution found when resolving dependencies") == 1
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
