@@ -144,8 +144,10 @@ class _SharedLibs:
         return process
 
     def _rebuild_if_pip_broken(self, rebuilds: int, *, pip_args: list[str], verbose: bool) -> bool:
-        if self._rebuilds == rebuilds and self._pip_imports():
-            return False
+        # under the lock a rebuild holds: pip imports again midway through one, which would pass for an ordinary failure
+        with self._lock:
+            if self._rebuilds == rebuilds and self._pip_imports():
+                return False
         # fan-out tasks fail together on a broken pip; the first in task order rebuilds it and the others retry on
         # that, as when running one after another, instead of each clearing the venv the others are retrying from
         with in_turn(lambda: self._rebuilds != rebuilds), self._lock, self._maintenance_lock():
