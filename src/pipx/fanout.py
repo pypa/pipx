@@ -47,17 +47,11 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
             children.submitted.set()
             _wait_in_order(futures, slots)
         except KeyboardInterrupt:
-            # a SIGINT sent to pipx alone, not to its process group, leaves the children running, so stop them for the
-            # running tasks to roll back now instead of finishing their work first
-            for future in futures:
-                future.cancel()
-            children.stop()
+            _interrupt(futures, children)
             raise
         finally:
             children.submitted.set()
-            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
-            for slot in slots:
-                slot.go_live()
+            _settle(futures, slots, children)
             executor.shutdown(cancel_futures=True)
     return [future.result() for future in futures]
 
@@ -71,6 +65,29 @@ def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
         next_slot.go_live()
     # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
     wait(futures)
+
+
+def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
+    # a SIGINT sent to pipx alone, not to its process group, leaves the children running, so stop them for the running
+    # tasks to roll back now instead of finishing their work first
+    for future in futures:
+        future.cancel()
+    children.stop()
+
+
+def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
+    # a further Ctrl-C must not cut short the wait for tasks rolling back: Python 3.12 marks a thread whose join was
+    # interrupted as stopped, so the interpreter exits without waiting and kills the task mid rollback
+    while True:
+        try:
+            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
+            for slot in slots:
+                slot.go_live()
+            wait(futures)
+        except KeyboardInterrupt:
+            _interrupt(futures, children)
+        else:
+            return
 
 
 def output_is_held() -> bool:

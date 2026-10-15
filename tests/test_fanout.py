@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import signal
 import sys
 import threading
 import time
@@ -8,6 +9,7 @@ from typing import Final
 
 import pytest
 
+from helpers import skip_if_windows
 from pipx.fanout import fan_out, in_turn, output_is_held
 
 
@@ -127,3 +129,20 @@ def test_in_turn_outside_fan_out_runs_immediately() -> None:
         events.append("ran")
 
     assert events == ["ran"]
+
+
+@skip_if_windows
+def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
+    rolled_back: Final[list[str]] = []
+    main_thread: Final[int] = threading.get_ident()
+
+    def rolling_back() -> None:
+        for _ in range(2):
+            signal.pthread_kill(main_thread, signal.SIGINT)
+            time.sleep(0.2)
+        rolled_back.append("first")
+
+    with pytest.raises(KeyboardInterrupt):
+        fan_out([rolling_back, int], sequential=False)
+
+    assert rolled_back == ["first"]
