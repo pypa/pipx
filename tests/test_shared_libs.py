@@ -9,10 +9,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Event
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 from unittest.mock import patch
 
 import pytest
+from filelock import AcquireReturnProxy, FileLock
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths, shared_libs
@@ -376,3 +377,38 @@ def test_disable_shared_libs_auto_upgrade(
     venv.check_upgrade_shared_libs(verbose=True, pip_args=[])
 
     assert len(upgrade_calls) == expected_calls
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_reinstall_all_rebuilds_broken_shared_pip_once(caplog: pytest.LogCaptureFixture) -> None:
+    for suffix in ("_a", "_b"):
+        assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay", f"--suffix={suffix}"])
+    _truncate_pip_main()
+    caplog.clear()
+
+    exit_code: Final[int] = run_pipx_cli(["reinstall-all"])
+
+    assert (exit_code, caplog.text.count("does not import")) == (0, 1)
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_runpip_skips_rebuild_when_another_process_repaired_shared_pip(
+    mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    pip_main: Final[Path] = shared_libs.shared_libs.site_packages[0] / "pip" / "_internal" / "cli" / "main.py"
+    source: Final[str] = pip_main.read_text()
+    pip_main.write_text("")
+    acquire: Final = FileLock.acquire
+
+    def repaired_while_waiting(lock: FileLock) -> AcquireReturnProxy:
+        if lock.lock_file.endswith(f"{shared_libs.shared_libs.root.name}.lock"):
+            pip_main.write_text(source)
+        return acquire(lock)
+
+    mocker.patch.object(FileLock, "acquire", autospec=True, side_effect=repaired_while_waiting)
+    caplog.clear()
+
+    exit_code: Final[int] = run_pipx_cli(["runpip", "pycowsay", "list"])
+
+    assert (exit_code, "does not import" in caplog.text) == (0, False)

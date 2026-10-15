@@ -26,10 +26,11 @@ if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
+    from packaging.utils import NormalizedName
 
     from pipx.venv_inspect import VenvMetadata
 
-from packaging.utils import canonicalize_name
+from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
 from pipx.animate import STDERR_IS_TTY, animate
@@ -61,14 +62,17 @@ from pipx.shared_libs import (
     shared_libs_auto_upgrade_disabled,
 )
 from pipx.util import (
+    InstalledNameMismatchError,
     PipxError,
     exec_app,
     full_package_description,
     get_site_packages,
     get_venv_paths,
     pipx_wrap,
+    redact_url_credentials,
     rmdir,
     subprocess_post_check,
+    subprocess_post_check_handle_pip_error,
 )
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -414,19 +418,25 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                         venv_python=self.python_path,
                         requirements=[install_spec],
                         pip_args=install_pip_args,
+                        log_pip_errors=False,
                         verbose=self.verbose,
                         progress=self.show_progress,
                     )
                 if process.returncode:
-                    # pip refuses the interpreter and installs nothing, so its complaint is the only place the
-                    # constraint appears; uv installs regardless, which the caller catches from the metadata instead
+                    # the backend refuses the interpreter and installs nothing, so its complaint is the only place the
+                    # constraint appears; uv ignores upper bounds, which the caller catches from the metadata instead
                     if constraint := rejected_constraint(process.stderr or ""):
                         raise IncompatiblePythonError(constraint)
+                    subprocess_post_check_handle_pip_error(
+                        process, tool_name=self.backend_name, streamed=self.verbose or self.show_progress
+                    )
                     msg = f"Error installing {full_package_description(package_name, package_or_url)}."
-                    raise PipxError(msg)
+                    raise PipxError(msg, backend_output=_as_displayed(process.stderr or process.stdout or ""))
             else:
                 self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
+        if not self.has_package(package_name) and (installed := self._name_installed_from(package_or_url)) is not None:
+            raise InstalledNameMismatchError(installed)
         venv_metadata: Final[VenvMetadata] = self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
@@ -455,6 +465,19 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 wrap_message=False,
             )
         return venv_metadata
+
+    def _name_installed_from(self, package_or_url: str) -> str | None:
+        import json  # ruff:ignore[import-outside-top-level]  # slows startup
+        from urllib.parse import urlsplit  # ruff:ignore[import-outside-top-level]  # slows startup
+        from urllib.request import url2pathname  # ruff:ignore[import-outside-top-level]  # slows startup
+
+        # installers record the local path a distribution came from (PEP 610), naming what the spec built
+        locations: Final[dict[str, str]] = {
+            url2pathname(urlsplit(json.loads(direct_url).get("url", "")).path): distribution.name
+            for distribution in self._distributions()
+            if (direct_url := distribution.read_text("direct_url.json")) is not None
+        }
+        return locations.get(package_or_url) or locations.get(package_or_url.rpartition("[")[0])
 
     def _install_locked_package(
         self,
@@ -498,7 +521,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         elif not package_spec_satisfied(package_or_url, package_name, distribution.version, package_or_url):
             msg = (
                 f"Lock file {lock_file} provides {package_name} {distribution.version}, "
-                f"which does not satisfy {package_or_url}."
+                f"which does not satisfy {redact_url_credentials(package_or_url)}."
             )
             raise PipxError(msg)
 
@@ -540,7 +563,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         pip_args: list[str],
         cooldown_days: int | None = None,
     ) -> str:
-        with animate(f"determining package name from {package_or_url!r}", do_animation=self.do_animation):
+        with animate(
+            f"determining package name from {redact_url_credentials(package_or_url)!r}", do_animation=self.do_animation
+        ):
             old_package_set = self.list_installed_packages()
             process = self.backend.install(
                 venv_root=self.root,
@@ -556,13 +581,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             error_output = (process.stderr or process.stdout or "").strip()
             if constraint := rejected_constraint(error_output):
                 raise IncompatiblePythonError(constraint)
-            if error_output:
+            if error_output and not (self.verbose or self.show_progress):
                 raise PipxError(error_output, wrap_message=False)
             msg = f"""
-                Error determining package name from spec {package_or_url!r}.
+                Error determining package name from spec {redact_url_credentials(package_or_url)!r}.
                 See installer output for details.
                 """
-            raise PipxError(msg)
+            raise PipxError(msg, backend_output=_as_displayed(error_output))
 
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
@@ -572,7 +597,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             _LOGGER.info("old_package_set = %s", old_package_set)
             _LOGGER.info("install_packages = %s", installed_packages)
             msg = f"""
-                Cannot determine package name from spec {package_or_url!r}.
+                Cannot determine package name from spec {redact_url_credentials(package_or_url)!r}.
                 Check package spec for errors.
                 """
             raise PipxError(msg)
@@ -689,10 +714,11 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if (shared_pth := site_packages[0] / PIPX_SHARED_PTH).is_file():
             site_packages.extend(Path(line) for line in shared_pth.read_text().splitlines())
         return {
-            canonicalize_name(path.name.partition("-")[0])
+            name
             for directory in site_packages
             for pattern in ("*.dist-info", "*.egg-info")
             for path in directory.glob(pattern)
+            if (name := _distribution_name(path))
         }
 
     @property
@@ -701,7 +727,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             self._site_packages = get_site_packages(self.python_path)
         return self._site_packages
 
-    def _distributions(self, name: str) -> Iterator[Distribution]:
+    def _distributions(self, name: str | None = None) -> Iterator[Distribution]:
         from importlib.metadata import Distribution  # ruff:ignore[import-outside-top-level]  # slows startup
 
         return iter(Distribution.discover(name=name, path=[str(path) for path in self.site_packages]))
@@ -840,9 +866,21 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             verbose=self.verbose,
         )
         if process.returncode:
-            cmd_str = " ".join(str(c) for c in process.args)
-            _LOGGER.error("%r failed", cmd_str)
+            _LOGGER.error("%r failed", redact_url_credentials(" ".join(str(c) for c in process.args)))
         return ExitCode(process.returncode)
+
+
+def _as_displayed(output: str) -> str:
+    # a progress bar redraws its line after each carriage return, so a terminal keeps only the text after the last one
+    return "\n".join(line.rpartition("\r")[2].rstrip() for line in output.split("\n")).strip()
+
+
+def _distribution_name(metadata_dir: Path) -> NormalizedName | None:
+    # an interrupted pip leaves ``~name-1.0.dist-info`` behind, and uv rejects such a name as an ``--exclude`` value
+    try:
+        return canonicalize_name(metadata_dir.name.partition("-")[0], validate=True)
+    except InvalidName:
+        return None
 
 
 __all__ = [

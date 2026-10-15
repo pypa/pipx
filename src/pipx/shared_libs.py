@@ -29,7 +29,8 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
+    from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
 
@@ -92,6 +93,7 @@ class _SharedLibs:
     def __init__(self) -> None:
         self._site_packages: dict[Path, list[Path]] = {}
         self._is_valid: bool | None = None
+        self._rebuilds = 0
         # fan-out tasks check the validity from several threads while one of them may rebuild the shared venv
         self._lock: Final[RLock] = RLock()
         self.has_been_updated_this_run = False
@@ -131,8 +133,34 @@ class _SharedLibs:
         with in_turn(lambda: self._is_valid is True), self._lock, self._maintenance_lock():
             self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
 
-    def rebuild_if_pip_broken(self, *, pip_args: list[str], verbose: bool) -> bool:
-        if (
+    def run_repairing_pip(
+        self, run: Callable[[], CompletedProcess[str]], *, pip_args: list[str], verbose: bool
+    ) -> CompletedProcess[str]:
+        # A failed pip run only implicates the shared pip when pip itself no longer imports, so ordinary install
+        # failures (an unresolvable requirement, a build error) come back untouched.
+        rebuilds: Final[int] = self._rebuilds
+        if (process := run()).returncode and self._rebuild_if_pip_broken(rebuilds, pip_args=pip_args, verbose=verbose):
+            return run()
+        return process
+
+    def _rebuild_if_pip_broken(self, rebuilds: int, *, pip_args: list[str], verbose: bool) -> bool:
+        # under the lock a rebuild holds: pip imports again midway through one, which would pass for an ordinary failure
+        with self._lock:
+            if self._rebuilds == rebuilds and self._pip_imports():
+                return False
+        # fan-out tasks fail together on a broken pip; the first in task order rebuilds it and the others retry on
+        # that, as when running one after another, instead of each clearing the venv the others are retrying from
+        with in_turn(lambda: self._rebuilds != rebuilds), self._lock, self._maintenance_lock():
+            # rechecked as another pipx process may have rebuilt it while this one waited for the lock
+            if self._rebuilds == rebuilds and not self._pip_imports():
+                logger.warning("pip in the shared libraries at %s does not import, rebuilding them", self.root)
+                self._is_valid = False
+                self._create(pip_args, verbose=verbose)
+                self._rebuilds += 1
+        return True
+
+    def _pip_imports(self) -> bool:
+        return (
             self.python_path.is_file()
             and not run_subprocess(
                 [self.python_path, "-c", "from pip._internal.cli.main import main"],
@@ -140,13 +168,7 @@ class _SharedLibs:
                 log_stdout=False,
                 log_stderr=False,
             ).returncode
-        ):
-            return False
-        logger.warning("pip in the shared libraries at %s does not import, rebuilding them", self.root)
-        with self._lock, self._maintenance_lock():
-            self._is_valid = False
-            self._create(pip_args, verbose=verbose)
-        return True
+        )
 
     def _maintenance_lock(self) -> BaseFileLock:
         from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup

@@ -20,6 +20,7 @@ __lazy_modules__ = [
 ]
 
 import json
+import logging
 import re
 import sys
 from dataclasses import dataclass, replace
@@ -32,6 +33,7 @@ from pipx import paths
 from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
+    expose_shared_resources_in_order,
     get_expected_venv_resource_paths,
     locked_package_message,
     package_name_from_spec,
@@ -47,8 +49,8 @@ from pipx.constants import (
     ExitCode,
     FetchPythonOptions,
 )
-from pipx.emojis import sleep
-from pipx.fanout import fan_out
+from pipx.emojis import hazard, sleep
+from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
@@ -65,7 +67,7 @@ from pipx.result import (
     render_result,
 )
 from pipx.script import script_name_from_spec
-from pipx.util import PipxError, pipx_wrap, rmdir
+from pipx.util import PipxError, pipx_wrap, redact_url_credentials, rmdir
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -77,7 +79,17 @@ if TYPE_CHECKING:
 
     from pipx.venv_inspect import VenvMetadata
 
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
+# value-taking options a recorded snapshot may carry, as their (uv, pip) spellings
+_VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
+    **dict.fromkeys(("--default-index", "--index-url", "-i"), ("--default-index", "--index-url")),
+    **dict.fromkeys(("--index", "--extra-index-url"), ("--index", "--extra-index-url")),
+    **dict.fromkeys(("--find-links", "-f"), ("--find-links", "--find-links")),
+    **dict.fromkeys(("--constraints", "--constraint", "-c"), ("--constraints", "--constraint")),
+    **dict.fromkeys(("--allow-insecure-host", "--trusted-host"), ("--allow-insecure-host", "--trusted-host")),
+    **{option: (option, option) for option in ("--keyring-provider", "--index-strategy", "--prerelease")},
+}
 
 
 def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-locals, too-many-statements]  # flat install API mirroring the CLI's install options
@@ -442,13 +454,12 @@ def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates t
 
 
 def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
-    message: Final[str] = str(error)
     return OperationResult(
         command=("install",),
         data=InstallData(packages=(), skipped=()),
-        messages=(OutputMessage(message, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        messages=(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
-        errors=(OperationError(code="package_install_failed", message=message, environment=environment),),
+        errors=(OperationError(code="package_install_failed", message=_error_report(error), environment=environment),),
     )
 
 
@@ -458,8 +469,13 @@ def _record_install_failure(
     environment: str,
     error: PipxError,
 ) -> None:
-    failures.append(_FailedInstall(environment, str(error)))
+    failures.append(_FailedInstall(environment, _error_report(error)))
     messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+def _error_report(error: PipxError) -> str:
+    # the envelope is all a JSON consumer reads, so it keeps the installer's reason the terminal showed beside it
+    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
 
 
 def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
@@ -470,7 +486,7 @@ def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) 
             tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
             quiet=0,
         )
-        raise PipxError(result.errors[0].message)
+        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
     render_result(result, output=OutputFormat.HUMAN, quiet=0)
     return result
 
@@ -606,7 +622,9 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
         return "already-satisfied", (
-            OutputMessage(f"{package_name} {installed_version} already satisfies {package_spec}"),
+            OutputMessage(
+                f"{package_name} {installed_version} already satisfies {redact_url_credentials(package_spec)}"
+            ),
         )
     if package_metadata.pinned:
         validate_expected_apps(venv, package_name, expected_apps)
@@ -697,28 +715,29 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
             raise
         malformed = error
     venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venvs)
-    outcomes: Final[list[tuple[str, bool]]] = fan_out(
-        [
-            partial(
-                _install_spec_venv,
-                venv_container,
-                venv_metadata,
-                local_bin_dir=local_bin_dir,
-                local_man_dir=local_man_dir,
-                python=python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                verbose=verbose,
-                force=force,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-                python_flag_passed=python_flag_passed,
-            )
-            for venv_metadata in venvs_metadata
-        ],
-        sequential=verbose,
-    )
+    with expose_shared_resources_in_order(venvs_metadata, local_bin_dir, local_man_dir):
+        outcomes: Final[list[tuple[str, bool]]] = fan_out(
+            [
+                partial(
+                    _install_spec_venv,
+                    venv_container,
+                    venv_metadata,
+                    local_bin_dir=local_bin_dir,
+                    local_man_dir=local_man_dir,
+                    python=python,
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    verbose=verbose,
+                    force=force,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                    python_flag_passed=python_flag_passed,
+                )
+                for venv_metadata in venvs_metadata
+            ],
+            sequential=verbose,
+        )
     if malformed is not None:
         raise malformed
     if not any(succeeded for _, succeeded in outcomes):
@@ -752,8 +771,14 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     interpreter: Final[str | None] = (
         python if python_flag_passed else get_python_interpreter(venv_metadata.source_interpreter) or python
     )
+    packages: Final[list[PackageInfo]] = [main_package, *venv_metadata.injected_packages.values()]
     try:
-        with venv_container.venv_lock(venv_dir) as venv_lock:
+        package_pip_args: Final[list[list[str]]] = (
+            [pip_args or package.pip_args for package in packages]
+            if pip_args or backend in {None, venv_metadata.backend}
+            else _translate_recorded_pip_args(venv_metadata, packages, backend)
+        )
+        with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             package_cooldown = _resolve_cooldown(
                 main_package.lock_file,
                 cooldown_days,
@@ -767,7 +792,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 local_bin_dir,
                 local_man_dir,
                 interpreter,
-                pip_args or main_package.pip_args,
+                package_pip_args[0],
                 venv_args or venv_metadata.venv_args,
                 verbose=verbose,
                 force=force,
@@ -788,12 +813,12 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 cooldown_days=package_cooldown,
                 pinned=main_package.pinned,
             )
-            for inject_package in venv_metadata.injected_packages.values():
+            for inject_package, inject_pip_args in zip(packages[1:], package_pip_args[1:], strict=True):
                 inject(
                     venv_dir=venv_dir,
                     package_specs=[generate_package_spec(inject_package)],
                     requirement_files=[],
-                    pip_args=pip_args or inject_package.pip_args,
+                    pip_args=inject_pip_args,
                     verbose=verbose,
                     include_apps=inject_package.include_apps,
                     include_dependencies=inject_package.include_dependencies,
@@ -807,6 +832,81 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
         print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return venv_dir.name, False
     return venv_dir.name, True
+
+
+def _translate_recorded_pip_args(
+    venv_metadata: PipxMetadata, packages: list[PackageInfo], backend: str
+) -> list[list[str]]:
+    # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
+    environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}"
+    translations: Final[list[tuple[list[str], list[str]]]] = [
+        _translate_pip_args(package.pip_args, backend, environment) for package in packages
+    ]
+    if dropped := list(dict.fromkeys(" ".join(other) for _, other in translations if other)):
+        kept: Final[list[str]] = list(
+            dict.fromkeys(" ".join(translated) for translated, _ in translations if translated)
+        )
+        _LOGGER.warning(
+            "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
+            hazard,
+            venv_metadata.backend,
+            environment,
+            redact_url_credentials(" ".join(dropped)),
+            f"; translated for {backend}: {redact_url_credentials(' '.join(kept))}" if kept else "",
+        )
+    return [translated for translated, _ in translations]
+
+
+def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> tuple[list[str], list[str]]:
+    # keeping the recorded index stops a snapshot moved to the other backend from installing from PyPI instead
+    to_pip: Final[bool] = backend == PIP
+    translated: Final[list[str]] = []
+    dropped: Final[list[str]] = []
+    arguments: Final[Iterator[str]] = iter(pip_args)
+    for argument in arguments:
+        flag, value = _split_option(argument, arguments)
+        spelling = _VALUE_OPTION_SPELLINGS.get(flag, (flag, flag))
+        match spelling[0]:
+            case "--no-index":
+                translated.append(flag)
+            case "--pre" | "--prerelease" if flag == "--pre" or value == "allow":
+                translated.extend(["--pre"] if to_pip else ["--prerelease", "allow"])
+            case "--prerelease":
+                dropped.extend([flag, value])
+            case "--index":
+                # uv takes a named index as name=url, and the name means nothing to pip
+                name, _, url = value.partition("=")
+                translated.extend([spelling[to_pip], url if url and re.fullmatch(r"[A-Za-z0-9._-]+", name) else value])
+            case "--find-links":
+                # uv splits a --find-links value on commas, pip takes it as one location
+                translated.extend(
+                    part for link in (value.split(",") if to_pip else [value]) for part in (spelling[to_pip], link)
+                )
+            case "--default-index" | "--constraints":
+                translated.extend([spelling[to_pip], value])
+            case "--allow-insecure-host" if "://" not in value:
+                translated.extend([spelling[to_pip], value])
+            case "--keyring-provider" if value in {"disabled", "subprocess"}:
+                translated.extend([flag, value])
+            case "--index-strategy" if value == "unsafe-best-match":
+                pass  # pip always picks the best match across its indexes
+            case "--allow-insecure-host" | "--keyring-provider" | "--index-strategy":
+                msg = (
+                    f"Cannot install {environment} with the {backend} backend: its recorded index option {flag} "
+                    f"{redact_url_credentials(value)} has no {backend} equivalent, and dropping it could install from "
+                    "a different index."
+                )
+                raise PipxError(msg)
+            case _:
+                dropped.append(argument)
+    return translated, dropped
+
+
+def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
+    flag, _, value = argument.partition("=") if argument.startswith("--") else (argument[:2], "", argument[2:])
+    if flag not in _VALUE_OPTION_SPELLINGS:
+        return argument, ""
+    return flag, value or next(arguments, "")
 
 
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
@@ -965,7 +1065,7 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     messages: list[OutputMessage],
 ) -> Venv:
     try:
-        # pip refuses an interpreter the package rules out, while uv installs onto it, so ask the metadata as well
+        # uv installs onto an interpreter above the package's upper bound, so ask the metadata as well
         constraint = build.run(venv).unsupported_python
     except IncompatiblePythonError as error:
         constraint = error.constraint
@@ -1000,7 +1100,7 @@ def _supported_python(
         )
         raise PipxError(msg)
     interpreter: Final[str] = interpreter_for(constraint, fetch_python)
-    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}."))
+    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}.", notice=True))
     return interpreter
 
 

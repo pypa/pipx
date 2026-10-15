@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Final, cast
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -169,10 +169,10 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
-        msg = f"Invalid inline metadata in script {package_or_url}: {error}."
+        msg = f"Invalid inline metadata in script {redact_url_credentials(package_or_url)}: {error}."
         raise PipxError(msg) from error
     if metadata is None:
-        msg = f"Script {package_or_url} has no PEP 723 inline metadata block."
+        msg = f"Script {redact_url_credentials(package_or_url)} has no PEP 723 inline metadata block."
         raise PipxError(msg)
     return _Script(_script_app(package_or_url, expected_apps), content, metadata)
 
@@ -190,11 +190,14 @@ def _read_url(url: str) -> str:
         with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             if len(data) > _MAX_SCRIPT_BYTES:
-                msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+                msg = (
+                    f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; "
+                    "refusing to download it."
+                )
                 raise PipxError(msg)
             return data.decode(response.headers.get_content_charset() or "utf-8")
     except OSError as error:
-        msg = f"Unable to read script {url}: {error}"
+        msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
         raise PipxError(msg) from error
 
 

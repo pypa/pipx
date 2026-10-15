@@ -4,7 +4,8 @@
 
 Most pipx commands accept ``--output json`` to print a single machine-readable result envelope on stdout instead of
 human-readable text. Selecting JSON suppresses pipx's own progress messages and sends whatever pip or uv print while
-installing to stderr, so the envelope is the only thing on stdout.
+installing to stderr, so the envelope is the only thing on stdout. When ``install`` moves to another Python because the
+package's ``requires-python`` rules out the default one, pipx says so on stderr as well.
 
 **********
  Envelope
@@ -31,7 +32,7 @@ The envelope is a JSON object with these keys (serialized with sorted keys):
       - Command-specific payload object. Its fields depend on the command.
     - - ``errors``
       - List of error objects. Each has ``code``, ``message``, and the optional identity fields ``environment`` and
-        ``package``.
+        ``package``. When pip or uv fails an ``install``, its ``message`` ends with the installer's error output.
 
 .. code-block:: json
 

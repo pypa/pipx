@@ -20,7 +20,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold
-from pipx.commands.common import add_suffix
+from pipx.commands.common import drop_copies_claimed_elsewhere, exposed_app_names
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
@@ -163,7 +163,9 @@ def uninject_dep(
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     need_app_uninstall: Final[bool] = package.include_apps
 
-    new_resource_paths = get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir)
+    new_resource_paths = drop_copies_claimed_elsewhere(
+        get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir), venv.bin_path
+    )
 
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
@@ -262,7 +264,7 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
         )
 
     pkg_metadata = venv.package_metadata[package_name]
-    all_apps = {add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps_to_expose}
+    all_apps = {name for app in pkg_metadata.apps_to_expose for name in exposed_app_names(app, pkg_metadata.suffix)}
     all_man_pages = set(pkg_metadata.man_pages_to_expose)
     all_completions = set(pkg_metadata.completions_to_expose)
 

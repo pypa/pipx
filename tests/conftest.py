@@ -6,12 +6,15 @@ import io
 import ipaddress
 import logging
 import os
+import pkgutil
 import shutil
+import signal
 import socket
 import subprocess
 import sys
 import tarfile
 import time
+import types
 import zipfile
 from contextlib import closing
 from http import HTTPStatus
@@ -21,10 +24,12 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 from venv import EnvBuilder
 
+import platformdirs
 import pytest
 from filelock import FileLock
 from flit_core.wheel import make_wheel_in
 
+import pipx
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 from pipx.backends import get_backend
@@ -58,13 +63,24 @@ def root() -> Path:
 
 
 @pytest.fixture
+def signal_handlers() -> Iterator[None]:
+    """Take signals with Python's default handlers, restored afterwards: an interrupted pipx ignores further signals."""
+    numbers: Final = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
+    previous: Final = {number: signal.getsignal(number) for number in numbers}
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    yield
+    for number, handler in previous.items():
+        signal.signal(number, handler)
+
+
+@pytest.fixture
 def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[], None]], None]:
     """Run an action before every subprocess pipx starts for one venv, such as a delay or an interrupt."""
 
     def patch(venv_dir: Path, action: Callable[[], None]) -> None:
         # the command list is matched through its repr, which escapes the backslashes of a Windows path
         marker: Final[str] = repr(str(venv_dir))[1:-1]
-        mocker.patch.object(subprocess, "run", side_effect=_preceded(subprocess.run, marker, action))
+        mocker.patch.object(subprocess, "Popen", side_effect=_preceded(subprocess.Popen, marker, action))
 
     return patch
 
@@ -135,6 +151,50 @@ def make_wheel(tmp_path: Path) -> Callable[[dict[str, str]], Path]:
         return wheel
 
     return create
+
+
+@pytest.fixture
+def dotted_app_wheel(make_wheel: Callable[[dict[str, str]], Path]) -> Path:
+    # tool.12 carries no shebang, so only its content ties a copy of it to the venv
+    return make_wheel({
+        "foo_bar_x.py": "def main() -> None:\n    pass\n",
+        "foo_bar_x-1.data/scripts/tool.12": "print('tool')\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\ntool3.12 = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+
+
+@pytest.fixture
+def project_ignoring_project_table(tmp_path: Path) -> Path:
+    # stands in for poetry-core<2 or setuptools<61: the backend names the wheel itself and never reads [project]
+    project: Final[Path] = tmp_path / "ignores-project-table"
+    project.mkdir()
+    (project / "pyproject.toml").write_text(
+        '[build-system]\nrequires = []\nbuild-backend = "backend"\nbackend-path = ["."]\n'
+        '[project]\nname = "declared-name"\nversion = "1.0"\n',
+        encoding="utf-8",
+    )
+    (project / "backend.py").write_text(
+        """import zipfile
+from pathlib import Path
+
+
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    name = "real_pkg-1.0-py3-none-any.whl"
+    with zipfile.ZipFile(Path(wheel_directory) / name, "w") as archive:
+        archive.writestr("real_pkg.py", "def main():\\n    print('real')\\n")
+        info = "real_pkg-1.0.dist-info"
+        archive.writestr(f"{info}/METADATA", "Metadata-Version: 2.1\\nName: real-pkg\\nVersion: 1.0\\n")
+        archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\\nRoot-Is-Purelib: true\\nTag: py3-none-any\\n")
+        archive.writestr(f"{info}/entry_points.txt", "[console_scripts]\\nrealapp = real_pkg:main\\n")
+        archive.writestr(f"{info}/RECORD", "")
+    return name
+""",
+        encoding="utf-8",
+    )
+    return project
 
 
 @pytest.fixture
@@ -287,6 +347,23 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _resolve_lazy_imports() -> None:
+    """Load every import pipx's modules declare lazy (PEP 810), as a long-running pipx process would have.
+
+    ``mock.patch`` reads the original from the module ``__dict__``, where an unresolved lazy import is still a proxy:
+    ``autospec`` then builds a non-callable mock, and whether a test hits that depends on which tests ran before it.
+    """
+    if (lazy_type := getattr(types, "LazyImportType", None)) is None:
+        return
+    for module_info in pkgutil.walk_packages(pipx.__path__, "pipx."):
+        importlib.import_module(module_info.name)
+    for module in [module for name, module in sys.modules.items() if name == "pipx" or name.startswith("pipx.")]:
+        for name, value in list(vars(module).items()):
+            if type(value) is lazy_type:
+                getattr(module, name)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
     """Keep every pipx location inside the test's ``tmp_path``.
@@ -307,6 +384,8 @@ def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
             ("OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", "global_otherdir/pipxcompletiondir"),
         ):
             scoped.setattr(paths, name, tmp_path / location)
+        # where pipx logs when the pipx home refuses a log file; resolved per call, so it needs its own redirect
+        scoped.setattr(platformdirs, "user_log_path", lambda *_args, **_kwargs: tmp_path / "fallback_logs")
         paths.ctx.make_local()
         yield
 

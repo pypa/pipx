@@ -71,24 +71,38 @@ def test_importing_main_defers_heavy_module(root: Path, module: str) -> None:
 @pytest.mark.parametrize(
     ("module", "loaded"),
     [
-        pytest.param("tempfile", False, id="third-party-import-deferred"),
+        pytest.param("argcomplete.shell_integration", False, id="third-party-import-deferred"),
         pytest.param("pipx.colors", True, id="terminal-snapshot-eager"),
     ],
 )
 def test_cli_startup_loads_module(root: Path, module: str, loaded: bool) -> None:
+    assert (module in _startup_imports(root, [], {})) is loaded
+
+
+@_LAZY_MODULES_HONORED
+@pytest.mark.parametrize(
+    ("options", "environment"),
+    [
+        pytest.param(["-X", "lazy_imports=normal"], {}, id="x-option"),
+        pytest.param([], {"PYTHON_LAZY_IMPORTS": "normal"}, id="environment-variable"),
+    ],
+)
+def test_cli_startup_keeps_lazy_imports_mode_set_by_user(
+    root: Path, options: list[str], environment: dict[str, str]
+) -> None:
+    assert "argcomplete.shell_integration" in _startup_imports(root, options, environment)
+
+
+def _startup_imports(root: Path, options: list[str], environment: dict[str, str]) -> set[str]:
     result = subprocess.run(
-        [sys.executable, "-X", "importtime", "-m", "pipx", "--version"],
+        [sys.executable, *options, "-X", "importtime", "-m", "pipx", "--version"],
         check=True,
         capture_output=True,
         cwd=root,
-        env={**os.environ, "PYTHONPATH": str(root / "src")},
+        env={**os.environ, "PYTHONPATH": str(root / "src"), **environment},
         text=True,
     )
-
-    imported = {
-        line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")
-    }
-    assert (module in imported) is loaded
+    return {line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")}
 
 
 def test_commands_package_resolves_reexport_from_submodule() -> None:

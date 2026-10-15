@@ -9,8 +9,9 @@ import subprocess
 import sys
 import textwrap
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
+from socketserver import ThreadingTCPServer
 from threading import Thread
 from typing import TYPE_CHECKING, Final
 from unittest import mock
@@ -442,11 +443,12 @@ def served_script(tmp_path: Path) -> Iterator[str]:
     socket surfaced as an unraisable ResourceWarning in whichever test the GC happened to interrupt.
     """
     (tmp_path / "pipx-demo.py").write_text("print('pipx works!')\n", encoding="utf-8")
-    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(tmp_path)))
+    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
+    server = ThreadingTCPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(tmp_path)))
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield f"http://127.0.0.1:{server.server_port}/pipx-demo.py"
+        yield f"http://127.0.0.1:{server.server_address[1]}/pipx-demo.py"
     finally:
         server.shutdown()
         server.server_close()

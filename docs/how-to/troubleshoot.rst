@@ -185,7 +185,17 @@ the backend output beside its log, as ``cmd_<timestamp>_pip_errors.log`` or ``cm
 
 pipx keeps the logs of the last 10 commands, counting the one that is running, and separately the last 10 error logs.
 Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest command's log stays, because a failing
-command points you at its error log.
+command points you at its error log. pipx never deletes the logs of a command that is still running in another pipx
+process, so concurrent commands can briefly leave more logs than the limit.
+
+****************************
+ Lazy imports on Python 3.15
+****************************
+
+On Python 3.15 pipx makes every import in its process lazy (:pep:`810`) to start faster. A missing or broken dependency
+then fails where pipx first uses it, with ``lazy import of 'X' raised an exception during resolution``, instead of at
+startup. To load modules eagerly, set ``PYTHON_LAZY_IMPORTS=normal`` or run ``python -X lazy_imports=normal -m pipx``;
+pipx keeps a mode you set either way.
 
 .. _sudo-pipx-not-found:
 
@@ -203,6 +213,17 @@ found". Use the full path:
 
 To avoid this, install pipx through your distribution's package manager (``apt install pipx``, ``dnf install pipx``) or
 system-wide with ``sudo pip install pipx`` (without ``--user``).
+
+*************************************
+ A suffixed app runs under a new name
+*************************************
+
+pipx 1.17.14 and earlier put ``--suffix`` before the last dot of an app name, so ``pipx install pip --suffix=_old``
+exposed ``pip3_old.12``. Later releases put it at the end, ``pip3.12_old``; on Windows it still goes before a file
+extension such as ``.exe`` or ``.py``, so the file keeps opening. After you upgrade pipx, an app keeps its old name and
+``pipx list`` shows it under that name. The next ``pipx upgrade``, ``reinstall``, ``inject``, or ``expose`` of the
+environment renames it and logs ``Renamed pip3_old.12 to pip3.12_old``. Update scripts and aliases that call the old
+name.
 
 ******************************************
  ``Cannot create ...: permission denied``

@@ -143,7 +143,8 @@ def test_ensure_pipx_paths_global_dry_run_does_not_write(
     ensure_path_module.ensure_pipx_paths(force=False, dry_run=True, is_global=True)
 
     assert not config_file.exists()
-    assert "no changes were made to the system PATH" in capsys.readouterr().out
+    # pipx wraps the message, so a long temp path moves the line break into the phrase
+    assert "no changes were made to the system PATH" in " ".join(capsys.readouterr().out.split())
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
@@ -171,7 +172,8 @@ def test_ensure_pipx_paths_global_reports_existing_configuration(
 
     ensure_path_module.ensure_pipx_paths(force=False, is_global=True)
 
-    assert "already in the system PATH" in capsys.readouterr().out
+    # pipx wraps the message, so a long temp path moves the line break into the phrase
+    assert "already in the system PATH" in " ".join(capsys.readouterr().out.split())
 
 
 @_SKIP_GLOBAL_ON_WINDOWS

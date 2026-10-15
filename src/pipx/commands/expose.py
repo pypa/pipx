@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.commands.common import expose_package_resources
+from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources
 from pipx.commands.uninstall import _get_venv_resource_paths
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -70,7 +70,9 @@ def _set_exposure(
         )
         return _success(command, venv.name, _ExposureStatus.EXPOSED, f"{venv.name}: {prefix}exposed")
 
-    for resource_path in _exposed_resources(venv, local_bin_dir, local_man_dir):
+    for resource_path in drop_copies_claimed_elsewhere(
+        _exposed_resources(venv, local_bin_dir, local_man_dir), venv.bin_path
+    ):
         safe_unlink(resource_path)
     venv.pipx_metadata.exposure_enabled = False
     venv.pipx_metadata.write()

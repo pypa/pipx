@@ -3,7 +3,9 @@ from __future__ import annotations
 import datetime as dt
 import importlib
 import json
+import os
 import re
+import signal
 import sys
 import time
 from dataclasses import replace
@@ -14,7 +16,7 @@ import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, set_shared_pip_age
 from package_info import PKG
-from pipx import paths, shared_libs
+from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
@@ -116,7 +118,7 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
     assert run_pipx_cli(["reinstall-all", "--python", sys.executable])
     captured = capsys.readouterr()
 
-    assert "Reinstall failed; restored pycowsay." in captured.err
+    assert "Interrupted; restored pycowsay." in captured.err
     assert venv_dir.exists()
     assert (venv_dir / "pipx_metadata.json").read_text() == metadata_before
     assert not (venv_dir / "partial-install").exists()
@@ -190,6 +192,23 @@ def test_reinstall_all_restores_interrupted_venv_among_several(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_reports_interrupted_venv_without_traceback(
+    capsys: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+    venv_names: list[str],
+) -> None:
+    def interrupt() -> NoReturn:
+        raise KeyboardInterrupt
+
+    before_venv_subprocess(paths.ctx.venvs / venv_names[0], interrupt)
+
+    run_pipx_cli(["reinstall-all"])
+
+    err: Final[str] = capsys.readouterr().err
+    assert (f"Interrupted; restored {venv_names[0]}." in err, "Traceback" in err) == (True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     rename: Final = Path.rename
@@ -204,3 +223,46 @@ def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> 
     mocker.patch.object(Path, "rename", autospec=True, side_effect=rename_once_released)
 
     assert not run_pipx_cli(["reinstall-all"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_gives_shared_man_page_to_the_last_venv(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
+    first, last = (venv_dir for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir())
+    before_venv_subprocess(first, lambda: time.sleep(0.5))
+
+    assert not run_pipx_cli(["reinstall-all"])
+
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(last)
+
+
+@pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
+) -> None:
+    venv_dirs: Final[list[Path]] = [paths.ctx.venvs / name for name in venv_names]
+    for venv_dir in venv_dirs:
+        (venv_dir / "marker").touch()
+
+    def interrupt() -> None:
+        # signals this process only, as kill -INT <pid> does, so the running pip and venv children carry on
+        os.kill(os.getpid(), signal.SIGINT)
+
+    def hold() -> None:
+        # until pipx has acted on the signal and restored the first venv, or another one could finish first and rightly
+        # keep its new venv
+        deadline: Final[float] = time.monotonic() + 5
+        while not (venv_dirs[0] / "marker").exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+
+    before_venv_subprocess(venv_dirs[0], interrupt)
+    for venv_dir in venv_dirs[1:]:
+        before_venv_subprocess(venv_dir, hold)
+
+    exit_code: Final[int] = run_pipx_cli(["reinstall-all"])
+
+    assert (exit_code, [(venv_dir / "marker").exists() for venv_dir in venv_dirs]) == (1, [True] * len(venv_dirs))

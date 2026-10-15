@@ -456,7 +456,7 @@ def test_parse_specifier_for_install_find_links_args(
         pytest.param(b'[project]\nname = "Foo_Bar.X"\n', "Foo_Bar.X", id="static"),
         pytest.param(b'[project]\nname = "demo"\ndynamic = ["version"]\n', "demo", id="other-field-dynamic"),
         pytest.param(None, None, id="no-pyproject"),
-        pytest.param(b"[build-system]\nrequires = []\n", None, id="no-project-table"),
+        pytest.param(b"", None, id="no-project-table"),
         pytest.param(b'[project]\nversion = "1"\n', None, id="no-name"),
         pytest.param(b"[project]\nname = 1\n", None, id="name-not-string"),
         pytest.param(b'[project]\nname = "-bad-"\n', None, id="name-invalid"),
@@ -468,9 +468,65 @@ def test_parse_specifier_for_install_find_links_args(
 )
 def test_static_project_name(tmp_path: Path, pyproject: bytes | None, expected: str | None) -> None:
     if pyproject is not None:
-        (tmp_path / "pyproject.toml").write_bytes(pyproject)
+        (tmp_path / "pyproject.toml").write_bytes(
+            b'[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n' + pyproject
+        )
 
     assert static_project_name(f"{tmp_path}[extra]") == expected
+
+
+@pytest.mark.parametrize(
+    ("build_system", "expected"),
+    [
+        pytest.param('requires = ["hatchling"]\nbuild-backend = "hatchling.build"', "demo", id="hatchling"),
+        pytest.param('requires = ["flit_core>=3.2,<4"]\nbuild-backend = "flit_core.buildapi"', "demo", id="flit-core"),
+        pytest.param('requires = ["pdm-backend"]\nbuild-backend = "pdm.backend"', "demo", id="pdm-backend"),
+        pytest.param('requires = ["uv_build>=0.8"]\nbuild-backend = "uv_build"', "demo", id="uv-build"),
+        pytest.param('requires = ["setuptools"]\nbuild-backend = "setuptools.build_meta"', "demo", id="setuptools"),
+        pytest.param(
+            'requires = ["setuptools>=40,<70"]\nbuild-backend = "setuptools.build_meta"',
+            "demo",
+            id="setuptools-61-allowed",
+        ),
+        pytest.param(
+            'requires = ["poetry-core==2.1.*"]\nbuild-backend = "poetry.core.masonry.api"', "demo", id="poetry-core-2"
+        ),
+        pytest.param(
+            'requires = ["poetry-core>=2.1"]\nbuild-backend = "poetry.core.masonry.api"',
+            "demo",
+            id="poetry-core-above-2",
+        ),
+        pytest.param(
+            'requires = ["poetry-core>=1,<2"]\nbuild-backend = "poetry.core.masonry.api"', None, id="poetry-core-1"
+        ),
+        pytest.param(
+            'requires = ["setuptools<61"]\nbuild-backend = "setuptools.build_meta"', None, id="setuptools-before-61"
+        ),
+        pytest.param(
+            'requires = ["flit_core==3.1.*"]\nbuild-backend = "flit_core.buildapi"', None, id="flit-core-before-3.2"
+        ),
+        pytest.param(
+            'requires = ["setuptools===custom"]\nbuild-backend = "setuptools.build_meta"', None, id="arbitrary-equality"
+        ),
+        pytest.param('requires = ["wheel"]\nbuild-backend = "setuptools.build_meta"', None, id="backend-not-required"),
+        pytest.param('build-backend = "setuptools.build_meta"', None, id="no-requires"),
+        pytest.param(
+            'requires = ["setuptools"]\nbuild-backend = "setuptools.build_meta:__legacy__"', None, id="legacy"
+        ),
+        pytest.param('requires = ["maturin"]\nbuild-backend = "maturin"', None, id="unknown-backend"),
+        pytest.param('requires = ["hatchling"]\nbuild-backend = ["hatchling.build"]', None, id="backend-not-string"),
+        pytest.param(
+            'requires = []\nbuild-backend = "hatchling.build"\nbackend-path = ["."]', None, id="in-tree-backend"
+        ),
+        pytest.param('requires = ["setuptools"]', None, id="no-backend"),
+    ],
+)
+def test_static_project_name_build_backend(tmp_path: Path, build_system: str, expected: str | None) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        f'[build-system]\n{build_system}\n[project]\nname = "demo"\n', encoding="utf-8"
+    )
+
+    assert static_project_name(str(tmp_path)) == expected
 
 
 def test_static_project_name_unreadable_pyproject(tmp_path: Path) -> None:

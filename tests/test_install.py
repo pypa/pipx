@@ -9,9 +9,10 @@ import sys
 import threading
 from contextlib import contextmanager
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from socketserver import ThreadingTCPServer
+from typing import TYPE_CHECKING, Final, cast
 from unittest import mock
 
 import pytest
@@ -215,7 +216,8 @@ def _served_archive_spec(project: Path) -> Generator[str, None, None]:
         shutil.make_archive(str(project.parent / "empty-project-0.1.0"), "zip", project.parent, project.name)
     )
     handler = partial(SimpleHTTPRequestHandler, directory=str(project.parent))
-    with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
+    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
+    with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
             yield f"http://127.0.0.1:{server.server_address[1]}/{archive.name}"
@@ -1223,10 +1225,10 @@ def test_pip_args_with_attached_constraint_records_absolute_path(
 @pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_pip_args_with_wrong_constraint_fail(
-    constraint_flag: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    constraint_flag: str, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     constraint_file_name = "constraints.txt"
-    os.chdir(tmp_path)
+    monkeypatch.chdir(tmp_path)
 
     assert run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", "pycowsay"])
 
@@ -1278,6 +1280,142 @@ def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], lo
     assert not (paths.ctx.man_dir / "man1" / "local-manpage.1").exists()
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_uv_failure_shows_uv_error(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--backend", "uv", str(project)])
+
+    assert re.search(
+        r"Some possibly relevant errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
+        capsys.readouterr().err,
+    )
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize(
+    ("terminal", "flags"),
+    [pytest.param(True, [], id="terminal"), pytest.param(False, ["--verbose"], id="verbose")],
+)
+def test_install_uv_failure_streamed_prints_uv_error_once(
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    terminal: bool,
+    flags: list[str],
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--backend", "uv", *flags, str(project)])
+
+    assert capsys.readouterr().err.count("No solution found when resolving dependencies") == 1
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_verbose_masks_index_credentials(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+    index_args: Final[str] = "--no-index --index-url=https://alice:s3cr3t@127.0.0.1:9/simple/"
+
+    assert run_pipx_cli(["install", "--verbose", "--backend", "uv", f"--pip-args={index_args}", str(project)])
+
+    output: Final[str] = capsys.readouterr().err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "alice:****@127.0.0.1" in output
+    assert "s3cr3t" not in output
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize(
+    "spec",
+    [
+        pytest.param("https://alice:s3cr3t@127.0.0.1:9/pkg-1.0-py3-none-any.whl", id="url"),
+        pytest.param("pkg @ https://alice:s3cr3t@127.0.0.1:9/pkg-1.0-py3-none-any.whl", id="named-url"),
+    ],
+)
+@pytest.mark.parametrize("flags", [pytest.param([], id="quiet"), pytest.param(["--verbose"], id="verbose")])
+def test_install_masks_spec_credentials(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, spec: str, flags: list[str]
+) -> None:
+    monkeypatch.setenv("UV_HTTP_RETRIES", "0")
+
+    assert run_pipx_cli(["install", "--backend", "uv", *flags, spec])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "s3cr3t" not in captured.out + captured.err + log
+
+
+_BACKENDS: Final[list[object]] = [
+    pytest.param("pip", id="pip"),
+    pytest.param("uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")),
+]
+
+
+@pytest.fixture
+def project_failing_to_build(tmp_path: Path) -> Path:
+    # setup.py only, so pipx learns the name by installing it, and the build fails before anything installs
+    project: Final[Path] = tmp_path / "fails-to-build"
+    project.mkdir()
+    (project / "setup.py").write_text("raise SystemExit('pipx-test-build-failure')\n", encoding="utf-8")
+    return project
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("backend", _BACKENDS)
+def test_install_name_probe_failure_streamed_prints_the_error_once(
+    project_failing_to_build: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture, backend: str
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
+
+    assert run_pipx_cli(["install", "--backend", backend, str(project_failing_to_build)])
+
+    assert capsys.readouterr().err.count("pipx-test-build-failure") == 1
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("backend", _BACKENDS)
+@pytest.mark.parametrize("terminal", [pytest.param(True, id="terminal"), pytest.param(False, id="pipe")])
+def test_install_json_failure_carries_the_installer_error(
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    backend: str,
+    terminal: bool,
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--output", "json", "--backend", backend, str(project)])
+
+    assert "no-such-dependency-for-pipx" in json.loads(capsys.readouterr().out)["errors"][0]["message"]
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_json_failure_keeps_what_the_terminal_showed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
+    (project := tmp_path / "redraws").mkdir()
+    (project / "setup.py").write_text(
+        "import sys\nsys.stderr.write('pipx-redrawn-frame\\rpipx-final-frame\\n')\nraise SystemExit(1)\n",
+        encoding="utf-8",
+    )
+
+    assert run_pipx_cli(["install", "--output", "json", "--backend", "uv", str(project)])
+
+    message: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
+    assert ("pipx-final-frame" in message, "pipx-redrawn-frame" in message) == (True, False)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
@@ -1301,6 +1439,18 @@ def test_install_local_archive(
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_local_project_uses_built_name_when_backend_ignores_project_table(
+    project_ignoring_project_table: Path,
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", str(project_ignoring_project_table)])
+
+    assert (
+        PipxMetadata(paths.ctx.venvs / "real-pkg").main_package.package,
+        (paths.ctx.bin_dir / app_name("realapp")).exists(),
+    ) == ("real-pkg", True)
 
 
 @pytest.mark.parametrize(

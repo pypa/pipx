@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "collections",
     "filecmp",
     "packaging.utils",
     "pathlib",
     "pipx",
     "pipx.backends",
+    "pipx.fanout",
     "pipx.package_specifier",
+    "pipx.pipx_metadata_file",
     "pipx.result",
     "pipx.util",
     "pipx.venv",
@@ -24,7 +27,8 @@ import shlex
 import shutil
 import tempfile
 import time
-from contextlib import contextmanager
+from collections import Counter
+from contextlib import AbstractContextManager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,18 +45,20 @@ from pipx.backends import PIP, env_default_backend, resolve_backend_name
 from pipx.colors import bold, red
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
+from pipx.fanout import in_turn
 from pipx.package_specifier import (
     parse_specifier_for_install,
     static_project_name,
     valid_pypi_name,
     wheel_project_name,
 )
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
-from pipx.venv import Venv
+from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping, Sequence
+    from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
 
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -89,6 +95,35 @@ class VenvProblems:
             )
 
 
+_SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
+
+
+@contextmanager
+def expose_shared_resources_in_order(
+    venvs_metadata: Iterable[PipxMetadata], local_bin_dir: Path, local_man_dir: Path
+) -> Generator[None]:
+    # a path several environments of a fan-out expose must end up where a one-at-a-time run leaves it, so they expose
+    # it in task order; only shared paths wait, as a task waiting for its turn holds one of the fan-out's workers
+    counts: Final[Counter[Path]] = Counter(
+        path for metadata in venvs_metadata for path in _shareable_paths(metadata, local_bin_dir, local_man_dir)
+    )
+    token = _SHARED_RESOURCES.set(frozenset(path for path, count in counts.items() if count > 1))
+    try:
+        yield
+    finally:
+        _SHARED_RESOURCES.reset(token)
+
+
+def _shareable_paths(metadata: PipxMetadata, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    try:
+        return _expected_resource_paths(
+            metadata, (metadata.main_package, *metadata.injected_packages.values()), local_bin_dir, local_man_dir
+        )
+    except (AttributeError, TypeError):
+        # corrupt metadata, such as a null path list, is for the task of its own environment to report
+        return set()
+
+
 def expose_resources_globally(
     resource_type: str,
     local_resource_dir: Path,
@@ -111,19 +146,26 @@ def expose_resources_globally(
             dest_dir = local_resource_dir
         if not dest_dir.is_dir():
             mkdir(dest_dir)
-        if not can_symlink(dest_dir):
-            collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
-        else:
-            collision = _symlink_package_resource(
-                dest_dir,
-                path,
-                force=force,
-                suffix=suffix,
-                executable=(resource_type == "app"),
-            )
-        if collision is not None:
-            collisions.append(collision)
+        with _in_turn_if_shared(dest_dir / add_suffix(path.name, suffix)):
+            if (
+                collision := _symlink_package_resource(
+                    dest_dir,
+                    path,
+                    force=force,
+                    suffix=suffix,
+                    executable=(resource_type == "app"),
+                )
+                if can_symlink(dest_dir)
+                else _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
+            ) is None:
+                _remove_resource_named_before_last_dot(dest_dir, path, suffix)
+            else:
+                collisions.append(collision)
     return collisions
+
+
+def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
+    return in_turn(lambda: path not in _SHARED_RESOURCES.get())
 
 
 def expose_package_resources(
@@ -274,6 +316,23 @@ def _symlink_package_resource(
     return None
 
 
+def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
+    new_name: Final[str] = add_suffix(path.name, suffix)
+    for legacy in (dest_dir / name for name in exposed_app_names(path.name, suffix) - {new_name}):
+        if legacy.is_symlink():
+            owned = legacy.resolve() == path.resolve()
+        else:
+            # a launcher rebuilt since then no longer matches byte for byte, but its shebang still names this venv
+            owned = legacy.is_file() and (
+                filecmp.cmp(legacy, path, shallow=False) or _directory_id(path.parent) in _launcher_owner_ids(legacy)
+            )
+        if owned and drop_copies_claimed_elsewhere({legacy}, path.parent):
+            legacy.unlink()
+            _LOGGER.warning(
+                "%s  Renamed %s to %s, as pipx now puts --suffix at the end of app names", hazard, legacy.name, new_name
+            )
+
+
 def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
     venv_dir = venv.root
     python_path = venv.python_path.resolve()
@@ -315,16 +374,14 @@ def _get_exposed_resource_names(
         if new_install
         else tuple(metadata for metadata in venv.package_metadata.values() if metadata.include_apps)
     )
-    app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
-        (add_suffix(path.name, metadata.suffix), path)
-        for metadata in resource_packages
-        for path in metadata.app_paths_to_expose
-    )
+    app_paths: Final[dict[str, list[Path]]] = group_app_paths(resource_packages)
     exposed_app_paths = get_exposed_paths_for_package(venv.bin_path, paths.ctx.bin_dir, app_paths)
     exposed_binary_names = sorted(path.name for path in exposed_app_paths)
-    unavailable_binary_names = sorted(
-        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
-    )
+    unavailable_binary_names = sorted({
+        add_suffix(name, package_metadata.suffix)
+        for name in package_metadata.apps
+        if not exposed_app_names(name, package_metadata.suffix) & set(exposed_binary_names)
+    })
     exposed_man_paths = set()
     man_paths: Final[list[Path]] = [path for metadata in resource_packages for path in metadata.man_paths_to_expose]
     for man_section in MAN_SECTIONS:
@@ -390,6 +447,7 @@ def get_venv_summary(
 _RESOURCE_DIR_SCANS: Final[ContextVar[dict[Path, _ResourceDirScan] | None]] = ContextVar(
     "resource_dir_scans", default=None
 )
+_VENV_CLAIMS: Final[ContextVar[dict[Path, set[Path]] | None]] = ContextVar("venv_claims", default=None)
 
 
 @contextmanager
@@ -397,9 +455,11 @@ def reuse_resource_dir_scans() -> Generator[None]:
     # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
     # command instead of once per venv keeps them linear in the number of venvs
     token = _RESOURCE_DIR_SCANS.set({})
+    claims_token = _VENV_CLAIMS.set({})
     try:
         yield
     finally:
+        _VENV_CLAIMS.reset(claims_token)
         _RESOURCE_DIR_SCANS.reset(token)
 
 
@@ -429,6 +489,58 @@ def get_exposed_paths_for_package(
         for name in {os.path.normcase(name) for name in (*venv_names, *(package_resource_paths or {}))}
         for resource_path in scan.by_name.get(name, ())
         if _copy_matches_source(resource_path, venv_resource_path, package_resource_paths)
+    }
+
+
+def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
+    # a static script copies byte for byte, so the copy another venv exposes under a name this venv also answers to
+    # (tool's run.cmd for tool@2) matches by content; unless its shebang names this venv, it belongs to the other one
+    own_id: Final[tuple[int, int] | None] = _directory_id_or_none(venv_bin_path)
+    copies: Final[set[Path]] = {
+        path for path in resource_paths if not path.is_symlink() and own_id not in _launcher_owner_ids(path)
+    }
+    return resource_paths - (copies & _claimed_by_other_venvs(venv_bin_path)) if copies else resource_paths
+
+
+def _directory_id_or_none(path: Path) -> tuple[int, int] | None:
+    try:
+        return _directory_id(path)
+    except OSError:
+        return None
+
+
+def _claimed_by_other_venvs(venv_bin_path: Path) -> set[Path]:
+    # a venv removed since the claims were read, as uninstall-all does one by one, no longer holds its paths
+    return {
+        path
+        for venv_dir, claimed in _venv_claims_by_dir().items()
+        if not venv_bin_path.is_relative_to(venv_dir) and venv_dir.is_dir()
+        for path in claimed
+    }
+
+
+def _venv_claims_by_dir() -> dict[Path, set[Path]]:
+    if (cache := _VENV_CLAIMS.get()) is None:
+        return _read_venv_claims()
+    if not cache:
+        cache.update(_read_venv_claims())
+    return cache
+
+
+def _read_venv_claims() -> dict[Path, set[Path]]:
+    return {venv_dir: _venv_claims(venv_dir) for venv_dir in VenvContainer(paths.ctx.venvs).iter_venv_dirs()}
+
+
+def _venv_claims(venv_dir: Path) -> set[Path]:
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    if not metadata.exposure_enabled or metadata.main_package.package is None:
+        return set()
+    packages: Final[list[PackageInfo]] = [metadata.main_package, *metadata.injected_packages.values()]
+    return _expected_resource_paths(metadata, packages, paths.ctx.bin_dir, paths.ctx.man_dir) | {
+        paths.ctx.bin_dir / name
+        for package in packages
+        for path in package.app_paths_to_expose
+        for name in exposed_app_names(path.name, package.suffix)
     }
 
 
@@ -528,6 +640,15 @@ def get_exposed_man_paths_for_package(
         venv_man_path,
         local_man_dir,
         group_resource_paths((path.name, path) for path in package_man_paths if path.parent.name == man_section),
+    )
+
+
+def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
+    return group_resource_paths(
+        (name, path)
+        for package in packages
+        for path in package.app_paths_to_expose
+        for name in exposed_app_names(path.name, package.suffix)
     )
 
 
@@ -701,17 +822,16 @@ def remove_stale_venv_resources(
     current_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
     # only remove a dropped destination pipx still owns, so a replacement the user or another package put there stays
     owned: Final[set[Path]] = _venv_owned_resource_paths(venv, local_bin_dir, local_man_dir)
-    for path in sorted((previous_resource_paths - current_resource_paths) & owned):
+    for path in sorted(
+        drop_copies_claimed_elsewhere((previous_resource_paths - current_resource_paths) & owned, venv.bin_path)
+    ):
         safe_unlink(path)
 
 
 def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
-        (add_suffix(path.name, package.suffix), path)
-        for package in venv.package_metadata.values()
-        for path in package.app_paths_to_expose
+    owned: set[Path] = get_exposed_paths_for_package(
+        venv.bin_path, local_bin_dir, group_app_paths(venv.package_metadata.values())
     )
-    owned: set[Path] = get_exposed_paths_for_package(venv.bin_path, local_bin_dir, app_paths)
     man_paths: Final[list[Path]] = [
         path for package in venv.package_metadata.values() for path in package.man_paths_to_expose
     ]
@@ -730,22 +850,24 @@ def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: P
 
 
 def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    if not venv.pipx_metadata.exposure_enabled:
+    return _expected_resource_paths(venv.pipx_metadata, venv.package_metadata.values(), local_bin_dir, local_man_dir)
+
+
+def _expected_resource_paths(
+    metadata: PipxMetadata, packages: Collection[PackageInfo], local_bin_dir: Path, local_man_dir: Path
+) -> set[Path]:
+    if not metadata.exposure_enabled:
         return set()
     return (
         {
             local_bin_dir / add_suffix(path.name, package.suffix)
-            for package in venv.package_metadata.values()
+            for package in packages
             for path in package.app_paths_to_expose
         }
-        | {
-            local_man_dir / path.parent.name / path.name
-            for package in venv.package_metadata.values()
-            for path in package.man_paths_to_expose
-        }
+        | {local_man_dir / path.parent.name / path.name for package in packages for path in package.man_paths_to_expose}
         | {
             paths.ctx.completion_dir / path.parent.parent.name / path.parent.name / path.name
-            for package in venv.package_metadata.values()
+            for package in packages
             for path in package.completion_paths_to_expose
         }
     )
@@ -803,11 +925,19 @@ def validate_suffix(suffix: str) -> str:
 
 
 def add_suffix(name: str, suffix: str) -> str:
-    # app names such as pip3.14 contain dots, so only a Windows launcher extension may follow the suffix
+    # Windows opens a file by its extension, so hello.py becomes hello@1.py there; the 14 of pip3.14 is a version, not
+    # an extension, and POSIX ignores extensions, so elsewhere the suffix goes last
     app: Final[Path] = Path(name)
-    if WINDOWS and app.suffix.upper() in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").upper().split(";"):
+    if WINDOWS and app.suffix and not app.suffix[1:].isdigit():
         return f"{app.stem}{suffix}{app.suffix}"
     return f"{name}{suffix}"
+
+
+def exposed_app_names(name: str, suffix: str) -> set[str]:
+    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), and an app exposed back then
+    # keeps that name until pipx exposes it again
+    app: Final[Path] = Path(name)
+    return {add_suffix(name, suffix), f"{app.stem}{suffix}{app.suffix}"}
 
 
 def locked_package_message(package_name: str) -> str:
@@ -818,12 +948,16 @@ __all__ = [
     "VenvProblems",
     "add_suffix",
     "can_symlink",
+    "drop_copies_claimed_elsewhere",
     "expose_package_resources",
     "expose_resources_globally",
+    "expose_shared_resources_in_order",
+    "exposed_app_names",
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
+    "group_app_paths",
     "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",

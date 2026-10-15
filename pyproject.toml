@@ -70,6 +70,7 @@ test = [
   "pytest-cov>=7.1",
   "pytest-mock>=3.16",
   "pytest-subprocess>=1.6",
+  "pytest-timeout>=2.4",
   "pytest-xdist>=3.8",
   "setuptools>=84; python_version>='3.12'",
   "watchdog>=6",
@@ -208,6 +209,8 @@ ini_options.filterwarnings = [
   "ignore:Implicit None on return values is deprecated:DeprecationWarning",
 ]
 ini_options.log_level = "INFO"
+# the limit itself comes from PYTEST_TIMEOUT in tox.toml; session fixtures that build shared libs stay outside it
+ini_options.timeout_func_only = true
 
 [tool.towncrier]
 package = "pipx"

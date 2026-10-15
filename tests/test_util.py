@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import sys
 import threading
+from functools import partial
 from io import BytesIO, StringIO, TextIOWrapper
+from itertools import groupby
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from venv import EnvBuilder
@@ -14,13 +17,26 @@ import pytest
 from helpers import skip_if_windows
 from pipx import paths
 from pipx.fanout import fan_out
-from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_unlink
+from pipx.util import (
+    exec_app,
+    get_site_packages,
+    redact_url_credentials,
+    rmdir,
+    run_subprocess,
+    safe_unlink,
+    subprocess_post_check,
+    subprocess_post_check_handle_pip_error,
+)
 
 if TYPE_CHECKING:
-    import subprocess
+    from collections.abc import Iterator
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
+
+
+_UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.write(1, b'after\\n')"
+_COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
 @pytest.mark.parametrize("windows", [pytest.param(False, id="posix"), pytest.param(True, id="windows")])
@@ -181,6 +197,36 @@ def test_subprocess_held_uncaptured_stderr_stays_unset() -> None:
     assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, None]
 
 
+@pytest.fixture
+def typed_input() -> Iterator[None]:
+    read_end, write_end = os.pipe()
+    os.write(write_end, b"typed")
+    os.close(write_end)
+    saved: Final[int] = os.dup(0)
+    os.dup2(read_end, 0)
+    os.close(read_end)
+    try:
+        yield
+    finally:
+        os.dup2(saved, 0)
+        os.close(saved)
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+@pytest.mark.usefixtures("typed_input")
+def test_subprocess_of_fan_out_task_waiting_its_turn_reads_no_input(stream_output: bool) -> None:
+    second_done: Final[threading.Event] = threading.Event()
+
+    def second() -> str:
+        stdout = run_subprocess(
+            [sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"], stream_output=stream_output
+        ).stdout
+        second_done.set()
+        return stdout
+
+    assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, "''\n"]
+
+
 def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[str]) -> None:
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [
@@ -201,6 +247,30 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",
     )
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+def test_subprocess_captures_output_without_terminal_escapes(mocker: MockerFixture, stream_output: bool) -> None:
+    mocker.patch("pipx.util.sys.stdout", StringIO())
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", f"import sys; sys.stdout.write({_COLOURED_OUTPUT!r})"],
+        capture_stderr=False,
+        stream_output=stream_output,
+    )
+
+    assert result.stdout == "satisfy\n      Python>=3.12 link\n"
+
+
+def test_subprocess_stream_keeps_terminal_escapes_on_screen(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch("pipx.util.sys.stdout", destination)
+    run_subprocess(
+        [sys.executable, "-c", f"import sys; sys.stdout.write({_COLOURED_OUTPUT!r})"],
+        capture_stderr=False,
+        stream_output=True,
+    )
+
+    assert destination.getvalue() == _COLOURED_OUTPUT
 
 
 @pytest.mark.parametrize(
@@ -309,14 +379,9 @@ def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> 
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="only macOS drops what a closing pseudo-terminal still queues")
-def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
-    mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
-    monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
-    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
-
+@pytest.mark.usefixtures("terminal_stdout")
+@pytest.mark.timeout(60)  # 300 process launches take about 30 s on a macOS CI runner
+def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
     # the loss hit about 1 run in 75 on a CI macOS runner, so a few hundred runs catch it reliably
     outputs: Final[set[str]] = {
         run_subprocess([sys.executable, "-c", "print('payload')"], stream_output=True).stdout.strip()
@@ -324,6 +389,68 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
     }
 
     assert outputs == {"payload"}
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("terminal_stdout")
+def test_subprocess_stream_propagates_ctrl_c() -> None:
+    # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
+    with pytest.raises(KeyboardInterrupt):
+        run_subprocess(
+            [
+                sys.executable,
+                "-c",
+                "import os, signal; os.kill(os.getppid(), signal.SIGINT); os.kill(os.getpid(), signal.SIGINT)",
+            ],
+            stream_output=True,
+        )
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+def test_subprocess_replaces_undecodable_output(stream_output: bool) -> None:
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", _UNDECODABLE_OUTPUT], capture_stderr=False, stream_output=stream_output
+    )
+
+    assert result.stdout == "\ufffd bad\nafter\n"
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("terminal_stdout")
+def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", _UNDECODABLE_OUTPUT], capture_stderr=False, stream_output=True
+    )
+
+    assert result.stdout == "\ufffd bad\nafter\n"
+
+
+@skip_if_windows
+def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch("pipx.util.sys.stdout", destination)
+    destination.close()
+
+    with pytest.raises(ValueError, match="closed file"):
+        run_subprocess(
+            # the pause leaves the second line unread after the first write kills the reader
+            [
+                sys.executable,
+                "-c",
+                "import os, time; os.write(1, b'first\\n'); time.sleep(0.2); os.write(1, b'second\\n')",
+            ],
+            capture_stderr=False,
+            stream_output=True,
+        )
+
+
+@pytest.fixture
+def terminal_stdout(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
+    monkeypatch.delenv("COLUMNS", raising=False)
+    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
+    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
 
 
 @pytest.mark.parametrize(
@@ -362,3 +489,52 @@ def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp
     (tmp_path / "lib" / "python3.0" / "site-packages").mkdir(parents=True)
 
     assert get_site_packages(tmp_path / "bin" / "python") == expected
+
+
+def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+    tags: Final[str] = "ABCDEFGH"
+
+    def fail(tag: str) -> None:
+        output: Final[str] = f"{tag * 79}\n" * 2000
+        subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, output, output))
+
+    fan_out([partial(fail, tag) for tag in tags], sequential=False)
+
+    lines: Final[list[str]] = (tmp_path / "cmd_pip_errors.log").read_text(encoding="utf-8").splitlines()
+    blocks: Final[list[str]] = [tag for tag, _ in groupby(line[0] for line in lines if line[:1] in set(tags))]
+    assert sorted(blocks) == sorted(tags)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "pip --index-url https://alice:s3cr3t@host/simple",
+            "pip --index-url https://alice:****@host/simple",
+            id="user-and-password",
+        ),
+        pytest.param("pip git+https://t0ken@host/repo.git", "pip git+https://****@host/repo.git", id="token"),
+        pytest.param("pip foo @ https://host/a@b.whl", "pip foo @ https://host/a@b.whl", id="no-credentials"),
+        pytest.param("https://host?x=a@b", "https://host?x=a@b", id="at-in-query"),
+        pytest.param("https://host#egg=x@1", "https://host#egg=x@1", id="at-in-fragment"),
+        pytest.param("https://u:p@w@host/x", "https://u:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("git+ssh://git@github.com/a/b", "git+ssh://****@github.com/a/b", id="bare-user"),
+        pytest.param(
+            "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
+            "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
+            id="two-urls",
+        ),
+    ],
+)
+def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None:
+    assert redact_url_credentials(text) == expected
+
+
+def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: pytest.LogCaptureFixture) -> None:
+    process: Final = subprocess.CompletedProcess(["pip", "--index-url", "https://alice:s3cr3t@host/simple"], 1, "", "")
+
+    with caplog.at_level(logging.INFO, logger="pipx.util"):
+        subprocess_post_check(process, raise_error=False)
+
+    assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]

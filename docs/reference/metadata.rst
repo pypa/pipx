@@ -10,6 +10,10 @@ Every environment under ``$PIPX_HOME/venvs/<environment>/`` holds a ``pipx_metad
 each operation and reads it to drive ``list``, ``upgrade``, ``reinstall``, ``uninstall``, and the rest. Treat it as
 pipx-owned; pipx rewrites it atomically and may change its shape between versions.
 
+pipx masks passwords and tokens in URLs it prints or logs, but keeps ``package_or_url`` and ``pip_args`` here as given,
+since ``reinstall`` and ``upgrade`` need them. Those credentials stay in plain text in this file and in the ``pipx list
+--json`` snapshot, so prefer a keyring or a ``.netrc`` file over credentials embedded in a URL.
+
 The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrates older files forward on read.
 
 ******************

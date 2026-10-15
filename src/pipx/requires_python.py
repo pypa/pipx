@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter"]
+__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "re"]
 
 import logging
 import re
@@ -17,15 +17,6 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-# pip prints this and installs nothing; uv installs the package regardless, so the metadata check covers that backend
-_PIP_REJECTION: Final[re.Pattern[str]] = re.compile(
-    r"""
-    requires\ a\ different\ Python:   # pip's wording for a Requires-Python mismatch
-    \s*\S+                            # the interpreter version pip rejected
-    \s*not\ in\ '(?P<constraint>[^']*)'
-    """,
-    re.VERBOSE,
-)
 # the newest release pipx looks for when a package rules out the default interpreter
 _NEWEST_PYTHON_MINOR: Final[int] = 15
 # scanned to decide whether a minor's range overlaps a constraint; above any real CPython patch count so none is missed
@@ -39,10 +30,30 @@ class IncompatiblePythonError(PipxError):
 
 
 def rejected_constraint(backend_output: str) -> SpecifierSet | None:
-    match: Final[re.Match[str] | None] = _PIP_REJECTION.search(backend_output)
+    # pip and uv print these and install nothing; uv only checks lower bounds, so the metadata check covers the rest
+    match: Final[re.Match[str] | None] = re.search(
+        r"""
+        requires\ a\ different\ Python:\s*\S+\s*not\ in\ '(?P<pip>[^']*)'
+        | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+Python(?P<uv>\S+?),?(?=\s|$)
+        | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+all\s+of:\n
+          (?P<uv_union>(?:[ \t]*Python\S+[ \t]*\n?)+)
+        """,
+        backend_output,
+        re.VERBOSE,
+    )
     if match is None:
         return None
-    return _parse(match.group("constraint"))
+    if match["uv_union"] is None:
+        return _parse(match["pip"] or match["uv"])
+    # uv splits a constraint with an exclusion, such as >=3.12,!=3.15.*, into ranges any of which will do; a set of
+    # specifiers cannot express that union, so pipx takes the range that holds the newest Python it would pick anyway
+    ranges: Final[list[SpecifierSet]] = [
+        constraint for text in re.findall(r"Python(\S+)", match["uv_union"]) if (constraint := _parse(text)) is not None
+    ]
+    return next(
+        (constraint for minor in _candidate_versions() for constraint in ranges if _minor_overlaps(constraint, minor)),
+        next(iter(ranges), None),
+    )
 
 
 def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:

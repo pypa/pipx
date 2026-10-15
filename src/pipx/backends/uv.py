@@ -117,7 +117,7 @@ class UvBackend(Backend):
             stream_output=verbose or progress,
         )
         if log_pip_errors:
-            subprocess_post_check_handle_pip_error(process, tool_name="uv")
+            subprocess_post_check_handle_pip_error(process, tool_name="uv", streamed=verbose or progress)
         return process
 
     @staticmethod
@@ -201,6 +201,8 @@ class UvBackend(Backend):
             capture_stdout=capture_stdout,
             capture_stderr=capture_stderr,
             env_overrides=_uv_env_overrides(),
+            # uncaptured, it talks to the user's terminal, as under `pipx runpip`
+            interactive=not (capture_stdout or capture_stderr),
         )
 
     def _uv_pip_command(
