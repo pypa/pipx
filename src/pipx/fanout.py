@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["concurrent.futures", "functools", "logging", "threading"]
+__lazy_modules__ = ["concurrent.futures", "functools", "logging", "signal", "threading"]
 
 import logging
 import os
+import signal
 import sys
 from concurrent.futures import Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from contextvars import Context, ContextVar, copy_context
 from dataclasses import dataclass, field
 from functools import partial
-from threading import Condition, Event
-from typing import TYPE_CHECKING, Final, TextIO, TypeVar, cast
+from threading import Condition, Event, current_thread, main_thread
+from typing import TYPE_CHECKING, Final, NoReturn, TextIO, TypeVar, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
     from subprocess import Popen
+    from types import FrameType
 
     from filelock import BaseFileLock
 
@@ -41,7 +43,7 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
     for _ in tasks:
         slots.append(_Slot(turn, children, live=not slots, after=slots[-1] if slots else None))
     executor: Final[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=workers)
-    with _routed_output():
+    with _interrupted_on_termination(), _routed_output():
         futures: Final[list[Future[_ResultT]]] = []
         try:
             futures.extend(
@@ -58,6 +60,28 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
             _settle(futures, slots, children)
             executor.shutdown(cancel_futures=True)
     return [future.result() for future in futures]
+
+
+@contextmanager
+def _interrupted_on_termination() -> Generator[None, None, None]:
+    # a SIGTERM or SIGHUP sent to pipx alone would otherwise end it at once and leave its children running as orphans
+    if current_thread() is not main_thread():
+        yield
+        return
+    # Windows has no SIGHUP
+    previous: Final = {
+        number: signal.signal(number, _raise_interrupt)
+        for number in {signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
+    }
+    try:
+        yield
+    finally:
+        for number, handler in previous.items():
+            signal.signal(number, handler)
+
+
+def _raise_interrupt(_number: int, _frame: FrameType | None) -> NoReturn:
+    raise KeyboardInterrupt
 
 
 def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:

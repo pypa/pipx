@@ -12,6 +12,7 @@ from filelock import FileLock, Timeout
 
 from helpers import skip_if_windows
 from pipx.fanout import fan_out, in_turn, locked_in_order, output_is_held
+from pipx.util import run_subprocess
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -186,3 +187,35 @@ def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -
     thread.join()
 
     assert other_run == ["took both"]
+
+
+@skip_if_windows
+def test_fan_out_stops_children_on_sigterm() -> None:
+    def terminated() -> None:
+        run_subprocess([
+            sys.executable,
+            "-c",
+            "import os, signal, time; os.kill(os.getppid(), signal.SIGTERM); time.sleep(30)",
+        ])
+
+    with pytest.raises(KeyboardInterrupt):
+        fan_out([terminated, int], sequential=False)
+
+
+def test_fan_out_restores_sigterm_handler() -> None:
+    previous: Final = signal.getsignal(signal.SIGTERM)
+
+    fan_out([int, int], sequential=False)
+
+    assert signal.getsignal(signal.SIGTERM) is previous
+
+
+def test_fan_out_runs_off_the_main_thread() -> None:
+    results: Final[list[list[int]]] = []
+    thread: Final[threading.Thread] = threading.Thread(
+        target=lambda: results.append(fan_out([int, int], sequential=False))
+    )
+    thread.start()
+    thread.join()
+
+    assert results == [[0, 0]]
