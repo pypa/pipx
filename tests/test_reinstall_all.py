@@ -193,6 +193,23 @@ def test_reinstall_all_restores_interrupted_venv_among_several(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_reports_interrupted_venv_without_traceback(
+    capsys: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+    venv_names: list[str],
+) -> None:
+    def interrupt() -> NoReturn:
+        raise KeyboardInterrupt
+
+    before_venv_subprocess(paths.ctx.venvs / venv_names[0], interrupt)
+
+    run_pipx_cli(["reinstall-all"])
+
+    err: Final[str] = capsys.readouterr().err
+    assert (f"Reinstall failed; restored {venv_names[0]}." in err, "Traceback" in err) == (True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     rename: Final = Path.rename

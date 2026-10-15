@@ -43,7 +43,7 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
     for _ in tasks:
         slots.append(_Slot(turn, children, live=not slots, after=slots[-1] if slots else None))
     executor: Final[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=workers)
-    with _interrupted_on_termination(), _routed_output():
+    with _interrupted_on_termination(), _routed_output(children):
         futures: Final[list[Future[_ResultT]]] = []
         try:
             futures.extend(
@@ -185,12 +185,27 @@ class _Children:
     submitted: Event
     running: set[_Child] = field(default_factory=set)
     interrupted: bool = False
+    # the writer that left each stream's last line open
+    open_lines: dict[TextIO, object] = field(default_factory=dict)
 
     def stop(self) -> None:
         with self.lock:
             self.interrupted = True
             for process in self.running:
                 process.terminate()
+            # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
+            self.open_lines = dict.fromkeys(self.open_lines, object())
+
+    def write(self, target: TextIO, text: str, writer: object) -> int:
+        with self.lock:
+            # once interrupted, tasks write out of turn and must not run on into a line another one left unfinished
+            if self.interrupted and self.open_lines.get(target, writer) is not writer and text[:1] not in {"\n", "\r"}:
+                target.write("\n")
+            if text.endswith("\n"):
+                self.open_lines.pop(target, None)
+            elif text:
+                self.open_lines[target] = writer
+            return target.write(text)
 
 
 @dataclass
@@ -210,7 +225,7 @@ class _Slot:
     def go_live(self) -> None:
         with self.turn:
             for stream, text in self.chunks:
-                stream.write(text)
+                self.children.write(stream, text, self)
                 stream.flush()
             self.chunks.clear()
             self.live = True
@@ -238,7 +253,7 @@ def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
 
 
 @contextmanager
-def _routed_output() -> Generator[None, None, None]:
+def _routed_output(children: _Children) -> Generator[None, None, None]:
     stdout, stderr = sys.stdout, sys.stderr
     # the stream handler bound sys.stderr when logging was set up, so it does not see the replacement below
     handlers: Final[list[tuple[logging.StreamHandler[TextIO], TextIO]]] = [
@@ -246,9 +261,9 @@ def _routed_output() -> Generator[None, None, None]:
         for handler in logging.getLogger("pipx").handlers
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler)
     ]
-    sys.stdout, sys.stderr = _routed(stdout), _routed(stderr)
+    sys.stdout, sys.stderr = _routed(stdout, children), _routed(stderr, children)
     for handler, stream in handlers:
-        handler.setStream(_routed(stream))
+        handler.setStream(_routed(stream, children))
     try:
         yield
     finally:
@@ -257,24 +272,24 @@ def _routed_output() -> Generator[None, None, None]:
             handler.setStream(stream)
 
 
-def _routed(target: TextIO) -> TextIO:
+def _routed(target: TextIO, children: _Children) -> TextIO:
     # a duck-typed stand-in rather than an io.TextIOBase subclass, whose finalizer would flush a target closed by then
-    return cast("TextIO", _RoutedStream(target))
+    return cast("TextIO", _RoutedStream(target, children))
 
 
 class _RoutedStream:
-    def __init__(self, target: TextIO) -> None:
+    def __init__(self, target: TextIO, children: _Children) -> None:
         self._target: Final[TextIO] = target
+        self._children: Final[_Children] = children
 
     def __getattr__(self, name: str) -> object:
         return getattr(self._target, name)
 
     def write(self, text: str) -> int:
-        if (slot := _SLOT.get()) is None:
-            return self._target.write(text)
-        with slot.turn:
-            if slot.live:
-                return self._target.write(text)
+        slot: Final[_Slot | None] = _SLOT.get()
+        with self._children.lock:
+            if slot is None or slot.live:
+                return self._children.write(self._target, text, slot)
             slot.chunks.append((self._target, text))
         return len(text)
 

@@ -219,3 +219,25 @@ def test_fan_out_runs_off_the_main_thread() -> None:
     thread.join()
 
     assert results == [[0, 0]]
+
+
+@skip_if_windows
+def test_fan_out_interrupted_ends_unfinished_line_before_held_output(
+    capsys: pytest.CaptureFixture[str], second_done: threading.Event
+) -> None:
+    main_thread: Final[int] = threading.get_ident()
+
+    def interrupted() -> None:
+        second_done.wait(timeout=5)
+        sys.stderr.write("building first -")
+        signal.pthread_kill(main_thread, signal.SIGINT)
+        run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
+
+    def held() -> None:
+        sys.stderr.write("installing second\n")
+        second_done.set()
+
+    with pytest.raises(KeyboardInterrupt):
+        fan_out([interrupted, held], sequential=False)
+
+    assert capsys.readouterr().err == "building first -\ninstalling second\n"
