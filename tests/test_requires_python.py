@@ -47,9 +47,22 @@ if TYPE_CHECKING:
             id="uv-wrapped-two-clauses",
         ),
         pytest.param(
-            "  cause: Because the current Python version (3.11.17) does not satisfy all of:\n      Python>=3.14",
-            None,
+            "  cause: Because the current Python version (3.11.17) does not satisfy all of:\n"
+            "             Python>=3.12,<3.15\n             Python>=3.16\n         and x==0.1 depends on one of:",
+            "<3.15,>=3.12",
             id="uv-union",
+        ),
+        pytest.param(
+            "  cause: Because the current Python version (3.11.17) does not satisfy all of:\n"
+            "             Python>=3.12,<3.13\n             Python>=3.14\n         and x==0.1 depends on one of:",
+            ">=3.14",
+            id="uv-union-newest-range",
+        ),
+        pytest.param(
+            "  cause: Because the current Python version (3.11.17) does not satisfy all of:\n"
+            "             Python>=3.20,<3.21\n             Python>=3.22\n",
+            "<3.21,>=3.20",
+            id="uv-union-beyond-pipx",
         ),
         pytest.param("ERROR: No matching distribution found for oldpkg", None, id="other-error"),
         pytest.param("", None, id="empty"),
