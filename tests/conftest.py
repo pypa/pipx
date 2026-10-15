@@ -8,6 +8,7 @@ import logging
 import os
 import pkgutil
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -59,6 +60,17 @@ _R = TypeVar("_R")
 @pytest.fixture(scope="session")
 def root() -> Path:
     return Path(__file__).parents[1]
+
+
+@pytest.fixture
+def signal_handlers() -> Iterator[None]:
+    """Take signals with Python's default handlers, restored afterwards: an interrupted pipx ignores further signals."""
+    numbers: Final = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
+    previous: Final = {number: signal.getsignal(number) for number in numbers}
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    yield
+    for number, handler in previous.items():
+        signal.signal(number, handler)
 
 
 @pytest.fixture

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import sys
 import threading
@@ -11,7 +12,14 @@ import pytest
 from filelock import FileLock, Timeout
 
 from helpers import skip_if_windows
-from pipx.fanout import fan_out, in_turn, locked_in_order, output_is_held
+from pipx.fanout import (
+    fan_out,
+    finished_on_interrupt,
+    in_turn,
+    locked_in_order,
+    output_is_held,
+    stopping_children_on_signals,
+)
 from pipx.util import run_subprocess
 
 if TYPE_CHECKING:
@@ -201,6 +209,7 @@ def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_stops_children_on_sigterm() -> None:
     def terminated() -> None:
         run_subprocess([
@@ -209,16 +218,115 @@ def test_fan_out_stops_children_on_sigterm() -> None:
             "import os, signal, time; os.kill(os.getppid(), signal.SIGTERM); time.sleep(30)",
         ])
 
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
         fan_out([terminated, int], sequential=False)
 
 
-def test_fan_out_restores_sigterm_handler() -> None:
+@skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
+def test_signal_stops_the_grandchildren_of_a_child(tmp_path: Path) -> None:
+    pid_file: Final[Path] = tmp_path / "grandchild.pid"
+    # the grandchild stands in for a build backend that pip or uv started
+    script: Final[str] = (
+        "import os, signal, subprocess, sys, time; "
+        "grandchild = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)']); "
+        f"open({str(pid_file)!r}, 'w').write(str(grandchild.pid)); "
+        "os.kill(os.getppid(), signal.SIGTERM); time.sleep(30)"
+    )
+
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        run_subprocess([sys.executable, "-c", script])
+
+    assert _exits_within(int(pid_file.read_text()), seconds=5)
+
+
+def _exits_within(pid: int, *, seconds: float) -> bool:
+    deadline: Final[float] = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        time.sleep(0.05)
+    return False
+
+
+@pytest.mark.usefixtures("signal_handlers")
+def test_signals_keep_their_handlers_after_an_unsignalled_block() -> None:
     previous: Final = signal.getsignal(signal.SIGTERM)
 
-    fan_out([int, int], sequential=False)
+    with stopping_children_on_signals():
+        pass
 
     assert signal.getsignal(signal.SIGTERM) is previous
+
+
+def test_signals_keep_their_handlers_off_the_main_thread() -> None:
+    signalled: Final[list[bool]] = []
+
+    def run() -> None:
+        with stopping_children_on_signals() as event:
+            signalled.append(event.is_set())
+
+    thread: Final[threading.Thread] = threading.Thread(target=run)
+    thread.start()
+    thread.join()
+
+    assert signalled == [False]
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
+def test_signals_are_ignored_once_signalled() -> None:
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        signal.raise_signal(signal.SIGINT)
+
+    assert signal.getsignal(signal.SIGINT) is signal.SIG_IGN
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogCaptureFixture) -> None:
+    main_thread: Final[int] = threading.get_ident()
+
+    def finishing() -> str:
+        with finished_on_interrupt():
+            signal.pthread_kill(main_thread, signal.SIGINT)
+            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            run_subprocess([sys.executable, "-c", "pass"])
+        return "finished"
+
+    def not_started() -> str:
+        _wait_for_log(caplog, "Finishing the 1 environment(s)")
+        with finished_on_interrupt():
+            return "started"
+
+    assert fan_out([finishing, not_started], sequential=False, interrupted=lambda index: f"interrupted {index}") == [
+        "finished",
+        "interrupted 1",
+    ]
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptureFixture) -> None:
+    main_thread: Final[int] = threading.get_ident()
+
+    def finishing() -> str:
+        with finished_on_interrupt():
+            signal.pthread_kill(main_thread, signal.SIGINT)
+            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            signal.pthread_kill(main_thread, signal.SIGINT)
+            run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
+        return "finished"
+
+    assert fan_out([finishing], sequential=False, interrupted=lambda index: f"interrupted {index}") == ["interrupted 0"]
+
+
+def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+    deadline: Final[float] = time.monotonic() + 5
+    while not any(text in message for message in caplog.messages) and time.monotonic() < deadline:
+        time.sleep(0.01)
 
 
 def test_fan_out_runs_off_the_main_thread() -> None:

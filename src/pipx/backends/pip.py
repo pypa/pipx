@@ -200,6 +200,8 @@ class PipBackend(Backend):
                 capture_stdout=capture_stdout,
                 capture_stderr=capture_stderr,
                 run_dir=str(venv_root),
+                # uncaptured, it talks to the user's terminal, as under `pipx runpip`
+                interactive=not (capture_stdout or capture_stderr),
             ),
             pip_args=[],
             verbose=verbose,

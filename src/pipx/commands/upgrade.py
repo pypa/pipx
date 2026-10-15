@@ -6,8 +6,10 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.install",
     "pipx.commands.outdated",
+    "pipx.commands.reinstall",
     "pipx.commands.transaction",
     "pipx.fanout",
+    "pipx.interpreter",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.script",
@@ -34,16 +36,18 @@ from pipx.commands.common import (
 )
 from pipx.commands.install import install as install_package
 from pipx.commands.outdated import inspect_outdated
-from pipx.commands.transaction import preserve_venv
+from pipx.commands.reinstall import reinstall
+from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.fanout import fan_out, locked_in_order
+from pipx.interpreter import get_default_python
 from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
 from pipx.shared_libs import shared_libs
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import PipxError, pipx_wrap, run_subprocess
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -171,8 +175,11 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
                 for venv_dir in venv_dirs
             ],
             sequential=verbose,
+            interrupted=lambda index: _interrupted_upgrade(venv_dirs[index]),
         )
+    interrupted: Final[list[str]] = []
     for venv_upgrade in venv_upgrades:
+        interrupted.extend(venv_upgrade.interrupted)
         messages.extend(venv_upgrade.messages)
         results.extend(venv_upgrade.results)
         skipped.extend(venv_upgrade.skipped)
@@ -187,11 +194,19 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
                 level=OutputLevel.ERROR,
             )
         )
+    if interrupted:
+        messages.append(
+            OutputMessage(
+                f"Interrupted before upgrading: {','.join(interrupted)}",
+                stream=OutputStream.STDERR,
+                level=OutputLevel.ERROR,
+            )
+        )
     return OperationResult(
         command=("upgrade-all",),
         data=UpgradeData(packages=tuple(results), skipped=tuple(skipped)),
         messages=tuple(messages),
-        exit_code=ExitCode(1 if failures else 0),
+        exit_code=ExitCode(1 if failures or interrupted else 0),
         errors=tuple(
             OperationError(code="package_upgrade_failed", message=f.error, environment=f.environment) for f in failures
         ),
@@ -218,13 +233,22 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
     if venv_dir.name in skip:
         return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "requested"),))
     with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
-        venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-        if "--editable" in venv.pipx_metadata.main_package.pip_args:
-            return _VenvUpgrade(skipped=(SkippedUpgrade(venv_dir.name, "editable"),))
         messages: Final[list[OutputMessage]] = []
+        # the check ran against the half changed environment that the repair replaces
+        checked: Final[bool] = not is_unfinished(venv_dir)
         try:
+            venv: Final[Venv] = _repaired_venv(
+                venv_dir,
+                verbose=verbose,
+                backend=backend,
+                env_backend=env_backend,
+                venv_lock=venv_lock,
+                messages=messages,
+            )
+            if "--editable" in venv.pipx_metadata.main_package.pip_args:
+                return _VenvUpgrade(messages=tuple(messages), skipped=(SkippedUpgrade(venv_dir.name, "editable"),))
             _validate_venv_for_upgrade(venv_dir, venv)
-            _raise_check_failures(venv, check_failures)
+            _raise_check_failures(venv, check_failures if checked else {})
             package_results: Final[tuple[PackageUpgradeResult, ...]] = _upgrade_venv(
                 venv_dir,
                 pip_args,
@@ -255,6 +279,55 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
         ),
         results=package_results,
     )
+
+
+def _interrupted_upgrade(venv_dir: Path) -> _VenvUpgrade:
+    if not is_unfinished(venv_dir):
+        return _VenvUpgrade(interrupted=(venv_dir.name,))
+    error: Final[str] = (
+        f"Interrupted while upgrading {venv_dir.name}; the next `pipx upgrade-all`, `pipx upgrade {venv_dir.name}` or "
+        f"`pipx reinstall {venv_dir.name}` reinstalls it."
+    )
+    return _VenvUpgrade(
+        messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        failures=(FailedUpgrade(venv_dir.name, error),),
+    )
+
+
+def _repaired_venv(  # ruff:ignore[too-many-arguments]  # forwards the reinstall context for one venv
+    venv_dir: Path,
+    *,
+    verbose: bool,
+    backend: str | None,
+    env_backend: str | None,
+    venv_lock: BaseFileLock | None,
+    messages: list[OutputMessage],
+) -> Venv:
+    if is_unfinished(venv_dir):
+        _LOGGER.warning("%s was left half changed by an interrupted pipx run; reinstalling it first.", venv_dir.name)
+        messages.extend(
+            reinstall(
+                venv_dir=venv_dir,
+                local_bin_dir=paths.ctx.bin_dir,
+                local_man_dir=paths.ctx.man_dir,
+                python=_base_python(Venv(venv_dir)),
+                verbose=verbose,
+                backend=backend,
+                env_backend=env_backend,
+                venv_lock=venv_lock,
+            ).messages
+        )
+    return Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+
+
+def _base_python(venv: Venv) -> str:
+    # rebuild on the Python the environment runs on, which only the interpreter knows on Windows, where the
+    # environment's python.exe is a launcher rather than a link
+    if venv.python_path.is_file():
+        return run_subprocess(
+            [venv.python_path, "-c", "import sys; print(sys._base_executable)"], log_stdout=False
+        ).stdout.strip()
+    return get_default_python()
 
 
 def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
@@ -341,7 +414,14 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
         _LOGGER.info("Ignoring --python as not combined with --install")
 
     if venv is None:
-        venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+        venv = _repaired_venv(
+            venv_dir,
+            verbose=verbose,
+            backend=backend,
+            env_backend=env_backend,
+            venv_lock=venv_lock,
+            messages=extra_messages,
+        )
         _validate_venv_for_upgrade(venv_dir, venv)
 
     main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
@@ -364,10 +444,13 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
     if packages_to_upgrade is None or packages_to_upgrade:
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
 
-    with preserve_venv(
-        venv_dir,
-        enabled=(packages_to_upgrade is None or bool(packages_to_upgrade))
-        and any(package.expected_apps for package in venv.package_metadata.values()),
+    with (
+        preserve_venv(
+            venv_dir,
+            enabled=(packages_to_upgrade is None or bool(packages_to_upgrade))
+            and any(package.expected_apps for package in venv.package_metadata.values()),
+        ),
+        marked_unfinished(venv_dir),
     ):
         return _upgrade_packages(
             venv,
@@ -645,6 +728,7 @@ class _VenvUpgrade:
     results: tuple[PackageUpgradeResult, ...] = ()
     skipped: tuple[SkippedUpgrade, ...] = ()
     failures: tuple[FailedUpgrade, ...] = ()
+    interrupted: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

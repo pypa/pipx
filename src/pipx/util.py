@@ -253,10 +253,12 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     run_dir: str | None = None,
     env_overrides: dict[str, str | None] | None = None,
     stream_output: bool = False,
+    interactive: bool = False,
 ) -> subprocess.CompletedProcess[str]:
     """Run a command as a subprocess, capturing stderr and stdout.
 
-    ``env_overrides`` keys map to a string (set/replace) or ``None`` (delete).
+    ``env_overrides`` keys map to a string (set/replace) or ``None`` (delete). Unless ``interactive``, the child reads
+    no input and runs in a process group of its own, which pipx stops as a whole when it is interrupted.
     """
     env = dict(os.environ)
     env = _fix_subprocess_env(env)
@@ -287,6 +289,17 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             cwd=run_dir,
             env=env,
         )
+    elif interactive:
+        completed_process = subprocess.run(
+            cmd_str_list,
+            env=env,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr else None,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            cwd=run_dir,
+        )
     else:
         # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
         hold_stderr: Final[bool] = not capture_stderr and output_is_held()
@@ -294,13 +307,17 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             subprocess.Popen(
                 cmd_str_list,
                 env=env,
-                stdin=_held_input(),
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE if capture_stdout else None,
                 stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
                 encoding="utf-8",
                 errors="replace",
                 text=True,
                 cwd=run_dir,
+                # a terminal's Ctrl-C then reaches pipx alone, which decides whether the child finishes; a new session
+                # rather than just a new group, as the terminal stops a background group reading or writing it
+                start_new_session=True,
+                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
             ) as process,
             stopped_on_interrupt(process),
         ):
@@ -365,10 +382,12 @@ def _run_streaming_subprocess(
             subprocess.Popen(
                 cmd,
                 env=env,
-                stdin=_held_input(),
+                stdin=subprocess.DEVNULL,
                 stdout=channels["stdout"].child if capture_stdout else None,
                 stderr=channels["stderr"].child if capture_stderr else None,
                 cwd=cwd,
+                start_new_session=True,
+                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
             ) as process,
             stopped_on_interrupt(process),
             ThreadPoolExecutor(max_workers=2) as executor,
@@ -440,11 +459,6 @@ def _match_terminal_size(child: int) -> None:
     size: Final[os.terminal_size] = shutil.get_terminal_size()
     with suppress(OSError):
         fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
-
-
-def _held_input() -> int | None:
-    # a prompt of a child whose output is held stays unseen, so it must not read what the user types for another task
-    return subprocess.DEVNULL if output_is_held() else None
 
 
 def _wait_until_drained(reader: int, reading: Future[None]) -> None:

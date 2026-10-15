@@ -32,7 +32,7 @@ from pipx.commands.common import (
     package_name_from_spec,
     run_post_install_actions,
 )
-from pipx.commands.transaction import preserve_venv
+from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
@@ -166,7 +166,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
     messages: Final[list[OutputMessage]] = []
-    with preserve_venv(venv_dir, enabled=bool(include_resources_from)):
+    with preserve_venv(venv_dir, enabled=bool(include_resources_from)), marked_unfinished(venv_dir):
         package_name = _install_under_installed_name(
             partial(
                 venv.install_package,

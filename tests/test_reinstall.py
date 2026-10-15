@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import signal
 import subprocess
 import sys
 from dataclasses import replace
@@ -387,3 +389,18 @@ def test_reinstall_records_injected_local_project_under_its_new_name(
     assert not run_pipx_cli(["reinstall", "empty-project"])
 
     assert list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages) == ["renamed"]
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_reinstall_restores_venv_on_sigterm_to_pipx_alone(
+    capsys: pytest.CaptureFixture[str], before_venv_subprocess: Callable[[Path, Callable[[], None]], None]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    metadata_before: Final[str] = (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()
+    before_venv_subprocess(paths.ctx.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
+
+    exit_code: Final[int] = run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert (exit_code, (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()) == (1, metadata_before)

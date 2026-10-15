@@ -12,6 +12,7 @@ __lazy_modules__ = [
     "pathlib",
     "pipx.backends",
     "pipx.commands.environment",
+    "pipx.fanout",
     "pipx.package_specifier",
     "pipx.result",
     "pipx.shared_libs",
@@ -67,6 +68,7 @@ from pipx.constants import (
     _compute_max_logs,
 )
 from pipx.emojis import hazard
+from pipx.fanout import stopping_children_on_signals
 from pipx.interpreter import (
     InterpreterResolutionError,
     find_python_interpreter,
@@ -2281,8 +2283,10 @@ def _command_tokens(args: argparse.Namespace) -> tuple[str, ...]:
 def cli() -> ExitCode:
     """Entry point from command line"""
     try:
-        hide_cursor()
-        return _dispatch(sys.argv[1:])
+        with stopping_children_on_signals() as signalled:
+            hide_cursor()
+            # a command that finished its work after an interrupt still reports being interrupted
+            return ExitCode(_dispatch(sys.argv[1:]) or int(signalled.is_set()))
     except PipxError as error:
         print(str(error), file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         _LOGGER.debug("PipxError: %s", error, exc_info=True)

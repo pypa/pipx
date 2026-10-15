@@ -201,6 +201,8 @@ class UvBackend(Backend):
             capture_stdout=capture_stdout,
             capture_stderr=capture_stderr,
             env_overrides=_uv_env_overrides(),
+            # uncaptured, it talks to the user's terminal, as under `pipx runpip`
+            interactive=not (capture_stdout or capture_stderr),
         )
 
     def _uv_pip_command(

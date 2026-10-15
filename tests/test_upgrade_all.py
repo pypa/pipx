@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import shutil
+import signal
 import subprocess
 import time
 from threading import Barrier
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
 
 import pytest
 
@@ -17,9 +19,11 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_windows,
 )
 from package_info import PKG
 from pipx import paths
+from pipx.constants import EXIT_CODE_LIST_PROBLEM
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
@@ -29,6 +33,10 @@ if TYPE_CHECKING:
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
+
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -444,3 +452,125 @@ def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixt
     assert {
         package["environment"]: package["status"] for package in json.loads(capsys.readouterr().out)["data"]["packages"]
     } == {"black": "upgraded", "pycowsay": "unchanged"}
+
+
+@pytest.fixture
+def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> Callable[[int], None]:
+    """Signal pipx alone as pip starts upgrading the first black venv, as pressing Ctrl-C that many times would."""
+
+    def patch(presses: int) -> None:
+        mocker.patch.object(subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog))
+
+    return patch
+
+
+def _interrupting(call: Callable[_P, _R], presses: int, caplog: pytest.LogCaptureFixture) -> Callable[_P, _R]:
+    pending: Final[list[int]] = [presses]
+
+    def interrupting(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        if pending[0] and "--upgrade" in (command := str(args[0])) and f"{os.sep}black" in command:
+            for press in range(pending.pop()):
+                os.kill(os.getpid(), signal.SIGINT)
+                deadline: Final[float] = time.monotonic() + 5
+                while press == 0 and not any("Finishing" in message for message in caplog.messages):
+                    if time.monotonic() > deadline:
+                        break
+                    time.sleep(0.01)
+            pending.append(0)
+        return call(*args, **kwargs)
+
+    return interrupting
+
+
+@pytest.fixture
+def black_installed(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
+def test_upgrade_all_finishes_upgrade_in_progress_on_first_interrupt(
+    capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]
+) -> None:
+    interrupt_upgrade(1)
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
+
+    assert (exit_code, "upgraded package black from 22.8.0 to " in capsys.readouterr().out) == (1, True)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
+def test_upgrade_all_reports_upgrade_stopped_by_second_interrupt(
+    capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]
+) -> None:
+    interrupt_upgrade(2)
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
+
+    assert (exit_code, "Interrupted while upgrading black;" in capsys.readouterr().err) == (1, True)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
+def test_upgrade_all_does_not_start_upgrades_after_interrupt(
+    capsys: pytest.CaptureFixture[str], mocker: MockerFixture, interrupt_upgrade: Callable[[int], None]
+) -> None:
+    assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix=_x"])
+    capsys.readouterr()
+    # one worker, so the upgrade of the other venv waits for the interrupted one
+    mocker.patch.object(os, "cpu_count", return_value=1)
+    interrupt_upgrade(1)
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
+
+    assert (exit_code, "Interrupted before upgrading: black" in capsys.readouterr().err) == (1, True)
+
+
+@pytest.fixture
+def unfinished_black(capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]) -> None:
+    interrupt_upgrade(2)
+    assert run_pipx_cli(["upgrade-all"])
+    capsys.readouterr()
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed", "unfinished_black")
+def test_list_reports_venv_left_unfinished_by_interrupt(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code: Final[int] = run_pipx_cli(["list"])
+
+    assert (exit_code, "left half changed by an interrupted pipx run: black." in capsys.readouterr().err) == (
+        EXIT_CODE_LIST_PROBLEM,
+        True,
+    )
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["upgrade-all"], id="upgrade-all"),
+        pytest.param(["upgrade", "black"], id="upgrade"),
+        pytest.param(["reinstall", "black"], id="reinstall"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed", "unfinished_black")
+def test_command_repairs_venv_left_unfinished_by_interrupt(
+    capsys: pytest.CaptureFixture[str], command: list[str]
+) -> None:
+    assert not run_pipx_cli(command)
+    capsys.readouterr()
+
+    assert (run_pipx_cli(["list"]), "interrupted" in capsys.readouterr().err) == (0, False)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed", "unfinished_black")
+def test_upgrade_all_repairs_unfinished_venv_whose_python_is_gone(capsys: pytest.CaptureFixture[str]) -> None:
+    remove_venv_interpreter("black")
+
+    assert not run_pipx_cli(["upgrade-all"])
+    capsys.readouterr()
+
+    assert (run_pipx_cli(["list"]), "interrupted" in capsys.readouterr().err) == (0, False)

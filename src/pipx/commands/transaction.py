@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "pipx.util", "shutil", "tempfile"]
+__lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.util", "shutil", "tempfile"]
 
 from contextlib import contextmanager
 from pathlib import Path
@@ -9,10 +9,13 @@ from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
+from pipx.fanout import finished_on_interrupt
 from pipx.util import PipxError, rmdir
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+_UNFINISHED_MARKER: Final[str] = "pipx_unfinished"
 
 
 @contextmanager
@@ -43,6 +46,29 @@ def preserve_venv(venv_dir: Path, *, enabled: bool) -> Generator[None, None, Non
         rmdir(backup_dir)
 
 
+@contextmanager
+def marked_unfinished(venv_dir: Path) -> Generator[None, None, None]:
+    """Mark the environment as half changed until the block completes or fails with an error pipx reports.
+
+    An interrupt, a crash or a kill leaves the mark behind, which tells the next upgrade or reinstall to rebuild it.
+    """
+    with finished_on_interrupt():
+        marker: Final[Path] = venv_dir / _UNFINISHED_MARKER
+        marker.touch()
+        try:
+            yield
+        except PipxError:
+            marker.unlink()
+            raise
+        marker.unlink()
+
+
+def is_unfinished(venv_dir: Path) -> bool:
+    return (venv_dir / _UNFINISHED_MARKER).is_file()
+
+
 __all__ = [
+    "is_unfinished",
+    "marked_unfinished",
     "preserve_venv",
 ]

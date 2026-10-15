@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["concurrent.futures", "functools", "logging", "signal", "threading"]
+__lazy_modules__ = ["concurrent.futures", "functools", "signal"]
 
 import logging
 import os
 import signal
 import sys
 from concurrent.futures import Future, ThreadPoolExecutor, wait
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from contextvars import Context, ContextVar, copy_context
 from dataclasses import dataclass, field
 from functools import partial
-from threading import Condition, Event, current_thread, main_thread
+from threading import Condition, Event, RLock, current_thread, main_thread
 from typing import TYPE_CHECKING, Final, NoReturn, TextIO, TypeVar, cast
+
+from pipx.constants import WINDOWS
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
@@ -23,27 +25,73 @@ if TYPE_CHECKING:
 
     _Child = Popen[str] | Popen[bytes]
 
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _ResultT = TypeVar("_ResultT")
 _SLOT: Final[ContextVar[_Slot | None]] = ContextVar("fanout_slot", default=None)
+# the children started outside a fan-out, which a signal handler stops, hence reentrant
+_LOOSE_CHILDREN: Final[set[_Child]] = set()
+_LOOSE_CHILDREN_LOCK: Final[RLock] = RLock()
 
 
-def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> list[_ResultT]:
+@contextmanager
+def stopping_children_on_signals() -> Generator[Event, None, None]:
+    """Turn SIGINT, SIGTERM and SIGHUP into KeyboardInterrupt, stopping the children started outside a fan-out first.
+
+    Children run in a process group of their own, so a Ctrl-C in the terminal reaches pipx alone and pipx stops them.
+    Once signalled, pipx is about to exit, so it ignores further signals from then on: one landing while it exits would
+    end it with a traceback instead of its exit code. Yields an event set once a signal arrived.
+    """
+    signalled: Final[Event] = Event()
+    if current_thread() is not main_thread():
+        yield signalled
+        return
+
+    def interrupt(_number: int, _frame: FrameType | None) -> NoReturn:
+        signalled.set()
+        with _LOOSE_CHILDREN_LOCK:
+            for process in _LOOSE_CHILDREN:
+                _stop(process)
+        raise KeyboardInterrupt
+
+    # Windows has no SIGHUP
+    previous: Final = {
+        number: signal.signal(number, interrupt)
+        for number in {signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
+    }
+    try:
+        yield signalled
+    finally:
+        for number, handler in previous.items():
+            signal.signal(number, signal.SIG_IGN if signalled.is_set() else handler)
+
+
+def fan_out(
+    tasks: Sequence[Callable[[], _ResultT]],
+    *,
+    sequential: bool,
+    interrupted: Callable[[int], _ResultT] | None = None,
+) -> list[_ResultT]:
     """Run the tasks concurrently, printing what each one writes in task order, as if they ran one after another.
 
     The earliest unfinished task writes to the terminal directly; the others buffer until it is their turn. When a task
     raises, tasks that have not started yet are cancelled and the first exception, in task order, propagates.
+
+    An interrupt stops the children of every task and propagates once the tasks have rolled back. With ``interrupted``,
+    the first interrupt instead lets the work tasks run under :func:`finished_on_interrupt` finish, a second one stops
+    that too, and each task cut short or never started returns ``interrupted(its index)``.
     """
-    # capped like the outdated check, so a large pipx home does not start dozens of pip or uv runs against the index
-    if sequential or (workers := min(len(tasks), os.cpu_count() or 1, 8)) <= 1:
+    if sequential or not tasks:
         return [task() for task in tasks]
+    # capped like the outdated check, so a large pipx home does not start dozens of pip or uv runs against the index
+    workers: Final[int] = min(len(tasks), os.cpu_count() or 1, 8)
     turn: Final[Condition] = Condition()
     # the turn's lock also guards the children, which no task holds while waiting for a child to exit
-    children: Final[_Children] = _Children(turn, Event())
+    children: Final[_Children] = _Children(turn, Event(), finishes=interrupted is not None)
     slots: Final[list[_Slot]] = []
     for _ in tasks:
         slots.append(_Slot(turn, children, live=not slots, after=slots[-1] if slots else None))
     executor: Final[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=workers)
-    with _interrupted_on_termination(), _routed_output(children):
+    with _routed_output(children):
         futures: Final[list[Future[_ResultT]]] = []
         try:
             futures.extend(
@@ -54,34 +102,22 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
             _wait_in_order(futures, slots)
         except KeyboardInterrupt:
             _interrupt(futures, children)
-            raise
+            if interrupted is None:
+                raise
+            if not children.interrupted:
+                _finish_in_order(futures, slots, children)
         finally:
             children.submitted.set()
             _settle(futures, slots, children)
             executor.shutdown(cancel_futures=True)
-    return [future.result() for future in futures]
-
-
-@contextmanager
-def _interrupted_on_termination() -> Generator[None, None, None]:
-    # a SIGTERM or SIGHUP sent to pipx alone would otherwise end it at once and leave its children running as orphans
-    if current_thread() is not main_thread():
-        yield
-        return
-    # Windows has no SIGHUP
-    previous: Final = {
-        number: signal.signal(number, _raise_interrupt)
-        for number in {signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
-    }
-    try:
-        yield
-    finally:
-        for number, handler in previous.items():
-            signal.signal(number, handler)
-
-
-def _raise_interrupt(_number: int, _frame: FrameType | None) -> NoReturn:
-    raise KeyboardInterrupt
+    if interrupted is None or not children.stopping:
+        return [future.result() for future in futures]
+    return [
+        interrupted(index)
+        if future.cancelled() or isinstance(future.exception(), KeyboardInterrupt)
+        else future.result()
+        for index, future in enumerate(futures)
+    ]
 
 
 def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
@@ -103,11 +139,21 @@ def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
 
 
 def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
-    # a SIGINT sent to pipx alone, not to its process group, leaves the children running, so stop them for the running
-    # tasks to roll back now instead of finishing their work first
+    # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
     for future in futures:
         future.cancel()
-    children.stop()
+    if finishing := children.stop():
+        _LOGGER.warning(
+            "Finishing the %d environment(s) already being changed; press Ctrl-C again to stop them too.", finishing
+        )
+
+
+def _finish_in_order(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
+    # the tasks left to finish keep printing in task order, unless interrupted again
+    try:
+        _wait_in_order(futures, slots)
+    except KeyboardInterrupt:
+        _interrupt(futures, children)
 
 
 def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
@@ -167,41 +213,95 @@ def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
 
 
 @contextmanager
-def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
-    """Terminate the child process when the fan-out running this task is interrupted, then interrupt the task too."""
-    if (slot := _SLOT.get()) is None:
+def finished_on_interrupt() -> Generator[None, None, None]:
+    """Let the work in this block finish when a fan-out that takes ``interrupted`` is interrupted for the first time.
+
+    Raises KeyboardInterrupt instead of starting the work once that fan-out is interrupted.
+    """
+    if (slot := _SLOT.get()) is None or not slot.children.finishes:
         yield
         return
     children: Final[_Children] = slot.children
     with children.lock:
-        children.running.add(process)
-        if children.interrupted:
-            process.terminate()
+        if children.stopping:
+            raise KeyboardInterrupt
+        children.finishing.add(slot)
     try:
         yield
     finally:
         with children.lock:
-            children.running.discard(process)
-    if children.interrupted:
+            children.finishing.discard(slot)
+
+
+@contextmanager
+def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
+    """Stop the child process when pipx is interrupted, interrupting the fan-out task that runs it too.
+
+    The child must run in a process group of its own, which stopping it ends as a whole.
+    """
+    if (slot := _SLOT.get()) is None:
+        with _LOOSE_CHILDREN_LOCK:
+            _LOOSE_CHILDREN.add(process)
+        try:
+            yield
+        finally:
+            with _LOOSE_CHILDREN_LOCK:
+                _LOOSE_CHILDREN.discard(process)
+        return
+    children: Final[_Children] = slot.children
+    with children.lock:
+        children.running[process] = slot
+        if children.stops(slot):
+            _stop(process)
+    try:
+        yield
+    finally:
+        with children.lock:
+            del children.running[process]
+    if children.stops(slot):
         raise KeyboardInterrupt
+
+
+def _stop(process: _Child) -> None:
+    if WINDOWS:
+        process.terminate()
+        return
+    # the group outlives its leader while a grandchild such as a build backend still runs; an empty group raises
+    # ProcessLookupError, and macOS raises PermissionError for one holding only zombies
+    with suppress(ProcessLookupError, PermissionError):
+        os.killpg(process.pid, signal.SIGTERM)
 
 
 @dataclass
 class _Children:
     lock: Condition
     submitted: Event
-    running: set[_Child] = field(default_factory=set)
+    finishes: bool
+    running: dict[_Child, _Slot] = field(default_factory=dict)
+    finishing: set[_Slot] = field(default_factory=set)
+    stopping: bool = False
     interrupted: bool = False
     # the writer that left each stream's last line open
     open_lines: dict[TextIO, object] = field(default_factory=dict)
 
-    def stop(self) -> None:
+    def stop(self) -> int:
+        """Stop the children of the tasks not finishing their work, or of every task when there is none or once more.
+
+        Returns how many tasks finish their work.
+        """
         with self.lock:
-            self.interrupted = True
-            for process in self.running:
-                process.terminate()
-            # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
-            self.open_lines = dict.fromkeys(self.open_lines, object())
+            if self.stopping or not self.finishing:
+                self.interrupted = True
+                # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
+                self.open_lines = dict.fromkeys(self.open_lines, object())
+            self.stopping = True
+            for process, slot in self.running.items():
+                if self.stops(slot):
+                    _stop(process)
+            return 0 if self.interrupted else len(self.finishing)
+
+    def stops(self, slot: _Slot) -> bool:
+        return self.interrupted or (self.stopping and slot not in self.finishing)
 
     def write(self, target: TextIO, text: str, writer: object) -> int:
         with self.lock:
@@ -215,7 +315,7 @@ class _Children:
             return target.write(text)
 
 
-@dataclass
+@dataclass(eq=False)
 class _Slot:
     turn: Condition
     children: _Children
@@ -251,7 +351,7 @@ def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
     # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
     try:
         slot.children.submitted.wait()
-        if slot.children.interrupted:
+        if slot.children.stopping:
             raise KeyboardInterrupt
         return task()
     finally:
@@ -307,8 +407,10 @@ class _RoutedStream:
 
 __all__ = [
     "fan_out",
+    "finished_on_interrupt",
     "in_turn",
     "locked_in_order",
     "output_is_held",
     "stopped_on_interrupt",
+    "stopping_children_on_signals",
 ]

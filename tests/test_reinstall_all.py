@@ -20,7 +20,7 @@ from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable
 
     from pytest_mock import MockerFixture
 
@@ -239,15 +239,8 @@ def test_reinstall_all_gives_shared_man_page_to_the_last_venv(
     assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(last)
 
 
-@pytest.fixture
-def default_sigint_handler() -> Iterator[None]:
-    previous: Final = signal.signal(signal.SIGINT, signal.default_int_handler)
-    yield
-    signal.signal(signal.SIGINT, previous)
-
-
 @pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")
-@pytest.mark.usefixtures("pipx_temp_env", "default_sigint_handler")
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
 def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
 ) -> None:
