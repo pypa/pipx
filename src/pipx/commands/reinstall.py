@@ -264,12 +264,16 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
             Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir
         )
         _remove_stale_reinstall_resources(old_resource_paths - new_resource_paths)
-    except (PipxError, KeyboardInterrupt):
+    except PipxError:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
-        # an expected failure (e.g. pip could not install the package) that the CLI reports itself, or an interrupt that
-        # reaches every task of reinstall-all at once, so like the CLI entry point keep its traceback for debug output
+        # an expected failure (e.g. pip could not install the package) that the CLI reports itself, so like the CLI
+        # entry point keep its traceback for debug output
         _LOGGER.error("%s Reinstall failed; restored %s.", error, venv.name)  # ruff:ignore[error-instead-of-exception]
         _LOGGER.debug("Reinstall failure", exc_info=True)
+        raise
+    except KeyboardInterrupt:
+        _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
+        _LOGGER.error("%s Interrupted; restored %s.", error, venv.name)  # ruff:ignore[error-instead-of-exception]
         raise
     except Exception:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)

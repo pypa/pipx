@@ -118,7 +118,7 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
     assert run_pipx_cli(["reinstall-all", "--python", sys.executable])
     captured = capsys.readouterr()
 
-    assert "Reinstall failed; restored pycowsay." in captured.err
+    assert "Interrupted; restored pycowsay." in captured.err
     assert venv_dir.exists()
     assert (venv_dir / "pipx_metadata.json").read_text() == metadata_before
     assert not (venv_dir / "partial-install").exists()
@@ -205,7 +205,7 @@ def test_reinstall_all_reports_interrupted_venv_without_traceback(
     run_pipx_cli(["reinstall-all"])
 
     err: Final[str] = capsys.readouterr().err
-    assert (f"Reinstall failed; restored {venv_names[0]}." in err, "Traceback" in err) == (True, False)
+    assert (f"Interrupted; restored {venv_names[0]}." in err, "Traceback" in err) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
