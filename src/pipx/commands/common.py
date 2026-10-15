@@ -103,17 +103,23 @@ def expose_shared_resources_in_order(
     # a path several environments of a fan-out expose must end up where a one-at-a-time run leaves it, so they expose
     # it in task order; only shared paths wait, as a task waiting for its turn holds one of the fan-out's workers
     counts: Final[Counter[Path]] = Counter(
-        path
-        for metadata in venvs_metadata
-        for path in _expected_resource_paths(
-            metadata, (metadata.main_package, *metadata.injected_packages.values()), local_bin_dir, local_man_dir
-        )
+        path for metadata in venvs_metadata for path in _shareable_paths(metadata, local_bin_dir, local_man_dir)
     )
     token = _SHARED_RESOURCES.set(frozenset(path for path, count in counts.items() if count > 1))
     try:
         yield
     finally:
         _SHARED_RESOURCES.reset(token)
+
+
+def _shareable_paths(metadata: PipxMetadata, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    try:
+        return _expected_resource_paths(
+            metadata, (metadata.main_package, *metadata.injected_packages.values()), local_bin_dir, local_man_dir
+        )
+    except (AttributeError, TypeError):
+        # corrupt metadata, such as a null path list, is for the task of its own environment to report
+        return set()
 
 
 def expose_resources_globally(

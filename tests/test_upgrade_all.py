@@ -427,3 +427,20 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
         f"Not upgrading {outdated_venv_names[0]}. It has an invalid python interpreter" in captured.err,
         f"The following package(s) failed to upgrade: {outdated_venv_names[0]}" in captured.err,
     ) == (1, True, True, True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / "pipx_metadata.json"
+    metadata: Final = json.loads(metadata_file.read_text(encoding="utf-8"))
+    metadata["main_package"]["app_paths"] = None
+    metadata_file.write_text(json.dumps(metadata), encoding="utf-8")
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade-all", "--output", "json"])
+
+    assert {
+        package["environment"]: package["status"] for package in json.loads(capsys.readouterr().out)["data"]["packages"]
+    } == {"black": "upgraded", "pycowsay": "unchanged"}
