@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.18.1 <https://github.com/pypa/pipx/tree/1.18.1>`_ - 2026-10-15
+=================================================================
+
+Bugfixes
+--------
+
+- Stop pip and uv when Ctrl-C lands early, instead of hanging. (:issue:`2146`)
+
+
 `1.18.0 <https://github.com/pypa/pipx/tree/1.18.0>`_ - 2026-10-15
 =================================================================
 
