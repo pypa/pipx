@@ -1331,6 +1331,28 @@ def test_install_verbose_masks_index_credentials(
     assert "s3cr3t" not in output
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize(
+    "spec",
+    [
+        pytest.param("https://alice:s3cr3t@127.0.0.1:9/pkg-1.0-py3-none-any.whl", id="url"),
+        pytest.param("pkg @ https://alice:s3cr3t@127.0.0.1:9/pkg-1.0-py3-none-any.whl", id="named-url"),
+    ],
+)
+@pytest.mark.parametrize("flags", [pytest.param([], id="quiet"), pytest.param(["--verbose"], id="verbose")])
+def test_install_masks_spec_credentials(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, spec: str, flags: list[str]
+) -> None:
+    monkeypatch.setenv("UV_HTTP_RETRIES", "0")
+
+    assert run_pipx_cli(["install", "--backend", "uv", *flags, spec])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "s3cr3t" not in captured.out + captured.err + log
+
+
 _BACKENDS: Final[list[object]] = [
     pytest.param("pip", id="pip"),
     pytest.param("uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")),

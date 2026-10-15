@@ -613,7 +613,9 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
         return "already-satisfied", (
-            OutputMessage(f"{package_name} {installed_version} already satisfies {package_spec}"),
+            OutputMessage(
+                f"{package_name} {installed_version} already satisfies {redact_url_credentials(package_spec)}"
+            ),
         )
     if package_metadata.pinned:
         validate_expected_apps(venv, package_name, expected_apps)

@@ -22,7 +22,7 @@ from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.emojis import hazard
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import PipxError, pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
     from packaging.requirements import Requirement
@@ -109,7 +109,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
             valid_local_path = str(package_path.resolve()) + package_extras_str
 
     if not valid_pep508 and not valid_url and not valid_local_path:
-        msg = f"Unable to parse package spec: {package_spec}"
+        msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
         raise PipxError(msg)
 
     if valid_pep508 and valid_local_path:
@@ -167,7 +167,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_v
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logger.info("cleaned package spec: %s", package_or_url)
+    logger.info("cleaned package spec: %s", redact_url_credentials(package_or_url))
     return package_or_url
 
 

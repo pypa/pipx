@@ -47,7 +47,7 @@ from pipx.result import (
     render_messages,
     render_result,
 )
-from pipx.util import InstalledNameMismatchError, PipxError, pipx_wrap
+from pipx.util import InstalledNameMismatchError, PipxError, pipx_wrap, redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -79,11 +79,11 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     pinned: bool | None = None,
     emit_output: bool = True,
 ) -> OperationResult[InjectionData]:
-    _LOGGER.debug("Injecting package %s", package_spec)
+    _LOGGER.debug("Injecting package %s", redact_url_credentials(package_spec))
 
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         msg = f"""
-            Can't inject {package_spec!r} into nonexistent Virtual Environment
+            Can't inject {redact_url_credentials(package_spec)!r} into nonexistent Virtual Environment
             {venv_dir.name!r}. Be sure to install the package first with 'pipx
             install {venv_dir.name}' before injecting into it.
             """
@@ -92,7 +92,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     if not venv.package_metadata:
         msg = f"""
-            Can't inject {package_spec!r} into Virtual Environment
+            Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
             {venv.name!r}. {venv.name!r} has missing internal pipx metadata. It
             was likely installed using a pipx version before 0.15.0.0. Please
             uninstall and install {venv.name!r}, or reinstall-all to fix.

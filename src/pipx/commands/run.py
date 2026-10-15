@@ -50,6 +50,7 @@ from pipx.util import (
     exec_app,
     get_pypackage_bin_path,
     pipx_wrap,
+    redact_url_credentials,
     rmdir,
     run_pypackage_bin,
 )
@@ -534,7 +535,10 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
             app, app_filename = _app_names(apps[0])
             print(f"NOTE: running app {app!r} from {package_name!r}")  # ruff:ignore[print]  # user-facing CLI output
         else:
-            all_apps = (f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'" for a in apps)
+            all_apps = (
+                f"{a} - usage: 'pipx run --spec {redact_url_credentials(package_or_url)} {a} [arguments?]'"
+                for a in apps
+            )
             raise PipxError(
                 _APP_NOT_FOUND_ERROR_MESSAGE.format(
                     app=app,
@@ -628,7 +632,7 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 def _reject_oversized_script(url: str, data: bytes) -> None:
     if len(data) > _MAX_SCRIPT_BYTES:
-        msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+        msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
         raise PipxError(msg)
 
 

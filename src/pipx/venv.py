@@ -521,7 +521,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         elif not package_spec_satisfied(package_or_url, package_name, distribution.version, package_or_url):
             msg = (
                 f"Lock file {lock_file} provides {package_name} {distribution.version}, "
-                f"which does not satisfy {package_or_url}."
+                f"which does not satisfy {redact_url_credentials(package_or_url)}."
             )
             raise PipxError(msg)
 
@@ -563,7 +563,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         pip_args: list[str],
         cooldown_days: int | None = None,
     ) -> str:
-        with animate(f"determining package name from {package_or_url!r}", do_animation=self.do_animation):
+        with animate(
+            f"determining package name from {redact_url_credentials(package_or_url)!r}", do_animation=self.do_animation
+        ):
             old_package_set = self.list_installed_packages()
             process = self.backend.install(
                 venv_root=self.root,
@@ -582,7 +584,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             if error_output and not (self.verbose or self.show_progress):
                 raise PipxError(error_output, wrap_message=False)
             msg = f"""
-                Error determining package name from spec {package_or_url!r}.
+                Error determining package name from spec {redact_url_credentials(package_or_url)!r}.
                 See installer output for details.
                 """
             raise PipxError(msg, backend_output=_as_displayed(error_output))
@@ -595,7 +597,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             _LOGGER.info("old_package_set = %s", old_package_set)
             _LOGGER.info("install_packages = %s", installed_packages)
             msg = f"""
-                Cannot determine package name from spec {package_or_url!r}.
+                Cannot determine package name from spec {redact_url_credentials(package_or_url)!r}.
                 Check package spec for errors.
                 """
             raise PipxError(msg)

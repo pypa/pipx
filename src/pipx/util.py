@@ -729,7 +729,7 @@ def exec_app(
 def full_package_description(package_name: str, package_spec: str) -> str:
     if package_name == package_spec:
         return package_name
-    return f"{package_name} from spec {package_spec!r}"
+    return f"{package_name} from spec {redact_url_credentials(package_spec)!r}"
 
 
 def is_paths_relative(path: Path, parent: Path) -> bool:
