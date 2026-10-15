@@ -212,6 +212,11 @@ ini_options.log_level = "INFO"
 # the limit itself comes from PYTEST_TIMEOUT in tox.toml; session fixtures that build shared libs stay outside it
 ini_options.timeout_func_only = true
 
+[tool.coverage]
+run.relative_files = true
+# tox installs pipx as a wheel, so map its site-packages copy back onto src/ in reports
+paths.source = [ "src", "*/site-packages", "*\\site-packages" ]
+
 [tool.towncrier]
 package = "pipx"
 directory = "changelog.d"
