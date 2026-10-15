@@ -72,6 +72,20 @@ def install_packages(
     assert "WARNING" not in caplog.text
 
 
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_wheel_from_file_url(dotted_app_wheel: Path, tmp_path: Path, backend: str) -> None:
+    wheel_dir: Final[Path] = tmp_path / "wheels with spaces"
+    wheel_dir.mkdir()
+    package_spec: Final[str] = dotted_app_wheel.rename(wheel_dir / dotted_app_wheel.name).as_uri()
+
+    assert not run_pipx_cli(["install", "--backend", backend, package_spec])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "foo-bar-x")
+    assert metadata.main_package.package_or_url == package_spec
+    assert (paths.ctx.bin_dir / app_name("tool3.12")).is_file()
+
+
 @pytest.mark.parametrize(
     ("package_name", "package_spec"),
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
