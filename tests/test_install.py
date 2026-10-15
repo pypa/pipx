@@ -1331,6 +1331,33 @@ def test_install_verbose_masks_index_credentials(
     assert "s3cr3t" not in output
 
 
+_BACKENDS: Final[list[object]] = [
+    pytest.param("pip", id="pip"),
+    pytest.param("uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")),
+]
+
+
+@pytest.fixture
+def project_failing_to_build(tmp_path: Path) -> Path:
+    # setup.py only, so pipx learns the name by installing it, and the build fails before anything installs
+    project: Final[Path] = tmp_path / "fails-to-build"
+    project.mkdir()
+    (project / "setup.py").write_text("raise SystemExit('pipx-test-build-failure')\n", encoding="utf-8")
+    return project
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("backend", _BACKENDS)
+def test_install_name_probe_failure_streamed_prints_the_error_once(
+    project_failing_to_build: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture, backend: str
+) -> None:
+    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
+
+    assert run_pipx_cli(["install", "--backend", backend, str(project_failing_to_build)])
+
+    assert capsys.readouterr().err.count("pipx-test-build-failure") == 1
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])

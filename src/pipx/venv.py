@@ -579,7 +579,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             error_output = (process.stderr or process.stdout or "").strip()
             if constraint := rejected_constraint(error_output):
                 raise IncompatiblePythonError(constraint)
-            if error_output:
+            if error_output and not (self.verbose or self.show_progress):
                 raise PipxError(error_output, wrap_message=False)
             msg = f"""
                 Error determining package name from spec {package_or_url!r}.
