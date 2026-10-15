@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
-_LOCAL_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"git+file", "hg+file"})
+_LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+file"})
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
 _SHORT_OPTION_LEN: Final[int] = 2
@@ -98,7 +98,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     if not valid_pep508:
         parsed_url = urllib.parse.urlsplit(package_spec)
         if parsed_url.scheme and (
-            parsed_url.netloc or (parsed_url.scheme in _LOCAL_VCS_SCHEMES and parsed_url.path.startswith("/"))
+            parsed_url.netloc or (parsed_url.scheme in _LOCAL_FILE_SCHEMES and parsed_url.path.startswith("/"))
         ):
             valid_url = package_spec
 

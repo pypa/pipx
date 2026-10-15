@@ -401,6 +401,27 @@ def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) ->
 
 
 @pytest.mark.parametrize(
+    "package_spec",
+    [
+        "file:///opt/wheels/demo-1-py3-none-any.whl",
+        "file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc",
+        "file:///C:/wheels/demo-1-py3-none-any.whl",
+        "file:///opt/project[cli]",
+    ],
+)
+def test_parse_specifier_preserves_absolute_file_url(package_spec: str) -> None:
+    assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
+    assert parse_specifier_for_metadata(package_spec) == package_spec
+    assert parse_specifier_for_upgrade(package_spec) == package_spec
+
+
+@pytest.mark.parametrize("package_spec", ["file:relative.whl", "https:/example.com/demo.whl", "git+file:relative"])
+def test_parse_specifier_rejects_hostless_relative_url(package_spec: str) -> None:
+    with pytest.raises(PipxError, match="Unable to parse package spec"):
+        parse_specifier_for_install(package_spec, [])
+
+
+@pytest.mark.parametrize(
     ("pip_args_in", "pip_args_expected"),
     [
         (
