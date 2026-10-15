@@ -27,6 +27,8 @@ from pipx.util import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
@@ -190,6 +192,36 @@ def test_subprocess_held_uncaptured_stderr_stays_unset() -> None:
         return stderr
 
     assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, None]
+
+
+@pytest.fixture
+def typed_input() -> Iterator[None]:
+    read_end, write_end = os.pipe()
+    os.write(write_end, b"typed")
+    os.close(write_end)
+    saved: Final[int] = os.dup(0)
+    os.dup2(read_end, 0)
+    os.close(read_end)
+    try:
+        yield
+    finally:
+        os.dup2(saved, 0)
+        os.close(saved)
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+@pytest.mark.usefixtures("typed_input")
+def test_subprocess_of_fan_out_task_waiting_its_turn_reads_no_input(stream_output: bool) -> None:
+    second_done: Final[threading.Event] = threading.Event()
+
+    def second() -> str:
+        stdout = run_subprocess(
+            [sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"], stream_output=stream_output
+        ).stdout
+        second_done.set()
+        return stdout
+
+    assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, "''\n"]
 
 
 def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[str]) -> None:

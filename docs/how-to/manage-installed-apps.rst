@@ -53,7 +53,8 @@ Pinned environments are skipped; see :doc:`pin-packages`.
 
 pipx upgrades up to eight environments at once and prints their output in environment order, as a one-at-a-time run
 would. An app, manual page, or completion that several environments expose ends up with the same environment as in a
-one-at-a-time run. A failed environment does not stop the others. Pass ``--verbose`` to upgrade them one at a time.
+one-at-a-time run. A failed environment does not stop the others. pip or uv cannot prompt for input, such as index
+credentials, while their environment waits its turn. Pass ``--verbose`` to upgrade them one at a time.
 
 Verify:
 
@@ -127,7 +128,8 @@ interpreter and ``--skip PKG ...`` to exclude environments.
 pipx rebuilds up to eight environments at once (fewer on machines with fewer CPUs) and holds back the output of each
 until the ones before it finish, so it reads the same as a one-at-a-time run. An app, manual page, or completion that
 several environments expose ends up with the same environment as in a one-at-a-time run. A failed environment does
-not stop the others. Pass ``--verbose`` to rebuild them one at a time and watch the pip or uv output as it happens.
+not stop the others. pip or uv cannot prompt for input, such as index credentials, while their environment waits its
+turn. Pass ``--verbose`` to rebuild them one at a time and watch the pip or uv output as it happens.
 
 Verify:
 

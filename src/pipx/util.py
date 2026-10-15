@@ -296,6 +296,7 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             subprocess.Popen(
                 cmd_str_list,
                 env=env,
+                stdin=_held_input(),
                 stdout=subprocess.PIPE if capture_stdout else None,
                 stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
                 encoding="utf-8",
@@ -356,6 +357,7 @@ def _run_streaming_subprocess(
             subprocess.Popen(
                 cmd,
                 env=env,
+                stdin=_held_input(),
                 stdout=channels["stdout"].child if capture_stdout else None,
                 stderr=channels["stderr"].child if capture_stderr else None,
                 cwd=cwd,
@@ -430,6 +432,11 @@ def _match_terminal_size(child: int) -> None:
     size: Final[os.terminal_size] = shutil.get_terminal_size()
     with suppress(OSError):
         fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
+
+
+def _held_input() -> int | None:
+    # a prompt of a child whose output is held stays unseen, so it must not read what the user types for another task
+    return subprocess.DEVNULL if output_is_held() else None
 
 
 def _wait_until_drained(reader: int, reading: Future[None]) -> None:
