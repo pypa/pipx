@@ -423,8 +423,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                         progress=self.show_progress,
                     )
                 if process.returncode:
-                    # pip refuses the interpreter and installs nothing, so its complaint is the only place the
-                    # constraint appears; uv installs regardless, which the caller catches from the metadata instead
+                    # the backend refuses the interpreter and installs nothing, so its complaint is the only place the
+                    # constraint appears; uv ignores upper bounds, which the caller catches from the metadata instead
                     if constraint := rejected_constraint(process.stderr or ""):
                         raise IncompatiblePythonError(constraint)
                     subprocess_post_check_handle_pip_error(

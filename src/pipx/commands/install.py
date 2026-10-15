@@ -1011,7 +1011,7 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     messages: list[OutputMessage],
 ) -> Venv:
     try:
-        # pip refuses an interpreter the package rules out, while uv installs onto it, so ask the metadata as well
+        # uv installs onto an interpreter above the package's upper bound, so ask the metadata as well
         constraint = build.run(venv).unsupported_python
     except IncompatiblePythonError as error:
         constraint = error.constraint

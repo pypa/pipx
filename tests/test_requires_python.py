@@ -17,6 +17,7 @@ from pipx.requires_python import interpreter_for, rejected_constraint, unsatisfi
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -34,6 +35,21 @@ if TYPE_CHECKING:
             "ERROR: Package 'x' requires a different Python: 3.14.6 not in '>=3.9,<3.12'",
             "<3.12,>=3.9",
             id="two-clauses",
+        ),
+        pytest.param(
+            "  cause: Because the current Python version (3.11.17) does not satisfy Python>=3.12 and x==1 depends on",
+            ">=3.12",
+            id="uv-rejection",
+        ),
+        pytest.param(
+            "  cause: Because the current Python version (3.11.17) does not satisfy\n         Python>=3.12,<3.16, we",
+            "<3.16,>=3.12",
+            id="uv-wrapped-two-clauses",
+        ),
+        pytest.param(
+            "  cause: Because the current Python version (3.11.17) does not satisfy all of:\n      Python>=3.14",
+            None,
+            id="uv-union",
         ),
         pytest.param("ERROR: No matching distribution found for oldpkg", None, id="other-error"),
         pytest.param("", None, id="empty"),
@@ -141,18 +157,26 @@ def older_python(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch) -> str:
 
 
 @pytest.fixture
-def project_excluding_this_python(tmp_path: Path) -> Path:
-    project: Final[Path] = tmp_path / "needs-older"
-    (project / "needs_older").mkdir(parents=True)
-    (project / "needs_older" / "__init__.py").touch()
-    (project / "needs_older" / "main.py").write_text("def main() -> None:\n    print('needs-older')\n")
-    (project / "pyproject.toml").write_text(
-        '[build-system]\nrequires = ["flit-core"]\nbuild-backend = "flit_core.buildapi"\n\n'
-        '[project]\nname = "needs-older"\nversion = "0.1"\ndescription = "Need an older Python."\n'
-        f'requires-python = "<{sys.version_info.major}.{sys.version_info.minor}"\n'
-        'scripts.needs-older = "needs_older.main:main"\n'
-    )
-    return project
+def make_needs_project(tmp_path: Path) -> Callable[[str], Path]:
+    def create(requires_python: str) -> Path:
+        project: Final[Path] = tmp_path / "needs-older"
+        (project / "needs_older").mkdir(parents=True)
+        (project / "needs_older" / "__init__.py").touch()
+        (project / "needs_older" / "main.py").write_text("def main() -> None:\n    print('needs-older')\n")
+        (project / "pyproject.toml").write_text(
+            '[build-system]\nrequires = ["flit-core"]\nbuild-backend = "flit_core.buildapi"\n\n'
+            '[project]\nname = "needs-older"\nversion = "0.1"\ndescription = "Need another Python."\n'
+            f'requires-python = "{requires_python}"\n'
+            'scripts.needs-older = "needs_older.main:main"\n'
+        )
+        return project
+
+    return create
+
+
+@pytest.fixture
+def project_excluding_this_python(make_needs_project: Callable[[str], Path]) -> Path:
+    return make_needs_project(f"<{sys.version_info.major}.{sys.version_info.minor}")
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
@@ -168,6 +192,19 @@ def test_install_moves_to_a_python_the_package_supports(
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_install_uv_moves_off_a_default_python_below_the_lower_bound(
+    make_needs_project: Callable[[str], Path], older_python: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", older_python)
+    project: Final[Path] = make_needs_project(f">={sys.version_info.major}.{sys.version_info.minor}")
+
+    assert not run_pipx_cli(["install", "--backend", "uv", str(project)])
+
+    recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
+    assert not recorded.startswith(f"Python {older_python.rsplit('python', 1)[1]}.")
 
 
 @pytest.mark.usefixtures("older_python")
