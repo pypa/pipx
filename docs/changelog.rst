@@ -14,6 +14,21 @@ to this file.
 
 .. towncrier release notes start
 
+`1.18.2 <https://github.com/pypa/pipx/tree/1.18.2>`_ - 2026-10-16
+=================================================================
+
+Bugfixes
+--------
+
+- Accept absolute `file:///` URLs as package specs, such as `pipx install file:///wheels/tool-1-py3-none-any.whl`. (:issue:`2150`)
+- In a terminal, show the pipx spinner again during installs and upgrades instead of the full `pip` or `uv` log, which
+  `--verbose` still streams. Installer errors are still printed on failure. (:issue:`2151`)
+- Print the installer error once when a `pipx upgrade --verbose` or pip `pipx install --verbose` fails, instead of
+  repeating it after the live output. (:issue:`2153`)
+- Stop an `-all` command on Ctrl-C even when the interpreter drops the interrupt, which happens when the signal handler
+  runs inside a weakref callback or a finalizer. (:issue:`2154`)
+
+
 `1.18.1 <https://github.com/pypa/pipx/tree/1.18.1>`_ - 2026-10-15
 =================================================================
 
