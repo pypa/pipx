@@ -6,7 +6,9 @@ import signal
 import sys
 import threading
 import time
-from typing import TYPE_CHECKING, Final
+import weakref
+from functools import partial
+from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 from filelock import FileLock, Timeout
@@ -23,7 +25,9 @@ from pipx.fanout import (
 from pipx.util import run_subprocess
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+    from types import FrameType
 
 
 @pytest.fixture
@@ -162,14 +166,35 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_by_signal_another_thread_handles() -> None:
     def interrupted() -> None:
         # a signal sent to the whole process can land on any thread; the interpreter runs its handler on the main thread
         signal.pthread_kill(threading.get_ident(), signal.SIGINT)
         run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
 
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
         fan_out([interrupted, int], sequential=False)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_interrupted_by_signal_whose_interrupt_the_interpreter_dropped(monkeypatch: pytest.MonkeyPatch) -> None:
+    dropped: Final[list[type[BaseException] | None]] = []
+    monkeypatch.setattr(sys, "unraisablehook", lambda unraisable: dropped.append(unraisable.exc_type))
+
+    with stopping_children_on_signals():
+        handler: Final = cast("Callable[[int, FrameType | None], None]", signal.getsignal(signal.SIGINT))
+        target = {0}
+        # the interpreter reports an exception raised in a weakref callback as unraisable instead of propagating it
+        _reference = weakref.ref(target, lambda _: handler(signal.SIGINT, None))
+        del target
+        with pytest.raises(KeyboardInterrupt):
+            fan_out(
+                [partial(run_subprocess, [sys.executable, "-c", "import time; time.sleep(30)"]), int], sequential=False
+            )
+
+    assert dropped == [KeyboardInterrupt]
 
 
 def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -> None:

@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from re import Pattern
+from threading import Lock
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -65,6 +66,8 @@ if not WINDOWS:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _SUBPROCESS_STREAM_READ_SIZE: Final[int] = 8 * 1024
 _STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to_stderr", default=False)
+# Windows appends by seeking to the end and then writing, so fan-out tasks appending at once overwrite each other
+_ERROR_LOG_LOCK: Final[Lock] = Lock()
 
 
 class PipxError(Exception):
@@ -682,8 +685,8 @@ def subprocess_post_check_handle_pip_error(
         raise PipxError(msg)
     error_file = paths.ctx.log_file.parent / f"{paths.ctx.log_file.stem}_{tool_name}_errors.log"
     upper_label = tool_name.upper()
-    # one write per block, as the fan-out tasks of an -all command append their failures to the same file at once
-    with error_file.open("a", encoding="utf-8") as error_fh:
+    # the fan-out tasks of an -all command append their failures to the same file at once
+    with _ERROR_LOG_LOCK, error_file.open("a", encoding="utf-8") as error_fh:
         error_fh.write(
             f"{upper_label} STDOUT\n----------\n{completed_process.stdout or ''}"
             f"\n{upper_label} STDERR\n----------\n{completed_process.stderr or ''}"

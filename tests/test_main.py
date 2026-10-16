@@ -174,6 +174,7 @@ def test_manpage_header(manpage_troff: bytes) -> None:
 
 
 @pytest.mark.skipif(shutil.which("man") is None, reason="man is not installed")
+@pytest.mark.timeout(60)  # man printed nothing for 5 s on a busy Linux CI runner
 def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
     manpage: Final[Path] = tmp_path / "pipx.1"
     manpage.write_bytes(manpage_troff)
@@ -182,8 +183,9 @@ def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         env=os.environ | {"COLUMNS": "200", "MANPAGER": "cat", "PAGER": "cat"},
+        stdin=subprocess.DEVNULL,
         check=False,
-        timeout=5,
+        timeout=30,
     )
     rendered: Final[str] = re.sub(r".\x08", "", result.stdout)
     assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
