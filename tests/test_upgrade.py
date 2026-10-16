@@ -45,6 +45,18 @@ def test_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
     assert "pycowsay is already at latest version" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("flags", [pytest.param([], id="plain"), pytest.param(["--verbose"], id="verbose")])
+def test_upgrade_failure_prints_installer_error_once(capsys: pytest.CaptureFixture[str], flags: list[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["upgrade", *flags, "--pip-args=--no-such-flag", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out + captured.err).count("no such option: --no-such-flag") == 1
+
+
 @pytest.mark.parametrize(
     ("age_sec", "disable_auto_upgrade", "upgrade_args", "refreshed"),
     [

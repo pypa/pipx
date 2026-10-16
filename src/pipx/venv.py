@@ -788,7 +788,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
-        subprocess_post_check(process)
+        subprocess_post_check(process, streamed=self.verbose)
 
     def upgrade_package(  # ruff:ignore[too-many-arguments]  # flat upgrade API mirroring the CLI's upgrade options
         self,
@@ -819,7 +819,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
-        subprocess_post_check(process)
+        subprocess_post_check(process, streamed=self.verbose)
 
         self.update_package_metadata(
             package_name=package_name,

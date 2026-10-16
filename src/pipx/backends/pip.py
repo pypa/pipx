@@ -106,7 +106,7 @@ class PipBackend(Backend):
             verbose=verbose,
         )
         if log_pip_errors:
-            subprocess_post_check_handle_pip_error(process)
+            subprocess_post_check_handle_pip_error(process, streamed=verbose)
         return process
 
     @staticmethod
