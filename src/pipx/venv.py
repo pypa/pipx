@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
-from pipx.animate import STDERR_IS_TTY, animate
+from pipx.animate import animate
 from pipx.backends import (
     Backend,
     OutdatedPackage,
@@ -197,9 +197,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
-        # a terminal lets pip and uv draw their own download bar, which stands in for the spinner
-        self.show_progress = not verbose and STDERR_IS_TTY
-        self.do_animation = not verbose and not self.show_progress
+        self.do_animation = not verbose
         try:
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
@@ -420,16 +418,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                         pip_args=install_pip_args,
                         log_pip_errors=False,
                         verbose=self.verbose,
-                        progress=self.show_progress,
                     )
                 if process.returncode:
                     # the backend refuses the interpreter and installs nothing, so its complaint is the only place the
                     # constraint appears; uv ignores upper bounds, which the caller catches from the metadata instead
                     if constraint := rejected_constraint(process.stderr or ""):
                         raise IncompatiblePythonError(constraint)
-                    subprocess_post_check_handle_pip_error(
-                        process, tool_name=self.backend_name, streamed=self.verbose or self.show_progress
-                    )
+                    subprocess_post_check_handle_pip_error(process, tool_name=self.backend_name, streamed=self.verbose)
                     msg = f"Error installing {full_package_description(package_name, package_or_url)}."
                     raise PipxError(msg, backend_output=_as_displayed(process.stderr or process.stdout or ""))
             else:
@@ -494,7 +489,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 lock_file=lock_file,
                 pip_args=[argument for argument in pip_args if argument != "--editable"],
                 verbose=self.verbose,
-                progress=self.show_progress,
             )
         if process.returncode:
             msg = f"Error installing packages from {lock_file}."
@@ -510,7 +504,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                     pip_args=pip_args,
                     no_deps=True,
                     verbose=self.verbose,
-                    progress=self.show_progress,
                 )
             if process.returncode:
                 msg = f"Error installing {full_package_description(package_name, package_or_url)}."
@@ -551,7 +544,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 requirements=list(requirements),
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
                 verbose=self.verbose,
-                progress=self.show_progress,
             )
         if process.returncode:
             msg = f"Error installing {', '.join(requirements)}."
@@ -575,13 +567,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 no_deps=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
-                progress=self.show_progress,
             )
         if process.returncode:
             error_output = (process.stderr or process.stdout or "").strip()
             if constraint := rejected_constraint(error_output):
                 raise IncompatiblePythonError(constraint)
-            if error_output and not (self.verbose or self.show_progress):
+            if error_output and not self.verbose:
                 raise PipxError(error_output, wrap_message=False)
             msg = f"""
                 Error determining package name from spec {redact_url_credentials(package_or_url)!r}.
@@ -796,7 +787,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
-                progress=self.show_progress,
             )
         subprocess_post_check(process)
 
@@ -828,7 +818,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
-                progress=self.show_progress,
             )
         subprocess_post_check(process)
 

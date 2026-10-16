@@ -367,22 +367,11 @@ def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Pat
 
 
 @pytest.mark.parametrize(
-    ("backend_name", "progress", "flags", "streams"),
-    [
-        pytest.param(PIP, True, ["--progress-bar=on"], True, id="pip-progress"),
-        pytest.param(PIP, False, [], False, id="pip-plain"),
-        # uv hides its bar under --verbose and under --quiet, so progress mode passes neither
-        pytest.param(UV, True, [], True, id="uv-progress"),
-        pytest.param(UV, False, ["--quiet"], False, id="uv-plain"),
-    ],
+    ("backend_name", "flags"),
+    [pytest.param(PIP, [], id="pip"), pytest.param(UV, ["--quiet"], id="uv")],
 )
-def test_backend_install_draws_progress_without_verbose(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
-    backend_name: str,
-    progress: bool,
-    flags: list[str],
-    streams: bool,
-    tmp_path: Path,
-    mocker: MockerFixture,
+def test_backend_install_captures_output_without_verbose(
+    backend_name: str, flags: list[str], tmp_path: Path, mocker: MockerFixture
 ) -> None:
     binary: Final[Path] = tmp_path / "uv"
     mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
@@ -399,11 +388,7 @@ def test_backend_install_draws_progress_without_verbose(  # ruff:ignore[too-many
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
     (UvBackend() if backend_name == UV else PipBackend()).install(
-        venv_root=tmp_path,
-        venv_python=venv_python,
-        requirements=["demo"],
-        pip_args=[],
-        progress=progress,
+        venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=[]
     )
 
     expected_command: Final[list[str | Path]] = (
@@ -413,23 +398,11 @@ def test_backend_install_draws_progress_without_verbose(  # ruff:ignore[too-many
     )
     assert (run_subprocess.call_args.args[0], run_subprocess.call_args.kwargs["stream_output"]) == (
         expected_command,
-        streams,
+        False,
     )
 
 
-@pytest.mark.parametrize(
-    ("progress", "expected_no_progress"),
-    [
-        pytest.param(True, None, id="progress-leaves-user-env"),
-        pytest.param(False, "1", id="quiet-silences-uv-bar"),
-    ],
-)
-def test_uv_install_gates_progress_bar_via_env(
-    progress: bool,
-    expected_no_progress: str | None,
-    tmp_path: Path,
-    mocker: MockerFixture,
-) -> None:
+def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture) -> None:
     binary: Final[Path] = tmp_path / "uv"
     mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
@@ -443,18 +416,9 @@ def test_uv_install_gates_progress_bar_via_env(
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
-    UvBackend().install(
-        venv_root=tmp_path,
-        venv_python=tmp_path / "bin" / "python",
-        requirements=["demo"],
-        pip_args=[],
-        progress=progress,
-    )
+    UvBackend().install(venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[])
 
-    assert run_subprocess.call_args.kwargs["env_overrides"] == {
-        "VIRTUAL_ENV": None,
-        **({"UV_NO_PROGRESS": expected_no_progress} if expected_no_progress is not None else {}),
-    }
+    assert run_subprocess.call_args.kwargs["env_overrides"] == {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
 
 
 @pytest.mark.parametrize(

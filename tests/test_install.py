@@ -1309,20 +1309,24 @@ def test_install_uv_failure_shows_uv_error(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_in_terminal_keeps_installer_output_off_screen(
+    capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+) -> None:
+    mocker.patch("pipx.animate.STDERR_IS_TTY", True)
+
+    assert not run_pipx_cli(["install", "--backend", "pip", PKG["pycowsay"]["spec"]])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert "Collecting pycowsay" not in captured.out + captured.err
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
-@pytest.mark.parametrize(
-    ("terminal", "flags"),
-    [pytest.param(True, [], id="terminal"), pytest.param(False, ["--verbose"], id="verbose")],
-)
-def test_install_uv_failure_streamed_prints_uv_error_once(
-    make_project_with_dependency: Callable[[str], Path],
-    capsys: pytest.CaptureFixture[str],
-    mocker: MockerFixture,
-    terminal: bool,
-    flags: list[str],
+@pytest.mark.parametrize("flags", [pytest.param([], id="plain"), pytest.param(["--verbose"], id="verbose")])
+def test_install_uv_failure_prints_uv_error_once(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str], flags: list[str]
 ) -> None:
-    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
     project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
 
     assert run_pipx_cli(["install", "--backend", "uv", *flags, str(project)])
@@ -1383,31 +1387,37 @@ def project_failing_to_build(tmp_path: Path) -> Path:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-@pytest.mark.parametrize("backend", _BACKENDS)
-def test_install_name_probe_failure_streamed_prints_the_error_once(
-    project_failing_to_build: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture, backend: str
+@pytest.mark.parametrize(
+    ("backend", "flags"),
+    [
+        pytest.param("pip", [], id="pip"),
+        pytest.param("pip", ["--verbose"], id="pip-verbose"),
+        # uv --verbose repeats the build error in its own debug log, so only its plain run isolates pipx's reporting
+        pytest.param(
+            "uv", [], id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+        ),
+    ],
+)
+def test_install_name_probe_failure_prints_the_error_once(
+    project_failing_to_build: Path, capsys: pytest.CaptureFixture[str], backend: str, flags: list[str]
 ) -> None:
-    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
-
-    assert run_pipx_cli(["install", "--backend", backend, str(project_failing_to_build)])
+    assert run_pipx_cli(["install", *flags, "--backend", backend, str(project_failing_to_build)])
 
     assert capsys.readouterr().err.count("pipx-test-build-failure") == 1
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @pytest.mark.parametrize("backend", _BACKENDS)
-@pytest.mark.parametrize("terminal", [pytest.param(True, id="terminal"), pytest.param(False, id="pipe")])
+@pytest.mark.parametrize("flags", [pytest.param([], id="plain"), pytest.param(["--verbose"], id="verbose")])
 def test_install_json_failure_carries_the_installer_error(
     make_project_with_dependency: Callable[[str], Path],
     capsys: pytest.CaptureFixture[str],
-    mocker: MockerFixture,
     backend: str,
-    terminal: bool,
+    flags: list[str],
 ) -> None:
-    mocker.patch("pipx.venv.STDERR_IS_TTY", terminal)
     project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
 
-    assert run_pipx_cli(["install", "--output", "json", "--backend", backend, str(project)])
+    assert run_pipx_cli(["install", "--output", "json", *flags, "--backend", backend, str(project)])
 
     assert "no-such-dependency-for-pipx" in json.loads(capsys.readouterr().out)["errors"][0]["message"]
 
@@ -1415,16 +1425,15 @@ def test_install_json_failure_carries_the_installer_error(
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_json_failure_keeps_what_the_terminal_showed(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    mocker.patch("pipx.venv.STDERR_IS_TTY", True)
     (project := tmp_path / "redraws").mkdir()
     (project / "setup.py").write_text(
         "import sys\nsys.stderr.write('pipx-redrawn-frame\\rpipx-final-frame\\n')\nraise SystemExit(1)\n",
         encoding="utf-8",
     )
 
-    assert run_pipx_cli(["install", "--output", "json", "--backend", "uv", str(project)])
+    assert run_pipx_cli(["install", "--output", "json", "--verbose", "--backend", "uv", str(project)])
 
     message: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
     assert ("pipx-final-frame" in message, "pipx-redrawn-frame" in message) == (True, False)

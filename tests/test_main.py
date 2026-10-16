@@ -16,7 +16,7 @@ from docutils.writers.manpage import Writer
 
 from helpers import run_pipx_cli
 from package_info import PKG
-from pipx import constants, main, paths, venv
+from pipx import constants, main, paths
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -419,12 +419,9 @@ def locked_home(
 @pytest.fixture
 def json_install_with_progress(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> pytest.CaptureFixture[str]:
-    # an interactive stderr makes pipx stream the backend's own progress output
-    monkeypatch.setattr(venv, "STDERR_IS_TTY", True)
-    assert not run_pipx_cli(["install", "--output", "json", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", "--output", "json", "--verbose", PKG["pycowsay"]["spec"]])
     return capsys
 
 
