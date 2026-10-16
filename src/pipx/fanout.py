@@ -31,6 +31,9 @@ _SLOT: Final[ContextVar[_Slot | None]] = ContextVar("fanout_slot", default=None)
 # the children started outside a fan-out, which a signal handler stops, hence reentrant
 _LOOSE_CHILDREN: Final[set[_Child]] = set()
 _LOOSE_CHILDREN_LOCK: Final[RLock] = RLock()
+# the interpreter drops the KeyboardInterrupt of a handler it runs inside a weakref callback or a finalizer, so the
+# handler also leaves this mark, which a fan-out waiting on its tasks raises from in its place
+_UNRAISED_INTERRUPT: Final[Event] = Event()
 
 
 @contextmanager
@@ -45,9 +48,11 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
     if current_thread() is not main_thread():
         yield signalled
         return
+    _UNRAISED_INTERRUPT.clear()
 
     def interrupt(_number: int, _frame: FrameType | None) -> NoReturn:
         signalled.set()
+        _UNRAISED_INTERRUPT.set()
         with _LOOSE_CHILDREN_LOCK:
             for process in _LOOSE_CHILDREN:
                 stop_process_group(process)
@@ -135,10 +140,12 @@ def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
     # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
     # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
     while wait(futures, timeout=0.1).not_done:
-        pass
+        if _UNRAISED_INTERRUPT.is_set():
+            raise KeyboardInterrupt
 
 
 def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
+    _UNRAISED_INTERRUPT.clear()
     # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
     for future in futures:
         future.cancel()
