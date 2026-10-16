@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import sys
 import threading
 import time
 from timeit import default_timer
@@ -26,23 +28,23 @@ TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 
 
 
 def check_animate_output(
-    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
     test_string: str,
     frame_strings: list[str],
     frames_to_test: int,
 ) -> None:
+    # draining capsys while the animation thread writes loses a frame written between the read and the truncation
+    stderr: Final[io.StringIO] = io.StringIO()
+    monkeypatch.setattr(sys, "stderr", stderr)
     expected_string = "".join(frame_strings)
     chars_to_test = len("".join(frame_strings[:frames_to_test]))
-    total_err = ""
     deadline = default_timer() + 5
 
     with pipx.animate.animate(test_string, do_animation=True):
-        while default_timer() < deadline and len(total_err) < chars_to_test:
-            total_err += capsys.readouterr().err
+        while default_timer() < deadline and len(stderr.getvalue()) < chars_to_test:
             time.sleep(0.01)
 
-    total_err += capsys.readouterr().err
-    assert total_err[:chars_to_test] == expected_string[:chars_to_test]
+    assert stderr.getvalue()[:chars_to_test] == expected_string[:chars_to_test]
 
 
 def test_delay_suppresses_output(
@@ -118,7 +120,6 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
     ids=["truncated", "exact", "spare-column"],
 )
 def test_line_lengths_emoji(
-    capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     env_columns: int,
     expected_frame_message: str,
@@ -130,7 +131,7 @@ def test_line_lengths_emoji(
 
     frames_to_test = 4
     frame_strings = [f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES]
-    check_animate_output(capsys, TEST_STRING_40_CHAR, frame_strings, frames_to_test)
+    check_animate_output(monkeypatch, TEST_STRING_40_CHAR, frame_strings, frames_to_test)
 
 
 @pytest.mark.parametrize(
@@ -143,7 +144,6 @@ def test_line_lengths_emoji(
     ids=["truncated", "exact", "spare-column"],
 )
 def test_line_lengths_no_emoji(
-    capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     env_columns: int,
     expected_frame_message: str,
@@ -157,7 +157,7 @@ def test_line_lengths_no_emoji(
     frame_strings = [f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES]
 
     check_animate_output(
-        capsys,
+        monkeypatch,
         TEST_STRING_40_CHAR,
         frame_strings,
         frames_to_test,
