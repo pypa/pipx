@@ -1327,6 +1327,19 @@ def test_install_in_terminal_keeps_installer_output_off_screen(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.parametrize("flags", [pytest.param([], id="plain"), pytest.param(["--verbose"], id="verbose")])
+def test_install_pip_failure_prints_pip_error_once(
+    make_project_with_dependency: Callable[[str], Path], capsys: pytest.CaptureFixture[str], flags: list[str]
+) -> None:
+    project: Final[Path] = make_project_with_dependency("no-such-dependency-for-pipx")
+
+    assert run_pipx_cli(["install", "--backend", "pip", *flags, str(project)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out + captured.err).count("No matching distribution found for no-such-dependency-for-pipx") == 1
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 @pytest.mark.parametrize("flags", [pytest.param([], id="plain"), pytest.param(["--verbose"], id="verbose")])
