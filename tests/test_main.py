@@ -417,7 +417,7 @@ def locked_home(
 
 
 @pytest.fixture
-def json_install_with_progress(
+def json_install_verbose(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
     capsys: pytest.CaptureFixture[str],
 ) -> pytest.CaptureFixture[str]:
@@ -426,13 +426,13 @@ def json_install_with_progress(
 
 
 def test_json_output_keeps_streamed_progress_off_stdout(
-    json_install_with_progress: pytest.CaptureFixture[str],
+    json_install_verbose: pytest.CaptureFixture[str],
 ) -> None:
-    assert json.loads(json_install_with_progress.readouterr().out)["status"] == "success"
+    assert json.loads(json_install_verbose.readouterr().out)["status"] == "success"
 
 
-def test_json_output_streams_progress_to_stderr(json_install_with_progress: pytest.CaptureFixture[str]) -> None:
-    assert "Collecting pycowsay" in json_install_with_progress.readouterr().err
+def test_json_output_streams_progress_to_stderr(json_install_verbose: pytest.CaptureFixture[str]) -> None:
+    assert "Collecting pycowsay" in json_install_verbose.readouterr().err
 
 
 class _Envelope(TypedDict):

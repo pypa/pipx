@@ -328,8 +328,8 @@ def _run_uv_version(binary: Path) -> subprocess.CompletedProcess[str]:
 
 
 def _uv_env_overrides() -> dict[str, str | None]:
-    # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed; pipx draws
-    # its own spinner, so uv's bar would only fight it.
+    # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed. pipx shows
+    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway.
     return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
 
 

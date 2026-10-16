@@ -1311,14 +1311,20 @@ def test_install_uv_failure_shows_uv_error(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_in_terminal_keeps_installer_output_off_screen(
-    capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    mocker.patch("pipx.animate.STDERR_IS_TTY", True)
+    # patch each module's copy of the flag so the test holds wherever the terminal check is read
+    for module in [module for name, module in sys.modules.items() if name.startswith("pipx")]:
+        if hasattr(module, "STDERR_IS_TTY"):
+            monkeypatch.setattr(module, "STDERR_IS_TTY", True)
 
     assert not run_pipx_cli(["install", "--backend", "pip", PKG["pycowsay"]["spec"]])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert "Collecting pycowsay" not in captured.out + captured.err
+    assert ("installing pycowsay" in captured.err, "Collecting pycowsay" in captured.out + captured.err) == (
+        True,
+        False,
+    )
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")

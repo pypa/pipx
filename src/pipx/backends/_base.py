@@ -49,7 +49,7 @@ class Backend(ABC):
         verbose: bool = False,
     ) -> CompletedProcess[str]: ...
 
-    def install_lock(  # forwards install inputs to install()
+    def install_lock(
         self,
         *,
         venv_root: Path,
