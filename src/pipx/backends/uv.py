@@ -100,9 +100,8 @@ class UvBackend(Backend):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
-        progress: bool = False,
     ) -> CompletedProcess[str]:
-        cmd = self._uv_pip_command("install", venv_python, verbose=verbose, progress=progress)
+        cmd = self._uv_pip_command("install", venv_python, verbose=verbose)
         if upgrade:
             cmd.append("--upgrade")
         if no_deps:
@@ -113,11 +112,11 @@ class UvBackend(Backend):
             run_dir=str(venv_root),
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
-            env_overrides=_uv_env_overrides(progress=progress),
-            stream_output=verbose or progress,
+            env_overrides=_uv_env_overrides(),
+            stream_output=verbose,
         )
         if log_pip_errors:
-            subprocess_post_check_handle_pip_error(process, tool_name="uv", streamed=verbose or progress)
+            subprocess_post_check_handle_pip_error(process, tool_name="uv", streamed=verbose)
         return process
 
     @staticmethod
@@ -211,14 +210,9 @@ class UvBackend(Backend):
         venv_python: Path,
         *,
         verbose: bool,
-        progress: bool = False,
     ) -> list[str | Path]:
         cmd: list[str | Path] = [self._binary, "pip", subcommand, "--python", str(venv_python)]
-        # uv hides its progress bar under both --verbose and --quiet, so drawing one means passing neither
-        if verbose:
-            cmd.append("--verbose")
-        elif not progress:
-            cmd.append("--quiet")
+        cmd.append("--verbose" if verbose else "--quiet")
         return cmd
 
 
@@ -333,14 +327,10 @@ def _run_uv_version(binary: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _uv_env_overrides(*, progress: bool = False) -> dict[str, str | None]:
-    # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed.
-    overrides: dict[str, str | None] = {"VIRTUAL_ENV": None}
-    # pipx draws its own spinner in quiet, JSON, and non-interactive runs, so silence uv's bar there; when pipx does
-    # want the bar (progress=True) leave the caller's UV_NO_PROGRESS untouched so their preference wins.
-    if not progress:
-        overrides["UV_NO_PROGRESS"] = "1"
-    return overrides
+def _uv_env_overrides() -> dict[str, str | None]:
+    # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed. pipx shows
+    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway.
+    return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
 
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:

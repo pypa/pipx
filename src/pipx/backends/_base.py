@@ -47,10 +47,9 @@ class Backend(ABC):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
-        progress: bool = False,
     ) -> CompletedProcess[str]: ...
 
-    def install_lock(  # ruff:ignore[too-many-arguments]  # forwards install inputs to install()
+    def install_lock(
         self,
         *,
         venv_root: Path,
@@ -58,7 +57,6 @@ class Backend(ABC):
         lock_file: Path,
         pip_args: list[str],
         verbose: bool = False,
-        progress: bool = False,
     ) -> CompletedProcess[str]:
         return self.install(
             venv_root=venv_root,
@@ -66,7 +64,6 @@ class Backend(ABC):
             requirements=["--requirement", str(lock_file)],
             pip_args=pip_args,
             verbose=verbose,
-            progress=progress,
         )
 
     @staticmethod
