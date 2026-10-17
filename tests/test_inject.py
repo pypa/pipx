@@ -439,7 +439,7 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
-        "Cannot expose apps from black for package repeatme. "
+        "Cannot expose resources from black for package repeatme. "
         "Dependencies with apps, manual pages, or shell completions: pycowsay." in error
     )
     assert run_pipx_cli(["runpip", "empty-project", "show", "repeatme"])

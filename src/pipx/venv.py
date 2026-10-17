@@ -639,7 +639,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         missing_dependencies: Final[list[str]] = sorted(set(included_dependencies) - available_dependencies)
         if missing_dependencies:
             msg = (
-                f"Cannot expose apps from {', '.join(missing_dependencies)} for package {package_name}. "
+                f"Cannot expose resources from {', '.join(missing_dependencies)} for package {package_name}. "
                 "Dependencies with apps, manual pages, or shell completions: "
                 f"{', '.join(sorted(available_dependencies)) or 'none'}."
             )
