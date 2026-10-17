@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.18.3 <https://github.com/pypa/pipx/tree/1.18.3>`_ - 2026-10-17
+=================================================================
+
+Bugfixes
+--------
+
+- Allow selecting dependencies that ship only shell completions. (:issue:`2157`)
+
+
 `1.18.2 <https://github.com/pypa/pipx/tree/1.18.2>`_ - 2026-10-16
 =================================================================
 
