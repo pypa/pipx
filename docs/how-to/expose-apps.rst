@@ -50,8 +50,8 @@ A dependency's apps are not exposed by default. Select them at install time.
     $ pipx install "nox[tox_to_nox]" --include-resources-from tox
 
 pipx records the selection so upgrade and reinstall preserve it. The install fails and rolls back when a selected
-package is not a dependency that ships apps or manual pages. Both options also work on ``pipx inject``; see
-:doc:`inject-packages`.
+package is not a dependency that ships apps, manual pages, or shell completions. Both options also work on
+``pipx inject``; see :doc:`inject-packages`.
 
 .. note::
 

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import shutil
 import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
+from flit_core.wheel import make_wheel_in
 
 from helpers import run_pipx_cli
 from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 _SECTIONS: Final[dict[str, str]] = {
@@ -21,6 +25,44 @@ _SECTIONS: Final[dict[str, str]] = {
 @pytest.fixture
 def completion_wheel(local_completion_wheel: Path) -> str:
     return str(local_completion_wheel)
+
+
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_selects_completion_only_dependency(
+    copy_local_package: Callable[[str], Path],
+    make_project_with_dependency: Callable[[str], Path],
+    tmp_path: Path,
+    backend: str,
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv binary not on PATH")
+    project = copy_local_package("local_completion")
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace('scripts.local-completion = "local_completion.main:main"\n', ""),
+        encoding="utf-8",
+    )
+    dependency = make_wheel_in(pyproject, tmp_path).file
+    parent = make_project_with_dependency(f"local-completion @ {dependency.as_uri()}")
+    parent_wheel = make_wheel_in(parent / "pyproject.toml", tmp_path).file
+
+    assert not run_pipx_cli([
+        "install",
+        str(parent_wheel),
+        "--backend",
+        backend,
+        "--include-resources-from",
+        "Local_Completion",
+    ])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "empty-project").main_package
+    assert metadata.include_resources_from == ["local-completion"]
+    assert not metadata.app_paths_of_dependencies
+    assert not metadata.man_paths_of_dependencies
+    for section, name in _SECTIONS.items():
+        exposed = paths.ctx.completion_dir / section / name
+        assert exposed.is_file()
 
 
 @pytest.mark.parametrize("section", list(_SECTIONS), ids=["bash", "zsh", "fish"])

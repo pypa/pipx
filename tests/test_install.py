@@ -1033,7 +1033,8 @@ def test_install_include_resources_from_missing_dependency_rolls_back(
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
-        "Cannot expose apps from black for package repeatme. Dependencies with apps or manual pages: pycowsay." in error
+        "Cannot expose apps from black for package repeatme. "
+        "Dependencies with apps, manual pages, or shell completions: pycowsay." in error
     )
     assert not (paths.ctx.venvs / "repeatme").exists()
 
