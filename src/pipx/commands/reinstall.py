@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "contextlib",
     "functools",
     "packaging.utils",
     "pathlib",
@@ -14,10 +15,14 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "tempfile",
+    "types",
 ]
 
+import contextlib
 import logging
+import sys
 import time
+import types
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -152,6 +157,25 @@ def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
     return injected_package.package_or_url
 
 
+def _resolve_self_reinstall_imports(venv_dir: Path) -> None:
+    if Path(sys.prefix).resolve() != venv_dir.resolve() or not hasattr(types, "LazyImportType"):
+        return
+
+    # The running venv is about to move, so resolve imports that still need its source files.
+    resolved: set[tuple[str, str]] = set()
+    while pending := [
+        (module, name)
+        for module in tuple(sys.modules.values())
+        if isinstance(module, types.ModuleType) and module.__name__.startswith("pipx.")
+        for name, value in vars(module).items()
+        if isinstance(value, types.LazyImportType) and (module.__name__, name) not in resolved
+    ]:
+        for module, name in pending:
+            resolved.add((module.__name__, name))
+            with contextlib.suppress(ImportError):
+                getattr(module, name)
+
+
 def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv from its metadata and forwards the full install context
     *,
     venv_dir: Path,
@@ -201,6 +225,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
 
     old_resource_paths = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
     original_venv_dir = venv_dir
+    _resolve_self_reinstall_imports(venv_dir)
     reinstall_backup_dir = _create_reinstall_backup(venv_dir)
     messages: list[OutputMessage] = [OutputMessage(f"uninstalled {venv.name}! {stars}")]
 

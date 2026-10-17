@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import signal
@@ -34,6 +35,23 @@ if TYPE_CHECKING:
 def test_reinstall() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+@pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_self_resolves_lazy_imports(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    venv_dir = paths.ctx.venvs / "pycowsay"
+    (venv_dir / "reinstall_import_source.py").write_text("VALUE = 'resolved'\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(venv_dir))
+    module = importlib.import_module("pipx.commands.reinstall")
+    exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
+        "lazy from reinstall_import_source import VALUE as reinstall_import_value", vars(module)
+    )
+    monkeypatch.setattr(sys, "prefix", str(venv_dir))
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+    assert getattr(module, "reinstall_import_value", None) == "resolved"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
