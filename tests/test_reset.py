@@ -155,3 +155,46 @@ def test_reset_asks_before_it_removes(
     assert bool(run_pipx_cli(["reset"])) is not resets
 
     assert paths.ctx.venvs.is_dir() is not resets
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_eof_cancels(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("pipx.main.sys.stdin.isatty", return_value=True)
+    mocker.patch("pipx.main.input", side_effect=EOFError)
+
+    assert run_pipx_cli(["reset"]) == 1
+
+    captured = capsys.readouterr()
+    assert "Reset cancelled." in captured.err
+    assert paths.ctx.venvs.is_dir()
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_eof_reports_json_error(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("pipx.main.sys.stdin.isatty", return_value=True)
+    mocker.patch("pipx.main.input", side_effect=EOFError)
+
+    assert run_pipx_cli(["reset", "--output", "json"]) == 1
+
+    assert json.loads(capsys.readouterr().out) == {
+        "command": ["reset"],
+        "data": {},
+        "errors": [
+            {
+                "code": "pipx_error",
+                "environment": None,
+                "message": "Reset cancelled.",
+                "package": None,
+            }
+        ],
+        "exit_code": 1,
+        "pipx_result_version": "1",
+        "status": "error",
+    }
+    assert paths.ctx.venvs.is_dir()

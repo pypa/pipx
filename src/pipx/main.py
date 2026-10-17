@@ -1271,9 +1271,12 @@ def _confirmed_reset() -> bool:
     if not sys.stdin or not sys.stdin.isatty():
         msg = "Pass --yes to reset when no terminal can confirm it."
         raise PipxError(msg)
-    answer: Final[str] = input(
-        f"Remove every pipx-installed package and reset pipx's data under {paths.ctx.home}? [y/N] "
-    )
+    try:
+        answer: Final[str] = input(
+            f"Remove every pipx-installed package and reset pipx's data under {paths.ctx.home}? [y/N] "
+        )
+    except EOFError:  # the terminal went away without answering, so treat it as the default (no) answer
+        return False
     return answer.strip().casefold() in {"y", "yes"}
 
 
