@@ -634,12 +634,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         available_dependencies: Final[set[str]] = (
             venv_package_metadata.app_paths_of_dependencies.keys()
             | venv_package_metadata.man_paths_of_dependencies.keys()
+            | venv_package_metadata.completion_paths_of_dependencies.keys()
         )
         missing_dependencies: Final[list[str]] = sorted(set(included_dependencies) - available_dependencies)
         if missing_dependencies:
             msg = (
-                f"Cannot expose apps from {', '.join(missing_dependencies)} for package {package_name}. "
-                "Dependencies with apps or manual pages: "
+                f"Cannot expose resources from {', '.join(missing_dependencies)} for package {package_name}. "
+                "Dependencies with apps, manual pages, or shell completions: "
                 f"{', '.join(sorted(available_dependencies)) or 'none'}."
             )
             raise PipxError(msg)
