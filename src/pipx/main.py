@@ -1253,7 +1253,7 @@ def _add_reset(subparsers: argparse._SubParsersAction, shared_parser: argparse.A
 
 
 def _cmd_reset(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[ResetData]:
-    if not args.dry_run and not args.yes and not _confirmed_reset():
+    if not args.dry_run and not args.yes and not _confirmed_reset(_output_format(args)):
         msg = "Reset cancelled."
         raise PipxError(msg)
     from pipx.commands.reset import reset
@@ -1267,13 +1267,17 @@ def _cmd_reset(args: argparse.Namespace, ctx: DispatchContext) -> OperationResul
     )
 
 
-def _confirmed_reset() -> bool:
+def _confirmed_reset(output: OutputFormat) -> bool:
     if not sys.stdin or not sys.stdin.isatty():
         msg = "Pass --yes to reset when no terminal can confirm it."
         raise PipxError(msg)
-    answer: Final[str] = input(
-        f"Remove every pipx-installed package and reset pipx's data under {paths.ctx.home}? [y/N] "
-    )
+    prompt: Final[str] = f"Remove every pipx-installed package and reset pipx's data under {paths.ctx.home}? [y/N] "
+    if output is OutputFormat.JSON:
+        print(prompt, end="", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+    try:
+        answer: Final[str] = input("" if output is OutputFormat.JSON else prompt)
+    except EOFError:
+        return False
     return answer.strip().casefold() in {"y", "yes"}
 
 
