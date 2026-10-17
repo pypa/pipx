@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "contextlib",
     "functools",
     "packaging.utils",
     "pathlib",
@@ -14,6 +15,7 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "tempfile",
+    "types",
 ]
 
 import contextlib
