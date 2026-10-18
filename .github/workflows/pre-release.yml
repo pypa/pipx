@@ -15,16 +15,18 @@ on:
 env:
   default-python: "3.15"
 jobs:
-  pre-release:
+  assemble:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-26.04
-    environment: release
-    permissions: {}
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_RELEASE_TOKEN }}
           persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -38,11 +40,91 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install GitPython packaging towncrier pre-commit
-      - name: Configure git identity
+      - name: Require a news fragment
+        run: |
+          if ! compgen -G 'changelog.d/*.*.md' > /dev/null; then
+            echo '::error::add a changelog.d/*.md fragment before preparing a release'
+            exit 1
+          fi
+          for fragment in changelog.d/*.md; do
+            if [[ ! "$fragment" =~ ^changelog\.d/[0-9]+\.(feature|bugfix|performance|doc|removal)(\.[0-9]+)?\.md$ ]]; then
+              echo "::error::unsupported news fragment: $fragment"
+              exit 1
+            fi
+          done
+      - name: Configure temporary commit identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Generate changelog, commit, tag, and push
-        run: python scripts/release.py --version "${{ inputs.bump }}"
+      - name: Generate release patch
+        id: version
         env:
-          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          base=$(git rev-parse HEAD)
+          python scripts/release.py --version "$BUMP" --no-push
+          version=$(git tag --points-at HEAD | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | tail -n 1)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          git diff "$base" HEAD --binary > "$RUNNER_TEMP/release.patch"
+          test -s "$RUNNER_TEMP/release.patch"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-patch
+          path: ${{ runner.temp }}/release.patch
+          if-no-files-found: error
+  push:
+    needs: assemble
+    runs-on: ubuntu-26.04
+    environment: release-auth
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-patch
+          path: ${{ runner.temp }}/release-patch
+      - name: Validate release patch
+        env:
+          VERSION: ${{ needs.assemble.outputs.version }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          git apply --check "$RUNNER_TEMP/release-patch/release.patch"
+          git apply --index "$RUNNER_TEMP/release-patch/release.patch"
+          while IFS= read -r path; do
+            case "$path" in
+              docs/changelog.rst|changelog.d/*.md) ;;
+              *) echo "::error::unexpected release path: $path"; exit 1 ;;
+            esac
+          done < <(git diff --cached --name-only)
+          grep -Fq "$VERSION <https://github.com/pypa/pipx/tree/$VERSION>" docs/changelog.rst
+          git diff --cached --check
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+      - name: Commit and tag the release
+        env:
+          VERSION: ${{ needs.assemble.outputs.version }}
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+        run: |
+          set -euo pipefail
+          app_user_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${app_user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git commit -m "Release $VERSION"
+          git tag -a "$VERSION" -m "release $VERSION"
+          gh auth setup-git --hostname github.com --force
+          git push --atomic origin HEAD:main "refs/tags/$VERSION"

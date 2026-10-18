@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from subprocess import call, check_call
-from urllib.parse import urlsplit, urlunsplit
 
 from git import Commit, Remote, Repo, TagReference
 from packaging.version import Version
@@ -25,20 +23,8 @@ def main(version_str: str, *, push: bool) -> None:
     release_commit = release_changelog(repo, version)
     tag = tag_release_commit(release_commit, repo, version)
     if push:
-        # The checkout uses persist-credentials: false, so no token lives in the git config;
-        # authenticate the push via GH_RELEASE_TOKEN embedded into the remote URL.
-        push_target = authenticated_url(remote)
-        repo.git.push(push_target, "HEAD:main")
-        repo.git.push(push_target, str(tag))
-
-
-def authenticated_url(remote: Remote) -> str:
-    if (token := os.environ.get("GH_RELEASE_TOKEN")) is None:
-        return remote.name
-    split = urlsplit(next(iter(remote.urls)))
-    if split.scheme != "https":
-        return remote.name
-    return urlunsplit(split._replace(netloc=f"x-access-token:{token}@{split.hostname}"))
+        repo.git.push(remote.name, "HEAD:main")
+        repo.git.push(remote.name, str(tag))
 
 
 def resolve_version(version_str: str, repo: Repo) -> Version:
@@ -80,10 +66,10 @@ def release_changelog(repo: Repo, version: Version) -> Commit:
 
 
 def tag_release_commit(release_commit: Commit, repo: Repo, version: Version) -> TagReference:
-    existing_tags = [x.name for x in repo.tags]
-    if str(version) in existing_tags:
-        repo.delete_tag(repo.tags[str(version)])
-    return repo.create_tag(str(version), ref=release_commit.hexsha, force=True)
+    if str(version) in {tag.name for tag in repo.tags}:
+        msg = f"tag {version} already exists"
+        raise RuntimeError(msg)
+    return repo.create_tag(str(version), ref=release_commit.hexsha, message=f"release {version}")
 
 
 if __name__ == "__main__":
