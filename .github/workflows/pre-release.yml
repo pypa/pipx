@@ -16,16 +16,26 @@ env:
   default-python: "3.15"
 jobs:
   pre-release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-26.04
-    environment: release
-    permissions: {}
+    environment: release-auth
+    permissions:
+      contents: read
     steps:
+      - id: token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_RELEASE_TOKEN }}
-          persist-credentials: false
+          token: ${{ steps.token.outputs.token }}
+          persist-credentials: true # zizmor: ignore[artipacked] the release script pushes main and its tag
       - name: Set up Python ${{ env.default-python }}
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         env:
@@ -39,9 +49,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install GitPython packaging towncrier pre-commit
       - name: Configure git identity
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          app_user_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${app_user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
       - name: Require a news fragment
         run: |
           if ! compgen -G 'changelog.d/*.*.md' > /dev/null; then
@@ -49,6 +63,6 @@ jobs:
             exit 1
           fi
       - name: Generate changelog, commit, tag, and push
-        run: python scripts/release.py --version "${{ inputs.bump }}"
         env:
-          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+        run: python scripts/release.py --version "$BUMP"
