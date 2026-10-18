@@ -94,6 +94,8 @@ jobs:
           VERSION: ${{ needs.assemble.outputs.version }}
         run: |
           set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
           git apply --check "$RUNNER_TEMP/release-patch/release.patch"
           git apply --index "$RUNNER_TEMP/release-patch/release.patch"
           while IFS= read -r path; do
