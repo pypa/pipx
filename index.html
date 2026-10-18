@@ -1,0 +1,975 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="execute binaries from Python packages in isolated environments">
+      
+      
+      
+      <link rel="shortcut icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.7">
+    
+    
+      
+        <title>pipx</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.b8ac9624.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+        
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-90243909-2","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pipx-install-and-run-python-applications-in-isolated-environments" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="." title="pipx" class="md-header-nav__button md-logo" aria-label="pipx">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            pipx
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Home
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header-nav__source">
+        
+<a href="https://github.com/pypa/pipx/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pypa/pipx
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="pipx" class="md-nav__button md-logo" aria-label="pipx">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    pipx
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/pypa/pipx/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pypa/pipx
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Home
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="." title="Home" class="md-nav__link md-nav__link--active">
+      Home
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-pipx" class="md-nav__link">
+    Install pipx
+  </a>
+  
+    <nav class="md-nav" aria-label="Install pipx">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on-macos" class="md-nav__link">
+    On macOS
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-linux-install-via-pip-requires-pip-190-or-later" class="md-nav__link">
+    On Linux, install via pip (requires pip 19.0 or later)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-windows-install-via-pip-requires-pip-190-or-later" class="md-nav__link">
+    On Windows, install via pip (requires pip 19.0 or later)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-completions" class="md-nav__link">
+    Shell completions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview-what-is-pipx" class="md-nav__link">
+    Overview: What is pipx?
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview: What is pipx?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-is-it-different-from-pip" class="md-nav__link">
+    How is it Different from pip?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-does-pipx-install-apps-from" class="md-nav__link">
+    Where Does pipx Install Apps From?
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+    <nav class="md-nav" aria-label="Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#walkthrough-installing-a-package-and-its-applications-with-pipx" class="md-nav__link">
+    Walkthrough: Installing a Package and its Applications With pipx
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-source-control" class="md-nav__link">
+    Installing from Source Control
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walkthrough-running-an-application-in-a-temporary-virtual-environment" class="md-nav__link">
+    Walkthrough: Running an Application in a Temporary Virtual Environment
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-from-source-control" class="md-nav__link">
+    Running from Source Control
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-from-url" class="md-nav__link">
+    Running from URL
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    Summary
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testimonials" class="md-nav__link">
+    Testimonials
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits" class="md-nav__link">
+    Credits
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    Contributing
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="installation/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="getting-started/" title="Getting Started" class="md-nav__link">
+      Getting Started
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="docs/" title="Docs" class="md-nav__link">
+      Docs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="troubleshooting/" title="Troubleshooting" class="md-nav__link">
+      Troubleshooting
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="examples/" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="comparisons/" title="Comparison to Other Tools" class="md-nav__link">
+      Comparison to Other Tools
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="how-pipx-works/" title="How pipx works" class="md-nav__link">
+      How pipx works
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="programs-to-try/" title="Programs to Try" class="md-nav__link">
+      Programs to Try
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="contributing/" title="Contributing" class="md-nav__link">
+      Contributing
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="changelog/" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-pipx" class="md-nav__link">
+    Install pipx
+  </a>
+  
+    <nav class="md-nav" aria-label="Install pipx">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on-macos" class="md-nav__link">
+    On macOS
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-linux-install-via-pip-requires-pip-190-or-later" class="md-nav__link">
+    On Linux, install via pip (requires pip 19.0 or later)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-windows-install-via-pip-requires-pip-190-or-later" class="md-nav__link">
+    On Windows, install via pip (requires pip 19.0 or later)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-completions" class="md-nav__link">
+    Shell completions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview-what-is-pipx" class="md-nav__link">
+    Overview: What is pipx?
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview: What is pipx?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-is-it-different-from-pip" class="md-nav__link">
+    How is it Different from pip?
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-does-pipx-install-apps-from" class="md-nav__link">
+    Where Does pipx Install Apps From?
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+    <nav class="md-nav" aria-label="Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#walkthrough-installing-a-package-and-its-applications-with-pipx" class="md-nav__link">
+    Walkthrough: Installing a Package and its Applications With pipx
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-source-control" class="md-nav__link">
+    Installing from Source Control
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walkthrough-running-an-application-in-a-temporary-virtual-environment" class="md-nav__link">
+    Walkthrough: Running an Application in a Temporary Virtual Environment
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-from-source-control" class="md-nav__link">
+    Running from Source Control
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-from-url" class="md-nav__link">
+    Running from URL
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    Summary
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testimonials" class="md-nav__link">
+    Testimonials
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits" class="md-nav__link">
+    Credits
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    Contributing
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/pypa/pipx/edit/main/docs/index.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                  
+                
+                
+                <p align="center">
+<a href="https://pypa.github.io/pipx/">
+<img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png" width="200"/>
+</a>
+</p>
+
+<h1 id="pipx-install-and-run-python-applications-in-isolated-environments">pipx — Install and Run Python Applications in Isolated Environments</h1>
+<p align="center">
+<a href="https://github.com/pypa/pipx/raw/main/pipx_demo.gif">
+<img src="https://github.com/pypa/pipx/raw/main/pipx_demo.gif"/>
+</a>
+</p>
+
+<p align="center">
+<a href="https://github.com/pypa/pipx/actions">
+<img src="https://github.com/pypa/pipx/workflows/tests/badge.svg?branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://pepy.tech/badge/pipx"></a>
+
+</p>
+
+<p><strong>Documentation</strong>: https://pypa.github.io/pipx/</p>
+<p><strong>Source Code</strong>: https://github.com/pypa/pipx</p>
+<p><em>For comparison to other tools including pipsi, see <a href="https://pypa.github.io/pipx/comparisons/">Comparison to Other Tools</a>.</em></p>
+<h2 id="install-pipx">Install pipx</h2>
+<h3 id="on-macos">On macOS</h3>
+<pre><code>brew install pipx
+pipx ensurepath
+</code></pre>
+
+<p>Upgrade pipx with <code>brew update &amp;&amp; brew upgrade pipx</code>.</p>
+<h3 id="on-linux-install-via-pip-requires-pip-190-or-later">On Linux, install via pip (requires pip 19.0 or later)</h3>
+<pre><code>python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+</code></pre>
+
+<p>Upgrade pipx with <code>python3 -m pip install --user -U pipx</code>.</p>
+<h3 id="on-windows-install-via-pip-requires-pip-190-or-later">On Windows, install via pip (requires pip 19.0 or later)</h3>
+<pre><code># If you installed python using the app-store, replace `python` with `python3` in the next line.
+python -m pip install --user pipx
+</code></pre>
+
+<p>It is possible (even most likely) the above finishes with a WARNING looking similar to this:</p>
+<pre><code>WARNING: The script pipx.exe is installed in `&lt;USER folder&gt;\AppData\Roaming\Python\Python3x\Scripts` which is not on PATH
+</code></pre>
+
+<p>If so, go to the mentioned folder, allowing you to run the pipx executable directly.
+Enter the following line (even if you did not get the warning):</p>
+<pre><code>pipx ensurepath
+</code></pre>
+
+<p>This will add both the above mentioned path and the <code>%USERPROFILE%\.local\bin</code> folder to your search path.
+Restart your terminal session and verify <code>pipx</code> does run.</p>
+<p>Upgrade pipx with <code>python3 -m pip install --user -U pipx</code>.</p>
+<h3 id="shell-completions">Shell completions</h3>
+<p>Shell completions are available by following the instructions printed with this command:</p>
+<pre><code>pipx completions
+</code></pre>
+
+<p>For more details, see the <a href="https://pypa.github.io/pipx/installation/">installation instructions</a>.</p>
+<h2 id="overview-what-is-pipx">Overview: What is <code>pipx</code>?</h2>
+<p>pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's <code>brew</code>, JavaScript's <a href="https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b">npx</a>, and Linux's <code>apt</code>.</p>
+<p>It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be run from the command line directly as applications.</p>
+<h3 id="how-is-it-different-from-pip">How is it Different from pip?</h3>
+<p>pip is a general-purpose package installer for both libraries and apps with no environment isolation. pipx is made specifically for application installation, as it adds isolation yet still makes the apps available in your shell: pipx creates an isolated environment for each application and its associated packages.</p>
+<p>pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.</p>
+<h3 id="where-does-pipx-install-apps-from">Where Does <code>pipx</code> Install Apps From?</h3>
+<p>By default, pipx uses the same package index as pip, <a href="https://pypi.org/">PyPI</a>. pipx can also install from all other sources pip can, such as a local directory, wheel, git url, etc.</p>
+<p>Python and PyPI allow developers to distribute code with "console script entry points". These entry points let users call into Python code from the command line, effectively acting like standalone applications.</p>
+<p>pipx is a tool to install and run any of these thousands of application-containing packages in a safe, convenient, and reliable way. <strong>In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.</strong> Not all Python packages have entry points, but many do.</p>
+<p>If you would like to make your package compatible with pipx, all you need to do is add a <a href="https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point">console scripts</a> entry point. If you're a poetry user, use <a href="https://python-poetry.org/docs/pyproject/#scripts">these instructions</a>.</p>
+<h2 id="features">Features</h2>
+<p><code>pipx</code> enables you to</p>
+<ul>
+<li>Expose CLI entrypoints of packages ("apps") installed to isolated environments with the <code>install</code> command. This guarantees no dependency conflicts and clean uninstalls!</li>
+<li>Easily list, upgrade, and uninstall packages that were installed with pipx</li>
+<li>Run the latest version of a Python application in a temporary environment with the <code>run</code> command</li>
+</ul>
+<p>Best of all, pipx runs with regular user permissions, never calling <code>sudo pip install</code> (you aren't doing that, are you? 😄).</p>
+<h3 id="walkthrough-installing-a-package-and-its-applications-with-pipx">Walkthrough: Installing a Package and its Applications With <code>pipx</code></h3>
+<p>You can globally install an application by running</p>
+<pre><code>pipx install PACKAGE
+</code></pre>
+
+<p>This automatically creates a virtual environment, installs the package, and adds the package's associated applications (entry points) to a location on your <code>PATH</code>. For example, <code>pipx install pycowsay</code> makes the <code>pycowsay</code> command available globally, but sandboxes the pycowsay package in its own virtual environment. <strong>pipx never needs to run as sudo to do this.</strong></p>
+<p>Example:</p>
+<pre><code>&gt;&gt; pipx install pycowsay
+  installed package pycowsay 2.0.3, Python 3.7.3
+  These apps are now globally available
+    - pycowsay
+done! ✨ 🌟 ✨
+
+
+&gt;&gt; pipx list
+venvs are in /home/user/.local/pipx/venvs
+apps are exposed on your $PATH at /home/user/.local/bin
+   package pycowsay 2.0.3, Python 3.7.3
+    - pycowsay
+
+
+# Now you can run pycowsay from anywhere
+&gt;&gt; pycowsay mooo
+  ____
+&lt; mooo &gt;
+  ====
+         \
+          \
+            ^__^
+            (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+
+</code></pre>
+
+<h3 id="installing-from-source-control">Installing from Source Control</h3>
+<p>You can also install from a git repository. Here, <code>black</code> is used as an example.</p>
+<pre><code>pipx install git+https://github.com/psf/black.git
+pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
+pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1  # git hash
+pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
+</code></pre>
+
+<h3 id="walkthrough-running-an-application-in-a-temporary-virtual-environment">Walkthrough: Running an Application in a Temporary Virtual Environment</h3>
+<p>This is an alternative to <code>pipx install</code>.</p>
+<p><code>pipx run</code> downloads and runs the above mentioned Python "apps" in a one-time, temporary environment, leaving your system untouched afterwards.</p>
+<p>This can be handy when you need to run the latest version of an app, but don't necessarily want it installed on your computer.</p>
+<p>You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case and leave your system untouched afterwards.</p>
+<p>For example, the blog post <a href="https://sourcery.ai/blog/python-best-practices/">How to set up a perfect Python project</a> uses <code>pipx run</code> to kickstart a new project with <a href="https://github.com/cookiecutter/cookiecutter">cookiecutter</a>, a tool that creates projects from project templates.</p>
+<p>A nice side benefit is that you don't have to remember to upgrade the app since <code>pipx run</code> will automatically run a recent version for you.</p>
+<p>Okay, let's see what this looks like in practice!</p>
+<pre><code>pipx run APP [ARGS...]
+</code></pre>
+
+<p>This will install the package in an isolated, temporary directory and invoke the app. Give it a try:</p>
+<pre><code>&gt; pipx run pycowsay moo
+
+  ---
+&lt; moo &gt;
+  ---
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+
+</code></pre>
+
+<p>Notice that you <strong>don't need to execute any install commands to run the app</strong>.</p>
+<p>Any arguments after the application name will be passed directly to the application:</p>
+<pre><code>&gt; pipx run pycowsay these arguments are all passed to pycowsay!
+
+  -------------------------------------------
+&lt; these arguments are all passed to pycowsay! &gt;
+  -------------------------------------------
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+</code></pre>
+
+<p>Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.</p>
+<p>If the app name does not match that package name, you can use the <code>--spec</code> argument to specify the package to install and app to run separately:</p>
+<pre><code>pipx run --spec PACKAGE APP
+</code></pre>
+
+<p>You can also specify specific versions, version ranges, or extras:</p>
+<pre><code>pipx run APP==1.0.0
+</code></pre>
+
+<h3 id="running-from-source-control">Running from Source Control</h3>
+<p>You can also run from a git repository. Here, <code>black</code> is used as an example.</p>
+<pre><code>pipx run --spec git+https://github.com/psf/black.git black
+pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
+pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black  # git hash
+pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install a release
+</code></pre>
+
+<h3 id="running-from-url">Running from URL</h3>
+<p>You can run .py files directly, too.</p>
+<pre><code>pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+pipx is working!
+</code></pre>
+
+<h3 id="summary">Summary</h3>
+<p>That's it! Those are the most important commands <code>pipx</code> offers. To see all of pipx's documentation, run <code>pipx --help</code> or see the <a href="https://pypa.github.io/pipx/docs/">docs</a>.</p>
+<h2 id="testimonials">Testimonials</h2>
+<div>
+"Thanks for improving the workflow that pipsi has covered in the past. Nicely done!"
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
+—<a href="https://twitter.com/jezdez">Jannis Leidel</a>, PSF fellow, former pip and Django core developer, and founder of the Python Packaging Authority (PyPA)
+</div>
+</div>
+
+<p></p>
+
+<div>
+"My setup pieces together pyenv, poetry, and pipx. [...] For the things I need, it’s perfect."
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
+—<a href="https://twitter.com/jacobian">Jacob Kaplan-Moss</a>, co-creator of Django in blog post <a href="https://jacobian.org/2019/nov/11/python-environment-2020/">My Python Development Environment, 2020 Edition</a>
+</div>
+</div>
+
+<p></p>
+
+<div>
+"I'm a big fan of pipx. I think pipx is super cool."
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
+—<a href="https://twitter.com/mkennedy">Michael Kennedy</a>, co-host of PythonBytes podcast in <a href="https://pythonbytes.fm/episodes/transcript/139/f-yes-for-the-f-strings">episode 139</a>
+</div>
+</div>
+
+<p></p>
+
+<h2 id="credits">Credits</h2>
+<p>pipx was inspired by <a href="https://github.com/mitsuhiko/pipsi">pipsi</a> and <a href="https://github.com/npm/npx">npx</a>. It was created by <a href="https://github.com/cs01/">Chad Smith</a> and has had lots of help from <a href="https://github.com/pypa/pipx/graphs/contributors">contributors</a>. The logo was created by <a href="https://github.com/IrishMorales">@IrishMorales</a>.</p>
+<p>pipx is maintained by a team of volunteers (in alphabetical order)</p>
+<ul>
+<li><a href="https://github.com/gaborbernat">Bernát Gábor</a></li>
+<li><a href="https://github.com/cs01">Chad Smith</a> - co-lead maintainer</li>
+<li><a href="https://github.com/itsayellow">Matthew Clapp</a> - co-lead maintainer</li>
+<li><a href="https://github.com/uranusjr">Tzu-ping Chung</a></li>
+</ul>
+<h2 id="contributing">Contributing</h2>
+<p>Issues and Pull Requests are definitely welcome! Check out <a href="https://pypa.github.io/pipx/contributing/">Contributing</a> to get started.
+Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
+the <a href="https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md">PSF Code of Conduct</a>.</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+        
+          <a href="installation/" title="Installation" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Installation
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="assets/javascripts/vendor.d1f5a259.min.js"></script>
+      <script src="assets/javascripts/bundle.d5fec882.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: ".",
+          features: [],
+          search: Object.assign({
+            worker: "assets/javascripts/worker/search.fae956e7.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

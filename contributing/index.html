@@ -1,0 +1,933 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="execute binaries from Python packages in isolated environments">
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.7">
+    
+    
+      
+        <title>Contributing - pipx</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.b8ac9624.min.css">
+      
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+    
+      
+        
+<script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-90243909-2","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){if(this.value){var e=document.location.pathname;ga("send","pageview",e+"?q="+this.value)}})}),document.addEventListener("DOMContentSwitch",function(){ga("send","pageview",document.location.pathname)})</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+      
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#running-pipx-from-source-tree" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href=".." title="pipx" class="md-header-nav__button md-logo" aria-label="pipx">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            pipx
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Contributing
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header-nav__source">
+        
+<a href="https://github.com/pypa/pipx/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pypa/pipx
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="pipx" class="md-nav__button md-logo" aria-label="pipx">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 003-3 3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    pipx
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/pypa/pipx/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pypa/pipx
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../installation/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../getting-started/" title="Getting Started" class="md-nav__link">
+      Getting Started
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../docs/" title="Docs" class="md-nav__link">
+      Docs
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../troubleshooting/" title="Troubleshooting" class="md-nav__link">
+      Troubleshooting
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../examples/" title="Examples" class="md-nav__link">
+      Examples
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../comparisons/" title="Comparison to Other Tools" class="md-nav__link">
+      Comparison to Other Tools
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../how-pipx-works/" title="How pipx works" class="md-nav__link">
+      How pipx works
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../programs-to-try/" title="Programs to Try" class="md-nav__link">
+      Programs to Try
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Contributing
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Contributing" class="md-nav__link md-nav__link--active">
+      Contributing
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#running-pipx-from-source-tree" class="md-nav__link">
+    Running pipx From Source Tree
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-commit" class="md-nav__link">
+    Pre-commit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    Running Tests
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    Setup
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    Unit Tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-unit-tests-offline" class="md-nav__link">
+    Running Unit Tests Offline
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Unit Tests Offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populating-the-cache-directory-using-nox" class="md-nav__link">
+    Populating the cache directory using nox
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populating-the-cache-directory-without-nox" class="md-nav__link">
+    Populating the cache directory without nox
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lint-tests" class="md-nav__link">
+    Lint Tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-or-injecting-new-packages-in-tests" class="md-nav__link">
+    Installing or injecting new packages in tests
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-pipx-on-continuous-integration-builds" class="md-nav__link">
+    Testing pipx on Continuous Integration builds
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-documentation" class="md-nav__link">
+    Building Documentation
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#publishing-doc-changes-to-github-pages" class="md-nav__link">
+    Publishing Doc Changes to GitHub pages
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing-new-pipx-versions" class="md-nav__link">
+    Releasing New pipx Versions
+  </a>
+  
+    <nav class="md-nav" aria-label="Releasing New pipx Versions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-release" class="md-nav__link">
+    Pre-release
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release" class="md-nav__link">
+    Release
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-release" class="md-nav__link">
+    Post-release
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../changelog/" title="Changelog" class="md-nav__link">
+      Changelog
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#running-pipx-from-source-tree" class="md-nav__link">
+    Running pipx From Source Tree
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-commit" class="md-nav__link">
+    Pre-commit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    Running Tests
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    Setup
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    Unit Tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-unit-tests-offline" class="md-nav__link">
+    Running Unit Tests Offline
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Unit Tests Offline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populating-the-cache-directory-using-nox" class="md-nav__link">
+    Populating the cache directory using nox
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populating-the-cache-directory-without-nox" class="md-nav__link">
+    Populating the cache directory without nox
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lint-tests" class="md-nav__link">
+    Lint Tests
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-or-injecting-new-packages-in-tests" class="md-nav__link">
+    Installing or injecting new packages in tests
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-pipx-on-continuous-integration-builds" class="md-nav__link">
+    Testing pipx on Continuous Integration builds
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-documentation" class="md-nav__link">
+    Building Documentation
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#publishing-doc-changes-to-github-pages" class="md-nav__link">
+    Publishing Doc Changes to GitHub pages
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#releasing-new-pipx-versions" class="md-nav__link">
+    Releasing New pipx Versions
+  </a>
+  
+    <nav class="md-nav" aria-label="Releasing New pipx Versions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-release" class="md-nav__link">
+    Pre-release
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release" class="md-nav__link">
+    Release
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-release" class="md-nav__link">
+    Post-release
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/pypa/pipx/edit/main/docs/contributing.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                  
+                
+                
+                  <h1>Contributing</h1>
+                
+                <p>Thanks for your interest in contributing to pipx!</p>
+<p>Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
+the <a href="https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md">PSF Code of Conduct</a>.</p>
+<h2 id="running-pipx-from-source-tree">Running pipx From Source Tree</h2>
+<p>To run the pipx executable from your source tree during development, run pipx from the src directory:</p>
+<pre><code>python src/pipx --version
+</code></pre>
+
+<h2 id="pre-commit">Pre-commit</h2>
+<p>The use of <a href="https://pre-commit.com/">pre-commit</a> is recommended.  It can show
+all and fix some lint errors before commit, saving you the trouble of finding
+out later that it failed CI Lint errors, and saving you from having to run <code>nox
+-s lint</code> separately.</p>
+<p>In the pipx git repository is a <code>.pre-commit-config.yaml</code> configuration file
+tailored just for pipx and its lint requirements.  To use pre-commit in your
+clone of the pipx repository, you need to do the following <strong>one-time setup
+procedure</strong>:</p>
+<ol>
+<li>Install pre-commit using <code>pipx install pre-commit</code></li>
+<li>In the top level directory of your clone of the pipx repository, execute <code>pre-commit install</code></li>
+</ol>
+<p>Afterwards whenever you commit in this repository, it will first run pipx's
+personalized lint checks.  If it makes a fix to a file (e.g. using <code>black</code> or
+<code>isort</code>), you will need to <code>git add</code> that file again before committing it
+again.  If it can't fix your commit itself, it will tell you what's wrong, and
+you can fix it manually before re-adding the edited files and committing again.</p>
+<p>If for some reason you want to commit and skip running pre-commit, you can use
+the switch <code>git commit --no-verify</code>.</p>
+<h2 id="running-tests">Running Tests</h2>
+<h3 id="setup">Setup</h3>
+<p>pipx uses an automation tool called <a href="https://pypi.org/project/nox/">nox</a> for development, continuous integration testing, and various tasks.</p>
+<p><code>nox</code> defines tasks or "sessions" in <code>noxfile.py</code> which can be run with <code>nox -s SESSION_NAME</code>. Session names can be listed with <code>nox -l</code>.</p>
+<p>Install nox for pipx development:</p>
+<pre><code>python -m pip install --user nox
+</code></pre>
+
+<p>Tests are defined as <code>nox</code> sessions. You can see all nox sessions with</p>
+<pre><code>nox -l
+</code></pre>
+
+<p>At the time of this writing, the output looks like this</p>
+<pre><code>- refresh_packages_cache-3.6 -&gt; Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.7 -&gt; Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.8 -&gt; Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.9 -&gt; Populate .pipx_tests/package_cache
+- tests_internet-3.6 -&gt; Tests using internet pypi only
+- tests_internet-3.7 -&gt; Tests using internet pypi only
+- tests_internet-3.8 -&gt; Tests using internet pypi only
+- tests_internet-3.9 -&gt; Tests using internet pypi only
+* tests-3.6 -&gt; Tests using local pypiserver only
+* tests-3.7 -&gt; Tests using local pypiserver only
+* tests-3.8 -&gt; Tests using local pypiserver only
+* tests-3.9 -&gt; Tests using local pypiserver only
+- test_all_packages-3.6
+- test_all_packages-3.7
+- test_all_packages-3.8
+- test_all_packages-3.9
+- cover -&gt; Coverage analysis
+* lint
+- develop-3.6
+- develop-3.7
+- develop-3.8
+- develop-3.9
+- build
+- publish
+* build_docs
+- publish_docs
+- watch_docs
+- pre_release
+- post_release
+- create_test_package_list-3.6
+- create_test_package_list-3.7
+- create_test_package_list-3.8
+- create_test_package_list-3.9
+</code></pre>
+
+<h3 id="unit-tests">Unit Tests</h3>
+<p>To run unit tests in Python3.9, you can run</p>
+<pre><code>nox -s tests-3.9
+</code></pre>
+
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:</p>
+<p><code>nox -s tests-3.8 -- -k EXPRESSION</code></p>
+<p><code>EXPRESSION</code> can be a test name, such as</p>
+<p><code>nox -s tests-3.8 -- -k test_uninstall</code></p>
+<p>Coverage errors can usually be ignored when only running a subset of tests.</p>
+</div>
+<h3 id="running-unit-tests-offline">Running Unit Tests Offline</h3>
+<p>Running the unit tests requires a directory <code>.pipx_tests/package_cache</code> to be
+populated from a fixed list of package distribution files (wheels or source
+files).  If you have network access, <code>nox -s tests</code> automatically makes sure
+this directory is populated (including downloading files if necessary) as a
+first step.  Thus if you are running the tests with network access, you can
+ignore the rest of this section.</p>
+<p>If, however, you wish to run tests offline without the need for network access,
+you can populate <code>.pipx_tests/package_cache</code> yourself manually beforehand when
+you do have network access.</p>
+<h4 id="populating-the-cache-directory-using-nox">Populating the cache directory using nox</h4>
+<p>To populate <code>.pipx_tests/package_cache</code> manually using nox, execute:</p>
+<pre><code>nox -s refresh_packages_cache
+</code></pre>
+
+<p>This will sequence through available python executable versions to populate the
+cache directory for each version of python on your platform.</p>
+<h4 id="populating-the-cache-directory-without-nox">Populating the cache directory without nox</h4>
+<p>An alternate method to populate <code>.pipx_tests/package_cache</code> without nox is to
+execute:</p>
+<pre><code>mkdir -p .pipx_tests/package_cache
+python3 scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache
+</code></pre>
+
+<p>You must do this using every python version that you wish to use to run the
+tests.</p>
+<h3 id="lint-tests">Lint Tests</h3>
+<pre><code>nox -s lint
+</code></pre>
+
+<h3 id="installing-or-injecting-new-packages-in-tests">Installing or injecting new packages in tests</h3>
+<p>If the tests are modified such that a new package / version combination is
+<code>pipx install</code>ed or <code>pipx inject</code>ed that wasn't used in other tests, then one
+must make sure it's added properly to the packages lists in
+<code>testdata/tests_packages</code>.</p>
+<p>To accomplish this:
+* Edit <code>testdata/tests_packages/primary_packages.txt</code> to add the new package(s) that you wish to <code>pipx install</code> or <code>pipx inject</code> in the tests.</p>
+<p>Then using Github workflows to generate all platforms in the Github CI:
+* Manually activate the Github workflow: Create tests package lists for offline tests
+* Download the artifact <code>lists</code> and put the files from it into <code>testdata/tests_packages/</code></p>
+<p>Or to locally generate these lists from <code>testdata/tests_packages/primary_packages.txt</code>, on the target platform execute:
+* <code>nox -s create_test_package_list</code></p>
+<p>Finally, check-in the new or modified list files in the directory <code>testdata/tests_packages</code></p>
+<h2 id="testing-pipx-on-continuous-integration-builds">Testing pipx on Continuous Integration builds</h2>
+<p>When you push a new git branch, tests will automatically be run against your code as defined in <code>.github/workflows/on-push.yml</code>.</p>
+<h2 id="building-documentation">Building Documentation</h2>
+<p><code>pipx</code> autogenerates API documentation, and also uses templates.</p>
+<p>When updating pipx docs, make sure you are either modifying a file in the <code>templates</code> directory, or the <code>docs</code> directory. If in the <code>docs</code> directory, make sure the file was not autogenerated from the <code>templates</code> directory. Autogenerated files have a note at the top of the file.</p>
+<p>You can generate the documentation with</p>
+<pre><code>nox -s build_docs
+</code></pre>
+
+<p>This will capture CLI documentation for any pipx argument modifications, as well as generate templates to the docs directory.</p>
+<p>To preview changes, including live reloading, open another terminal and run</p>
+<pre><code>nox -s watch_docs
+</code></pre>
+
+<h3 id="publishing-doc-changes-to-github-pages">Publishing Doc Changes to GitHub pages</h3>
+<pre><code>nox -s publish_docs
+</code></pre>
+
+<h2 id="releasing-new-pipx-versions">Releasing New <code>pipx</code> Versions</h2>
+<h3 id="pre-release">Pre-release</h3>
+<p>First, make sure the changelog is complete.  Next decide what the next version
+number will be.  Then, from a clone of the main pypa pipx repo (not a
+fork) execute:</p>
+<pre><code>nox -s pre_release
+</code></pre>
+
+<p>Enter the new version number when asked. When the script is finished, check the
+diff it produces.  If the diff looks correct, commit the changes as the
+script instructs, and push the result.</p>
+<p>The script will modify <code>src/pipx/version.py</code> to contain the new version, and
+also update the changelog (<code>docs/changelog.md</code>) to specify the new version.</p>
+<h3 id="release">Release</h3>
+<p>To publish to PyPI simply create a "published" release on Github.  This will
+trigger Github workflows that both publish the pipx version to PyPI and publish
+the pipx documentation to the pipx website.</p>
+<h3 id="post-release">Post-release</h3>
+<p>From a clone of the main pypa pipx repo (not a
+fork) execute:</p>
+<pre><code>nox -s post_release
+</code></pre>
+
+<p>When the script is finished, check the diff it produces.  If the diff looks
+correct, commit the changes as the script instructs, and push the result.</p>
+<p>This will update pipx's version in <code>src/pipx/version.py</code> by adding a suffix
+<code>"dev0"</code> for unreleased development, and will update the changelog to start a
+new section at the top entitled <code>dev</code>.</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+        
+          <a href="../programs-to-try/" title="Programs to Try" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Programs to Try
+              </div>
+            </div>
+          </a>
+        
+        
+          <a href="../changelog/" title="Changelog" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Changelog
+              </div>
+            </div>
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.d1f5a259.min.js"></script>
+      <script src="../assets/javascripts/bundle.d5fec882.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: [],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.fae956e7.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>
