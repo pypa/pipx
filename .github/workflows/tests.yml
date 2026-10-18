@@ -6,6 +6,7 @@ on:
     branches:
       - "main"
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   schedule:
     - cron: "0 8 * * *"
 concurrency:
@@ -147,6 +148,19 @@ jobs:
           name: pipx.pyz
           path: pipx.pyz
           retention-days: 3
+  changelog:
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip news')
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.15"
+          enable-cache: false
+      - run: uvx towncrier check --compare-with "origin/${GITHUB_BASE_REF}"
   zipapp-windows:
     name: 🪟 Test zipapp on Windows
     needs: zipapp
@@ -168,3 +182,19 @@ jobs:
         run: |
           python .\pipx.pyz --version
           python .\pipx.pyz install black
+  gate:
+    name: Required checks pass
+    if: always()
+    needs: [test, type, man, zipapp, zipapp-windows, changelog]
+    runs-on: ubuntu-26.04
+    steps:
+      - env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          jq -e '
+            all(
+              to_entries[];
+              .value.result == "success" or
+              (.key == "changelog" and .value.result == "skipped")
+            )
+          ' <<< "$NEEDS_JSON"
