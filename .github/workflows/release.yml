@@ -36,7 +36,7 @@ jobs:
             exit 1
           fi
       - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         env:
           UV_VENV_SEED: "true"
         with:
@@ -100,7 +100,14 @@ jobs:
           persist-credentials: false
       - name: Create release
         run: |
-          gh release create --repo pypa/pipx "${RELEASE_TAG}" --generate-notes
+          awk -v tag="$RELEASE_TAG" '
+            index($0, "`" tag " <https://github.com/pypa/pipx/tree/" tag ">`_") == 1 { found = 1; next }
+            found && /^`[0-9]+\.[0-9]+\.[0-9]+ </ { exit }
+            found && $0 !~ /^[=-]+$/ { print }
+          ' docs/changelog.rst > "$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
+          printf '\n[PyPI release](https://pypi.org/project/pipx/%s/)\n' "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
+          gh release create --repo pypa/pipx "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -117,7 +124,7 @@ jobs:
           ref: "${{ github.ref_name }}"
           persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         env:
           UV_VENV_SEED: "true"
         with:
