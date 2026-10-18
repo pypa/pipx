@@ -160,7 +160,14 @@ jobs:
         with:
           python-version: "3.15"
           enable-cache: false
-      - run: uvx towncrier check --compare-with "origin/${GITHUB_BASE_REF}"
+      - run: |
+          for fragment in changelog.d/*.md; do
+            if [[ ! "$fragment" =~ ^changelog\.d/[0-9]+\.(feature|bugfix|performance|doc|removal)(\.[0-9]+)?\.md$ ]]; then
+              echo "::error::unsupported news fragment: $fragment"
+              exit 1
+            fi
+          done
+          uvx towncrier check --compare-with "origin/${GITHUB_BASE_REF}"
   zipapp-windows:
     name: 🪟 Test zipapp on Windows
     needs: zipapp

@@ -46,6 +46,12 @@ jobs:
             echo '::error::add a changelog.d/*.md fragment before preparing a release'
             exit 1
           fi
+          for fragment in changelog.d/*.md; do
+            if [[ ! "$fragment" =~ ^changelog\.d/[0-9]+\.(feature|bugfix|performance|doc|removal)(\.[0-9]+)?\.md$ ]]; then
+              echo "::error::unsupported news fragment: $fragment"
+              exit 1
+            fi
+          done
       - name: Configure temporary commit identity
         run: |
           git config user.name "github-actions[bot]"
