@@ -14,6 +14,16 @@ to this file.
 
 .. towncrier release notes start
 
+`1.18.4 <https://github.com/pypa/pipx/tree/1.18.4>`_ - 2026-10-18
+=================================================================
+
+Bugfixes
+--------
+
+- `pipx reset` now cancels instead of crashing when the confirmation prompt reads EOF (Ctrl-D on POSIX, Ctrl-Z then Enter
+  on Windows). (:issue:`2160`)
+
+
 `1.18.3 <https://github.com/pypa/pipx/tree/1.18.3>`_ - 2026-10-17
 =================================================================
 
