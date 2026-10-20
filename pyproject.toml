@@ -2,6 +2,7 @@
 build-backend = "hatchling.build"
 requires = [
   "docutils>=0.21.2",
+  "hatch-fancy-pypi-readme>=25.1",
   "hatch-vcs>=0.5",
   "hatchling>=1.32.4",
 ]
@@ -9,7 +10,6 @@ requires = [
 [project]
 name = "pipx"
 description = "Install and Run Python Applications in Isolated Environments"
-readme = "docs/README.md"
 keywords = [
   "cli",
   "install",
@@ -34,6 +34,7 @@ classifiers = [
   "Programming Language :: Python :: 3.15",
 ]
 dynamic = [
+  "readme",
   "version",
 ]
 dependencies = [
@@ -118,6 +119,8 @@ zipapp = [
 
 [tool.hatch]
 version.source = "vcs"
+metadata.hooks.fancy-pypi-readme.content-type = "text/markdown"
+metadata.hooks.fancy-pypi-readme.fragments = [ { path = "docs/README.md" } ]
 build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
