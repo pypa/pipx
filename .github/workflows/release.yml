@@ -66,6 +66,8 @@ jobs:
               sys.exit(f"Built version {built} does not match release tag {tag}")
           print(f"Built version {built} matches release tag {tag}")
           PY
+      - name: Check wheel contents
+        run: uvx --from 'check-wheel-contents>=0.6.3' check-wheel-contents --no-config dist
       - name: Upload distributions
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

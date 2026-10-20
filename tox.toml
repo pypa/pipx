@@ -8,6 +8,7 @@ env_list = [
   "3.15t",
   "docs",
   "lint",
+  "pkg_meta",
   "man",
   "type",
 ]
@@ -67,6 +68,17 @@ description = "run pre-commit on the codebase"
 skip_install = true
 dependency_groups = [ "lint" ]
 commands = [ [ "pre-commit", "run", "--all-files" ] ]
+
+[env.pkg_meta]
+description = "check package metadata and wheel contents"
+skip_install = true
+dependency_groups = []
+deps = [ "check-wheel-contents>=0.6.3", "twine>=7", "uv>=0.13" ]
+commands = [
+  [ "uv", "build", "--sdist", "--wheel", "--out-dir", "{env_tmp_dir}", "." ],
+  [ "twine", "check", "{env_tmp_dir}{/}*" ],
+  [ "check-wheel-contents", "--no-config", "{env_tmp_dir}" ],
+]
 
 [env.man]
 description = "build man page"

@@ -95,6 +95,20 @@ jobs:
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: 🔍 Run ty
         run: tox run -e type
+  pkg-meta:
+    name: Check package distributions
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.15"
+          enable-cache: false
+      - run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
+      - run: tox run -e pkg_meta
   man:
     name: 📖 Build man page
     runs-on: ubuntu-26.04
@@ -192,7 +206,7 @@ jobs:
   gate:
     name: Required checks pass
     if: always()
-    needs: [test, type, man, zipapp, zipapp-windows, changelog]
+    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, changelog]
     runs-on: ubuntu-26.04
     steps:
       - env:
