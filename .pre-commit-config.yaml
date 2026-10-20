@@ -54,6 +54,15 @@ repos:
   # ty runs in the `type` tox environment via GitHub Actions, not here: pre-commit.ci cannot install its
   # heavier dependency set (e.g. GitPython) in its sandbox.
   # Configuration for codespell is in pyproject.toml
+  - repo: https://github.com/LilSpazJoekp/docstrfmt
+    rev: v2.2.1
+    hooks:
+      - id: docstrfmt
+        files: |
+          (?x)
+          ^docs/changelog[.]rst$  # Only the generated release history.
+        args: ["-l", "120", "--preserve-adornments"]
+        additional_dependencies: ["sphinx>=9.1"]
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.3
     hooks:
