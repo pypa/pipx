@@ -526,7 +526,7 @@ def pipx_local_pypiserver(
         "--verbose",
         "--disable-fallback",
         "--backend",
-        "cached-dir",
+        "simple-dir",
         "--cache-control=3600",
         "--host",
         "127.0.0.1",
