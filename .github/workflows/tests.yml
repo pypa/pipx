@@ -189,7 +189,7 @@ jobs:
           uv venv --python 3.15 "$RUNNER_TEMP/tools"
           uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
           echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-news@8db87d4730353b61630d66cbc592d6bed0c85d2b
+      - uses: tox-dev/github-workflows/validate-news@9a4e76e2f4901856f2784f6c0efc89278c518b1f
   hook-cooldown:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
@@ -197,7 +197,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: tox-dev/github-workflows/check-hook-update-cooldown@8db87d4730353b61630d66cbc592d6bed0c85d2b
+      - uses: tox-dev/github-workflows/check-hook-update-cooldown@9a4e76e2f4901856f2784f6c0efc89278c518b1f
         with:
           repository: ${{ github.repository }}
           pull-request: ${{ github.event.pull_request.number }}
