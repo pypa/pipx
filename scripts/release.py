@@ -143,7 +143,14 @@ def _run(
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            sys.stderr.write(error.stderr)
+        raise SystemExit(error.returncode) from None
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from None
 
 
 __all__ = [
