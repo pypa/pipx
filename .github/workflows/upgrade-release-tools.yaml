@@ -9,12 +9,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   upgrade:
-    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@4417ce2a6208a7e5afcf3b3291d174cb2eccbbd1
+    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@5e11f2254a4dcb7102747d312ad7db48a2e9b0cb
     permissions:
       actions: write
       contents: write
       pull-requests: write
     with:
       python-version: "3.15"
-      exclude-newer-packages: filelock=2026-10-19T02:00:00Z
       check-workflow: tests.yml
