@@ -6795,14 +6795,14 @@ sha256 = "d0dae1f74bb273b534770cb4cccb6bb78735540afdb03c2146f4e19dcd412560"
 
 [[packages]]
 name = "release-creator"
-version = "0.4.2.dev50+g7330cc0dc"
+version = "0.4.2.dev61+ga5873f5d6"
 marker = "(\"release\" in dependency_groups and (python_full_version >= '3.15'))"
 
 [packages.vcs]
 type = "git"
 url = "https://github.com/tox-dev/release-creator"
-requested-revision = "7330cc0dc3c7a41a8d169bf8014fc2a75f6e220a"
-commit-id = "7330cc0dc3c7a41a8d169bf8014fc2a75f6e220a"
+requested-revision = "a5873f5d66c5b1ff07da6294aa2719764fa9f864"
+commit-id = "a5873f5d66c5b1ff07da6294aa2719764fa9f864"
 
 [[packages]]
 name = "requests"

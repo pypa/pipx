@@ -189,7 +189,19 @@ jobs:
           uv venv --python 3.15 "$RUNNER_TEMP/tools"
           uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
           echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-news@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/validate-news@8db87d4730353b61630d66cbc592d6bed0c85d2b
+  hook-cooldown:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: tox-dev/github-workflows/check-hook-update-cooldown@8db87d4730353b61630d66cbc592d6bed0c85d2b
+        with:
+          repository: ${{ github.repository }}
+          pull-request: ${{ github.event.pull_request.number }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
   zipapp-windows:
     name: 🪟 Test zipapp on Windows
     needs: zipapp
@@ -215,7 +227,7 @@ jobs:
   gate:
     name: Required checks pass
     if: always()
-    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, changelog]
+    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, changelog, hook-cooldown]
     runs-on: ubuntu-26.04
     steps:
       - env:
@@ -226,6 +238,9 @@ jobs:
             all(
               to_entries[];
               .value.result == "success" or
-              (.key == "changelog" and .value.result == "skipped" and $event != "pull_request")
+              (
+                (.key == "changelog" or .key == "hook-cooldown") and
+                .value.result == "skipped" and $event != "pull_request"
+              )
             )
           ' <<<"$NEEDS_JSON"

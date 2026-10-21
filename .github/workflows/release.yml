@@ -157,7 +157,7 @@ jobs:
         with:
           name: contributor-metadata
           path: ${{ runner.temp }}/contributor-metadata
-      - uses: tox-dev/github-workflows/render-release-notes@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/render-release-notes@8db87d4730353b61630d66cbc592d6bed0c85d2b
         with:
           tag: ${{ github.ref_name }}
           changelog: docs/changelog.rst
@@ -193,7 +193,7 @@ jobs:
           name: dist
           path: dist/
       - id: stage
-        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@8db87d4730353b61630d66cbc592d6bed0c85d2b
         with:
           project: pipx
           version: ${{ github.ref_name }}
@@ -224,7 +224,7 @@ jobs:
         with:
           name: pypi-missing-names
           path: ${{ runner.temp }}/pypi-missing-names
-      - uses: tox-dev/github-workflows/select-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/select-pypi-artifacts@8db87d4730353b61630d66cbc592d6bed0c85d2b
         with:
           dist: dist
           manifest: ${{ runner.temp }}/pypi-missing-names/pypi-missing-names.txt
@@ -261,7 +261,7 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@8db87d4730353b61630d66cbc592d6bed0c85d2b
         with:
           project: pipx
           version: ${{ github.ref_name }}
@@ -282,7 +282,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/publish-github-release@8db87d4730353b61630d66cbc592d6bed0c85d2b
         env:
           GH_TOKEN: ${{ github.token }}
         with:
@@ -308,7 +308,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@a250ca3524857236e288764651851010939b6f71
+      - uses: tox-dev/github-workflows/publish-github-release@8db87d4730353b61630d66cbc592d6bed0c85d2b
         env:
           GH_TOKEN: ${{ github.token }}
         with:
