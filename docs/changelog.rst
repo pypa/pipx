@@ -1164,17 +1164,17 @@ Added
 - Allow skipping maintenance tasks during list command
 - Raise more user friendly error when provided ``--python`` version is not found
 - Update ``pipx run`` on scripts using ``/// script`` and no ``run`` table following the updated version of PEP 723
-  (#1180)
+  (:issue:`1180`)
 
 .. _release-1-4-2-fixed:
 
 Fixed
 -----
 
-- Include ``tomli`` into ``pipx.pyz`` (zipapp) so that it can be executed with Python 3.10 or earlier (#1142)
+- Include ``tomli`` into ``pipx.pyz`` (zipapp) so that it can be executed with Python 3.10 or earlier (:issue:`1142`)
 - Fix resolving the python executable path on linux
 - ``pipx run``: Verify whether the script name provided is a file before running it
-- Avoid repeated exception logging in a few rare cases (#1192)
+- Avoid repeated exception logging in a few rare cases (:issue:`1192`)
 
 `1.4.1 <https://github.com/pypa/pipx/tree/1.4.1>`_
 ==================================================
@@ -1205,7 +1205,7 @@ Fixed
 -----
 
 - "Failed to delete" error when using Microsoft Store Python
-- "No pyvenv.cfg file" error when using Microsoft Store Python (#1164)
+- "No pyvenv.cfg file" error when using Microsoft Store Python (:issue:`1164`)
 
 .. _release-1-4-0-documentation:
 
@@ -1273,7 +1273,7 @@ Added
   ``pipx run``.
 - Imply ``--include-apps`` when running ``pipx inject --include-deps``
 - Add ``--force-reinstall`` to pip arguments when ``--force`` was passed
-- Support including requirements in scripts run using ``pipx run`` (#916)
+- Support including requirements in scripts run using ``pipx run`` (:issue:`916`)
 - Pass ``pip_args`` to ``shared_libs.upgrade()``
 - Fallback to user's log path if the default log path (``$PIPX_HOME/logs``) is not writable to aid with pipx being used
   for multi-user (e.g. system-wide) installs of applications
@@ -1316,7 +1316,7 @@ Fixed
 -----
 
 - Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a
-  URL-based requirement in pipx. (#1070)
+  URL-based requirement in pipx. (:issue:`1070`)
 
 `1.2.0 <https://github.com/pypa/pipx/tree/1.2.0>`_
 ==================================================
@@ -1326,7 +1326,7 @@ Fixed
 Added
 -----
 
-- Add ``pipx uninject`` command (#820)
+- Add ``pipx uninject`` command (:issue:`820`)
 - Ship a `zipapp <https://docs.python.org/3/library/zipapp.html>`_ of pipx
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Change the program name to ``path/to/python -m pipx`` when running as ``python -m pipx``
@@ -1336,7 +1336,7 @@ Added
 Fixed
 -----
 
-- Improve the detection logic for MSYS2 to avoid entering infinite loop (#908) (#938)
+- Improve the detection logic for MSYS2 to avoid entering infinite loop (:issue:`908`) (:issue:`938`)
 - Remove extra trailing quote from exception message
 - Fix EncodingWarning in ``pipx_metadata_file``.
 
@@ -1356,10 +1356,10 @@ Documentation
 Added
 -----
 
-- Add ``pipx environment`` command (#793)
-- Add ``list --short`` option to list only package names (#804)
+- Add ``pipx environment`` command (:issue:`793`)
+- Add ``list --short`` option to list only package names (:issue:`804`)
 - Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
-  in ``--pip-args``. (#794)
+  in ``--pip-args``. (:issue:`794`)
 - Add additional examples for installation from git repos
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
@@ -1378,7 +1378,7 @@ Documentation
 
 - Add more examples
 - Fix the command for `installing development version
-  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (#801)
+  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:issue:`801`)
 - Fix test status badge in readme file
 
 `1.1.0rc0 <https://github.com/pypa/pipx/tree/1.1.0rc0>`_
@@ -1389,10 +1389,10 @@ Documentation
 Added
 -----
 
-- Add ``pipx environment`` command (#793)
-- Add ``list --short`` option to list only package names (#804)
+- Add ``pipx environment`` command (:issue:`793`)
+- Add ``list --short`` option to list only package names (:issue:`804`)
 - Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
-  in ``--pip-args``. (#794)
+  in ``--pip-args``. (:issue:`794`)
 - Add additional examples for installation from git repos
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
@@ -1411,7 +1411,7 @@ Documentation
 
 - Add more examples
 - Fix the command for `installing development version
-  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (#801)
+  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:issue:`801`)
 - Fix test status badge in readme file
 
 `1.0.0 <https://github.com/pypa/pipx/tree/1.0.0>`_
@@ -1422,17 +1422,17 @@ Documentation
 Added
 -----
 
-- Support `argcomplete 2.0.0 <https://pypi.org/project/argcomplete/2.0.0>`_ (#790)
+- Support `argcomplete 2.0.0 <https://pypi.org/project/argcomplete/2.0.0>`_ (:issue:`790`)
 - Include machinery to build a manpage for pipx with `argparse-manpage <https://pypi.org/project/argparse-manpage/>`_.
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message
-  (#733)
+  (:issue:`733`)
 
 .. _release-1-0-0-fixed:
 
 Fixed
 -----
 
-- Fixed animations sending output to stdout, which can break JSON output. (#769)
+- Fixed animations sending output to stdout, which can break JSON output. (:issue:`769`)
 - Fix typo in ``pipx upgrade-all`` output
 
 `0.17.0 <https://github.com/pypa/pipx/tree/0.17.0>`_
@@ -1443,7 +1443,7 @@ Fixed
 Added
 -----
 
-- Support ``pipx run`` with version constraints and extras. (#697)
+- Support ``pipx run`` with version constraints and extras. (:issue:`697`)
 
 `0.16.5 <https://github.com/pypa/pipx/tree/0.16.5>`_
 ====================================================
@@ -1455,7 +1455,7 @@ Fixed
 
 - Fixed ``pipx list`` output phrasing to convey that python version displayed is the one with which package was
   installed.
-- Fixed ``pipx install`` to provide return code 0 if venv already exists, similar to pip's behavior. (#736)
+- Fixed ``pipx install`` to provide return code 0 if venv already exists, similar to pip's behavior. (:issue:`736`)
 
 .. _release-0-16-5-documentation:
 
@@ -1463,7 +1463,7 @@ Documentation
 -------------
 
 - Update ansible's install command in `Programs to Try document <https://pipx.pypa.io/stable/programs-to-try/#ansible>`_
-  to work with Ansible 2.10+ (#742)
+  to work with Ansible 2.10+ (:issue:`742`)
 
 `0.16.4 <https://github.com/pypa/pipx/tree/0.16.4>`_
 ====================================================
@@ -1473,10 +1473,10 @@ Documentation
 Fixed
 -----
 
-- Fix to ``pipx ensurepath`` to fix behavior in user locales other than UTF-8, to fix #644. The internal change is to
-  use userpath v1.6.0 or greater. (#700)
-- Fix virtual environment inspection for Python releases that uses an int for its release serial number. (#706)
-- Fix PermissionError in windows when pipx manages itself. (#718)
+- Fix to ``pipx ensurepath`` to fix behavior in user locales other than UTF-8, to fix :issue:`644`. The internal change
+  is to use userpath v1.6.0 or greater. (:issue:`700`)
+- Fix virtual environment inspection for Python releases that uses an int for its release serial number. (:issue:`706`)
+- Fix PermissionError in windows when pipx manages itself. (:issue:`718`)
 
 `0.16.3 <https://github.com/pypa/pipx/tree/0.16.3>`_
 ====================================================
@@ -1490,7 +1490,7 @@ Changes
   github URL has changed to `pypa/pipx <https://github.com/pypa/pipx>`_
 - Changed ``pipx ensurepath`` bash behavior so that only one of {``~/.profile``, ``~/.bash_profile``} is modified with
   the extra pipx paths, not both. Previously, if a ``.bash_profile`` file was created where one didn't exist, it could
-  cause problems, e.g. #456. The internal change is to use userpath v1.5.0 or greater. (#684)
+  cause problems, e.g. :issue:`456`. The internal change is to use userpath v1.5.0 or greater. (:issue:`684`)
 
 .. _release-0-16-3-fixed:
 
@@ -1498,14 +1498,14 @@ Fixed
 -----
 
 - Fixed ``pipx list --json`` to return valid json with no venvs installed. Previously would return an empty string to
-  stdout. (#681)
+  stdout. (:issue:`681`)
 
 .. _release-0-16-3-packaging:
 
 Packaging
 ---------
 
-- Colorama is now only installed on Windows. (#691)
+- Colorama is now only installed on Windows. (:issue:`691`)
 
 `0.16.2.1 <https://github.com/pypa/pipx/tree/0.16.2.1>`_
 ========================================================
@@ -1516,7 +1516,7 @@ Changes
 -------
 
 - Changed non-venv-info warnings and notices from ``pipx list`` to print to stderr. This especially prevents ``pipx list
-  --json`` from printing invalid json to stdout. (#680)
+  --json`` from printing invalid json to stdout. (:issue:`680`)
 
 .. _release-0-16-2-1-fixed:
 
@@ -1524,7 +1524,7 @@ Fixed
 -----
 
 - Fixed bug that could cause uninstall on Windows with injected packages to uninstall too many apps from the local
-  binary directory. (#679)
+  binary directory. (:issue:`679`)
 
 `0.16.2.0 <https://github.com/pypa/pipx/tree/0.16.2.0>`_
 ========================================================
@@ -1535,27 +1535,28 @@ Added
 -----
 
 - Added ``--json`` switch to ``pipx list`` to output rich json-metadata for all venvs.
-- Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (#666)
+- Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (:issue:`666`)
 
 .. _release-0-16-2-0-changes:
 
 Changes
 -------
 
-- Ensured log files are utf-8 encoded to prevent Unicode encoding errors from occurring with emojis. (#646)
+- Ensured log files are utf-8 encoded to prevent Unicode encoding errors from occurring with emojis. (:issue:`646`)
 
 .. _release-0-16-2-0-fixed:
 
 Fixed
 -----
 
-- Fixed bug #670 where uninstalling a venv could erroneously uninstall other apps from the local binary directory.
-  (#672)
-- Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx. (#650)
+- Fixed bug :issue:`670` where uninstalling a venv could erroneously uninstall other apps from the local binary
+  directory. (:issue:`672`)
+- Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx.
+  (:issue:`650`)
 - Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did
-  not have pipx metadata. (#651)
+  not have pipx metadata. (:issue:`651`)
 - Fixed bugs with suffixed-venvs on Windows. Now properly summarizes install, and actually uninstalls associated
-  binaries for suffixed-venvs. (#653)
+  binaries for suffixed-venvs. (:issue:`653`)
 
 `0.16.1.0 <https://github.com/pypa/pipx/tree/0.16.1.0>`_
 ========================================================
@@ -1566,33 +1567,34 @@ Added
 -----
 
 - Introduce the ``pipx.run`` entry point group as an alternative way to declare an application for ``pipx run``.
-- Support text colors on Windows. (#612)
+- Support text colors on Windows. (:issue:`612`)
 
 .. _release-0-16-1-0-changes:
 
 Changes
 -------
 
-- Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
+- Better platform unicode detection to avoid errors and allow showing emojis when possible. (:issue:`614`)
 - pip errors no longer stream to the shell when pip fails during a pipx install. pip's output is now saved to a log
-  file. In the shell, pipx will tell you the location of the log file and attempt to summarize why pip failed. (#625)
-- For ``reinstall-all``, fixed bug where missing python executable would cause error. (#634)
+  file. In the shell, pipx will tell you the location of the log file and attempt to summarize why pip failed.
+  (:issue:`625`)
+- For ``reinstall-all``, fixed bug where missing python executable would cause error. (:issue:`634`)
 
 .. _release-0-16-1-0-fixed:
 
 Fixed
 -----
 
-- Fix cursor show/hide to work with older versions of Windows. (#610)
-- Don't emit show cursor or hide cursor codes if STDERR is not a tty. (#620)
-- Fix regression which prevented pipx from working with pythonloc (and ``__pypackages__`` folder). (#636)
+- Fix cursor show/hide to work with older versions of Windows. (:issue:`610`)
+- Don't emit show cursor or hide cursor codes if STDERR is not a tty. (:issue:`620`)
+- Fix regression which prevented pipx from working with pythonloc (and ``__pypackages__`` folder). (:issue:`636`)
 
 .. _release-0-16-1-0-performance:
 
 Performance
 -----------
 
-- Sped up ``pipx list`` (#624).
+- Sped up ``pipx list`` (:issue:`624`).
 
 `0.16.0.0 <https://github.com/pypa/pipx/tree/0.16.0.0>`_
 ========================================================
@@ -1648,7 +1650,7 @@ Fixed
 
 - Fixed bug with reinstall-all command when package have been installed using a specifier. Now the initial specifier is
   used.
-- Override display of ``PIPX_DEFAULT_PYTHON`` value when generating web documentation for ``pipx install`` #523
+- Override display of ``PIPX_DEFAULT_PYTHON`` value when generating web documentation for ``pipx install`` :issue:`523`
 - Wrap help documentation for environment variables.
 - Fixed uninstall crash that could happen on Windows for certain packages
 
@@ -1715,8 +1717,8 @@ Added
 - Version of each injected package is now listed after name for ``pipx list --include-injected``
 - ``ensurepath`` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was
   installed using ``pip install --user``.
-- log pipx version (#423)
-- ``--suffix`` option for ``install`` to allow multiple versions of same tool to be installed (#445)
+- log pipx version (:issue:`423`)
+- ``--suffix`` option for ``install`` to allow multiple versions of same tool to be installed (:issue:`445`)
 - pipx can now be used with the Windows embeddable Python distribution
 
 .. _release-0-15-5-0-changes:
@@ -1726,7 +1728,8 @@ Changes
 
 - pipx now parses package specification before install. It removes (with warning) the ``--editable`` install option for
   any package specification that is not a local path. It also removes (with warning) any environment markers.
-- Disabled animation when we cannot determine terminal size or if the number of columns is too small. (Fixes #444)
+- Disabled animation when we cannot determine terminal size or if the number of columns is too small. (Fixes
+  :issue:`444`)
 - Change metadata recorded from version-specified install to allow upgrades in future. Adds pipx dependency on
   ``packaging`` package.
 
@@ -1736,8 +1739,8 @@ Fixed
 -----
 
 - Prevent python error in case where package has no pipx metadata and advise user how to fix.
-- For ``pipx install``, fixed failure to install if user has ``PIP_USER=1`` or ``user=true`` in pip.conf. (#110)
-- Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for ``ensurepath`` (#437)
+- For ``pipx install``, fixed failure to install if user has ``PIP_USER=1`` or ``user=true`` in pip.conf. (:issue:`110`)
+- Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for ``ensurepath`` (:issue:`437`)
 
 `0.15.4.0 <https://github.com/pypa/pipx/tree/0.15.4.0>`_
 ========================================================
@@ -1764,7 +1767,7 @@ Fixed
 Fixed
 -----
 
-- Workaround multiprocessing issues on certain platforms (#229)
+- Workaround multiprocessing issues on certain platforms (:issue:`229`)
 
 `0.15.3.0 <https://github.com/pypa/pipx/tree/0.15.3.0>`_
 ========================================================
@@ -1784,7 +1787,7 @@ Added
 Added
 -----
 
-- Add environment variable ``USE_EMOJI`` to allow enabling/disabling emojis (#376)
+- Add environment variable ``USE_EMOJI`` to allow enabling/disabling emojis (:issue:`376`)
 
 .. _release-0-15-2-0-fixed:
 
@@ -1792,12 +1795,12 @@ Fixed
 -----
 
 - Improved error reporting during venv metadata inspection.
-- Fixed incompatibility with pypy as venv interpreter (#372).
-- Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
+- Fixed incompatibility with pypy as venv interpreter (:issue:`372`).
+- Replaced implicit dependency on setuptools with an explicit dependency on packaging (:issue:`339`).
 - Continue reinstalling packages after failure
 - Hide cursor while pipx runs
 - Ignore system shared libraries when installing shared libraries pip, wheel, and setuptools. This also fixes an
-  incompatibility with Debian/Ubuntu's version of pip (#386).
+  incompatibility with Debian/Ubuntu's version of pip (:issue:`386`).
 
 `0.15.1.3 <https://github.com/pypa/pipx/tree/0.15.1.3>`_
 ========================================================
@@ -1807,7 +1810,7 @@ Fixed
 Fixed
 -----
 
-- On Windows, pipx now lists correct Windows apps (#217)
+- On Windows, pipx now lists correct Windows apps (:issue:`217`)
 - Fixed a ``pipx install`` bug causing incorrect python binary to be used when using the optional --python argument in
   certain situations, such as running pipx from a Framework python on macOS and specifying a non-Framework python.
 
@@ -1848,14 +1851,14 @@ Added
 
 - Add Python 3.8 to PyPI classifier and travis test matrix
 - auto-upgrade shared libraries, including pip, if older than one month. Hide all pip warnings that a new version is
-  available. (#264)
+  available. (:issue:`264`)
 
 .. _release-0-15-1-0-fixed:
 
 Fixed
 -----
 
-- pass pip arguments to pip when determining package name (#320)
+- pass pip arguments to pip when determining package name (:issue:`320`)
 
 `0.15.0.0 <https://github.com/pypa/pipx/tree/0.15.0.0>`_
 ========================================================
@@ -1880,13 +1883,13 @@ Changes
 - ``inject`` will now accept pip specifications for dependency arguments
 - Metadata is now stored for each application installed, including install options like ``--spec``, and injected
   packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed
-  packages. (#222)
-- Handle missing interpreters more gracefully (#146)
+  packages. (:issue:`222`)
+- Handle missing interpreters more gracefully (:issue:`146`)
 - Change ``reinstall-all`` to use system python by default for apps. Now use ``--python`` option to specify a different
   python version.
 - Remove the PYTHONPATH environment variable when executing any command to prevent conflicts between pipx dependencies
   and package dependencies when pipx is installed via homebrew. Homebrew can use PYTHONPATH manipulation instead of
-  virtual environments. (#233)
+  virtual environments. (:issue:`233`)
 - Improvements to animation status text
 - Make ``--python`` argument in ``reinstall-all`` command optional
 - Stricter parsing when passing ``--`` argument as delimiter
@@ -1898,11 +1901,13 @@ Removed
 
 - ``install`` now has no ``--spec`` option. You may specify any valid pip specification for ``install``'s main argument.
 - ``upgrade`` options ``--spec`` and ``--include-deps`` were removed. Pipx now uses the original options used to install
-  each application instead. (#222)
+  each application instead. (:issue:`222`)
 - ``upgrade-all`` options ``--include-deps``, ``--system-site-packages``, ``--index-url``, ``--editable``, and
-  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead. (#222)
+  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead.
+  (:issue:`222`)
 - ``reinstall-all`` options ``--include-deps``, ``--system-site-packages``, ``--index-url``, ``--editable``, and
-  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead. (#222)
+  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead.
+  (:issue:`222`)
 
 `0.14.0.0 <https://github.com/pypa/pipx/tree/0.14.0.0>`_
 ========================================================
@@ -1923,7 +1928,7 @@ Performance
 -----------
 
 - Speed up operations by using shared venv for ``pip``, ``setuptools``, and ``wheel``. You can see more detail in the
-  'how pipx works' section of the documentation. (#164, @pfmoore)
+  'how pipx works' section of the documentation. (:issue:`164`) by :user:`pfmoore`.
 
 .. _release-0-14-0-0-breaking-changes:
 
@@ -1951,7 +1956,7 @@ Performance
 -----------
 
 - Speed up operations by using shared venv for ``pip``, ``setuptools``, and ``wheel``. You can see more detail in the
-  'how pipx works' section of the documentation. (#164, @pfmoore)
+  'how pipx works' section of the documentation. (:issue:`164`) by :user:`pfmoore`.
 
 .. _release-0-14-0-0rc1-breaking-changes:
 
@@ -1986,7 +1991,7 @@ Changes
 Fixed
 -----
 
-- Remove unnecessary and sometimes incorrect check after ``pipx inject`` (#195)
+- Remove unnecessary and sometimes incorrect check after ``pipx inject`` (:issue:`195`)
 
 `0.13.2.1 <https://github.com/pypa/pipx/tree/0.13.2.1>`_
 ========================================================
@@ -1997,7 +2002,7 @@ Fixed
 -----
 
 - Remove virtual environment if installation did not complete. For example, if it was interrupted by ctrl+c or if an
-  exception occurred for any reason. (#193)
+  exception occurred for any reason. (:issue:`193`)
 
 `0.13.2.0 <https://github.com/pypa/pipx/tree/0.13.2.0>`_
 ========================================================
@@ -2043,7 +2048,7 @@ Changes
 Fixed
 -----
 
-- Do not raise bare exception if no binaries found (#150)
+- Do not raise bare exception if no binaries found (:issue:`150`)
 
 `0.13.1.0 <https://github.com/pypa/pipx/tree/0.13.1.0>`_
 ========================================================
@@ -2095,8 +2100,8 @@ Added
 Fixed
 -----
 
-- Do not raise error when running ``pipx install PACKAGE`` and the package has already been installed by pipx (#125).
-  This is the cause of the major version change from 0.12 to 0.13.
+- Do not raise error when running ``pipx install PACKAGE`` and the package has already been installed by pipx
+  (:issue:`125`). This is the cause of the major version change from 0.12 to 0.13.
 
 `0.12.3.3 <https://github.com/pypa/pipx/tree/0.12.3.3>`_
 ========================================================
@@ -2107,9 +2112,9 @@ Fixed
 -----
 
 - Update logic in determining a package's binaries during installation. This removes spurious binaries from the
-  installation. (#104)
+  installation. (:issue:`104`)
 - Improve compatibility with Debian distributions by using ``shutil.which`` instead of
-  ``distutils.spawn.find_executable`` (#102)
+  ``distutils.spawn.find_executable`` (:issue:`102`)
 
 `0.12.3.2 <https://github.com/pypa/pipx/tree/0.12.3.2>`_
 ========================================================
@@ -2119,8 +2124,8 @@ Fixed
 Fixed
 -----
 
-- Fix infinite recursion error when installing package such as ``cloudtoken==0.1.84`` (#103)
-- Fix windows type errors (#96, #98)
+- Fix infinite recursion error when installing package such as ``cloudtoken==0.1.84`` (:issue:`103`)
+- Fix windows type errors (:issue:`96`, :issue:`98`)
 
 `0.12.3.1 <https://github.com/pypa/pipx/tree/0.12.3.1>`_
 ========================================================
@@ -2175,7 +2180,7 @@ Added
 Fixed
 -----
 
-- Fix regression when installing with ``--editable`` flag (#93)
+- Fix regression when installing with ``--editable`` flag (:issue:`93`)
 
 `0.12.1.0 <https://github.com/pypa/pipx/tree/0.12.1.0>`_
 ========================================================
@@ -2185,7 +2190,7 @@ Fixed
 Added
 -----
 
-- Cache and reuse temporary Virtual Environments created with ``pipx run`` (#61)
+- Cache and reuse temporary Virtual Environments created with ``pipx run`` (:issue:`61`)
 
 .. _release-0-12-1-0-changes:
 
@@ -2200,9 +2205,9 @@ Changes
 Fixed
 -----
 
-- Update binary discovery logic to find "scripts" like awscli (#91)
+- Update binary discovery logic to find "scripts" like awscli (:issue:`91`)
 - Forward ``--pip-args`` to the pip upgrade command (previously the args were forwarded to install/upgrade commands for
-  packages) (#77)
+  packages) (:issue:`77`)
 
 `0.12.0.4 <https://github.com/pypa/pipx/tree/0.12.0.4>`_
 ========================================================
@@ -2234,7 +2239,7 @@ Added
 Changes
 -------
 
-- forward arguments to run command correctly #90
+- forward arguments to run command correctly :issue:`90`
 
 `0.12.0.1 <https://github.com/pypa/pipx/tree/0.12.0.1>`_
 ========================================================
@@ -2244,7 +2249,7 @@ Changes
 Fixed
 -----
 
-- stop using unverified context #89
+- stop using unverified context :issue:`89`
 
 `0.12.0.0 <https://github.com/pypa/pipx/tree/0.12.0.0>`_
 ========================================================
@@ -2305,14 +2310,14 @@ Fixed
 Added
 -----
 
-- support --system-site-packages flag (Issue #64)
+- support --system-site-packages flag (Issue :issue:`64`)
 
 .. _release-0-11-0-0-changes:
 
 Changes
 -------
 
-- upgrade pip when upgrading packages (Issue #72)
+- upgrade pip when upgrading packages (Issue :issue:`72`)
 
 .. _release-0-11-0-0-breaking-changes:
 
@@ -2320,7 +2325,7 @@ Breaking changes
 ----------------
 
 - Replace ``pipx BINARY`` with ``pipx run BINARY`` to run a binary in an ephemeral environment. This is a breaking API
-  change so the major version has been incremented. (Issue #69)
+  change so the major version has been incremented. (Issue :issue:`69`)
 
 `0.10.4.1 <https://github.com/pypa/pipx/tree/0.10.4.1>`_
 ========================================================
