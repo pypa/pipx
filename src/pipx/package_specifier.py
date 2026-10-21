@@ -90,6 +90,8 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
         if package_path_exists:
             valid_local_path = str(package_path.resolve())
+            if valid_pep508.extras:
+                valid_local_path += f"[{','.join(sorted(valid_pep508.extras))}]"
         else:
             msg = f"{package_path} does not exist"
             raise PipxError(msg)
