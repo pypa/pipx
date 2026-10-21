@@ -1361,7 +1361,6 @@ Added
 - Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
   in ``--pip-args``. (#794)
 - Add additional examples for installation from git repos
-- [packaging] Switch to `PEP 621 <https://www.python.org/dev/peps/pep-0621/>`_
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
 
@@ -1373,6 +1372,39 @@ Fixed
 - Fix encoding issue on Windows when pip fails to install a package
 
 .. _release-1-1-0-documentation:
+
+Documentation
+-------------
+
+- Add more examples
+- Fix the command for `installing development version
+  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (#801)
+- Fix test status badge in readme file
+
+`1.1.0rc0 <https://github.com/pypa/pipx/tree/1.1.0rc0>`_
+========================================================
+
+.. _release-1-1-0rc0-added:
+
+Added
+-----
+
+- Add ``pipx environment`` command (#793)
+- Add ``list --short`` option to list only package names (#804)
+- Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
+  in ``--pip-args``. (#794)
+- Add additional examples for installation from git repos
+- Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
+  information about cache directory tags, see https://bford.info/cachedir
+
+.. _release-1-1-0rc0-fixed:
+
+Fixed
+-----
+
+- Fix encoding issue on Windows when pip fails to install a package
+
+.. _release-1-1-0rc0-documentation:
 
 Documentation
 -------------
@@ -1894,6 +1926,34 @@ Performance
   'how pipx works' section of the documentation. (#164, @pfmoore)
 
 .. _release-0-14-0-0-breaking-changes:
+
+Breaking changes
+----------------
+
+- Breaking change: for the ``inject`` command, change ``--include-binaries`` to ``--include-apps``
+
+`0.14.0.0rc1 <https://github.com/pypa/pipx/tree/0.14.0.0rc1>`_
+==============================================================
+
+.. _release-0-14-0-0rc1-changes:
+
+Changes
+-------
+
+- Change all terminology from ``binary`` to ``app`` or ``application``
+- Improve argument parsing for ``pipx run`` and ``pipx runpip``
+- If ``--force`` is passed, remove existing files in PIPX_BIN_DIR
+- Move animation to start of line, hide cursor when animating
+
+.. _release-0-14-0-0rc1-performance:
+
+Performance
+-----------
+
+- Speed up operations by using shared venv for ``pip``, ``setuptools``, and ``wheel``. You can see more detail in the
+  'how pipx works' section of the documentation. (#164, @pfmoore)
+
+.. _release-0-14-0-0rc1-breaking-changes:
 
 Breaking changes
 ----------------
