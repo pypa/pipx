@@ -1,13 +1,9 @@
 {% if render_title %}
 .. _release-{{ versiondata.version|replace('.', '-') }}:
 
-{% if versiondata.name %}
-{{ versiondata.name }} {{ versiondata.version }} ({{ versiondata.date }})
-{{ top_underline * ((versiondata.name + versiondata.version + versiondata.date)|length + 4)}}
-{% else %}
-{{ versiondata.version }} ({{ versiondata.date }})
-{{ top_underline * ((versiondata.version + versiondata.date)|length + 3)}}
-{% endif %}
+{% set title = '`' ~ versiondata.version ~ ' <https://github.com/pypa/pipx/tree/' ~ versiondata.version ~ '>`_ - ' ~ versiondata.date %}
+{{ title }}
+{{ top_underline * (title|length) }}
 {% endif %}
 {% for section, _ in sections.items() %}
 {% set underline = underlines[0] %}{% if section %}{{section}}
