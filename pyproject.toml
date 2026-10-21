@@ -113,6 +113,14 @@ lint = [
 man = [
   "docutils>=0.21.2",
 ]
+release = [
+  "check-wheel-contents>=0.6.3",
+  "prek>=0.5",
+  "release-creator @ git+https://github.com/tox-dev/release-creator@5ab33234939cf2969d25a11ba477c31eb264067c",
+  "towncrier>=26.9",
+  "twine>=7",
+  "uv>=0.12.22",
+]
 zipapp = [
   "shiv>=1.0.8",
 ]
@@ -132,6 +140,9 @@ build.targets.sdist.include = [
   "/pipx_demo.gif",
   "/src",
 ]
+
+[tool.uv]
+dependency-groups.release = { requires-python = ">=3.15" }
 
 [tool.ruff]
 line-length = 120
@@ -225,6 +236,7 @@ package = "pipx"
 directory = "changelog.d"
 filename = "docs/changelog.rst"
 start_string = ".. towncrier release notes start\n"
+template = "changelog.d/template.rst"
 title_format = "`{version} <https://github.com/pypa/pipx/tree/{version}>`_ - {project_date}"
 issue_format = ":issue:`{issue}`"
 underlines = [
@@ -233,13 +245,16 @@ underlines = [
   "~",
 ]
 type = [
-  # defining any custom type replaces towncrier's built-ins, so pipx's default set is repeated here with a
-  # performance type added, otherwise `*.performance.md` fragments are silently dropped from the changelog
-  { directory = "feature", name = "Features", showcontent = true },
-  { directory = "bugfix", name = "Bugfixes", showcontent = true },
+  { directory = "feature", name = "Added", showcontent = true },
+  { directory = "change", name = "Changes", showcontent = true },
+  { directory = "bugfix", name = "Fixed", showcontent = true },
+  { directory = "breaking", name = "Breaking changes", showcontent = true },
   { directory = "performance", name = "Performance", showcontent = true },
-  { directory = "doc", name = "Improved Documentation", showcontent = true },
-  { directory = "removal", name = "Deprecations and Removals", showcontent = true },
+  { directory = "doc", name = "Documentation", showcontent = true },
+  { directory = "security", name = "Security", showcontent = true },
+  { directory = "deprecation", name = "Deprecated", showcontent = true },
+  { directory = "removal", name = "Removed", showcontent = true },
+  { directory = "packaging", name = "Packaging", showcontent = true },
 ]
 
 [tool.flake8-lazy]
