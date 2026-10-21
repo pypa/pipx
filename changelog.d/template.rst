@@ -21,7 +21,8 @@
 {{ underline * definitions[category]['name']|length }}
 
 {% for text, values in sections[section][category].items() %}
-- {% if text %}{{ text }}{% if values %} ({{ values|join(', ') }}){% endif %}{% else %}{{ values|join(', ') }}{% endif  %}
+{% set visible_values = values|reject('in', text|replace(':pr:', ':issue:'))|list %}
+- {% if text %}{{ text }}{% if visible_values %} ({{ visible_values|join(', ') }}){% endif %}{% else %}{{ visible_values|join(', ') }}{% endif  %}
 
 {% endfor %}
 
