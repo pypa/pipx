@@ -29,7 +29,21 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
+# Keep in sync with pip's ARCHIVE_EXTENSIONS (pip._internal.utils.filetypes). pip matches these case-insensitively.
+ARCHIVE_EXTENSIONS = (
+    ".whl",
+    ".zip",
+    ".tar",
+    ".tar.gz",
+    ".tgz",
+    ".tar.bz2",
+    ".tbz",
+    ".tar.xz",
+    ".txz",
+    ".tlz",
+    ".tar.lz",
+    ".tar.lzma",
+)
 _LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+file"})
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
@@ -77,6 +91,10 @@ def _check_package_path(package_path: str) -> tuple[Path, bool]:
     return (pkg_path, pkg_path_exists)
 
 
+def _is_archive_name(name: str) -> bool:
+    return name.lower().endswith(ARCHIVE_EXTENSIONS)
+
+
 def _parse_specifier(package_spec: str) -> ParsedPackage:
     """Parse package_spec as would be given to pipx"""
     # Match pip's PyPI precedence by checking local paths only for names that PyPI rejects.
@@ -84,7 +102,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     valid_url = None
     valid_local_path = None
 
-    if valid_pep508 and valid_pep508.name.endswith(ARCHIVE_EXTENSIONS):
+    if valid_pep508 and _is_archive_name(valid_pep508.name):
         # It might be a local archive
         (package_path, package_path_exists) = _check_package_path(valid_pep508.name)
 
@@ -263,7 +281,7 @@ def valid_pypi_name(package_spec: str) -> str | None:
     if (package_req := _requirement(package_spec)) is None:
         return None
 
-    if package_req.url or package_req.name.endswith(ARCHIVE_EXTENSIONS):
+    if package_req.url or _is_archive_name(package_req.name):
         # package name supplied by user might not match package found in URL,
         # also if package name ends with archive extension, it might be a local archive file,
         #   so force package name determination the long way
@@ -399,7 +417,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
     if (package_req := _requirement(package_or_url)) is None:
         return package_or_url
 
-    if package_req.name.endswith(ARCHIVE_EXTENSIONS):
+    if _is_archive_name(package_req.name):
         return str(package_req)
 
     if canonicalize_name(package_req.name) != canonicalize_name(package_name):
