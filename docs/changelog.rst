@@ -14,6 +14,8 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-4:
+
 `1.18.4 <https://github.com/pypa/pipx/tree/1.18.4>`_ - 2026-10-18
 =================================================================
 
@@ -23,7 +25,9 @@ Fixed
 -----
 
 - `pipx reset` now cancels instead of crashing when the confirmation prompt reads EOF (Ctrl-D on POSIX, Ctrl-Z then
-  Enter on Windows). (:issue:`2160`)
+  Enter on Windows). (:pr:`2160`) by :user:`XXXXXQ-0206` and :user:`gaborbernat`
+
+.. _release-1-18-3:
 
 `1.18.3 <https://github.com/pypa/pipx/tree/1.18.3>`_ - 2026-10-17
 =================================================================
@@ -33,7 +37,9 @@ Fixed
 Fixed
 -----
 
-- Allow selecting dependencies that ship only shell completions. (:issue:`2157`)
+- Allow selecting dependencies that ship only shell completions. (:pr:`2157`) by :user:`AryanRG` and :user:`gaborbernat`
+
+.. _release-1-18-2:
 
 `1.18.2 <https://github.com/pypa/pipx/tree/1.18.2>`_ - 2026-10-16
 =================================================================
@@ -44,13 +50,15 @@ Fixed
 -----
 
 - Accept absolute `file:///` URLs as package specs, such as `pipx install file:///wheels/tool-1-py3-none-any.whl`.
-  (:issue:`2150`)
+  (:pr:`2150`) by :user:`srijan2607` and :user:`gaborbernat`
 - In a terminal, show the pipx spinner again during installs and upgrades instead of the full `pip` or `uv` log, which
   `--verbose` still streams. Installer errors are still printed on failure. (:issue:`2151`)
 - Print the installer error once when a `pipx upgrade --verbose` or pip `pipx install --verbose` fails, instead of
-  repeating it after the live output. (:issue:`2153`)
+  repeating it after the live output. (:pr:`2153`) by :user:`gaborbernat`
 - Stop an `-all` command on Ctrl-C even when the interpreter drops the interrupt, which happens when the signal handler
-  runs inside a weakref callback or a finalizer. (:issue:`2154`)
+  runs inside a weakref callback or a finalizer. (:pr:`2154`) by :user:`gaborbernat`
+
+.. _release-1-18-1:
 
 `1.18.1 <https://github.com/pypa/pipx/tree/1.18.1>`_ - 2026-10-15
 =================================================================
@@ -60,7 +68,9 @@ Fixed
 Fixed
 -----
 
-- Stop pip and uv when Ctrl-C lands early, instead of hanging. (:issue:`2146`)
+- Stop pip and uv when Ctrl-C lands early, instead of hanging. (:pr:`2146`) by :user:`gaborbernat`
+
+.. _release-1-18-0:
 
 `1.18.0 <https://github.com/pypa/pipx/tree/1.18.0>`_ - 2026-10-15
 =================================================================
@@ -71,57 +81,58 @@ Added
 -----
 
 - Put `--suffix` last, except before a Windows file extension. Apps exposed by 1.17.14 keep their old name until pipx
-  next exposes them, which renames them. (:issue:`2098`)
-- `upgrade` and `reinstall-all` refresh shared pip only after 30 days. (:issue:`2116`)
-- Run `pipx upgrade-shared` to refresh shared pip sooner. (:issue:`2116`)
-- Set `PYTHON_LAZY_IMPORTS=normal` to opt out; the entry point is `pipx.__main__`. (:issue:`2132`)
-- Defer every import, dependencies included, on Python 3.15 for faster startup. (:issue:`2132`)
-- Run `reinstall-all`, `upgrade-all` and `install-all` across venvs at once. (:issue:`2137`)
+  next exposes them, which renames them. (:pr:`2098`) by :user:`gaborbernat`
+- `upgrade` and `reinstall-all` refresh shared pip only after 30 days. (:pr:`2116`) by :user:`gaborbernat`
+- Run `pipx upgrade-shared` to refresh shared pip sooner. (:pr:`2116`) by :user:`gaborbernat`
+- Set `PYTHON_LAZY_IMPORTS=normal` to opt out; the entry point is `pipx.__main__`. (:pr:`2132`) by :user:`gaborbernat`
+- Defer every import, dependencies included, on Python 3.15 for faster startup. (:pr:`2132`) by :user:`gaborbernat`
+- Run `reinstall-all`, `upgrade-all` and `install-all` across venvs at once. (:pr:`2137`) by :user:`gaborbernat`
 - Let running upgrades finish on Ctrl-C in `upgrade-all`; a second Ctrl-C stops them, and the next `upgrade` repairs
-  what was left half-upgraded. (:issue:`2144`)
-- Retry uv-backend installs on a Python matching requires-python, as pip does. (:issue:`2144`)
-- Translate recorded index options when `install-all --backend` switches between pip and uv. (:issue:`2144`)
+  what was left half-upgraded. (:pr:`2144`) by :user:`gaborbernat`
+- Retry uv-backend installs on a Python matching requires-python, as pip does. (:pr:`2144`) by :user:`gaborbernat`
+- Translate recorded index options when `install-all --backend` switches between pip and uv. (:pr:`2144`) by
+  :user:`gaborbernat`
 
 .. _release-1-18-0-fixed:
 
 Fixed
 -----
 
-- Warn that `--system-site-packages` is ignored by `inject` and `upgrade-all`. (:issue:`2089`)
-- Fall back to pip with a warning when the auto-detected uv is older than 0.9.17. (:issue:`2092`)
-- Use the default Python for scripts when it satisfies `requires-python`. (:issue:`2093`)
-- Make `interpreter upgrade` move venvs off a patch-pinned standalone Python. (:issue:`2094`)
-- Keep pins of injected packages through `reinstall`, `install-all` and `--force`. (:issue:`2095`)
-- Restore recorded venv and pip args in `install-all` and reject bad spec files. (:issue:`2096`)
-- Remove apps, man pages and completions an upgraded package no longer ships. (:issue:`2097`)
-- Keep the interpreter on `install --force --python`. (:issue:`2098`)
-- Make `pipx expose` relink resources missing after a collision or a deletion. (:issue:`2099`)
-- Print only the envelope on `--output json` stdout and fix `health` JSON status. (:issue:`2101`)
-- Keep users of a global pipx on their own paths and explain unwritable homes. (:issue:`2102`)
-- Keep `PIPX_MAX_LOGS` logs, not one extra, and rotate uv error logs too. (:issue:`2103`)
-- Keep the last output of a child process streamed to a terminal on macOS. (:issue:`2111`)
-- Report apps whose Python is missing in `upgrade-all` instead of crashing. (:issue:`2141`)
-- Show child output that is not valid UTF-8 instead of crashing. (:issue:`2144`)
-- Mask passwords in index and package URLs in pipx's output and log files. (:issue:`2144`)
+- Warn that `--system-site-packages` is ignored by `inject` and `upgrade-all`. (:pr:`2089`) by :user:`gaborbernat`
+- Fall back to pip with a warning when the auto-detected uv is older than 0.9.17. (:pr:`2092`) by :user:`gaborbernat`
+- Use the default Python for scripts when it satisfies `requires-python`. (:pr:`2093`) by :user:`gaborbernat`
+- Make `interpreter upgrade` move venvs off a patch-pinned standalone Python. (:pr:`2094`) by :user:`gaborbernat`
+- Keep pins of injected packages through `reinstall`, `install-all` and `--force`. (:pr:`2095`) by :user:`gaborbernat`
+- Restore recorded venv and pip args in `install-all` and reject bad spec files. (:pr:`2096`) by :user:`gaborbernat`
+- Remove apps, man pages and completions an upgraded package no longer ships. (:pr:`2097`) by :user:`gaborbernat`
+- Keep the interpreter on `install --force --python`. (:pr:`2098`) by :user:`gaborbernat`
+- Make `pipx expose` relink resources missing after a collision or a deletion. (:pr:`2099`) by :user:`gaborbernat`
+- Print only the envelope on `--output json` stdout and fix `health` JSON status. (:pr:`2101`) by :user:`gaborbernat`
+- Keep users of a global pipx on their own paths and explain unwritable homes. (:pr:`2102`) by :user:`gaborbernat`
+- Keep `PIPX_MAX_LOGS` logs, not one extra, and rotate uv error logs too. (:pr:`2103`) by :user:`gaborbernat`
+- Keep the last output of a child process streamed to a terminal on macOS. (:pr:`2111`) by :user:`gaborbernat`
+- Report apps whose Python is missing in `upgrade-all` instead of crashing. (:pr:`2141`) by :user:`gaborbernat`
+- Show child output that is not valid UTF-8 instead of crashing. (:pr:`2144`) by :user:`gaborbernat`
+- Mask passwords in index and package URLs in pipx's output and log files. (:pr:`2144`) by :user:`gaborbernat`
 
 .. _release-1-18-0-performance:
 
 Performance
 -----------
 
-- Read a local project's name from `pyproject.toml` instead of building it twice. (:issue:`2108`)
-- Start every pipx command 50 to 130 ms faster by importing only what it uses. (:issue:`2113`)
-- Create the shared libraries 35 to 50% faster by skipping a redundant pip run. (:issue:`2114`)
-- Start half as many helper processes per install by reusing what pipx knows. (:issue:`2118`)
-- Skip a WMI query on Windows at startup by detecting the OS with `sys.platform`. (:issue:`2125`)
-- Uninject orphaned dependencies in one pip call, reported on one line. (:issue:`2126`)
-- Check only pipx-managed packages for updates, not every installed dependency. (:issue:`2127`)
-- Start pipx commands up to 30 ms faster by loading more modules on first use. (:issue:`2128`)
-- Start pipx 10 to 50 ms faster on Python 3.15 through lazy imports. (:issue:`2129`)
-- Check shared pip by its files instead of starting Python on every command. (:issue:`2131`)
-- Read a local wheel's package name from its metadata instead of a probe venv. (:issue:`2134`)
-- Scan exposed app and man page dirs once per `list` and `uninstall-all`. (:issue:`2138`)
-- Require filelock 4.2, whose lighter import speeds up most pipx commands. (:issue:`2142`)
+- Read a local project's name from `pyproject.toml` instead of building it twice. (:pr:`2108`) by :user:`gaborbernat`
+- Start every pipx command 50 to 130 ms faster by importing only what it uses. (:pr:`2113`) by :user:`gaborbernat`
+- Create the shared libraries 35 to 50% faster by skipping a redundant pip run. (:pr:`2114`) by :user:`gaborbernat`
+- Start half as many helper processes per install by reusing what pipx knows. (:pr:`2118`) by :user:`gaborbernat`
+- Skip a WMI query on Windows at startup by detecting the OS with `sys.platform`. (:pr:`2125`) by :user:`gaborbernat`
+- Uninject orphaned dependencies in one pip call, reported on one line. (:pr:`2126`) by :user:`gaborbernat`
+- Check only pipx-managed packages for updates, not every installed dependency. (:pr:`2127`) by :user:`gaborbernat`
+- Start pipx commands up to 30 ms faster by loading more modules on first use. (:pr:`2128`) by :user:`gaborbernat`
+- Start pipx 10 to 50 ms faster on Python 3.15 through lazy imports. (:pr:`2129`) by :user:`gaborbernat`
+- Check shared pip by its files instead of starting Python on every command. (:pr:`2131`) by :user:`gaborbernat`
+- Read a local wheel's package name from its metadata instead of a probe venv. (:pr:`2134`) by :user:`gaborbernat`
+- Scan exposed app and man page dirs once per `list` and `uninstall-all`. (:pr:`2138`) by :user:`gaborbernat`
+- Require filelock 4.2, whose lighter import speeds up most pipx commands. (:pr:`2142`) by :user:`gaborbernat`
 
 .. _release-1-18-0-documentation:
 
@@ -129,8 +140,10 @@ Documentation
 -------------
 
 - Correct the log directory in the platformdirs migration table. (:issue:`2086`)
-- Correct docs that described pip-only behavior or outdated defaults and paths. (:issue:`2088`)
-- Match help text, troubleshooting and samples to how pipx behaves today. (:issue:`2105`)
+- Correct docs that described pip-only behavior or outdated defaults and paths. (:pr:`2088`) by :user:`gaborbernat`
+- Match help text, troubleshooting and samples to how pipx behaves today. (:pr:`2105`) by :user:`gaborbernat`
+
+.. _release-1-17-14:
 
 `1.17.14 <https://github.com/pypa/pipx/tree/1.17.14>`_ - 2026-10-12
 ===================================================================
@@ -140,14 +153,18 @@ Documentation
 Fixed
 -----
 
-- Build pipx wheels with Docutils 0.21.2 and later, including environments pinned to Docutils 0.22. (:issue:`2084`)
+- Build pipx wheels with Docutils 0.21.2 and later, including environments pinned to Docutils 0.22. (:pr:`2084`) by
+  :user:`bfs2021` and :user:`gaborbernat`
 
 .. _release-1-17-14-documentation:
 
 Documentation
 -------------
 
-- Say that pipx rejects `--global` before the subcommand instead of ignoring it. (:issue:`2082`)
+- Say that pipx rejects `--global` before the subcommand instead of ignoring it. (:pr:`2082`) by
+  :user:`Ronak-Mahidharia` and :user:`gaborbernat`
+
+.. _release-1-17-13:
 
 `1.17.13 <https://github.com/pypa/pipx/tree/1.17.13>`_ - 2026-10-10
 ===================================================================
@@ -157,9 +174,12 @@ Documentation
 Fixed
 -----
 
-- Accept bare and suffixed injected package names in `pipx pin --skip`. (:issue:`2079`)
+- Accept bare and suffixed injected package names in `pipx pin --skip`. (:pr:`2079`) by :user:`VedantBhayani` and
+  :user:`gaborbernat`
 - Use each snapshot's recorded interpreter when `pipx install-all` rebuilds an environment unless the user passes
-  `--python`. (:issue:`2081`)
+  `--python`. (:pr:`2081`) by :user:`feiiiiii5` and :user:`gaborbernat`
+
+.. _release-1-17-12:
 
 `1.17.12 <https://github.com/pypa/pipx/tree/1.17.12>`_ - 2026-10-07
 ===================================================================
@@ -169,12 +189,15 @@ Fixed
 Fixed
 -----
 
-- Stop `pipx reinstall` from printing a traceback when the reinstall fails for an expected reason. (:issue:`2070`)
+- Stop `pipx reinstall` from printing a traceback when the reinstall fails for an expected reason. (:pr:`2070`) by
+  :user:`ParamTanna`
 - Stop `pipx install` printing `WARNING: Skipping setuptools as it is not installed.` when the shared libraries are
-  created on Python 3.12+, where setuptools is already absent. (:issue:`2071`)
+  created on Python 3.12+, where setuptools is already absent. (:pr:`2071`) by :user:`officialpm` and
+  :user:`gaborbernat`
 - Stop an injected package in a suffixed environment from being renamed every time its record is rewritten: `pipx
   upgrade`, `pipx pin` and `pipx reinstall` no longer append the environment suffix again, so the package keeps its name
-  in `pipx list --include-injected` and stays addressable by `pipx uninject`. (:issue:`2072`)
+  in `pipx list --include-injected` and stays addressable by `pipx uninject`. (:pr:`2072`) by :user:`feiiiiii5` and
+  :user:`gaborbernat`
 
 .. _release-1-17-12-documentation:
 
@@ -182,6 +205,8 @@ Documentation
 -------------
 
 - Update the pipx logo author credit. (:issue:`2073`)
+
+.. _release-1-17-11:
 
 `1.17.11 <https://github.com/pypa/pipx/tree/1.17.11>`_ - 2026-10-03
 ===================================================================
@@ -193,6 +218,8 @@ Documentation
 
 - Hide the extra documentation TOC toggle on narrow screens. (:issue:`2064`)
 
+.. _release-1-17-10:
+
 `1.17.10 <https://github.com/pypa/pipx/tree/1.17.10>`_ - 2026-10-02
 ===================================================================
 
@@ -202,12 +229,14 @@ Fixed
 -----
 
 - Remove an environment that has no pipx metadata and an interpreter that no longer runs, instead of crashing `pipx
-  uninstall` and `pipx uninstall-all`. (:issue:`2059`)
+  uninstall` and `pipx uninstall-all`. (:pr:`2059`) by :user:`hemcharan710-afk` and :user:`gaborbernat`
 - Derive local script command names from the filename when parent directories contain `#`. A script installed by an
   earlier release under its directory's name no longer upgrades; uninstall it and install it again. (:issue:`2060`)
 - Install a local PEP 723 script from its file when the path reads as a PyPI name (`pipx install bare.py`), contains
   `[`, or starts with a quoted `~`, and stop the upgrade hint from suggesting a PyPI reinstall for a script.
-  (:issue:`2062`)
+  (:pr:`2062`) by :user:`gaborbernat`
+
+.. _release-1-17-9:
 
 `1.17.9 <https://github.com/pypa/pipx/tree/1.17.9>`_ - 2026-10-01
 =================================================================
@@ -218,7 +247,10 @@ Fixed
 -----
 
 - Stop adding ` -E` to an app script's shebang when the longer line would exceed the kernel's limit, which made the
-  script fail on macOS with `Exec format error`. (:issue:`2058`)
+  script fail on macOS with `Exec format error`. (:pr:`2058`) by :user:`feiiiiii5`, :user:`OpenCode` and
+  :user:`gaborbernat`
+
+.. _release-1-17-8:
 
 `1.17.8 <https://github.com/pypa/pipx/tree/1.17.8>`_ - 2026-09-29
 =================================================================
@@ -230,6 +262,8 @@ Fixed
 
 - Remove leftover shell completion scripts when running `pipx uninject`. (:issue:`2055`)
 
+.. _release-1-17-7:
+
 `1.17.7 <https://github.com/pypa/pipx/tree/1.17.7>`_ - 2026-09-28
 =================================================================
 
@@ -239,7 +273,10 @@ Fixed
 -----
 
 - Prevent `pipx run` from sharing cached environments across different requirement lists or argument boundaries. This
-  changes cache keys; run `pipx cache purge` to remove old entries. (:issue:`2053`)
+  changes cache keys; run `pipx cache purge` to remove old entries. (:pr:`2053`) by :user:`januththedev` and
+  :user:`gaborbernat`
+
+.. _release-1-17-6:
 
 `1.17.6 <https://github.com/pypa/pipx/tree/1.17.6>`_ - 2026-09-22
 =================================================================
@@ -257,8 +294,10 @@ Fixed
 Documentation
 -------------
 
-- Fix the argument order in the combined inject command example. (:issue:`2044`)
+- Fix the argument order in the combined inject command example. (:pr:`2044`) by :user:`agammann`
 - Use direct URL requirements for the Git install example with extras. (:issue:`2045`)
+
+.. _release-1-17-5:
 
 `1.17.5 <https://github.com/pypa/pipx/tree/1.17.5>`_ - 2026-09-20
 =================================================================
@@ -269,6 +308,8 @@ Fixed
 -----
 
 - Report failed environments when running `pipx reinstall-all`. (:issue:`2042`)
+
+.. _release-1-17-4:
 
 `1.17.4 <https://github.com/pypa/pipx/tree/1.17.4>`_ - 2026-09-18
 =================================================================
@@ -282,6 +323,8 @@ Fixed
   version". It now says the package is unchanged because it is installed from a local source and that no package index
   was checked, and suggests reinstalling by package name to track index releases. (:issue:`2040`)
 
+.. _release-1-17-3:
+
 `1.17.3 <https://github.com/pypa/pipx/tree/1.17.3>`_ - 2026-09-16
 =================================================================
 
@@ -291,18 +334,22 @@ Fixed
 -----
 
 - Report a clear error when PIPX_MAX_LOGS is not a non-negative integer, instead of crashing on every pipx command.
-  Empty or whitespace-only values fall back to the default everywhere, including log setup. (:issue:`2029`)
+  Empty or whitespace-only values fall back to the default everywhere, including log setup. (:pr:`2029`) by
+  :user:`hktitof`
 - Split `--pip-args` the way a shell would, so a quoted path with spaces such as `--find-links '/tmp/foo bar'` reaches
   pip intact instead of failing to parse. On Windows pipx now drops the quotes around each argument and keeps
-  backslashes as path separators. (:issue:`2033`)
-- Stop `pipx runpip` from printing uv DEBUG logs on the uv backend. (:issue:`2035`)
+  backslashes as path separators. (:pr:`2033`) by :user:`r3wretrhy`
+- Stop `pipx runpip` from printing uv DEBUG logs on the uv backend. (:pr:`2035`) by :user:`anandghegde`
 
 .. _release-1-17-3-documentation:
 
 Documentation
 -------------
 
-- List every `--pip-args` flag the uv backend translates instead of only four. (:issue:`2037`)
+- List every `--pip-args` flag the uv backend translates instead of only four. (:pr:`2037`) by :user:`hxperl` and
+  :user:`claude`
+
+.. _release-1-17-2:
 
 `1.17.2 <https://github.com/pypa/pipx/tree/1.17.2>`_ - 2026-09-01
 =================================================================
@@ -312,7 +359,9 @@ Documentation
 Fixed
 -----
 
-- Fix `KeyError` stderr noise when installing packages in Python3.15. (:issue:`2026`)
+- Fix `KeyError` stderr noise when installing packages in Python3.15. (:pr:`2026`) by :user:`Cycloctane`
+
+.. _release-1-17-1:
 
 `1.17.1 <https://github.com/pypa/pipx/tree/1.17.1>`_ - 2026-08-30
 =================================================================
@@ -323,7 +372,9 @@ Fixed
 -----
 
 - `pipx environment` now reports `PIPX_MAX_LOGS`, and `pipx environment --value PIPX_MAX_LOGS` no longer exits with
-  `invalid choice`. (:issue:`2024`)
+  `invalid choice`. (:pr:`2024`) by :user:`dylanpulver` and :user:`gaborbernat`
+
+.. _release-1-17-0:
 
 `1.17.0 <https://github.com/pypa/pipx/tree/1.17.0>`_ - 2026-08-29
 =================================================================
@@ -346,6 +397,8 @@ Fixed
   url`, so the specifier pipx recorded in `pipx_metadata.json` and passed to the backend depended on which `packaging`
   happened to be installed. (:issue:`2015`)
 
+.. _release-1-16-8:
+
 `1.16.8 <https://github.com/pypa/pipx/tree/1.16.8>`_ - 2026-08-25
 =================================================================
 
@@ -366,6 +419,8 @@ Documentation
 
 - The CLI reference in the documentation now shows `pipx run` instead of `sphinx-build run`. (:issue:`2005`)
 
+.. _release-1-16-7:
+
 `1.16.7 <https://github.com/pypa/pipx/tree/1.16.7>`_ - 2026-08-13
 =================================================================
 
@@ -374,9 +429,11 @@ Documentation
 Fixed
 -----
 
-- Fix pipx not being able to discover packages in separated platlib directories. (:issue:`1999`)
+- Fix pipx not being able to discover packages in separated platlib directories. (:pr:`1999`) by :user:`Cycloctane` and
+  :user:`gaborbernat`
 - Retry transient failures when fetching the python-build-standalone release index and downloading interpreter archives,
-  resuming an interrupted archive download from the bytes already received instead of starting over. (:issue:`2001`)
+  resuming an interrupted archive download from the bytes already received instead of starting over. (:pr:`2001`) by
+  :user:`gaborbernat`
 
 .. _release-1-16-7-documentation:
 
@@ -384,7 +441,9 @@ Documentation
 -------------
 
 - Correct the documented Windows default for `PIPX_HOME`, which resolves to `%LOCALAPPDATA%\pipx\pipx` rather than
-  `%LOCALAPPDATA%\pipx`. (:issue:`2002`)
+  `%LOCALAPPDATA%\pipx`. (:pr:`2002`) by :user:`aroh3006`
+
+.. _release-1-16-6:
 
 `1.16.6 <https://github.com/pypa/pipx/tree/1.16.6>`_ - 2026-08-04
 =================================================================
@@ -399,6 +458,8 @@ Fixed
   it normalized, instead of passing a guess to `uv tool run`. Reusing that venv no longer reinstalls the package on
   every run. (:issue:`1994`)
 
+.. _release-1-16-5:
+
 `1.16.5 <https://github.com/pypa/pipx/tree/1.16.5>`_ - 2026-07-29
 =================================================================
 
@@ -408,6 +469,8 @@ Fixed
 -----
 
 - Honor the version specifier when `pipx upgrade --install` installs a missing package. (:issue:`1987`)
+
+.. _release-1-16-4:
 
 `1.16.4 <https://github.com/pypa/pipx/tree/1.16.4>`_ - 2026-07-29
 =================================================================
@@ -420,7 +483,7 @@ Fixed
 - Bundle `colorama` and `tomli` in the zipapp so the single `pipx.pyz` works on Windows and on Python 3.10.
   (:issue:`1978`, :issue:`1984`)
 - Fix the Release Notes link published in package metadata. (:issue:`1980`)
-- `PIPX_MAX_LOGS=0` now prunes the log files instead of keeping all of them. (:issue:`1988`)
+- `PIPX_MAX_LOGS=0` now prunes the log files instead of keeping all of them. (:pr:`1988`) by :user:`marko1olo`
 
 .. _release-1-16-4-documentation:
 
@@ -428,6 +491,8 @@ Documentation
 -------------
 
 - Fix the documentation links that 404 after the Sphinx move, including the PyPI Release Notes link. (:issue:`1980`)
+
+.. _release-1-16-3:
 
 `1.16.3 <https://github.com/pypa/pipx/tree/1.16.3>`_ - 2026-07-26
 =================================================================
@@ -446,6 +511,8 @@ Documentation
 
 - Direct Linux users to PEP 668-compatible installation methods. (:issue:`1976`)
 
+.. _release-1-16-2:
+
 `1.16.2 <https://github.com/pypa/pipx/tree/1.16.2>`_ - 2026-07-21
 =================================================================
 
@@ -456,7 +523,9 @@ Fixed
 
 - Stop venv inspection from crashing on Python 3.15 when a `dist-info` directory has no `Name` metadata field.
   `importlib.metadata` now raises `KeyError` for missing metadata keys instead of returning `None`; such distributions
-  are skipped again, as on earlier Python versions. (:issue:`1971`)
+  are skipped again, as on earlier Python versions. (:pr:`1971`) by :user:`gaborbernat`
+
+.. _release-1-16-1:
 
 `1.16.1 <https://github.com/pypa/pipx/tree/1.16.1>`_ - 2026-07-20
 =================================================================
@@ -470,6 +539,8 @@ Fixed
   Scanning for launcher ownership decoded arbitrary binary content as an interpreter path, which raised
   `UnicodeDecodeError` on Windows, or `ValueError` for a path holding a NUL byte. Such a file is now treated as not
   owned by the venv. (:issue:`1965`)
+
+.. _release-1-16-0:
 
 `1.16.0 <https://github.com/pypa/pipx/tree/1.16.0>`_ - 2026-07-15
 =================================================================
@@ -619,7 +690,7 @@ Fixed
   pipx home that only exists for backwards compatibility. Setting `PIPX_HOME` still keeps both inside it.
   (:issue:`1946`)
 - Retry fetching a standalone Python build when GitHub's release CDN returns a transient error, so a momentary `5xx` or
-  rate-limit response no longer fails the install. (:issue:`1960`)
+  rate-limit response no longer fails the install. (:pr:`1960`) by :user:`gaborbernat`
 - Apply `pipx manifest lock` as all-or-nothing. When a manifest declares locks for several tools, pipx wrote the
   regenerated files one at a time, so a failure partway left some locks new and others old. Each target is now backed up
   before it is replaced and every applied lock is rolled back if any replacement fails.
@@ -695,8 +766,12 @@ Removed
   `uv` both write a `/bin/sh` wrapper as the shebang when the interpreter path contains a space, so applications
   installed into such a path run. (:issue:`1946`)
 
+.. _release-1-15-2:
+
 `1.15.2 <https://github.com/pypa/pipx/tree/1.15.2>`_ - 2026-07-15
 =================================================================
+
+.. _release-1-15-1:
 
 `1.15.1 <https://github.com/pypa/pipx/tree/1.15.1>`_ - 2026-07-15
 =================================================================
@@ -707,7 +782,9 @@ Fixed
 -----
 
 - Retry fetching a standalone Python build when GitHub's release CDN returns a transient error, so a momentary ``5xx``
-  or rate-limit response no longer fails the install. (:issue:`1960`)
+  or rate-limit response no longer fails the install. (:pr:`1960`) by :user:`gaborbernat`
+
+.. _release-1-15-0:
 
 `1.15.0 <https://github.com/pypa/pipx/tree/1.15.0>`_ - 2026-06-24
 =================================================================
@@ -729,6 +806,8 @@ Fixed
   now derive the not-required set from installed distribution metadata, so they behave identically, and a dependency
   pulled in only by another package's extra is kept instead of being treated as removable. (:issue:`1841`)
 
+.. _release-1-14-1:
+
 `1.14.1 <https://github.com/pypa/pipx/tree/1.14.1>`_ - 2026-06-17
 =================================================================
 
@@ -744,7 +823,9 @@ Fixed
 - Preserve installer errors when package-name detection fails during local package installs. (:issue:`1567`)
 - Expose manual pages for editable local package installs. (:issue:`1793`)
 - Fixed ``pipx pin <app> --injected-only`` so it can pin injected packages when the main app is already pinned.
-  (:issue:`1835`)
+  (:pr:`1835`) by :user:`marko1olo`
+
+.. _release-1-14-0:
 
 `1.14.0 <https://github.com/pypa/pipx/tree/1.14.0>`_ - 2026-06-04
 =================================================================
@@ -764,6 +845,8 @@ Documentation
 
 - Use the bootstrap pipx executable when adding PATH in self-managed installs. (:issue:`1481`)
 
+.. _release-1-13-0:
+
 `1.13.0 <https://github.com/pypa/pipx/tree/1.13.0>`_ - 2026-05-30
 =================================================================
 
@@ -773,7 +856,7 @@ Added
 -----
 
 - Add ``PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE`` to skip automatic shared library upgrades. (:issue:`1650`)
-- Update the error message in get-pipx.py; it is obsoleted, not deprecated. (:issue:`1813`)
+- Update the error message in get-pipx.py; it is obsoleted, not deprecated. (:pr:`1813`) by :user:`Spitfire1900`
 
 .. _release-1-13-0-fixed:
 
@@ -791,6 +874,8 @@ Documentation
 
 - Document how to clear cache warnings from ``runpip``. (:issue:`1802`)
 
+.. _release-1-12-0:
+
 `1.12.0 <https://github.com/pypa/pipx/tree/1.12.0>`_ - 2026-05-06
 =================================================================
 
@@ -800,7 +885,7 @@ Added
 -----
 
 - Add ``--fetch-python`` and ``PIPX_FETCH_PYTHON`` to control standalone Python downloads, with values ``always``,
-  ``missing``, or ``never``. (:issue:`1663`)
+  ``missing``, or ``never``. (:pr:`1663`) by :user:`13steinj` and :user:`gaborbernat`
 - Add an opt-in ``uv`` backend. Install ``pipx[uv]`` (or put ``uv`` on ``PATH``) and pipx will create venvs with ``uv
   venv``, manage packages with ``uv pip``, and run ephemeral apps via ``uv tool run``.
 
@@ -827,7 +912,10 @@ Deprecated
 - Deprecate ``--fetch-missing-python`` and ``PIPX_FETCH_MISSING_PYTHON``; both are now aliases for
   ``--fetch-python=missing`` / ``PIPX_FETCH_PYTHON=missing``. ``PIPX_FETCH_MISSING_PYTHON=0`` (and other falsy values)
   now disables fetching, where previously any value enabled it. The ``pipx.interpreter.find_python_interpreter`` keyword
-  ``fetch_missing_python: bool`` is replaced by ``fetch_python: FetchPythonOptions``. (:issue:`1663`)
+  ``fetch_missing_python: bool`` is replaced by ``fetch_python: FetchPythonOptions``. (:pr:`1663`) by :user:`13steinj`
+  and :user:`gaborbernat`
+
+.. _release-1-11-2:
 
 `1.11.2 <https://github.com/pypa/pipx/tree/1.11.2>`_ - 2026-05-05
 =================================================================
@@ -838,8 +926,10 @@ Added
 -----
 
 - Add ``pipx help`` and ``pipx help <command>`` aliases for existing help output. (:issue:`1535`)
-- Drop support for Python 3.9. (:issue:`1786`)
+- Drop support for Python 3.9. (:pr:`1786`) by :user:`henryiii`
 - Replace if/elif command dispatch in main.py with argparse set_defaults. (:issue:`1794`)
+
+.. _release-1-11-1:
 
 `1.11.1 <https://github.com/pypa/pipx/tree/1.11.1>`_ - 2026-03-31
 =================================================================
@@ -858,6 +948,8 @@ Fixed
 - Remove ``setuptools`` from shared libs to prevent version conflicts when app venvs use a different Python.
   (:issue:`1539`)
 - Prevent ``uninject`` from removing dependencies still needed by other packages in the venv. (:issue:`1672`)
+
+.. _release-1-11-0:
 
 `1.11.0 <https://github.com/pypa/pipx/tree/1.11.0>`_ - 2026-03-23
 =================================================================
@@ -887,6 +979,8 @@ Documentation
 
 - Remove outdated "experimental" note from ``--suffix`` help text. (:issue:`1621`)
 
+.. _release-1-10-1:
+
 `1.10.1 <https://github.com/pypa/pipx/tree/1.10.1>`_ - 2026-03-20
 =================================================================
 
@@ -902,6 +996,8 @@ Fixed
 - Catch missing Python interpreter in ``upgrade`` and show helpful error instead of crashing (:issue:`1602`)
 - Prevent data loss by rejecting relative paths in ``uninstall``, ``reinstall``, and other package-name arguments
   (:issue:`1718`)
+
+.. _release-1-10-0:
 
 `1.10.0 <https://github.com/pypa/pipx/tree/1.10.0>`_ - 2026-03-18
 =================================================================
@@ -926,6 +1022,8 @@ Fixed
 - Fix handling of shared libraries when the original Python interpreter is removed on Windows by detecting stale venv
   references and recreating the shared libraries with the current Python. (:issue:`1723`)
 
+.. _release-1-9-0:
+
 `1.9.0 <https://github.com/pypa/pipx/tree/1.9.0>`_ - 2026-03-17
 ===============================================================
 
@@ -945,6 +1043,8 @@ Fixed
 - ``pipx reinstall``: An exception will now be raised if package is pinned. (:issue:`1611`)
 - Stop ``pipx run`` from leaving bad temporary venvs when first installation was unsuccessful. (:issue:`1709`)
 
+.. _release-1-8-0:
+
 `1.8.0 <https://github.com/pypa/pipx/tree/1.8.0>`_ - 2025-09-30
 ===============================================================
 
@@ -955,7 +1055,7 @@ Added
 
 - Rename environmental variable ``USE_EMOJI`` to ``PIPX_USE_EMOJI``. (:issue:`1395`)
 - Add ``--all-shells`` flag to ``pipx ensurepath``. (:issue:`1585`)
-- Add support for Python 3.13 (:issue:`1647`)
+- Add support for Python 3.13 (:pr:`1647`) by :user:`dukecat0`
 
 .. _release-1-8-0-fixed:
 
@@ -968,7 +1068,7 @@ Fixed
 - Fix incorrect order of flags when using ``pipx upgrade``. (:issue:`1610`)
 - Update the archive name of build of Python for Windows (:issue:`1630`)
 - Set up standalone python fetching to use checksums directly from the GitHub API. (:issue:`1652`)
-- Fix running a script with explicitly empty ``dependencies = []``. (:issue:`1658`)
+- Fix running a script with explicitly empty ``dependencies = []``. (:pr:`1658`) by :user:`neutrinoceros`
 
 .. _release-1-8-0-documentation:
 
@@ -976,6 +1076,8 @@ Documentation
 -------------
 
 - Fix ``/changelog/`` and ``/contributing/`` docs URLs (:issue:`1540`)
+
+.. _release-1-7-1:
 
 `1.7.1 <https://github.com/pypa/pipx/tree/1.7.1>`_ - 2024-08-23
 ===============================================================
@@ -987,6 +1089,8 @@ Fixed
 
 - Use minimum supported Python to build zipapp in release action such that ``tomli`` is included in it. (:issue:`1514`)
 
+.. _release-1-7-0:
+
 `1.7.0 <https://github.com/pypa/pipx/tree/1.7.0>`_ - 2024-08-22
 ===============================================================
 
@@ -997,7 +1101,7 @@ Added
 
 - Add a ``--prepend`` option to the ``pipx ensurepath`` command to allow prepending ``pipx``'s location to ``PATH``
   rather than appending to it. This is useful when you want to prioritize ``pipx``'s executables over other executables
-  in your ``PATH``. (:issue:`1451`)
+  in your ``PATH``. (:pr:`1451`) by :user:`agriyakhetarpal` and :user:`Gitznik`
 - List ``PIPX_GLOBAL_[HOME|BIN_DIR|MAN_DIR]`` in ``pipx environment``. (:issue:`1492`)
 - Introduce ``PIPX_HOME_ALLOW_SPACE`` environment variable, to silence the spaces in pipx home path warning
   (:issue:`1320`)
@@ -1016,8 +1120,10 @@ Fixed
 Documentation
 -------------
 
-- Add help messages for ``pipx pin`` and ``pipx unpin`` commands. (:issue:`1438`)
+- Add help messages for ``pipx pin`` and ``pipx unpin`` commands. (:pr:`1438`) by :user:`dukecat0`
 - Move all documentation files to the ``docs`` directory. (:issue:`1479`)
+
+.. _release-1-6-0:
 
 `1.6.0 <https://github.com/pypa/pipx/tree/1.6.0>`_ - 2024-06-01
 ===============================================================
@@ -1032,11 +1138,13 @@ Added
   package, so it will not be upgraded by ``pipx upgrade`` or ``pipx upgrade-all``. (:issue:`891`)
 - Add a new option ``--pinned`` to ``pipx list`` command for listing pinned packages only. (:issue:`891`)
 - Add ``pipx interpreter upgrade`` command to upgrade local standalone python in micro/patch level (:issue:`1249`)
-- Add ``--requirement`` option to ``inject`` command to read list of packages from a text file. (:issue:`1252`)
-- Add ``pipx upgrade-shared`` command, to create/upgrade shared libraries as a standalone command. (:issue:`1316`)
+- Add ``--requirement`` option to ``inject`` command to read list of packages from a text file. (:pr:`1252`) by
+  :user:`jamesmyatt`, :user:`chrysle` and :user:`huxuan`
+- Add ``pipx upgrade-shared`` command, to create/upgrade shared libraries as a standalone command. (:pr:`1316`) by
+  :user:`mayeut` and :user:`chrysle`
 - Allow ``upgrade`` command to accept multiple packages as arguments. (:issue:`1336`)
 - Support Python version for ``--python`` arg when py launcher is not available (:issue:`1342`)
-- Make ``install-all`` gather errors in batch (:issue:`1348`)
+- Make ``install-all`` gather errors in batch (:pr:`1348`) by :user:`huxuan`, :user:`dukecat0` and :user:`chrysle`
 - Support python3.8 for standalone python builds (:issue:`1375`)
 
 .. _release-1-6-0-fixed:
@@ -1055,18 +1163,22 @@ Fixed
 - Validate whether a package is an URL correctly. (:issue:`1355`)
 - Install specified version of ``--preinstall`` dependency instead of latest version (:issue:`1377`)
 - Move ``--global`` option into shared parser, such that it can be passed after the subcommand, for example ``pipx
-  ensurepath --global``. (:issue:`1397`)
-- Fix discovery of a ``pipx run`` entry point if a local path was given as package. (:issue:`1422`)
+  ensurepath --global``. (:pr:`1397`) by :user:`dukecat0`
+- Fix discovery of a ``pipx run`` entry point if a local path was given as package. (:pr:`1422`) by :user:`chrysle` and
+  :user:`huxuan`
 
 .. _release-1-6-0-documentation:
 
 Documentation
 -------------
 
-- Create a dedicated section for manual pages and add an example with ``pdm-backend``. (:issue:`1312`)
-- Add example, test and cli help description how to install multiple packages with the --preinstall flag (:issue:`1321`)
+- Create a dedicated section for manual pages and add an example with ``pdm-backend``. (:pr:`1312`) by :user:`pawamoy`
+- Add example, test and cli help description how to install multiple packages with the --preinstall flag (:pr:`1321`) by
+  :user:`gempir`
 - Refine docs generation script and template. (:issue:`1325`)
 - Add a note about sourcing the shell config file for ``ensure_path`` (:issue:`1346`)
+
+.. _release-1-5-0:
 
 `1.5.0 <https://github.com/pypa/pipx/tree/1.5.0>`_ - 2024-03-29
 ===============================================================
@@ -1102,10 +1214,11 @@ Fixed
 - Correctly resolve home directory in pipx directory environment variables. (:issue:`94`)
 - Pass through ``pip`` arguments when upgrading shared libraries. (:issue:`964`)
 - Fix installation issues when files in the working directory interfere with venv creation process. (:issue:`1091`)
-- Report correct filename in tracebacks with ``pipx run <scriptname>`` (:issue:`1191`)
+- Report correct filename in tracebacks with ``pipx run <scriptname>`` (:pr:`1191`) by :user:`henryiii` and
+  :user:`flying-sheep`
 - Let self-managed pipx uninstall itself on windows again. (:issue:`1203`)
 - Fix path resolution for python executables looked up in PATH on windows. (:issue:`1205`)
-- Display help message when ``pipx install`` is run without arguments. (:issue:`1266`)
+- Display help message when ``pipx install`` is run without arguments. (:pr:`1266`) by :user:`dukecat0`
 - Fix crashes due to superfluous ``-q`` flags by discarding exceeding values (:issue:`1283`)
 
 .. _release-1-5-0-documentation:
@@ -1116,16 +1229,19 @@ Documentation
 - Update the completion instructions for zipapp users. (:issue:`1072`)
 - Update the example for running scripts with dependencies. (:issue:`1227`)
 - Update the docs for package developers on the use of configuration using pyproject.toml (:issue:`1229`)
-- Add installation instructions for Fedora (:issue:`1239`)
+- Add installation instructions for Fedora (:pr:`1239`) by :user:`markmc`
 - Update the examples for installation from local dir (:issue:`1277`)
-- Fix inconsistent wording in ``pipx install`` command description. (:issue:`1307`)
+- Fix inconsistent wording in ``pipx install`` command description. (:pr:`1307`) by :user:`sgryjp`
 
 .. _release-1-5-0-deprecated:
 
 Deprecated
 ----------
 
-- Deprecate ``--skip-maintenance`` flag of ``pipx list``; maintenance is now never executed there (:issue:`1256`)
+- Deprecate ``--skip-maintenance`` flag of ``pipx list``; maintenance is now never executed there (:pr:`1256`) by
+  :user:`Arpafaucon`
+
+.. _release-1-4-3:
 
 `1.4.3 <https://github.com/pypa/pipx/tree/1.4.3>`_ - 2024-01-16
 ===============================================================
@@ -1151,7 +1267,9 @@ Documentation
 Packaging
 ---------
 
-- Support building pipx wheels with setuptools-scm<7, such as on FreeBSD. (:issue:`1208`)
+- Support building pipx wheels with setuptools-scm<7, such as on FreeBSD. (:pr:`1208`) by :user:`henryiii`
+
+.. _release-1-4-2:
 
 `1.4.2 <https://github.com/pypa/pipx/tree/1.4.2>`_
 ==================================================
@@ -1164,7 +1282,7 @@ Added
 - Allow skipping maintenance tasks during list command
 - Raise more user friendly error when provided ``--python`` version is not found
 - Update ``pipx run`` on scripts using ``/// script`` and no ``run`` table following the updated version of PEP 723
-  (:issue:`1180`)
+  (:pr:`1180`) by :user:`henryiii` and :user:`dukecat0`
 
 .. _release-1-4-2-fixed:
 
@@ -1174,7 +1292,9 @@ Fixed
 - Include ``tomli`` into ``pipx.pyz`` (zipapp) so that it can be executed with Python 3.10 or earlier (:issue:`1142`)
 - Fix resolving the python executable path on linux
 - ``pipx run``: Verify whether the script name provided is a file before running it
-- Avoid repeated exception logging in a few rare cases (:issue:`1192`)
+- Avoid repeated exception logging in a few rare cases (:pr:`1192`) by :user:`henryiii`
+
+.. _release-1-4-1:
 
 `1.4.1 <https://github.com/pypa/pipx/tree/1.4.1>`_
 ==================================================
@@ -1186,6 +1306,8 @@ Fixed
 
 - Set default logging level to WARNING, so debug log messages won't be shown without passing additional flags such as
   ``--verbose``
+
+.. _release-1-4-0:
 
 `1.4.0 <https://github.com/pypa/pipx/tree/1.4.0>`_
 ==================================================
@@ -1214,6 +1336,8 @@ Documentation
 
 - Add Scoop installation instructions
 
+.. _release-1-3-3:
+
 `1.3.3 <https://github.com/pypa/pipx/tree/1.3.3>`_
 ==================================================
 
@@ -1223,6 +1347,8 @@ Documentation
 -------------
 
 - Make the logo more visible in dark mode
+
+.. _release-1-3-2:
 
 `1.3.2 <https://github.com/pypa/pipx/tree/1.3.2>`_
 ==================================================
@@ -1241,6 +1367,8 @@ Documentation
 
 - Add additional example for --pip-args option, to docs/examples.md
 
+.. _release-1-3-1:
+
 `1.3.1 <https://github.com/pypa/pipx/tree/1.3.1>`_
 ==================================================
 
@@ -1250,6 +1378,8 @@ Fixed
 -----
 
 - Fix combining of --editable and --force flag
+
+.. _release-1-3-0:
 
 `1.3.0 <https://github.com/pypa/pipx/tree/1.3.0>`_
 ==================================================
@@ -1273,7 +1403,7 @@ Added
   ``pipx run``.
 - Imply ``--include-apps`` when running ``pipx inject --include-deps``
 - Add ``--force-reinstall`` to pip arguments when ``--force`` was passed
-- Support including requirements in scripts run using ``pipx run`` (:issue:`916`)
+- Support including requirements in scripts run using ``pipx run`` (:pr:`916`) by :user:`pfmoore`
 - Pass ``pip_args`` to ``shared_libs.upgrade()``
 - Fallback to user's log path if the default log path (``$PIPX_HOME/logs``) is not writable to aid with pipx being used
   for multi-user (e.g. system-wide) installs of applications
@@ -1307,6 +1437,8 @@ Documentation
 - Add more examples for ``pipx run``
 - Add subsection to make README easier to read
 
+.. _release-1-2-1:
+
 `1.2.1 <https://github.com/pypa/pipx/tree/1.2.1>`_
 ==================================================
 
@@ -1318,6 +1450,8 @@ Fixed
 - Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a
   URL-based requirement in pipx. (:issue:`1070`)
 
+.. _release-1-2-0:
+
 `1.2.0 <https://github.com/pypa/pipx/tree/1.2.0>`_
 ==================================================
 
@@ -1326,7 +1460,7 @@ Fixed
 Added
 -----
 
-- Add ``pipx uninject`` command (:issue:`820`)
+- Add ``pipx uninject`` command (:pr:`820`) by :user:`dukecat0` and :user:`cs01`
 - Ship a `zipapp <https://docs.python.org/3/library/zipapp.html>`_ of pipx
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Change the program name to ``path/to/python -m pipx`` when running as ``python -m pipx``
@@ -1336,7 +1470,8 @@ Added
 Fixed
 -----
 
-- Improve the detection logic for MSYS2 to avoid entering infinite loop (:issue:`908`) (:issue:`938`)
+- Improve the detection logic for MSYS2 to avoid entering infinite loop (:pr:`908`) (:pr:`938`) by :user:`dukecat0` and
+  :user:`chdka`
 - Remove extra trailing quote from exception message
 - Fix EncodingWarning in ``pipx_metadata_file``.
 
@@ -1348,6 +1483,8 @@ Documentation
 - Add an example for installation from source with extras
 - Fix ``pipx run`` examples and update Python versions used by ``pipx install`` examples
 
+.. _release-1-1-0:
+
 `1.1.0 <https://github.com/pypa/pipx/tree/1.1.0>`_
 ==================================================
 
@@ -1356,10 +1493,10 @@ Documentation
 Added
 -----
 
-- Add ``pipx environment`` command (:issue:`793`)
-- Add ``list --short`` option to list only package names (:issue:`804`)
+- Add ``pipx environment`` command (:pr:`793`) by :user:`dukecat0` and :user:`cs01`
+- Add ``list --short`` option to list only package names (:pr:`804`) by :user:`93578237`
 - Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
-  in ``--pip-args``. (:issue:`794`)
+  in ``--pip-args``. (:pr:`794`) by :user:`dukecat0`
 - Add additional examples for installation from git repos
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
@@ -1378,8 +1515,10 @@ Documentation
 
 - Add more examples
 - Fix the command for `installing development version
-  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:issue:`801`)
+  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:pr:`801`) by :user:`dukecat0`
 - Fix test status badge in readme file
+
+.. _release-1-1-0rc0:
 
 `1.1.0rc0 <https://github.com/pypa/pipx/tree/1.1.0rc0>`_
 ========================================================
@@ -1389,10 +1528,10 @@ Documentation
 Added
 -----
 
-- Add ``pipx environment`` command (:issue:`793`)
-- Add ``list --short`` option to list only package names (:issue:`804`)
+- Add ``pipx environment`` command (:pr:`793`) by :user:`dukecat0` and :user:`cs01`
+- Add ``list --short`` option to list only package names (:pr:`804`) by :user:`93578237`
 - Improve the behaviour of ``shlex.split`` on Windows, so paths on Windows can be handled properly when they are passed
-  in ``--pip-args``. (:issue:`794`)
+  in ``--pip-args``. (:pr:`794`) by :user:`dukecat0`
 - Add additional examples for installation from git repos
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
@@ -1411,8 +1550,10 @@ Documentation
 
 - Add more examples
 - Fix the command for `installing development version
-  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:issue:`801`)
+  <https://pipx.pypa.io/stable/installation/#install-pipx-development-versions>`_. (:pr:`801`) by :user:`dukecat0`
 - Fix test status badge in readme file
+
+.. _release-1-0-0:
 
 `1.0.0 <https://github.com/pypa/pipx/tree/1.0.0>`_
 ==================================================
@@ -1422,10 +1563,10 @@ Documentation
 Added
 -----
 
-- Support `argcomplete 2.0.0 <https://pypi.org/project/argcomplete/2.0.0>`_ (:issue:`790`)
+- Support `argcomplete 2.0.0 <https://pypi.org/project/argcomplete/2.0.0>`_ (:pr:`790`) by :user:`hswong3i`
 - Include machinery to build a manpage for pipx with `argparse-manpage <https://pypi.org/project/argparse-manpage/>`_.
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message
-  (:issue:`733`)
+  (:pr:`733`) by :user:`tusharsadhwani`
 
 .. _release-1-0-0-fixed:
 
@@ -1434,6 +1575,8 @@ Fixed
 
 - Fixed animations sending output to stdout, which can break JSON output. (:issue:`769`)
 - Fix typo in ``pipx upgrade-all`` output
+
+.. _release-0-17-0:
 
 `0.17.0 <https://github.com/pypa/pipx/tree/0.17.0>`_
 ====================================================
@@ -1445,6 +1588,8 @@ Added
 
 - Support ``pipx run`` with version constraints and extras. (:issue:`697`)
 
+.. _release-0-16-5:
+
 `0.16.5 <https://github.com/pypa/pipx/tree/0.16.5>`_
 ====================================================
 
@@ -1455,7 +1600,8 @@ Fixed
 
 - Fixed ``pipx list`` output phrasing to convey that python version displayed is the one with which package was
   installed.
-- Fixed ``pipx install`` to provide return code 0 if venv already exists, similar to pip's behavior. (:issue:`736`)
+- Fixed ``pipx install`` to provide return code 0 if venv already exists, similar to pip's behavior. (:pr:`736`) by
+  :user:`wombelix`
 
 .. _release-0-16-5-documentation:
 
@@ -1463,7 +1609,9 @@ Documentation
 -------------
 
 - Update ansible's install command in `Programs to Try document <https://pipx.pypa.io/stable/programs-to-try/#ansible>`_
-  to work with Ansible 2.10+ (:issue:`742`)
+  to work with Ansible 2.10+ (:pr:`742`) by :user:`Jackenmen`
+
+.. _release-0-16-4:
 
 `0.16.4 <https://github.com/pypa/pipx/tree/0.16.4>`_
 ====================================================
@@ -1474,9 +1622,12 @@ Fixed
 -----
 
 - Fix to ``pipx ensurepath`` to fix behavior in user locales other than UTF-8, to fix :issue:`644`. The internal change
-  is to use userpath v1.6.0 or greater. (:issue:`700`)
-- Fix virtual environment inspection for Python releases that uses an int for its release serial number. (:issue:`706`)
-- Fix PermissionError in windows when pipx manages itself. (:issue:`718`)
+  is to use userpath v1.6.0 or greater. (:pr:`700`) by :user:`itsayellow`
+- Fix virtual environment inspection for Python releases that uses an int for its release serial number. (:pr:`706`) by
+  :user:`uranusjr`
+- Fix PermissionError in windows when pipx manages itself. (:pr:`718`) by :user:`mattmess1221`
+
+.. _release-0-16-3:
 
 `0.16.3 <https://github.com/pypa/pipx/tree/0.16.3>`_
 ====================================================
@@ -1490,7 +1641,8 @@ Changes
   github URL has changed to `pypa/pipx <https://github.com/pypa/pipx>`_
 - Changed ``pipx ensurepath`` bash behavior so that only one of {``~/.profile``, ``~/.bash_profile``} is modified with
   the extra pipx paths, not both. Previously, if a ``.bash_profile`` file was created where one didn't exist, it could
-  cause problems, e.g. :issue:`456`. The internal change is to use userpath v1.5.0 or greater. (:issue:`684`)
+  cause problems, e.g. :issue:`456`. The internal change is to use userpath v1.5.0 or greater. (:pr:`684`) by
+  :user:`itsayellow`
 
 .. _release-0-16-3-fixed:
 
@@ -1498,14 +1650,16 @@ Fixed
 -----
 
 - Fixed ``pipx list --json`` to return valid json with no venvs installed. Previously would return an empty string to
-  stdout. (:issue:`681`)
+  stdout. (:pr:`681`) by :user:`itsayellow`
 
 .. _release-0-16-3-packaging:
 
 Packaging
 ---------
 
-- Colorama is now only installed on Windows. (:issue:`691`)
+- Colorama is now only installed on Windows. (:pr:`691`) by :user:`hwalinga`
+
+.. _release-0-16-2-1:
 
 `0.16.2.1 <https://github.com/pypa/pipx/tree/0.16.2.1>`_
 ========================================================
@@ -1516,7 +1670,7 @@ Changes
 -------
 
 - Changed non-venv-info warnings and notices from ``pipx list`` to print to stderr. This especially prevents ``pipx list
-  --json`` from printing invalid json to stdout. (:issue:`680`)
+  --json`` from printing invalid json to stdout. (:pr:`680`) by :user:`itsayellow`
 
 .. _release-0-16-2-1-fixed:
 
@@ -1524,7 +1678,9 @@ Fixed
 -----
 
 - Fixed bug that could cause uninstall on Windows with injected packages to uninstall too many apps from the local
-  binary directory. (:issue:`679`)
+  binary directory. (:pr:`679`) by :user:`itsayellow`
+
+.. _release-0-16-2-0:
 
 `0.16.2.0 <https://github.com/pypa/pipx/tree/0.16.2.0>`_
 ========================================================
@@ -1535,14 +1691,16 @@ Added
 -----
 
 - Added ``--json`` switch to ``pipx list`` to output rich json-metadata for all venvs.
-- Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (:issue:`666`)
+- Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (:pr:`666`) by
+  :user:`itsayellow`
 
 .. _release-0-16-2-0-changes:
 
 Changes
 -------
 
-- Ensured log files are utf-8 encoded to prevent Unicode encoding errors from occurring with emojis. (:issue:`646`)
+- Ensured log files are utf-8 encoded to prevent Unicode encoding errors from occurring with emojis. (:pr:`646`) by
+  :user:`itsayellow`
 
 .. _release-0-16-2-0-fixed:
 
@@ -1550,13 +1708,15 @@ Fixed
 -----
 
 - Fixed bug :issue:`670` where uninstalling a venv could erroneously uninstall other apps from the local binary
-  directory. (:issue:`672`)
-- Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx.
-  (:issue:`650`)
+  directory. (:pr:`672`) by :user:`itsayellow`
+- Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx. (:pr:`650`)
+  by :user:`itsayellow`
 - Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did
-  not have pipx metadata. (:issue:`651`)
+  not have pipx metadata. (:pr:`651`) by :user:`itsayellow`
 - Fixed bugs with suffixed-venvs on Windows. Now properly summarizes install, and actually uninstalls associated
-  binaries for suffixed-venvs. (:issue:`653`)
+  binaries for suffixed-venvs. (:pr:`653`) by :user:`itsayellow`
+
+.. _release-0-16-1-0:
 
 `0.16.1.0 <https://github.com/pypa/pipx/tree/0.16.1.0>`_
 ========================================================
@@ -1567,34 +1727,38 @@ Added
 -----
 
 - Introduce the ``pipx.run`` entry point group as an alternative way to declare an application for ``pipx run``.
-- Support text colors on Windows. (:issue:`612`)
+- Support text colors on Windows. (:pr:`612`) by :user:`itsayellow`
 
 .. _release-0-16-1-0-changes:
 
 Changes
 -------
 
-- Better platform unicode detection to avoid errors and allow showing emojis when possible. (:issue:`614`)
+- Better platform unicode detection to avoid errors and allow showing emojis when possible. (:pr:`614`) by
+  :user:`itsayellow`
 - pip errors no longer stream to the shell when pip fails during a pipx install. pip's output is now saved to a log
   file. In the shell, pipx will tell you the location of the log file and attempt to summarize why pip failed.
-  (:issue:`625`)
-- For ``reinstall-all``, fixed bug where missing python executable would cause error. (:issue:`634`)
+  (:pr:`625`) by :user:`itsayellow`
+- For ``reinstall-all``, fixed bug where missing python executable would cause error. (:pr:`634`) by :user:`itsayellow`
 
 .. _release-0-16-1-0-fixed:
 
 Fixed
 -----
 
-- Fix cursor show/hide to work with older versions of Windows. (:issue:`610`)
-- Don't emit show cursor or hide cursor codes if STDERR is not a tty. (:issue:`620`)
-- Fix regression which prevented pipx from working with pythonloc (and ``__pypackages__`` folder). (:issue:`636`)
+- Fix cursor show/hide to work with older versions of Windows. (:pr:`610`) by :user:`itsayellow`
+- Don't emit show cursor or hide cursor codes if STDERR is not a tty. (:pr:`620`) by :user:`itsayellow`
+- Fix regression which prevented pipx from working with pythonloc (and ``__pypackages__`` folder). (:pr:`636`) by
+  :user:`itsayellow`
 
 .. _release-0-16-1-0-performance:
 
 Performance
 -----------
 
-- Sped up ``pipx list`` (:issue:`624`).
+- Sped up ``pipx list`` (:pr:`624`) by :user:`itsayellow`.
+
+.. _release-0-16-0-0:
 
 `0.16.0.0 <https://github.com/pypa/pipx/tree/0.16.0.0>`_
 ========================================================
@@ -1661,6 +1825,8 @@ Documentation
 
 - Added a "Troubleshooting" page to the pipx web documentation for common problems pipx users may encounter.
 
+.. _release-0-15-6-0:
+
 `0.15.6.0 <https://github.com/pypa/pipx/tree/0.15.6.0>`_
 ========================================================
 
@@ -1696,6 +1862,8 @@ Documentation
 - Update license
 - Display a more idiomatic command for registering completions on fish.
 
+.. _release-0-15-5-1:
+
 `0.15.5.1 <https://github.com/pypa/pipx/tree/0.15.5.1>`_
 ========================================================
 
@@ -1705,6 +1873,8 @@ Fixed
 -----
 
 - Fixed regression of 0.15.5.0 which erroneously made installing from a local path with package extras not possible.
+
+.. _release-0-15-5-0:
 
 `0.15.5.0 <https://github.com/pypa/pipx/tree/0.15.5.0>`_
 ========================================================
@@ -1718,7 +1888,8 @@ Added
 - ``ensurepath`` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was
   installed using ``pip install --user``.
 - log pipx version (:issue:`423`)
-- ``--suffix`` option for ``install`` to allow multiple versions of same tool to be installed (:issue:`445`)
+- ``--suffix`` option for ``install`` to allow multiple versions of same tool to be installed (:pr:`445`) by
+  :user:`joshbode`
 - pipx can now be used with the Windows embeddable Python distribution
 
 .. _release-0-15-5-0-changes:
@@ -1742,6 +1913,8 @@ Fixed
 - For ``pipx install``, fixed failure to install if user has ``PIP_USER=1`` or ``user=true`` in pip.conf. (:issue:`110`)
 - Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for ``ensurepath`` (:issue:`437`)
 
+.. _release-0-15-4-0:
+
 `0.15.4.0 <https://github.com/pypa/pipx/tree/0.15.4.0>`_
 ========================================================
 
@@ -1759,6 +1932,8 @@ Fixed
 
 - Fixed bug that can cause crash when installing an app
 
+.. _release-0-15-3-1:
+
 `0.15.3.1 <https://github.com/pypa/pipx/tree/0.15.3.1>`_
 ========================================================
 
@@ -1769,6 +1944,8 @@ Fixed
 
 - Workaround multiprocessing issues on certain platforms (:issue:`229`)
 
+.. _release-0-15-3-0:
+
 `0.15.3.0 <https://github.com/pypa/pipx/tree/0.15.3.0>`_
 ========================================================
 
@@ -1778,6 +1955,8 @@ Added
 -----
 
 - Use symlinks on Windows when symlinks are available
+
+.. _release-0-15-2-0:
 
 `0.15.2.0 <https://github.com/pypa/pipx/tree/0.15.2.0>`_
 ========================================================
@@ -1802,6 +1981,8 @@ Fixed
 - Ignore system shared libraries when installing shared libraries pip, wheel, and setuptools. This also fixes an
   incompatibility with Debian/Ubuntu's version of pip (:issue:`386`).
 
+.. _release-0-15-1-3:
+
 `0.15.1.3 <https://github.com/pypa/pipx/tree/0.15.1.3>`_
 ========================================================
 
@@ -1813,6 +1994,8 @@ Fixed
 - On Windows, pipx now lists correct Windows apps (:issue:`217`)
 - Fixed a ``pipx install`` bug causing incorrect python binary to be used when using the optional --python argument in
   certain situations, such as running pipx from a Framework python on macOS and specifying a non-Framework python.
+
+.. _release-0-15-1-2:
 
 `0.15.1.2 <https://github.com/pypa/pipx/tree/0.15.1.2>`_
 ========================================================
@@ -1831,6 +2014,8 @@ Fixed
 
 - Fix recursive search of dependencies' apps so no apps are missed.
 
+.. _release-0-15-1-1:
+
 `0.15.1.1 <https://github.com/pypa/pipx/tree/0.15.1.1>`_
 ========================================================
 
@@ -1840,6 +2025,8 @@ Fixed
 -----
 
 - fix regression that caused installing with --editable flag to fail package name determination.
+
+.. _release-0-15-1-0:
 
 `0.15.1.0 <https://github.com/pypa/pipx/tree/0.15.1.0>`_
 ========================================================
@@ -1859,6 +2046,8 @@ Fixed
 -----
 
 - pass pip arguments to pip when determining package name (:issue:`320`)
+
+.. _release-0-15-0-0:
 
 `0.15.0.0 <https://github.com/pypa/pipx/tree/0.15.0.0>`_
 ========================================================
@@ -1883,7 +2072,7 @@ Changes
 - ``inject`` will now accept pip specifications for dependency arguments
 - Metadata is now stored for each application installed, including install options like ``--spec``, and injected
   packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed
-  packages. (:issue:`222`)
+  packages. (:pr:`222`) by :user:`itsayellow`
 - Handle missing interpreters more gracefully (:issue:`146`)
 - Change ``reinstall-all`` to use system python by default for apps. Now use ``--python`` option to specify a different
   python version.
@@ -1901,13 +2090,15 @@ Removed
 
 - ``install`` now has no ``--spec`` option. You may specify any valid pip specification for ``install``'s main argument.
 - ``upgrade`` options ``--spec`` and ``--include-deps`` were removed. Pipx now uses the original options used to install
-  each application instead. (:issue:`222`)
+  each application instead. (:pr:`222`) by :user:`itsayellow`
 - ``upgrade-all`` options ``--include-deps``, ``--system-site-packages``, ``--index-url``, ``--editable``, and
-  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead.
-  (:issue:`222`)
+  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead. (:pr:`222`)
+  by :user:`itsayellow`
 - ``reinstall-all`` options ``--include-deps``, ``--system-site-packages``, ``--index-url``, ``--editable``, and
-  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead.
-  (:issue:`222`)
+  ``--pip-args`` were removed. Pipx now uses the original options used to install each application instead. (:pr:`222`)
+  by :user:`itsayellow`
+
+.. _release-0-14-0-0:
 
 `0.14.0.0 <https://github.com/pypa/pipx/tree/0.14.0.0>`_
 ========================================================
@@ -1937,6 +2128,8 @@ Breaking changes
 
 - Breaking change: for the ``inject`` command, change ``--include-binaries`` to ``--include-apps``
 
+.. _release-0-14-0-0rc1:
+
 `0.14.0.0rc1 <https://github.com/pypa/pipx/tree/0.14.0.0rc1>`_
 ==============================================================
 
@@ -1965,6 +2158,8 @@ Breaking changes
 
 - Breaking change: for the ``inject`` command, change ``--include-binaries`` to ``--include-apps``
 
+.. _release-0-13-2-3:
+
 `0.13.2.3 <https://github.com/pypa/pipx/tree/0.13.2.3>`_
 ========================================================
 
@@ -1974,6 +2169,8 @@ Fixed
 -----
 
 - Fix regression when installing a package that doesn't have any entry points
+
+.. _release-0-13-2-2:
 
 `0.13.2.2 <https://github.com/pypa/pipx/tree/0.13.2.2>`_
 ========================================================
@@ -1993,6 +2190,8 @@ Fixed
 
 - Remove unnecessary and sometimes incorrect check after ``pipx inject`` (:issue:`195`)
 
+.. _release-0-13-2-1:
+
 `0.13.2.1 <https://github.com/pypa/pipx/tree/0.13.2.1>`_
 ========================================================
 
@@ -2003,6 +2202,8 @@ Fixed
 
 - Remove virtual environment if installation did not complete. For example, if it was interrupted by ctrl+c or if an
   exception occurred for any reason. (:issue:`193`)
+
+.. _release-0-13-2-0:
 
 `0.13.2.0 <https://github.com/pypa/pipx/tree/0.13.2.0>`_
 ========================================================
@@ -2033,6 +2234,8 @@ Fixed
 - Improve handling of unexpected files in PIPX_HOME by :user:`uranusjr`.
 - Swap out-of-order logic to recommend ``--include-deps`` correctly by :user:`joshuarli`.
 
+.. _release-0-13-1-1:
+
 `0.13.1.1 <https://github.com/pypa/pipx/tree/0.13.1.1>`_
 ========================================================
 
@@ -2048,7 +2251,9 @@ Changes
 Fixed
 -----
 
-- Do not raise bare exception if no binaries found (:issue:`150`)
+- Do not raise bare exception if no binaries found (:pr:`150`) by :user:`cs01`
+
+.. _release-0-13-1-0:
 
 `0.13.1.0 <https://github.com/pypa/pipx/tree/0.13.1.0>`_
 ========================================================
@@ -2074,6 +2279,8 @@ Deprecated
 
 - Deprecate ``ensurepath`` command. Use ``userpath append ~/.local/bin``
 
+.. _release-0-13-0-1:
+
 `0.13.0.1 <https://github.com/pypa/pipx/tree/0.13.0.1>`_
 ========================================================
 
@@ -2083,6 +2290,8 @@ Fixed
 -----
 
 - Fix upgrade-all and reinstall-all regression
+
+.. _release-0-13-0-0:
 
 `0.13.0.0 <https://github.com/pypa/pipx/tree/0.13.0.0>`_
 ========================================================
@@ -2103,6 +2312,8 @@ Fixed
 - Do not raise error when running ``pipx install PACKAGE`` and the package has already been installed by pipx
   (:issue:`125`). This is the cause of the major version change from 0.12 to 0.13.
 
+.. _release-0-12-3-3:
+
 `0.12.3.3 <https://github.com/pypa/pipx/tree/0.12.3.3>`_
 ========================================================
 
@@ -2116,6 +2327,8 @@ Fixed
 - Improve compatibility with Debian distributions by using ``shutil.which`` instead of
   ``distutils.spawn.find_executable`` (:issue:`102`)
 
+.. _release-0-12-3-2:
+
 `0.12.3.2 <https://github.com/pypa/pipx/tree/0.12.3.2>`_
 ========================================================
 
@@ -2127,6 +2340,8 @@ Fixed
 - Fix infinite recursion error when installing package such as ``cloudtoken==0.1.84`` (:issue:`103`)
 - Fix windows type errors (:issue:`96`, :issue:`98`)
 
+.. _release-0-12-3-1:
+
 `0.12.3.1 <https://github.com/pypa/pipx/tree/0.12.3.1>`_
 ========================================================
 
@@ -2136,6 +2351,8 @@ Fixed
 -----
 
 - Fix "WindowsPath is not iterable" bug
+
+.. _release-0-12-3-0:
 
 `0.12.3.0 <https://github.com/pypa/pipx/tree/0.12.3.0>`_
 ========================================================
@@ -2163,6 +2380,8 @@ Performance
 - Speed up ``pipx list`` output (by running multiple processes in parallel) and by collecting all metadata in a single
   subprocess call
 
+.. _release-0-12-2-0:
+
 `0.12.2.0 <https://github.com/pypa/pipx/tree/0.12.2.0>`_
 ========================================================
 
@@ -2181,6 +2400,8 @@ Fixed
 -----
 
 - Fix regression when installing with ``--editable`` flag (:issue:`93`)
+
+.. _release-0-12-1-0:
 
 `0.12.1.0 <https://github.com/pypa/pipx/tree/0.12.1.0>`_
 ========================================================
@@ -2209,6 +2430,8 @@ Fixed
 - Forward ``--pip-args`` to the pip upgrade command (previously the args were forwarded to install/upgrade commands for
   packages) (:issue:`77`)
 
+.. _release-0-12-0-4:
+
 `0.12.0.4 <https://github.com/pypa/pipx/tree/0.12.0.4>`_
 ========================================================
 
@@ -2218,6 +2441,8 @@ Fixed
 -----
 
 - Fix parsing bug in pipx run
+
+.. _release-0-12-0-3:
 
 `0.12.0.3 <https://github.com/pypa/pipx/tree/0.12.0.3>`_
 ========================================================
@@ -2231,6 +2456,8 @@ Added
   original pipx owner. Running pipx with python2 will fail, but at least it will not be as confusing as running the pipx
   package from the original owner.
 
+.. _release-0-12-0-2:
+
 `0.12.0.2 <https://github.com/pypa/pipx/tree/0.12.0.2>`_
 ========================================================
 
@@ -2241,6 +2468,8 @@ Changes
 
 - forward arguments to run command correctly :issue:`90`
 
+.. _release-0-12-0-1:
+
 `0.12.0.1 <https://github.com/pypa/pipx/tree/0.12.0.1>`_
 ========================================================
 
@@ -2250,6 +2479,8 @@ Fixed
 -----
 
 - stop using unverified context :issue:`89`
+
+.. _release-0-12-0-0:
 
 `0.12.0.0 <https://github.com/pypa/pipx/tree/0.12.0.0>`_
 ========================================================
@@ -2268,6 +2499,8 @@ Documentation
 
 - Change installation instructions to use ``pipx`` PyPI name
 
+.. _release-0-11-0-2:
+
 `0.11.0.2 <https://github.com/pypa/pipx/tree/0.11.0.2>`_
 ========================================================
 
@@ -2277,6 +2510,8 @@ Fixed
 -----
 
 - add version argument parsing back in (fixes regression)
+
+.. _release-0-11-0-1:
 
 `0.11.0.1 <https://github.com/pypa/pipx/tree/0.11.0.1>`_
 ========================================================
@@ -2301,6 +2536,8 @@ Fixed
 -----
 
 - Fix the printed version.
+
+.. _release-0-11-0-0:
 
 `0.11.0.0 <https://github.com/pypa/pipx/tree/0.11.0.0>`_
 ========================================================
@@ -2327,6 +2564,8 @@ Breaking changes
 - Replace ``pipx BINARY`` with ``pipx run BINARY`` to run a binary in an ephemeral environment. This is a breaking API
   change so the major version has been incremented. (Issue :issue:`69`)
 
+.. _release-0-10-4-1:
+
 `0.10.4.1 <https://github.com/pypa/pipx/tree/0.10.4.1>`_
 ========================================================
 
@@ -2336,6 +2575,8 @@ Fixed
 -----
 
 - Fix version printed when ``pipx --version`` is run
+
+.. _release-0-10-4-0:
 
 `0.10.4.0 <https://github.com/pypa/pipx/tree/0.10.4.0>`_
 ========================================================
@@ -2353,6 +2594,8 @@ Documentation
 -------------
 
 - Updated README with pipsi migration instructions
+
+.. _release-0-10-3-0:
 
 `0.10.3.0 <https://github.com/pypa/pipx/tree/0.10.3.0>`_
 ========================================================
