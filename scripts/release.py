@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +37,7 @@ def main() -> None:
 
     with TemporaryDirectory(prefix="pipx-release-") as temporary_directory:
         source = Path(temporary_directory) / "source"
+        constraints = Path(temporary_directory) / "build-constraints.txt"
         _run("git", "clone", "--quiet", "--shared", str(_ROOT), str(source))
         tags = _run("git", "tag", "--list", cwd=source, capture_output=True).stdout
         version = _run(
@@ -103,14 +103,31 @@ def main() -> None:
             msg = f"{version} has no user-facing release notes"
             raise RuntimeError(msg)
         _run(
+            "release-creator",
+            "build-constraints",
+            "--lock",
+            "pylock.toml",
+            "--python-version",
+            "3.15",
+            "--output",
+            str(constraints),
+            cwd=source,
+        )
+        _run(
             "uv",
             "build",
+            "--python",
+            "3.15",
+            "--python-preference",
+            "only-managed",
             "--sdist",
             "--wheel",
+            "--build-constraints",
+            str(constraints),
+            "--require-build-hashes",
             "--out-dir",
             "dist",
             cwd=source,
-            env=dict(os.environ, UV_EXCLUDE_NEWER="1 week"),
         )
         _run(
             "twine",
@@ -127,7 +144,6 @@ def _run(
     cwd: Path = _ROOT,
     stdin_text: str | None = None,
     capture_output: bool = False,
-    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
@@ -138,7 +154,6 @@ def _run(
         text=True,
         check=True,
         shell=False,
-        env=env,
     )
 
 

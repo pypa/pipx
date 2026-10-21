@@ -3232,28 +3232,7 @@ sha256 = "b49677dbdc597460cc22d01b27ab3696f5e16a21ecf2700fb01bc28e1f2a04a7"
 name = "hatchling"
 version = "1.32.4"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"type\" in dependency_groups"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/f6/97/b5312f01a8c6daf729a9d272dd442e0c546dbcc630495788786c4b567ed0/hatchling-1.32.4.tar.gz"
-upload-time = 2026-09-20 22:48:45+00:00
-size = 58065
-
-[packages.sdist.hashes]
-sha256 = "c4468f73144c054d2aab4ef0f0378c43b9878bf07f8ffd6b79690e970d375f07"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/5f/80/91f51f439c05d4ec4623c22928ce16a938d6d793bf709477830823497859/hatchling-1.32.4-py3-none-any.whl"
-upload-time = 2026-09-20 22:48:44+00:00
-size = 78748
-
-[packages.wheels.hashes]
-sha256 = "08ecf7548fb48205e7f213d70c71e67b8271b7242093dc3f1da578b42c734a2c"
-
-[[packages]]
-name = "hatchling"
-version = "1.32.4"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"type\" in dependency_groups"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/f6/97/b5312f01a8c6daf729a9d272dd442e0c546dbcc630495788786c4b567ed0/hatchling-1.32.4.tar.gz"
@@ -4912,28 +4891,7 @@ sha256 = "edaa16e6c14d7cf395d75d4bbd5a26390f4dc06501a33b4e76282b02cc688a25"
 name = "packaging"
 version = "26.3"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"project-runtime\" in dependency_groups or \"test\" in dependency_groups or \"type\" in dependency_groups or \"uv\" in extras or (\"release\" in dependency_groups and (python_full_version >= '3.15'))"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz"
-upload-time = 2026-08-04 18:15:28+00:00
-size = 313412
-
-[packages.sdist.hashes]
-sha256 = "94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl"
-upload-time = 2026-08-04 18:15:27+00:00
-size = 129956
-
-[packages.wheels.hashes]
-sha256 = "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
-
-[[packages]]
-name = "packaging"
-version = "26.3"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"project-runtime\" in dependency_groups or \"test\" in dependency_groups or \"type\" in dependency_groups or \"uv\" in extras or (\"release\" in dependency_groups and (python_full_version >= '3.15'))"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz"
@@ -4977,28 +4935,7 @@ sha256 = "aa6bca462b8d8bda89c70b382f0c298a20b5560af6cbfa2dce410c0a2fb669f1"
 name = "pathspec"
 version = "1.1.1"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"type\" in dependency_groups"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/5a/82/42f767fc1c1143d6fd36efb827202a2d997a375e160a71eb2888a925aac1/pathspec-1.1.1.tar.gz"
-upload-time = 2026-04-27 01:46:08+00:00
-size = 135180
-
-[packages.sdist.hashes]
-sha256 = "17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl"
-upload-time = 2026-04-27 01:46:07+00:00
-size = 57328
-
-[packages.wheels.hashes]
-sha256 = "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
-
-[[packages]]
-name = "pathspec"
-version = "1.1.1"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"type\" in dependency_groups"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/5a/82/42f767fc1c1143d6fd36efb827202a2d997a375e160a71eb2888a925aac1/pathspec-1.1.1.tar.gz"
@@ -5064,28 +5001,7 @@ sha256 = "3dbcf4cd708f21cf876c4eaa90e58412bc4f033d87143f41b1493ff77c25b7e1"
 name = "pluggy"
 version = "1.6.0"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"test\" in dependency_groups or \"type\" in dependency_groups"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz"
-upload-time = 2025-05-15 12:30:07+00:00
-size = 69412
-
-[packages.sdist.hashes]
-sha256 = "7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl"
-upload-time = 2025-05-15 12:30:06+00:00
-size = 20538
-
-[packages.wheels.hashes]
-sha256 = "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
-
-[[packages]]
-name = "pluggy"
-version = "1.6.0"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"test\" in dependency_groups or \"type\" in dependency_groups"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz"
@@ -6879,14 +6795,14 @@ sha256 = "d0dae1f74bb273b534770cb4cccb6bb78735540afdb03c2146f4e19dcd412560"
 
 [[packages]]
 name = "release-creator"
-version = "0.4.2.dev25+g5ab332349"
+version = "0.4.2.dev50+g7330cc0dc"
 marker = "(\"release\" in dependency_groups and (python_full_version >= '3.15'))"
 
 [packages.vcs]
 type = "git"
 url = "https://github.com/tox-dev/release-creator"
-requested-revision = "5ab33234939cf2969d25a11ba477c31eb264067c"
-commit-id = "5ab33234939cf2969d25a11ba477c31eb264067c"
+requested-revision = "7330cc0dc3c7a41a8d169bf8014fc2a75f6e220a"
+commit-id = "7330cc0dc3c7a41a8d169bf8014fc2a75f6e220a"
 
 [[packages]]
 name = "requests"
@@ -7024,28 +6940,7 @@ sha256 = "0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137"
 name = "setuptools"
 version = "84.0.0"
 index = "https://pypi.org/simple"
-marker = "\"zipapp\" in dependency_groups or (\"dev\" in dependency_groups and (python_full_version >= '3.12')) or (\"test\" in dependency_groups and (python_full_version >= '3.12')) or (\"type\" in dependency_groups and (python_full_version >= '3.12'))"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/6d/44/f5da03a8ef95d369145c5bb53050e7877c9f3d312e128605fd9504829143/setuptools-84.0.0.tar.gz"
-upload-time = 2026-08-08 18:27:58+00:00
-size = 1168449
-
-[packages.sdist.hashes]
-sha256 = "f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl"
-upload-time = 2026-08-08 18:27:56+00:00
-size = 818216
-
-[packages.wheels.hashes]
-sha256 = "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670"
-
-[[packages]]
-name = "setuptools"
-version = "84.0.0"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"zipapp\" in dependency_groups or (\"dev\" in dependency_groups and (python_full_version >= '3.12')) or (\"test\" in dependency_groups and (python_full_version >= '3.12')) or (\"type\" in dependency_groups and (python_full_version >= '3.12'))"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/6d/44/f5da03a8ef95d369145c5bb53050e7877c9f3d312e128605fd9504829143/setuptools-84.0.0.tar.gz"
@@ -8362,28 +8257,7 @@ sha256 = "188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90"
 name = "tomlkit"
 version = "0.15.1"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"type\" in dependency_groups"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/94/96/e07752635b98536177fa1f37671c8f3cdde2e724c6bcf6034b2cfb571565/tomlkit-0.15.1.tar.gz"
-upload-time = 2026-07-17 01:48:04+00:00
-size = 180129
-
-[packages.sdist.hashes]
-sha256 = "e25bbf38843005246210a12982776f27f99cb9be67160e14434d0c0d21ee1e97"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/13/bc/8c13eb66537dce1d2bd3a57132902f38d0e7f5bb46fa9f4daed9fe9d76ee/tomlkit-0.15.1-py3-none-any.whl"
-upload-time = 2026-07-17 01:48:05+00:00
-size = 49449
-
-[packages.wheels.hashes]
-sha256 = "177a05aece5a8ca5266fd3c448abb47b8d352f09d477d3ca8332db4d89b24304"
-
-[[packages]]
-name = "tomlkit"
-version = "0.15.1"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"type\" in dependency_groups"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/94/96/e07752635b98536177fa1f37671c8f3cdde2e724c6bcf6034b2cfb571565/tomlkit-0.15.1.tar.gz"
@@ -8427,28 +8301,7 @@ sha256 = "ae4d223e6aadaff98d29b7f09e58d9c9ccf4cd3b455a2d2e0486d432cd8bf660"
 name = "trove-classifiers"
 version = "2026.9.21.13"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"type\" in dependency_groups"
-
-[packages.sdist]
-url = "https://files.pythonhosted.org/packages/bf/93/af436dfaa845cab5d96f0adbc1e4f3730532d37fa249e4eb796fb1d7fc82/trove_classifiers-2026.9.21.13.tar.gz"
-upload-time = 2026-09-21 13:29:07+00:00
-size = 17085
-
-[packages.sdist.hashes]
-sha256 = "0a9ebc8d4e2f3e8a22848c5258033035bec17a3012ac3fea16dbaa764489eb71"
-
-[[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/30/81/0da8afb52a71d0a4f2bd3152357b1a441e393b286374802b9d3addab4ab5/trove_classifiers-2026.9.21.13-py3-none-any.whl"
-upload-time = 2026-09-21 13:29:06+00:00
-size = 14232
-
-[packages.wheels.hashes]
-sha256 = "8b1ff4f9c191b1040b71c37f1e445ab99732911e3cd91de52838453a854d7a17"
-
-[[packages]]
-name = "trove-classifiers"
-version = "2026.9.21.13"
-marker = "\"build\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"type\" in dependency_groups"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/bf/93/af436dfaa845cab5d96f0adbc1e4f3730532d37fa249e4eb796fb1d7fc82/trove_classifiers-2026.9.21.13.tar.gz"

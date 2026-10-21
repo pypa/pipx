@@ -40,12 +40,14 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 🐍 Setup Python ${{ matrix.py }}
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.py }}
@@ -90,6 +92,7 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -105,6 +108,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
           enable-cache: false
       - run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -120,6 +124,7 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -142,12 +147,14 @@ jobs:
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: "3.11"
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -161,7 +168,6 @@ jobs:
         with:
           name: pipx.pyz
           path: pipx.pyz
-          retention-days: 3
   changelog:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
@@ -175,14 +181,15 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
         run: |
-          uv venv --python 3.15 "$RUNNER_TEMP/release-tools"
-          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/release-tools/bin/python" --group release pylock.toml
-          echo "$RUNNER_TEMP/release-tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-news@5e11f2254a4dcb7102747d312ad7db48a2e9b0cb
+          uv venv --python 3.15 "$RUNNER_TEMP/tools"
+          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
+          echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
+      - uses: tox-dev/github-workflows/validate-news@a250ca3524857236e288764651851010939b6f71
   zipapp-windows:
     name: 🪟 Test zipapp on Windows
     needs: zipapp
@@ -193,6 +200,7 @@ jobs:
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: "3.11"

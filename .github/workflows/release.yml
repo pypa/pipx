@@ -25,21 +25,26 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release checks
         run: |
-          uv venv --python 3.15 "$RUNNER_TEMP/release-tools"
-          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/release-tools/bin/python" --group release pylock.toml
-          echo "$RUNNER_TEMP/release-tools/bin" >>"$GITHUB_PATH"
+          uv venv --python 3.15 "$RUNNER_TEMP/tools"
+          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
+          echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - name: Validate release tag
         env:
           TAG: ${{ github.ref_name }}
         run: release-creator tags "$TAG"
+      - name: Select locked build backend
+        env:
+          BUILD_CONSTRAINTS: ${{ runner.temp }}/build-constraints.txt
+        run: release-creator build-constraints --lock pylock.toml --python-version 3.15 --output "$BUILD_CONSTRAINTS"
       - name: Build sdist and wheel
         env:
-          UV_EXCLUDE_NEWER: "1 week"
-        run: uv build --sdist --wheel --out-dir dist
+          BUILD_CONSTRAINTS: ${{ runner.temp }}/build-constraints.txt
+        run: uv build --sdist --wheel --out-dir dist --build-constraints "$BUILD_CONSTRAINTS" --require-build-hashes
       - name: Check artifact versions
         env:
           TAG: ${{ github.ref_name }}
@@ -72,6 +77,7 @@ jobs:
       contents: read
     outputs:
       tag: ${{ steps.previous.outputs.tag }}
+      commit: ${{ steps.commit.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,13 +85,14 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
         run: |
-          uv venv --python 3.15 "$RUNNER_TEMP/release-tools"
-          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/release-tools/bin/python" --group release pylock.toml
-          echo "$RUNNER_TEMP/release-tools/bin" >>"$GITHUB_PATH"
+          uv venv --python 3.15 "$RUNNER_TEMP/tools"
+          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
+          echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - name: Find previous release
         id: previous
         env:
@@ -93,6 +100,11 @@ jobs:
         run: |
           set -o pipefail
           git tag --list | release-creator tags "$TAG" --previous | sed 's/^/tag=/' >>"$GITHUB_OUTPUT"
+      - name: Resolve release commit
+        id: commit
+        env:
+          TAG: ${{ github.ref_name }}
+        run: echo "sha=$(git rev-parse "$TAG^{commit}")" >>"$GITHUB_OUTPUT"
   metadata:
     needs: previous
     runs-on: ubuntu-26.04
@@ -103,17 +115,19 @@ jobs:
         if: needs.previous.outputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          NOTES_API: repos/${{ github.repository }}/releases/generate-notes
+          NOTES_FILE: ${{ runner.temp }}/generated-notes.md
           TAG: ${{ github.ref_name }}
           PREVIOUS: ${{ needs.previous.outputs.tag }}
-        run: >-
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$TAG" -f previous_tag_name="$PREVIOUS" --jq .body >"$RUNNER_TEMP/generated-notes.md"
+        run: gh api -X POST "$NOTES_API" -f tag_name="$TAG" -f previous_tag_name="$PREVIOUS" --jq .body >"$NOTES_FILE"
       - name: Fetch first-release metadata
         if: needs.previous.outputs.tag == ''
         env:
           GH_TOKEN: ${{ github.token }}
+          NOTES_API: repos/${{ github.repository }}/releases/generate-notes
+          NOTES_FILE: ${{ runner.temp }}/generated-notes.md
           TAG: ${{ github.ref_name }}
-        run: >-
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$TAG" --jq .body >"$RUNNER_TEMP/generated-notes.md"
+        run: gh api -X POST "$NOTES_API" -f tag_name="$TAG" --jq .body >"$NOTES_FILE"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: contributor-metadata
@@ -131,18 +145,19 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
         run: |
-          uv venv --python 3.15 "$RUNNER_TEMP/release-tools"
-          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/release-tools/bin/python" --group release pylock.toml
-          echo "$RUNNER_TEMP/release-tools/bin" >>"$GITHUB_PATH"
+          uv venv --python 3.15 "$RUNNER_TEMP/tools"
+          uv pip sync --preview-features pylock --python "$RUNNER_TEMP/tools/bin/python" --group release pylock.toml
+          echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: contributor-metadata
           path: ${{ runner.temp }}/contributor-metadata
-      - uses: tox-dev/github-workflows/render-release-notes@5e11f2254a4dcb7102747d312ad7db48a2e9b0cb
+      - uses: tox-dev/github-workflows/render-release-notes@a250ca3524857236e288764651851010939b6f71
         with:
           tag: ${{ github.ref_name }}
           changelog: docs/changelog.rst
@@ -156,9 +171,44 @@ jobs:
           name: github-release-notes
           path: ${{ runner.temp }}/release-notes.md
           if-no-files-found: error
+  stage-pypi:
+    name: Stage PyPI artifacts
+    needs: build-package
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      missing_count: ${{ steps.stage.outputs['missing-count'] }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - id: stage
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+        with:
+          project: pipx
+          version: ${{ github.ref_name }}
+          dist: dist
+          mode: stage
+      - if: steps.stage.outputs['missing-count'] != '0'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pypi-missing-names
+          path: ${{ runner.temp }}/pypi-missing-names.txt
+          if-no-files-found: error
   pypi-publish:
     name: Publish pipx to PyPI
-    needs: [build-package, notes]
+    needs: [build-package, notes, stage-pypi, stage-release]
+    if: needs.stage-pypi.outputs.missing_count != '0'
     runs-on: ubuntu-26.04
     environment:
       name: release
@@ -170,11 +220,56 @@ jobs:
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pypi-missing-names
+          path: ${{ runner.temp }}/pypi-missing-names
+      - uses: tox-dev/github-workflows/select-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+        with:
+          dist: dist
+          manifest: ${{ runner.temp }}/pypi-missing-names/pypi-missing-names.txt
+          output-dir: selected-dist
+          expected-count: ${{ needs.stage-pypi.outputs.missing_count }}
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-  create-release:
-    name: Create a release on GitHub's UI
-    needs: [pypi-publish, notes]
+        with:
+          packages-dir: selected-dist/
+          skip-existing: true
+  verify-pypi:
+    name: Verify PyPI artifacts
+    needs: [notes, stage-pypi, stage-release, pypi-publish]
+    if: |
+      always() &&
+      needs.notes.result == 'success' &&
+      needs.stage-pypi.result == 'success' &&
+      needs.stage-release.result == 'success' &&
+      (needs.pypi-publish.result == 'success' ||
+      (needs.pypi-publish.result == 'skipped' && needs.stage-pypi.outputs.missing_count == '0'))
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a250ca3524857236e288764651851010939b6f71
+        with:
+          project: pipx
+          version: ${{ github.ref_name }}
+          dist: dist
+          mode: verify
+  stage-release:
+    name: Stage GitHub Release
+    needs: [build-package, notes, previous]
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -183,27 +278,44 @@ jobs:
         with:
           name: github-release-notes
           path: ${{ runner.temp }}/release-notes
-      - name: Create release
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pipx.pyz
+          path: ${{ runner.temp }}/zipapp
+      - uses: tox-dev/github-workflows/publish-github-release@a250ca3524857236e288764651851010939b6f71
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: >-
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes/release-notes.md"
-  upload-zipapp:
-    name: Upload zipapp to GitHub Release
-    needs: create-release
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}
+          commit: ${{ needs.previous.outputs.commit }}
+          title: ${{ github.ref_name }}
+          notes-file: ${{ runner.temp }}/release-notes/release-notes.md
+          assets-directory: ${{ runner.temp }}/zipapp
+          mode: stage
+  publish-release:
+    name: Publish GitHub Release
+    needs: [verify-pypi, stage-release, previous]
     runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          name: github-release-notes
+          path: ${{ runner.temp }}/release-notes
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - name: Upload to release
+      - uses: tox-dev/github-workflows/publish-github-release@a250ca3524857236e288764651851010939b6f71
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: gh release upload "$TAG" "$RUNNER_TEMP/zipapp/pipx.pyz"
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}
+          commit: ${{ needs.previous.outputs.commit }}
+          title: ${{ github.ref_name }}
+          notes-file: ${{ runner.temp }}/release-notes/release-notes.md
+          assets-directory: ${{ runner.temp }}/zipapp
+          mode: publish

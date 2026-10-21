@@ -116,7 +116,7 @@ man = [
 release = [
   "check-wheel-contents>=0.6.3",
   "prek>=0.5",
-  "release-creator @ git+https://github.com/tox-dev/release-creator@5ab33234939cf2969d25a11ba477c31eb264067c",
+  "release-creator @ git+https://github.com/tox-dev/release-creator@7330cc0dc3c7a41a8d169bf8014fc2a75f6e220a",
   "towncrier>=26.9",
   "twine>=7",
   "uv>=0.12.22",

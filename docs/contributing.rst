@@ -298,10 +298,12 @@ You can preview the same inputs locally without pushing by running ``python scri
 What Happens During Release
 ===========================
 
-The tag starts the release workflow. It runs the test suite, builds and checks the sdist and wheel, renders Markdown
-notes from that tag's RST changelog, and then publishes to PyPI with trusted publishing. After PyPI succeeds, a small
-write-only job creates the GitHub Release from the checked notes and attaches the zipapp built by the test workflow.
-The GitHub notes keep contributor credits and a comparison link without copying GitHub's generated-notes banner.
+The tag starts the release workflow. It runs the test suite, builds the sdist and wheel with locked build dependencies,
+and renders Markdown notes from that tag's RST changelog. It stages a draft GitHub Release with the zipapp built by the
+test workflow, then publishes the distributions to PyPI with trusted publishing. Once PyPI has the expected files, it
+publishes the checked draft. A retry checks filenames and SHA256 digests before uploading a missing distribution or
+publishing the draft. The GitHub notes keep contributor credits and a comparison link without GitHub's generated-notes
+banner.
 
 Version Calculation Examples
 ============================
