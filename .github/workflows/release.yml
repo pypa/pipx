@@ -8,6 +8,7 @@ concurrency:
   cancel-in-progress: true
 env:
   default-python: "3.15"
+permissions: {}
 jobs:
   test:
     name: Gate release on the test suite
