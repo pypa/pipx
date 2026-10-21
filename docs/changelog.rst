@@ -695,6 +695,20 @@ Removed
   `uv` both write a `/bin/sh` wrapper as the shebang when the interpreter path contains a space, so applications
   installed into such a path run. (:issue:`1946`)
 
+`1.15.2 <https://github.com/pypa/pipx/tree/1.15.2>`_ - 2026-07-15
+=================================================================
+
+`1.15.1 <https://github.com/pypa/pipx/tree/1.15.1>`_ - 2026-07-15
+=================================================================
+
+.. _release-1-15-1-fixed:
+
+Fixed
+-----
+
+- Retry fetching a standalone Python build when GitHub's release CDN returns a transient error, so a momentary ``5xx``
+  or rate-limit response no longer fails the install. (:issue:`1960`)
+
 `1.15.0 <https://github.com/pypa/pipx/tree/1.15.0>`_ - 2026-06-24
 =================================================================
 
