@@ -39,6 +39,30 @@ def test_read_script_metadata_path(tmp_path: Path) -> None:
     assert read_script_metadata(script) == ScriptMetadata((), None)
 
 
+@pytest.mark.parametrize("quote", ['"""', "'''"])
+def test_read_script_metadata_embedded_delimiter(quote: str) -> None:
+    content = f"""# /// script
+# dependencies = []
+# [tool.demo]
+# text = {quote}
+# before
+# ///
+# after
+# {quote}
+# ///
+"""
+
+    assert read_script_metadata(content) == ScriptMetadata((), None)
+
+
+@pytest.mark.parametrize("other_first", [False, True])
+def test_read_script_metadata_other_block(other_first: bool) -> None:
+    script = "# /// script\n# dependencies = []\n# ///\n"
+    other = "# /// other\n# arbitrary content\n# ///\n"
+
+    assert read_script_metadata(other + script if other_first else script + other) == ScriptMetadata((), None)
+
+
 def test_read_script_metadata_missing() -> None:
     assert read_script_metadata("print('hello')\n") is None
 
