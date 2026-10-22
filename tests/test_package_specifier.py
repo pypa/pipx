@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from pipx.package_specifier import (
+    ARCHIVE_EXTENSIONS,
     extract_index_options,
     fix_package_name,
     package_spec_satisfied,
@@ -60,6 +61,44 @@ def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None
 )
 def test_valid_pypi_name(package_spec_in: str, package_name_out: str | None) -> None:
     assert valid_pypi_name(package_spec_in) == package_name_out
+
+
+@pytest.mark.parametrize("extension", ARCHIVE_EXTENSIONS)
+def test_valid_pypi_name_archive_extension(extension: str) -> None:
+    assert valid_pypi_name(f"demo-1.0{extension}") is None
+
+
+@pytest.mark.parametrize("name", ["Demo-1.0.TAR.XZ", "Demo-1.0.TAR.GZ", "Demo-1.0.TGZ", "Demo-1.0.WHL"])
+def test_valid_pypi_name_archive_extension_case_insensitive(name: str) -> None:
+    assert valid_pypi_name(name) is None
+
+
+@pytest.mark.parametrize("extension", ARCHIVE_EXTENSIONS)
+def test_parse_specifier_local_archive(extension: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    archive = tmp_path / f"demo-1.0{extension}"
+    archive.touch()
+    monkeypatch.chdir(tmp_path)
+    expected = str(archive.resolve())
+    assert parse_specifier_for_metadata(archive.name) == expected
+    assert parse_specifier_for_install(archive.name, []) == (expected, [])
+    assert parse_specifier_for_upgrade(archive.name) == expected
+
+
+@pytest.mark.parametrize("name", ["Demo-1.0.TAR.XZ", "Demo-1.0.TAR.GZ", "Demo-1.0.TGZ", "Demo-1.0.WHL"])
+def test_parse_specifier_local_archive_case_insensitive(
+    name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archive = tmp_path / name
+    archive.touch()
+    monkeypatch.chdir(tmp_path)
+    assert parse_specifier_for_metadata(name) == str(archive.resolve())
+
+
+@pytest.mark.parametrize("name", ["demo-1.0.tar.xz", "demo-1.0.tar.bz2", "demo-1.0.tgz", "demo-1.0.tar"])
+def test_parse_specifier_missing_local_archive(name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(PipxError, match=r"does not exist"):
+        parse_specifier_for_metadata(name)
 
 
 @pytest.mark.parametrize(
