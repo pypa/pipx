@@ -11,6 +11,6 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - uses: tox-dev/github-workflows/label-bot-news@2b4ed19340a7ec97020f4fd0a403531845c49356
+      - uses: tox-dev/github-workflows/label-bot-news@24e7c78489b6e2adb7b8f881761a5c2dbfe03fee
         with:
           fragments: changelog.d

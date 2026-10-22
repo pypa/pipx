@@ -9,11 +9,11 @@ concurrency:
   cancel-in-progress: false
 jobs:
   upgrade:
-    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@2b4ed19340a7ec97020f4fd0a403531845c49356
+    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@24e7c78489b6e2adb7b8f881761a5c2dbfe03fee
     permissions:
       contents: read
     secrets:
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
     with:
       python-version: "3.15"
-      exclude-newer-packages: release-creator=2026-10-22T06:33:00Z
+      exclude-newer-packages: release-creator=2026-10-22T13:51:56Z
