@@ -43,6 +43,23 @@ def test_read_script_metadata_missing() -> None:
     assert read_script_metadata("print('hello')\n") is None
 
 
+def test_read_script_metadata_multiline_string_with_delimiter() -> None:
+    """A `# ///` line inside a triple-quoted string must not end the block."""
+    metadata = read_script_metadata(
+        """# /// script
+# dependencies = []
+# [tool.demo]
+# text = \"\"\"
+# before
+# ///
+# after
+# \"\"\"
+# ///
+"""
+    )
+    assert metadata == ScriptMetadata((), None)
+
+
 @pytest.mark.parametrize(
     ("content", "message", "error_type"),
     [
