@@ -56,10 +56,25 @@ def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None
         ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
         ("black-18.9b0-py36-none-any.whl", None),
         ("black-18.9b0.tar.gz", None),
+        ("black-18.9b0.tar.xz", None),
+        ("black-18.9b0.tar.bz2", None),
+        ("black-18.9b0.tgz", None),
+        ("black-18.9b0.tar", None),
+        ("black-18.9b0.TAR.GZ", None),
     ],
 )
 def test_valid_pypi_name(package_spec_in: str, package_name_out: str | None) -> None:
     assert valid_pypi_name(package_spec_in) == package_name_out
+
+
+def test_parse_specifier_for_install_bare_tarxz_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    archive = tmp_path / "pkg-1.0.tar.xz"
+    archive.write_bytes(b"")
+    monkeypatch.chdir(tmp_path)
+
+    package_or_url, _ = parse_specifier_for_install("pkg-1.0.tar.xz", [])
+
+    assert package_or_url == str(archive.resolve())
 
 
 @pytest.mark.parametrize(
