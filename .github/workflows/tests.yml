@@ -185,12 +185,13 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
+        uses: tox-dev/github-workflows/install-locked-tools@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
+          groups: release-news
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-news@33db207c963ad07b8d2bff4099143593fd4100b2
+      - uses: tox-dev/github-workflows/validate-news@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
   hook-cooldown:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
@@ -199,7 +200,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: tox-dev/github-workflows/check-hook-update-cooldown@33db207c963ad07b8d2bff4099143593fd4100b2
+      - uses: tox-dev/github-workflows/check-hook-update-cooldown@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
           repository: ${{ github.repository }}
           pull-request: ${{ github.event.pull_request.number }}

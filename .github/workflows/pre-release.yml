@@ -33,13 +33,14 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
+        uses: tox-dev/github-workflows/install-locked-tools@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
+          groups: release-prepare
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - id: prepare
-        uses: tox-dev/github-workflows/prepare-towncrier@33db207c963ad07b8d2bff4099143593fd4100b2
+        uses: tox-dev/github-workflows/prepare-towncrier@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
           bump: ${{ inputs.bump }}
           changelog: docs/changelog.rst
@@ -73,12 +74,13 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
+        uses: tox-dev/github-workflows/install-locked-tools@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
+          groups: release-validate
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-release-patch@33db207c963ad07b8d2bff4099143593fd4100b2
+      - uses: tox-dev/github-workflows/validate-release-patch@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
           version: ${{ needs.assemble.outputs.version }}
           changelog: docs/changelog.rst
@@ -105,7 +107,7 @@ jobs:
         with:
           name: release-patch
           path: ${{ runner.temp }}/release-patch
-      - uses: tox-dev/github-workflows/validate-release-patch@33db207c963ad07b8d2bff4099143593fd4100b2
+      - uses: tox-dev/github-workflows/validate-release-patch@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
           version: ${{ needs.assemble.outputs.version }}
           changelog: docs/changelog.rst
@@ -122,7 +124,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
-      - uses: tox-dev/github-workflows/commit-and-tag@33db207c963ad07b8d2bff4099143593fd4100b2
+      - uses: tox-dev/github-workflows/commit-and-tag@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
         with:
           version: ${{ needs.assemble.outputs.version }}
           token: ${{ steps.token.outputs.token }}

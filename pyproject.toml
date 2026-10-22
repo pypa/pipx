@@ -121,6 +121,31 @@ release = [
   "twine>=7",
   "uv>=0.12.22",
 ]
+release-build = [
+  "check-wheel-contents>=0.6.3",
+  "release-creator>=0.5.1",
+  "twine>=7",
+  "uv>=0.12.22",
+]
+release-check = [
+  "prek>=0.5",
+]
+release-news = [
+  "release-creator>=0.5.1",
+  "towncrier>=26.9",
+]
+release-notes = [
+  "release-creator>=0.5.1",
+]
+release-prepare = [
+  "prek>=0.5",
+  "release-creator>=0.5.1",
+  "towncrier>=26.9",
+]
+release-validate = [
+  "prek>=0.5",
+  "release-creator>=0.5.1",
+]
 zipapp = [
   "shiv>=1.0.8",
 ]
@@ -143,6 +168,12 @@ build.targets.sdist.include = [
 
 [tool.uv]
 dependency-groups.release = { requires-python = ">=3.15" }
+dependency-groups.release-build = { requires-python = ">=3.15" }
+dependency-groups.release-check = { requires-python = ">=3.15" }
+dependency-groups.release-news = { requires-python = ">=3.15" }
+dependency-groups.release-notes = { requires-python = ">=3.15" }
+dependency-groups.release-prepare = { requires-python = ">=3.15" }
+dependency-groups.release-validate = { requires-python = ">=3.15" }
 
 [tool.ruff]
 line-length = 120

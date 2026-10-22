@@ -9,12 +9,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   upgrade:
-    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@33db207c963ad07b8d2bff4099143593fd4100b2
+    uses: tox-dev/github-workflows/.github/workflows/upgrade-release-tools.yaml@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
     permissions:
       contents: read
     secrets:
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
     with:
+      check-group: release-check
       build-requirements: |-
         Cython>=3.0
         setuptools>=80
