@@ -3056,25 +3056,25 @@ sha256 = "67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec"
 
 [[packages]]
 name = "filelock"
-version = "4.2.4"
+version = "4.2.0"
 index = "https://pypi.org/simple"
 marker = "\"dev\" in dependency_groups or \"lint\" in dependency_groups or \"project-runtime\" in dependency_groups or \"uv\" in extras"
 
 [packages.sdist]
-url = "https://files.pythonhosted.org/packages/d8/28/3893324bcadf8f89b1616637468d766af3f625008c0735bf704fdfa86617/filelock-4.2.4.tar.gz"
-upload-time = 2026-10-19 01:57:51+00:00
-size = 652444
+url = "https://files.pythonhosted.org/packages/f4/a9/1af41b37c3279712b22cdc63aac78a52432202b6fe1f9666a2a3d2831fb4/filelock-4.2.0.tar.gz"
+upload-time = 2026-10-14 20:57:13+00:00
+size = 569667
 
 [packages.sdist.hashes]
-sha256 = "c6d8663535e1650ee430507b4ffbac7b464dd64b7647ea0112a9f406499d163d"
+sha256 = "7a60906c75227cf04d0c273afadc8219400f11aeb13cc69591d4f6cdc6c8036e"
 
 [[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/e0/1b/5e74289a1878e666bb4b65fe5805a04cafcac2aa5f519ef1ead67ef91c56/filelock-4.2.4-py3-none-any.whl"
-upload-time = 2026-10-19 01:57:49+00:00
-size = 162475
+url = "https://files.pythonhosted.org/packages/8e/a3/9bc26acff301fe1aaea1cc3d82a1d57e0a34df3e1cadbfa91ac2dbcdde5c/filelock-4.2.0-py3-none-any.whl"
+upload-time = 2026-10-14 20:57:11+00:00
+size = 135032
 
 [packages.wheels.hashes]
-sha256 = "301241438c57936ef93f4243a94f2559022268bfcf9b375a9a72eb0f8db8358e"
+sha256 = "2ff5690882e8cdb00ef31fb3d01a3094c29f30985426c59495afb1733f3b7238"
 
 [[packages]]
 name = "flit-core"
@@ -4623,25 +4623,25 @@ sha256 = "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
 
 [[packages]]
 name = "more-itertools"
-version = "11.2.0"
+version = "11.2.1"
 index = "https://pypi.org/simple"
 marker = "(\"release\" in dependency_groups and (python_full_version >= '3.15' and platform_machine != 'ppc64le' and platform_machine != 's390x'))"
 
 [packages.sdist]
-url = "https://files.pythonhosted.org/packages/55/e5/8735dc589d9e3571e76cd684e7763dc0fcc940b811f71640410458749689/more_itertools-11.2.0.tar.gz"
-upload-time = 2026-10-13 16:01:14+00:00
-size = 75940
+url = "https://files.pythonhosted.org/packages/52/b8/c63995bebbb9ac9c059350e0fb8c82c2420c85aeca7d34e40aecf3df9281/more_itertools-11.2.1.tar.gz"
+upload-time = 2026-10-14 18:50:30+00:00
+size = 154133
 
 [packages.sdist.hashes]
-sha256 = "59960f488835254863a857eb501f69e4ec92fdc8822f098c0f48dba530afd487"
+sha256 = "cbf08fd0af284dc69718b9b76a8e6203df624d70209ea511e4219d350c856f63"
 
 [[packages.wheels]]
-url = "https://files.pythonhosted.org/packages/d4/f7/86f27473377a8ebdbdfedec5e62e87fbc24c4c88ed0a2a5ea0a12ee2229b/more_itertools-11.2.0-py3-none-any.whl"
-upload-time = 2026-10-13 16:01:13+00:00
-size = 74407
+url = "https://files.pythonhosted.org/packages/5d/57/3c4b1c6f2e0cc29ba023802458ea3d2a996f87085559e4a5f2192d549532/more_itertools-11.2.1-py3-none-any.whl"
+upload-time = 2026-10-14 18:50:29+00:00
+size = 74405
 
 [packages.wheels.hashes]
-sha256 = "e4c522352a24664c974d0be8382944107ae638281a06391a5a538366b5707fe5"
+sha256 = "35a7377edd1dd6608dcb2cdf534ded55ea32d49448875ad042cd3f879fb1ded0"
 
 [[packages]]
 name = "nh3"
@@ -6385,7 +6385,7 @@ sha256 = "8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8"
 name = "pyyaml"
 version = "6.0.3"
 index = "https://pypi.org/simple"
-marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"type\" in dependency_groups"
+marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"type\" in dependency_groups or (\"release\" in dependency_groups and (python_full_version >= '3.15'))"
 
 [packages.sdist]
 url = "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz"
@@ -6795,14 +6795,25 @@ sha256 = "d0dae1f74bb273b534770cb4cccb6bb78735540afdb03c2146f4e19dcd412560"
 
 [[packages]]
 name = "release-creator"
-version = "0.4.2.dev61+ga5873f5d6"
+version = "0.5.0"
+index = "https://pypi.org/simple"
 marker = "(\"release\" in dependency_groups and (python_full_version >= '3.15'))"
 
-[packages.vcs]
-type = "git"
-url = "https://github.com/tox-dev/release-creator"
-requested-revision = "a5873f5d66c5b1ff07da6294aa2719764fa9f864"
-commit-id = "a5873f5d66c5b1ff07da6294aa2719764fa9f864"
+[packages.sdist]
+url = "https://files.pythonhosted.org/packages/2e/64/830a7a0c3e984d31429a3a605a760b60c2442413d1cd979c938976b5581b/release_creator-0.5.0.tar.gz"
+upload-time = 2026-10-22 06:32:59+00:00
+size = 156415
+
+[packages.sdist.hashes]
+sha256 = "e3a5d0b7ab8781ea7f66bb95353792a12592c8d40cb81a575e5defcbd2e3d3fd"
+
+[[packages.wheels]]
+url = "https://files.pythonhosted.org/packages/78/87/9c0644b186b62b1fb1f15f0d49a0982dad1b036c7d393866c1e2b58a3e98/release_creator-0.5.0-py3-none-any.whl"
+upload-time = 2026-10-22 06:32:58+00:00
+size = 49978
+
+[packages.wheels.hashes]
+sha256 = "a056a01b1484e00f403b0fae054e3b3b6bebd8621e1e430ba8f83cdf939fa736"
 
 [[packages]]
 name = "requests"
