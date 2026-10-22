@@ -89,7 +89,10 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         (package_path, package_path_exists) = _check_package_path(valid_pep508.name)
 
         if package_path_exists:
-            valid_local_path = str(package_path.resolve())
+            # Keep the extras requested on the archive name: they are dropped
+            # together with valid_pep508 when it is cleared below.
+            (_, package_extras_str) = _split_path_extras(package_spec)
+            valid_local_path = str(package_path.resolve()) + package_extras_str
         else:
             msg = f"{package_path} does not exist"
             raise PipxError(msg)

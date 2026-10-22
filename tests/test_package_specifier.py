@@ -585,3 +585,15 @@ def test_wheel_project_name_ignores_other_archives(
     archive = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}).rename(tmp_path / "foo_bar_x-1.zip")
 
     assert wheel_project_name(str(archive)) is None
+
+
+def test_parse_specifier_for_install_keeps_extras_for_bare_archive_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    wheel = tmp_path / "repeatme-0.1-py3-none-any.whl"
+    wheel.write_bytes(b"")
+    monkeypatch.chdir(tmp_path)
+
+    package_or_url, _ = parse_specifier_for_install("repeatme-0.1-py3-none-any.whl[cow]", [])
+
+    assert package_or_url == f"{wheel.resolve()}[cow]"
