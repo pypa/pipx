@@ -103,7 +103,7 @@ directories, wheels, and git URLs. Any package that declares `console script ent
     "I'm a big fan of pipx. I think pipx is super cool."
 
     — *Michael Kennedy, co-host of the PythonBytes podcast, in* `episode 139
-    <https://pythonbytes.fm/episodes/transcript/139/f-yes-for-the-f-strings>`_
+    <https://pythonbytes.fm/episodes/show/139/f-yes-for-the-f-strings>`_
 
 *********
  Credits
