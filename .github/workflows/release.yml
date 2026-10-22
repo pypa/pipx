@@ -29,7 +29,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release checks
-        uses: tox-dev/github-workflows/install-locked-tools@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
@@ -90,7 +90,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
@@ -151,7 +151,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+        uses: tox-dev/github-workflows/install-locked-tools@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
@@ -160,7 +160,7 @@ jobs:
         with:
           name: contributor-metadata
           path: ${{ runner.temp }}/contributor-metadata
-      - uses: tox-dev/github-workflows/render-release-notes@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+      - uses: tox-dev/github-workflows/render-release-notes@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           tag: ${{ github.ref_name }}
           changelog: docs/changelog.rst
@@ -196,7 +196,7 @@ jobs:
           name: dist
           path: dist/
       - id: stage
-        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           project: pipx
           version: ${{ github.ref_name }}
@@ -227,7 +227,7 @@ jobs:
         with:
           name: pypi-missing-names
           path: ${{ runner.temp }}/pypi-missing-names
-      - uses: tox-dev/github-workflows/select-pypi-artifacts@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+      - uses: tox-dev/github-workflows/select-pypi-artifacts@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           dist: dist
           manifest: ${{ runner.temp }}/pypi-missing-names/pypi-missing-names.txt
@@ -264,7 +264,7 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@33db207c963ad07b8d2bff4099143593fd4100b2
         with:
           project: pipx
           version: ${{ github.ref_name }}
@@ -285,7 +285,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+      - uses: tox-dev/github-workflows/publish-github-release@33db207c963ad07b8d2bff4099143593fd4100b2
         env:
           GH_TOKEN: ${{ github.token }}
         with:
@@ -311,7 +311,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@a040f8eb1c335676f3f97db2010a1a39a3cea1ac
+      - uses: tox-dev/github-workflows/publish-github-release@33db207c963ad07b8d2bff4099143593fd4100b2
         env:
           GH_TOKEN: ${{ github.token }}
         with:
