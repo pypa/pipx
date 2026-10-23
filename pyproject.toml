@@ -117,14 +117,14 @@ man = [
 release = [
   "check-wheel-contents>=0.6.3",
   "prek>=0.5",
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
   "towncrier>=26.9",
   "twine>=7",
   "uv>=0.12.22",
 ]
 release-build = [
   "check-wheel-contents>=0.6.3",
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
   "twine>=7",
   "uv>=0.12.22",
 ]
@@ -132,20 +132,20 @@ release-check = [
   "prek>=0.5",
 ]
 release-news = [
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
   "towncrier>=26.9",
 ]
 release-notes = [
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
 ]
 release-prepare = [
   "prek>=0.5",
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
   "towncrier>=26.9",
 ]
 release-validate = [
   "prek>=0.5",
-  "release-creator>=0.6",
+  "release-creator>=0.6.5",
 ]
 zipapp = [
   "shiv>=1.0.8",
@@ -311,8 +311,8 @@ uploaded-prior-to = "P7D"
 decision-order = "stable"
 matrix.python = ">=3.15,<3.16"
 matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_amd64" ]
-packages.release-creator.uploaded-prior-to = "2026-10-23T02:44:40Z"
+packages.release-creator.uploaded-prior-to = "2026-10-23T19:54:50Z"
 
 [[tool.nab.package-rules]]
 match = [ "nab", "nab-index", "nab-markersets", "nab-project", "nab-provider", "nab-resolver" ]
-uploaded-prior-to = "2026-10-19T00:00:00Z"
+uploaded-prior-to = "2026-10-18T05:45:09Z"

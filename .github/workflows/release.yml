@@ -31,7 +31,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release checks
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+        uses: tox-dev/github-workflows/install-locked-tools@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           groups: release-build
           venv: ${{ runner.temp }}/tools
@@ -43,7 +43,7 @@ jobs:
         run: release-creator tags "$TAG"
       - name: Select locked build backend
         id: constraints
-        uses: tox-dev/github-workflows/export-build-constraints@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+        uses: tox-dev/github-workflows/export-build-constraints@1b7d58c3e744b505215e1cb11697a80737b0e94d
       - name: Build sdist and wheel
         env:
           BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
@@ -92,7 +92,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+        uses: tox-dev/github-workflows/install-locked-tools@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           groups: release-notes
           venv: ${{ runner.temp }}/tools
@@ -100,7 +100,7 @@ jobs:
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - name: Find previous release
         id: previous
-        uses: tox-dev/github-workflows/select-previous-tag@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+        uses: tox-dev/github-workflows/select-previous-tag@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           tag: ${{ github.ref_name }}
       - name: Resolve release commit
@@ -152,7 +152,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+        uses: tox-dev/github-workflows/install-locked-tools@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           groups: release-notes
           venv: ${{ runner.temp }}/tools
@@ -162,7 +162,7 @@ jobs:
         with:
           name: contributor-metadata
           path: ${{ runner.temp }}/contributor-metadata
-      - uses: tox-dev/github-workflows/render-release-notes@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+      - uses: tox-dev/github-workflows/render-release-notes@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           tag: ${{ github.ref_name }}
           changelog: docs/changelog.rst
@@ -219,7 +219,7 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@1b7d58c3e744b505215e1cb11697a80737b0e94d
         with:
           project: pipx
           version: ${{ github.ref_name }}
@@ -239,7 +239,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+      - uses: tox-dev/github-workflows/publish-github-release@1b7d58c3e744b505215e1cb11697a80737b0e94d
         env:
           GH_TOKEN: ${{ github.token }}
         with:
@@ -264,7 +264,7 @@ jobs:
         with:
           name: pipx.pyz
           path: ${{ runner.temp }}/zipapp
-      - uses: tox-dev/github-workflows/publish-github-release@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
+      - uses: tox-dev/github-workflows/publish-github-release@1b7d58c3e744b505215e1cb11697a80737b0e94d
         env:
           GH_TOKEN: ${{ github.token }}
         with:
