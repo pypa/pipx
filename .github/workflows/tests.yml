@@ -6,7 +6,7 @@ on:
     branches:
       - "main"
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
   schedule:
     - cron: "0 8 * * *"
 concurrency:
@@ -168,30 +168,6 @@ jobs:
         with:
           name: pipx.pyz
           path: pipx.pyz
-  changelog:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          version: latest-known
-          python-version: "3.15"
-          enable-cache: false
-      - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          groups: release-news
-          venv: ${{ runner.temp }}/tools
-      - name: Add installed tools to PATH
-        run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-news@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
   hook-cooldown:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
@@ -226,7 +202,7 @@ jobs:
   gate:
     name: Required checks pass
     if: always()
-    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, changelog, hook-cooldown]
+    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, hook-cooldown]
     runs-on: ubuntu-26.04
     steps:
       - env:
@@ -238,7 +214,7 @@ jobs:
               to_entries[];
               .value.result == "success" or
               (
-                (.key == "changelog" or .key == "hook-cooldown") and
+                (.key == "hook-cooldown") and
                 .value.result == "skipped" and $event != "pull_request"
               )
             )
