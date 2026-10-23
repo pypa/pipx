@@ -33,96 +33,15 @@ if TYPE_CHECKING:
 
 
 _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
-_OPEN_METADATA: Final[re.Pattern[str]] = re.compile(r"^# /// (?P<type>[a-zA-Z0-9-]+)$")
-
-
-def _inside_multiline_string(toml: str) -> bool:  # ruff:ignore[too-many-branches]  # a minimal TOML string scanner
-    """Whether ``toml`` ends inside an unterminated TOML triple-quoted string.
-
-    Used to decide whether a ``///`` line is the metadata block terminator or
-    just string content: the terminator only counts when it sits outside any
-    triple-quoted (basic or literal) string.
-    """
-    i = 0
-    length = len(toml)
-    while i < length:
-        char = toml[i]
-        if char == "#":
-            end = toml.find("\n", i)
-            i = length if end < 0 else end
-            continue
-        for delimiter, escaped in (('"""', True), ("'''", False)):
-            if toml.startswith(delimiter, i):
-                i += 3
-                while i < length:
-                    if toml.startswith(delimiter, i):
-                        i += 3
-                        break
-                    if escaped and toml[i] == "\\":
-                        i += 2
-                        continue
-                    i += 1
-                else:
-                    return True
-                break
-        else:
-            if char == '"':
-                i += 1
-                while i < length:
-                    if toml[i] == "\\":
-                        i += 2
-                    elif toml[i] == '"':
-                        i += 1
-                        break
-                    else:
-                        i += 1
-                else:
-                    return True
-            elif char == "'":
-                i += 1
-                while i < length:
-                    if toml[i] == "'":
-                        i += 1
-                        break
-                    i += 1
-                else:
-                    return True
-            else:
-                i += 1
-    return False
-
-
-def _metadata_blocks(text: str) -> list[tuple[str, str]]:
-    """Split inline ``# ///`` metadata into ``(type, content)`` pairs.
-
-    The closing ``# ///`` is a terminator only when it is not inside a TOML
-    triple-quoted string. The inline script metadata spec permits a ``# ///``
-    line within a multiline string's content, which must not end the block.
-    """
-    blocks: list[tuple[str, str]] = []
-    lines = text.splitlines(keepends=True)
-    i = 0
-    while i < len(lines):
-        match = _OPEN_METADATA.match(lines[i].rstrip("\n"))
-        if match is None:
-            i += 1
-            continue
-        block_type = match.group("type")
-        i += 1
-        content: list[str] = []
-        toml: list[str] = []
-        while i < len(lines):
-            line = lines[i]
-            body = line.rstrip("\n")
-            stripped = body[2:] if body.startswith("# ") else body[1:]
-            if stripped == "///" and not _inside_multiline_string("".join(toml)):
-                i += 1
-                break
-            content.append(line)
-            toml.append(stripped + "\n")
-            i += 1
-        blocks.append((block_type, "".join(content)))
-    return blocks
+_INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
+    r"""
+    ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
+    (?P<content> (^\#(|\ .*)$ \s)+ )
+    ^\#\ ///$
+    """,
+    re.VERBOSE | re.MULTILINE,
+)
+_SCRIPT_OPENER: Final[re.Pattern[str]] = re.compile(r"^# /// script$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -143,21 +62,28 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
         "\ufeff"
     )
     normalized_text: Final[str] = text.replace("\r\n", "\n")
-    blocks: Final[list[tuple[str, str]]] = _metadata_blocks(normalized_text)
-    matches: Final[list[tuple[str, str]]] = [block for block in blocks if block[0] == "script"]
+    # The content group is greedy so a `# ///` line inside a triple-quoted
+    # string stays content (PEP 723), but that would merge two adjacent blocks
+    # into one; detect them by counting the distinct script openers instead.
+    if len(_SCRIPT_OPENER.findall(normalized_text)) > 1:
+        msg = "Multiple `# /// script` metadata blocks found"
+        raise ValueError(msg)
+    matches: Final[list[re.Match[str]]] = [
+        match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
+    ]
     if not matches:
-        if any(block[0] == "pyproject" for block in blocks):
+        if any(match.group("type") == "pyproject" for match in _INLINE_METADATA.finditer(normalized_text)):
             msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
             raise ValueError(msg)
         return None
-    if len(matches) > 1:
-        msg = "Multiple `# /// script` metadata blocks found"
-        raise ValueError(msg)
 
     raw: Final[dict[str, str | list[str]]] = cast(
         "dict[str, str | list[str]]",
         tomllib.loads(
-            "".join(line[2:] if line.startswith("# ") else line[1:] for line in matches[0][1].splitlines(keepends=True))
+            "".join(
+                line[2:] if line.startswith("# ") else line[1:]
+                for line in matches[0].group("content").splitlines(keepends=True)
+            )
         ),
     )
     dependencies: Final[str | list[str]] = raw.get("dependencies", [])
@@ -229,7 +155,7 @@ def _has_inline_script_metadata(path: Path) -> bool:
         content: Final[str] = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return False
-    return any(block[0] == "script" for block in _metadata_blocks(content.removeprefix("\ufeff")))
+    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("\ufeff")))
 
 
 def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:

@@ -60,6 +60,30 @@ def test_read_script_metadata_multiline_string_with_delimiter() -> None:
     assert metadata == ScriptMetadata((), None)
 
 
+def test_read_script_metadata_incomplete_block_returns_none() -> None:
+    assert read_script_metadata('# /// script\n# dependencies = ["demo==1"]\n') is None
+
+
+def test_read_script_metadata_non_comment_content_returns_none() -> None:
+    # The content lines must be Python comments; an un-commented line is not a
+    # valid embedded content line, so the block is not closed and yields nothing.
+    assert read_script_metadata("# /// script\ndependencies = []\n# ///\n") is None
+
+
+def test_read_script_metadata_other_block_does_not_leak_state() -> None:
+    """An unterminated string in a non-script block must not affect the script block."""
+    metadata = read_script_metadata(
+        '# /// other\n# text = """\n# ///\n\n# /// script\n# dependencies = ["demo==1"]\n# ///\n'
+    )
+    assert metadata == ScriptMetadata(("demo==1",), None)
+
+
+def test_read_script_metadata_four_quote_string_ending() -> None:
+    """A multiline string whose content ends with a quote parses as valid TOML."""
+    metadata = read_script_metadata('# /// script\n# dependencies = []\n# [tool.demo]\n# text = """hello""""\n# ///\n')
+    assert metadata == ScriptMetadata((), None)
+
+
 @pytest.mark.parametrize(
     ("content", "message", "error_type"),
     [
