@@ -9,115 +9,14 @@ on:
         options: [auto, major, minor, patch]
         default: auto
 permissions: {}
-concurrency:
-  group: pre-release
-  cancel-in-progress: false
 jobs:
-  assemble:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-26.04
+  prepare:
+    uses: tox-dev/github-workflows/.github/workflows/prepare-towncrier-release.yaml@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
     permissions:
       contents: read
       pull-requests: read
-    outputs:
-      version: ${{ steps.prepare.outputs.version }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # The next version comes from the tags.
-          persist-credentials: false
-      - name: Install uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          version: latest-known
-          python-version: "3.15"
-          enable-cache: false
-      - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          groups: release-prepare
-          venv: ${{ runner.temp }}/tools
-      - name: Add installed tools to PATH
-        run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - id: prepare
-        uses: tox-dev/github-workflows/prepare-towncrier@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          bump: ${{ inputs.bump }}
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: release-patch
-          path: ${{ runner.temp }}/release.patch
-          if-no-files-found: error
-  validate:
-    needs: assemble
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-    outputs:
-      patch-sha: ${{ steps.digest.outputs.sha }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: release-patch
-          path: ${{ runner.temp }}/release-patch
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          version: latest-known
-          python-version: "3.15"
-          enable-cache: false
-      - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          groups: release-validate
-          venv: ${{ runner.temp }}/tools
-      - name: Add installed tools to PATH
-        run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-release-patch@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          version: ${{ needs.assemble.outputs.version }}
-          patch: ${{ runner.temp }}/release-patch/release.patch
-      - name: Record validated patch digest
-        id: digest
-        run: |
-          read -r patch_sha _ < <(sha256sum "$RUNNER_TEMP/release-patch/release.patch")
-          echo "sha=$patch_sha" >>"$GITHUB_OUTPUT"
-  push:
-    needs: [assemble, validate]
-    runs-on: ubuntu-26.04
-    environment: release-auth
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: release-patch
-          path: ${{ runner.temp }}/release-patch
-      - uses: tox-dev/github-workflows/validate-release-patch@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          version: ${{ needs.assemble.outputs.version }}
-          patch: ${{ runner.temp }}/release-patch/release.patch
-          expected-patch-sha: ${{ needs.validate.outputs.patch-sha }}
-          checks: "false"
-      - id: token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-      - uses: tox-dev/github-workflows/commit-and-tag@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
-        with:
-          version: ${{ needs.assemble.outputs.version }}
-          token: ${{ steps.token.outputs.token }}
-          app-slug: ${{ steps.token.outputs.app-slug }}
-          message: Release ${{ needs.assemble.outputs.version }}
-          annotated: "true"
+    with:
+      bump: ${{ inputs.bump }}
+      annotated: true
+    secrets:
+      RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
