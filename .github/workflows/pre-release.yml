@@ -33,20 +33,16 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           groups: release-prepare
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - id: prepare
-        uses: tox-dev/github-workflows/prepare-towncrier@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+        uses: tox-dev/github-workflows/prepare-towncrier@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           bump: ${{ inputs.bump }}
-          changelog: docs/changelog.rst
-          fragments: changelog.d
-          format: rst
-          patch: ${{ runner.temp }}/release.patch
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-patch
@@ -74,19 +70,16 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+        uses: tox-dev/github-workflows/install-locked-tools@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           groups: release-validate
           venv: ${{ runner.temp }}/tools
       - name: Add installed tools to PATH
         run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
-      - uses: tox-dev/github-workflows/validate-release-patch@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+      - uses: tox-dev/github-workflows/validate-release-patch@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           version: ${{ needs.assemble.outputs.version }}
-          changelog: docs/changelog.rst
-          fragments: changelog.d
           patch: ${{ runner.temp }}/release-patch/release.patch
-          expected-sha: ${{ github.sha }}
       - name: Record validated patch digest
         id: digest
         run: |
@@ -107,13 +100,10 @@ jobs:
         with:
           name: release-patch
           path: ${{ runner.temp }}/release-patch
-      - uses: tox-dev/github-workflows/validate-release-patch@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+      - uses: tox-dev/github-workflows/validate-release-patch@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           version: ${{ needs.assemble.outputs.version }}
-          changelog: docs/changelog.rst
-          fragments: changelog.d
           patch: ${{ runner.temp }}/release-patch/release.patch
-          expected-sha: ${{ github.sha }}
           expected-patch-sha: ${{ needs.validate.outputs.patch-sha }}
           checks: "false"
       - id: token
@@ -124,7 +114,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
-      - uses: tox-dev/github-workflows/commit-and-tag@fcba1cc52c8e8bbb8c3305ee5e4bc454b9ab0c50
+      - uses: tox-dev/github-workflows/commit-and-tag@cadf58a0dcc5d0c7853b248ab7c2b19bb93675d1
         with:
           version: ${{ needs.assemble.outputs.version }}
           token: ${{ steps.token.outputs.token }}

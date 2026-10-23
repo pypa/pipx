@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -37,7 +38,7 @@ def main() -> None:
 
     with TemporaryDirectory(prefix="pipx-release-") as temporary_directory:
         source = Path(temporary_directory) / "source"
-        constraints = Path(temporary_directory) / "build-constraints.txt"
+        build_environment = Path(temporary_directory) / "build"
         _run("git", "clone", "--quiet", "--shared", str(_ROOT), str(source))
         tags = _run("git", "tag", "--list", cwd=source, capture_output=True).stdout
         version = _run(
@@ -67,8 +68,6 @@ def main() -> None:
             "changelog.d",
             "--repository",
             "pypa/pipx",
-            "--git",
-            "--resolve-authors",
             cwd=source,
         )
         _run("towncrier", "build", "--yes", "--version", version, cwd=source)
@@ -91,43 +90,40 @@ def main() -> None:
             version,
             "--repository",
             "pypa/pipx",
-            "--issue-role",
-            "issue",
             "--artifact-url",
             f"https://pypi.org/project/pipx/{version}/",
         ]
         if previous:
             note_args.extend(("--previous", previous))
         notes = _run(*note_args, cwd=source, capture_output=True).stdout
-        if "### " not in notes:
-            msg = f"{version} has no user-facing release notes"
-            raise RuntimeError(msg)
+        _run("uv", "venv", "--python", "3.15", str(build_environment), cwd=source)
         _run(
-            "release-creator",
-            "build-constraints",
-            "--lock",
+            "uv",
+            "pip",
+            "sync",
+            "--preview-features",
+            "pylock",
+            "--python",
+            str(build_environment),
+            "--group",
+            "build",
+            "--require-hashes",
             "pylock.toml",
-            "--python-version",
-            "3.15",
-            "--output",
-            str(constraints),
             cwd=source,
         )
+        epoch = _run("git", "log", "-1", "--format=%ct", cwd=source, capture_output=True).stdout.strip()
         _run(
             "uv",
             "build",
             "--python",
-            "3.15",
-            "--python-preference",
-            "only-managed",
+            str(build_environment),
             "--sdist",
             "--wheel",
-            "--build-constraints",
-            str(constraints),
-            "--require-build-hashes",
+            "--no-build-isolation",
             "--out-dir",
             "dist",
             cwd=source,
+            env=dict(os.environ, SOURCE_DATE_EPOCH=epoch),
         )
         _run(
             "twine",
@@ -144,6 +140,7 @@ def _run(
     cwd: Path = _ROOT,
     stdin_text: str | None = None,
     capture_output: bool = False,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
@@ -154,6 +151,7 @@ def _run(
         text=True,
         check=True,
         shell=False,
+        env=env,
     )
 
 
