@@ -36,11 +36,12 @@ _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     r"""
     ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
-    (?P<content> (^\#(|\ .*)$ \s)+? )
+    (?P<content> (^\#(|\ .*)$ \s)+ )
     ^\#\ ///$
     """,
     re.VERBOSE | re.MULTILINE,
 )
+_SCRIPT_OPENER: Final[re.Pattern[str]] = re.compile(r"^# /// script$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,12 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
         "\ufeff"
     )
     normalized_text: Final[str] = text.replace("\r\n", "\n")
+    # The content group is greedy so a `# ///` line inside a triple-quoted
+    # string stays content (PEP 723), but that would merge two adjacent blocks
+    # into one; detect them by counting the distinct script openers instead.
+    if len(_SCRIPT_OPENER.findall(normalized_text)) > 1:
+        msg = "Multiple `# /// script` metadata blocks found"
+        raise ValueError(msg)
     matches: Final[list[re.Match[str]]] = [
         match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
     ]
@@ -69,9 +76,6 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
             msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
             raise ValueError(msg)
         return None
-    if len(matches) > 1:
-        msg = "Multiple `# /// script` metadata blocks found"
-        raise ValueError(msg)
 
     raw: Final[dict[str, str | list[str]]] = cast(
         "dict[str, str | list[str]]",
