@@ -452,6 +452,28 @@ def test_list_outdated_rejects_other_filters(
     assert capsys.readouterr().err == "--outdated cannot be combined with --short or --pinned.\n"
 
 
+@pytest.mark.parametrize("output", ["human", "json"])
+@pytest.mark.usefixtures("outdated_environment")
+def test_upgrade_all_missing_index_argument(
+    capsys: pytest.CaptureFixture[str],
+    output: str,
+) -> None:
+    assert run_pipx_cli(["upgrade-all", "--pip-args=--index-url", "--output", output]) == 1
+
+    captured = capsys.readouterr()
+    message = "--index-url requires an argument."
+    if output == "json":
+        result = json.loads(captured.out)
+        assert result["pipx_result_version"] == "1"
+        assert result["status"] == "error"
+        assert result["exit_code"] == 1
+        assert result["errors"] == [{"code": "pipx_error", "message": message, "environment": None, "package": None}]
+        assert not captured.err
+    else:
+        assert not captured.out
+        assert message in captured.err
+
+
 def _outdated_result(
     *,
     packages_checked: int = 0,

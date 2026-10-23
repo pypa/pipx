@@ -585,3 +585,9 @@ def test_wheel_project_name_ignores_other_archives(
     archive = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}).rename(tmp_path / "foo_bar_x-1.zip")
 
     assert wheel_project_name(str(archive)) is None
+
+
+@pytest.mark.parametrize("option", ["-f", "-i", "--extra-index-url", "--find-links", "--index-url", "--trusted-host"])
+def test_extract_index_options_requires_argument(option: str) -> None:
+    with pytest.raises(PipxError, match=f"{option} requires an argument"):
+        extract_index_options([option])
