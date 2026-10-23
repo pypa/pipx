@@ -8,6 +8,7 @@ import pytest
 from pipx.package_specifier import (
     extract_index_options,
     fix_package_name,
+    get_extras,
     package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
@@ -100,6 +101,34 @@ def test_package_spec_satisfied(package_spec: str, installed_spec: str, expected
 )
 def test_fix_package_name(package_spec_in: str, package_name: str, package_spec_out: str) -> None:
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
+
+
+@pytest.mark.parametrize("filename", ["repeatme-0.1-py3-none-any.whl", "repeatme-0.1.tar.gz", "repeatme-0.1.zip"])
+@pytest.mark.parametrize(
+    ("extras", "expected_suffix", "expected_extras"),
+    [("", "", set()), ("[cow]", "[cow]", {"cow"}), ("[tools,cow]", "[cow,tools]", {"cow", "tools"})],
+)
+def test_parse_bare_local_archive_extras(
+    *,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    filename: str,
+    extras: str,
+    expected_suffix: str,
+    expected_extras: set[str],
+) -> None:
+    archive = tmp_path / filename
+    archive.touch()
+    monkeypatch.chdir(tmp_path)
+    package_spec = filename + extras
+    expected = str(archive) + expected_suffix
+
+    assert (
+        parse_specifier_for_install(package_spec, []),
+        parse_specifier_for_metadata(package_spec),
+        parse_specifier_for_upgrade(package_spec),
+        get_extras(package_spec),
+    ) == ((expected, []), expected, expected, expected_extras)
 
 
 _ROOT = Path(__file__).parents[1]
