@@ -29,6 +29,4 @@ jobs:
         with:
           groups: release-news
           venv: ${{ runner.temp }}/tools
-      - name: Add installed tools to PATH
-        run: echo "$RUNNER_TEMP/tools/bin" >>"$GITHUB_PATH"
       - uses: tox-dev/github-workflows/validate-news@1b7d58c3e744b505215e1cb11697a80737b0e94d
