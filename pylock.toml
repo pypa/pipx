@@ -1,14 +1,13 @@
 lock-version = "1.0"
 environments = [
-    "python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and os_name == \"posix\" and platform_python_implementation == \"CPython\" and platform_system == \"Linux\"",
-    "python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"aarch64\" and implementation_name == \"cpython\" and os_name == \"posix\" and platform_python_implementation == \"CPython\" and platform_system == \"Linux\"",
-    "python_version == \"3.15\" and sys_platform == \"darwin\" and platform_machine == \"arm64\" and os_name == \"posix\" and platform_python_implementation == \"CPython\" and platform_system == \"Darwin\"",
-    "python_version == \"3.15\" and sys_platform == \"win32\" and platform_machine == \"AMD64\" and os_name == \"nt\" and platform_python_implementation == \"CPython\" and platform_system == \"Windows\"",
+    "python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"x86_64\" and implementation_name == \"cpython\" and platform_python_implementation == \"CPython\" and platform_system == \"Linux\"",
+    "python_version == \"3.15\" and sys_platform == \"linux\" and platform_machine == \"aarch64\" and implementation_name == \"cpython\" and platform_python_implementation == \"CPython\" and platform_system == \"Linux\"",
+    "python_version == \"3.15\" and sys_platform == \"darwin\" and platform_machine == \"arm64\" and platform_python_implementation == \"CPython\" and platform_system == \"Darwin\"",
+    "python_version == \"3.15\" and sys_platform == \"win32\" and platform_machine == \"AMD64\" and platform_python_implementation == \"CPython\" and platform_system == \"Windows\"",
 ]
 requires-python = ">=3.11"
 dependency-groups = [
     "build",
-    "lock-tools",
     "project-runtime",
     "release-build",
     "release-check",
@@ -96,36 +95,6 @@ size = 67548
 
 [packages.wheels.hashes]
 sha256 = "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309"
-
-[[packages]]
-name = "build"
-version = "1.6.1"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-dependencies = [
-    { name = "colorama" },
-    { name = "packaging" },
-    { name = "pyproject-hooks" },
-]
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "build-1.6.1.tar.gz"
-upload-time = 2026-09-10 07:56:00.417084+00:00
-url = "https://files.pythonhosted.org/packages/bd/67/4898a44ea4f3f8e213b0954ec0aa0a16971d62a6212d6ea3931e97115b99/build-1.6.1.tar.gz"
-size = 113427
-
-[packages.sdist.hashes]
-sha256 = "51cc11666391ab6f092070437ac747002ff46f3e4113a3622177ee6b488bfc53"
-
-[[packages.wheels]]
-name = "build-1.6.1-py3-none-any.whl"
-upload-time = 2026-09-10 07:55:59.148398+00:00
-url = "https://files.pythonhosted.org/packages/ad/9b/9fb3585dabcd73a1b2a6267f63f62649347c9e6d072c9fde365b105abb2c/build-1.6.1-py3-none-any.whl"
-size = 31179
-
-[packages.wheels.hashes]
-sha256 = "ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7"
 
 [[packages]]
 name = "certifi"
@@ -346,7 +315,7 @@ sha256 = "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"
 [[packages]]
 name = "colorama"
 version = "0.4.6"
-marker = "(\"lock-tools\" in dependency_groups or \"project-runtime\" in dependency_groups) and sys_platform == \"win32\""
+marker = "\"project-runtime\" in dependency_groups and sys_platform == \"win32\""
 requires-python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 index = "https://pypi.org/simple/"
 
@@ -742,31 +711,6 @@ size = 69583
 sha256 = "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
 
 [[packages]]
-name = "installer"
-version = "1.1.0"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "installer-1.1.0.tar.gz"
-upload-time = 2026-10-12 19:35:52.851170+00:00
-url = "https://files.pythonhosted.org/packages/56/d3/2fab33d15004d41ae8e7b5d3e310510f7f34a7e1dd032a3e60d8b38d8fba/installer-1.1.0.tar.gz"
-size = 481257
-
-[packages.sdist.hashes]
-sha256 = "5adc0c01ce62d809989e246987cd68944fe5df8af562d0358f65b2ab15cb5de7"
-
-[[packages.wheels]]
-name = "installer-1.1.0-py3-none-any.whl"
-upload-time = 2026-10-12 19:35:51.096942+00:00
-url = "https://files.pythonhosted.org/packages/d7/7a/63547a792a12148882205d79e07644091d5b7690f40c2bb9d41452a8bdc2/installer-1.1.0-py3-none-any.whl"
-size = 464466
-
-[packages.wheels.hashes]
-sha256 = "f55f5728ff61d3dd54dbc5a397cf3f7307cb64b180c20b72afbebf01c9e2c8a0"
-
-[[packages]]
 name = "jaraco-classes"
 version = "3.4.0"
 marker = "\"release-build\" in dependency_groups"
@@ -1151,190 +1095,6 @@ size = 74405
 sha256 = "35a7377edd1dd6608dcb2cdf534ded55ea32d49448875ad042cd3f879fb1ded0"
 
 [[packages]]
-name = "nab"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-dependencies = [
-    { name = "nab-index" },
-    { name = "nab-markersets" },
-    { name = "nab-project" },
-    { name = "nab-provider" },
-    { name = "nab-resolver" },
-    { name = "tomli" },
-    { name = "typing-extensions" },
-]
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:45:08.513928+00:00
-url = "https://files.pythonhosted.org/packages/25/3d/e4c8f4b2890efbf2fa6eef82acf57ecc0ef39b0a1e6843d306d2053a107c/nab-0.0.22.tar.gz"
-size = 286128
-
-[packages.sdist.hashes]
-sha256 = "a0da54ee96bf1eb1997581566620c250c8a3557139e9467ccaced2a12e9e71ac"
-
-[[packages.wheels]]
-name = "nab-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:45:06.803974+00:00
-url = "https://files.pythonhosted.org/packages/56/4b/77baa0ddb0b7578b6475b2b578fa4579207b0f97e0b3b80480e01dcb3d6f/nab-0.0.22-py3-none-any.whl"
-size = 137802
-
-[packages.wheels.hashes]
-sha256 = "f62fcf75b28786fbf58627f6d7eaa735daefbc7f736715403bc4357acb57e7bb"
-
-[[packages]]
-name = "nab-index"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-dependencies = [
-    { name = "nab-provider" },
-    { name = "packaging" },
-    { name = "truststore" },
-    { name = "typing-extensions" },
-    { name = "urllib3" },
-]
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab_index-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:44:43.857925+00:00
-url = "https://files.pythonhosted.org/packages/2a/83/8d2483239b7dc5ac8d9f758db1cc19d4129d0143d34c2e1ab8cd48ea71fb/nab_index-0.0.22.tar.gz"
-size = 110621
-
-[packages.sdist.hashes]
-sha256 = "5900ea5ad298512379cfddff1a73a544590f0b04620ef58ff345f99a7c59688e"
-
-[[packages.wheels]]
-name = "nab_index-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:44:42.188007+00:00
-url = "https://files.pythonhosted.org/packages/c0/58/c06ada29934a78479b989675829f26083972f38bf1e8a2503e01101cb970/nab_index-0.0.22-py3-none-any.whl"
-size = 88373
-
-[packages.wheels.hashes]
-sha256 = "c89ffa607dfe4246dc59e9f5236d54413da3d310183ffa3298ba51a48e7c2ec7"
-
-[[packages]]
-name = "nab-markersets"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab_markersets-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:44:19.580614+00:00
-url = "https://files.pythonhosted.org/packages/fc/b7/3997893dfdada9998d4dc786c10445a1361e197b4aed54ddd866c84dd538/nab_markersets-0.0.22.tar.gz"
-size = 109258
-
-[packages.sdist.hashes]
-sha256 = "38212664f517f75d798808ecfe902bfd11fef340042ab0203100c7e06e78eea5"
-
-[[packages.wheels]]
-name = "nab_markersets-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:44:18.237004+00:00
-url = "https://files.pythonhosted.org/packages/5e/9e/9744adff3a66633a811f8253faaa8b91a447c99199edba16f2790e3647ea/nab_markersets-0.0.22-py3-none-any.whl"
-size = 44360
-
-[packages.wheels.hashes]
-sha256 = "ad268dcece034495b2ea31a70250cd43cc4f6123039a548762c7ec8826e5d3bd"
-
-[[packages]]
-name = "nab-project"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-dependencies = [
-    { name = "build" },
-    { name = "installer" },
-    { name = "nab-index" },
-    { name = "nab-markersets" },
-    { name = "nab-provider" },
-    { name = "nab-resolver" },
-    { name = "packaging" },
-    { name = "pyproject-hooks" },
-    { name = "tomli" },
-    { name = "tomli-w" },
-    { name = "typing-extensions" },
-]
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab_project-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:44:55.821489+00:00
-url = "https://files.pythonhosted.org/packages/65/84/f5197d4044ceda9c6ee3e7aefce154ab616fec632fa1d89cdfaacc665c07/nab_project-0.0.22.tar.gz"
-size = 774409
-
-[packages.sdist.hashes]
-sha256 = "5f7a1dee5b618149267b2b6233c3a220e45cd6f97bd5ec7f3f48fa7570e9f053"
-
-[[packages.wheels]]
-name = "nab_project-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:44:53.956127+00:00
-url = "https://files.pythonhosted.org/packages/de/c9/62affa4df6cabce48751307c4c3adfbaa8c54e402d464d015897a16a6dba/nab_project-0.0.22-py3-none-any.whl"
-size = 148262
-
-[packages.wheels.hashes]
-sha256 = "cb09fa143105fd99a60609b3ff4830924b0d4eaf5abad48678467ec4b73e577f"
-
-[[packages]]
-name = "nab-provider"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-dependencies = [
-    { name = "nab-markersets" },
-    { name = "nab-resolver" },
-    { name = "typing-extensions" },
-]
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab_provider-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:44:31.579358+00:00
-url = "https://files.pythonhosted.org/packages/94/0d/64fbadae562fefc00257c4f5ec988171d6e6b3ea4363f1da2e8886e80228/nab_provider-0.0.22.tar.gz"
-size = 409367
-
-[packages.sdist.hashes]
-sha256 = "3f129ab7394bf5eb031152c3535ee74073e2a6b6ae081fb7f5a4d269fcf5f8a0"
-
-[[packages.wheels]]
-name = "nab_provider-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:44:29.803721+00:00
-url = "https://files.pythonhosted.org/packages/30/67/32bda18d34f0f8ec098f8e4a0f792164ef1a4b2aa61d435d20f4645572af/nab_provider-0.0.22-py3-none-any.whl"
-size = 339242
-
-[packages.wheels.hashes]
-sha256 = "1450c9dc58b23da1a7bde7fdb43a72b043327bd0e3ef20435254ffcb8b7eae6b"
-
-[[packages]]
-name = "nab-resolver"
-version = "0.0.22"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "nab_resolver-0.0.22.tar.gz"
-upload-time = 2026-10-18 05:44:08.017044+00:00
-url = "https://files.pythonhosted.org/packages/84/bc/dcbfe5163538b1cc8421797e3f8ff77d79321cbc9943af8065e2c8ae1c09/nab_resolver-0.0.22.tar.gz"
-size = 167648
-
-[packages.sdist.hashes]
-sha256 = "e005b225213e032858cf4aef3850961aaa1d4ea521428da731f33175ebd3b05f"
-
-[[packages.wheels]]
-name = "nab_resolver-0.0.22-py3-none-any.whl"
-upload-time = 2026-10-18 05:44:06.445864+00:00
-url = "https://files.pythonhosted.org/packages/22/a8/6e30b25ae12e0c662dc9b181a7f32fa8cd22f26016f12dc1d10176f62bba/nab_resolver-0.0.22-py3-none-any.whl"
-size = 58597
-
-[packages.wheels.hashes]
-sha256 = "6f77daa98279ef0eedb9e8f2248aee4c50e01b92b470b68886995e5056d79971"
-
-[[packages]]
 name = "nh3"
 version = "0.3.7"
 marker = "\"release-build\" in dependency_groups"
@@ -1389,7 +1149,7 @@ sha256 = "618e3059caf41ccdf5dcccb3fa9df4cf6e4efe23d1382a8bbfca272a8a4f8bfc"
 [[packages]]
 name = "packaging"
 version = "26.3"
-marker = "\"build\" in dependency_groups or \"lock-tools\" in dependency_groups or \"project-runtime\" in dependency_groups or \"release-build\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"release-validate\" in dependency_groups"
+marker = "\"build\" in dependency_groups or \"project-runtime\" in dependency_groups or \"release-build\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"release-validate\" in dependency_groups"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
@@ -1684,31 +1444,6 @@ size = 1250147
 sha256 = "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
 
 [[packages]]
-name = "pyproject-hooks"
-version = "1.3.3"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.8"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "pyproject_hooks-1.3.3.tar.gz"
-upload-time = 2026-09-16 08:58:03.999217+00:00
-url = "https://files.pythonhosted.org/packages/6d/5d/f2ddeef4a855a102aaae5e97826a0260007522ab504421b75addfdb1517c/pyproject_hooks-1.3.3.tar.gz"
-size = 21013
-
-[packages.sdist.hashes]
-sha256 = "defda19b854fa0d3bd4f76ea4ddcba8abd7dcfcdd585a6690ade050744fc5f43"
-
-[[packages.wheels]]
-name = "pyproject_hooks-1.3.3-py3-none-any.whl"
-upload-time = 2026-09-16 08:58:02.960279+00:00
-url = "https://files.pythonhosted.org/packages/85/11/044d1ae1b4ec0d7af88ee5bc91e081be1022533032b906a7bdabdbb60977/pyproject_hooks-1.3.3-py3-none-any.whl"
-size = 10724
-
-[packages.wheels.hashes]
-sha256 = "5fc53fdac9f7bd63fbcdc868fb5f90b4784d78a53a3d3388cd738b807441a20b"
-
-[[packages]]
 name = "pywin32-ctypes"
 version = "0.2.3"
 marker = "\"release-build\" in dependency_groups and sys_platform == \"win32\""
@@ -1781,11 +1516,12 @@ sha256 = "d0dae1f74bb273b534770cb4cccb6bb78735540afdb03c2146f4e19dcd412560"
 
 [[packages]]
 name = "release-creator"
-version = "0.6.5"
+version = "1.0.0"
 marker = "\"release-build\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"release-validate\" in dependency_groups"
 requires-python = ">=3.15"
 dependencies = [
     { name = "docutils" },
+    { name = "markdown-it-py" },
     { name = "mdformat" },
     { name = "mdformat-gfm" },
     { name = "packaging" },
@@ -1795,22 +1531,22 @@ dependencies = [
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "release_creator-0.6.5.tar.gz"
-upload-time = 2026-10-23 19:54:49.281646+00:00
-url = "https://files.pythonhosted.org/packages/a0/da/7195823b3d0ab066f518d8bd987f88a39e0e39da33f629e021346209a7cb/release_creator-0.6.5.tar.gz"
-size = 135158
+name = "release_creator-1.0.0.tar.gz"
+upload-time = 2026-10-24 06:07:45.789370+00:00
+url = "https://files.pythonhosted.org/packages/e2/92/dfc1c6e8f52d50d91a05f77f67592c2408cabd9d96079fedbe551f24530d/release_creator-1.0.0.tar.gz"
+size = 134186
 
 [packages.sdist.hashes]
-sha256 = "954247b06b7b9a8c196a782252e3d980d33a9e9b7f9e5aea7647ef6c758d4275"
+sha256 = "1174e3a3fd39e9117eb9c34e3fbc58a8e32c49f5f65d01f39195231b967807f6"
 
 [[packages.wheels]]
-name = "release_creator-0.6.5-py3-none-any.whl"
-upload-time = 2026-10-23 19:54:47.716775+00:00
-url = "https://files.pythonhosted.org/packages/f1/4c/6215690fc2b48f3d927699bb16f5c8bcf26b8862e378df33a2581a45215b/release_creator-0.6.5-py3-none-any.whl"
-size = 46723
+name = "release_creator-1.0.0-py3-none-any.whl"
+upload-time = 2026-10-24 06:07:44.366184+00:00
+url = "https://files.pythonhosted.org/packages/6a/17/b1cd851932786f3e9e9f2187d150bc0860e04adf76cbfd45e6531715bf97/release_creator-1.0.0-py3-none-any.whl"
+size = 53396
 
 [packages.wheels.hashes]
-sha256 = "dd109f7fb64808a83833c332b8563c56bd943c4a8de79b440eab475b5ca9a73e"
+sha256 = "613a26a0d1b0042d9dad60dfc00f3e78208d84ab9f78cec792a407b6a0a75c24"
 
 [[packages]]
 name = "requests"
@@ -2010,92 +1746,6 @@ size = 33366
 sha256 = "82f34c3e3084fc2b57d397200637cc13f2338004052d2fee47baa5f0e902464e"
 
 [[packages]]
-name = "tomli"
-version = "2.5.0"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.8"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "tomli-2.5.0.tar.gz"
-upload-time = 2026-10-07 12:23:37.892554+00:00
-url = "https://files.pythonhosted.org/packages/b0/78/9ad63712633ed3ab5cc1a648d863d7e7da371e9425e209555a0fe711b695/tomli-2.5.0.tar.gz"
-size = 17662
-
-[packages.sdist.hashes]
-sha256 = "264507556cd8b8c8e7c6ee037cdf443a463f03f4c958e57195e3d369711b8ff6"
-
-[[packages.wheels]]
-name = "tomli-2.5.0-cp315-cp315-macosx_11_0_arm64.whl"
-upload-time = 2026-10-07 12:23:15.215497+00:00
-url = "https://files.pythonhosted.org/packages/c5/22/7b10fa5bb01c9539f53f69b619361b19350acc73657772ea7ac70ba309a8/tomli-2.5.0-cp315-cp315-macosx_11_0_arm64.whl"
-size = 161406
-
-[packages.wheels.hashes]
-sha256 = "9dbb18c1cfb2f6517942fc9314437f66aa06d94436ffb1f06102ef3572f35276"
-
-[[packages.wheels]]
-name = "tomli-2.5.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl"
-upload-time = 2026-10-07 12:23:16.471112+00:00
-url = "https://files.pythonhosted.org/packages/9c/e7/1a069d86dfd20f1f84f71c63faed9f83c1d890bc06c27d82dc7d888fb573/tomli-2.5.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl"
-size = 273855
-
-[packages.wheels.hashes]
-sha256 = "752e8b1aa6a4367ef8bf6a1a1e005540f7ed055ba36d7193796812ca5404eb52"
-
-[[packages.wheels]]
-name = "tomli-2.5.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
-upload-time = 2026-10-07 12:23:18.166140+00:00
-url = "https://files.pythonhosted.org/packages/ae/83/d1ef43d1687d092ab9c235455c76e6e709483b346b056f086095c7c263a5/tomli-2.5.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
-size = 284910
-
-[packages.wheels.hashes]
-sha256 = "c47300f9bf791808f77d82747691c4bb09cb14bdf3060cca99b42cdc4361d5a7"
-
-[[packages.wheels]]
-name = "tomli-2.5.0-cp315-cp315-win_amd64.whl"
-upload-time = 2026-10-07 12:23:23.098344+00:00
-url = "https://files.pythonhosted.org/packages/4c/bd/31a3790c11d6ea95fcf5e6022ac0f8d0543c9b61120b730fc481bd43d3b4/tomli-2.5.0-cp315-cp315-win_amd64.whl"
-size = 114589
-
-[packages.wheels.hashes]
-sha256 = "d747252933c8a65ef6bd8da0fbb7ce28a90eb6119d8cd00772cd528aa07b68d5"
-
-[[packages.wheels]]
-name = "tomli-2.5.0-py3-none-any.whl"
-upload-time = 2026-10-07 12:23:36.875825+00:00
-url = "https://files.pythonhosted.org/packages/60/3f/3e3f8fd0919249b0200c80fbc4f9a1e70be19f9883da71dfb7f8b9ab8aca/tomli-2.5.0-py3-none-any.whl"
-size = 14765
-
-[packages.wheels.hashes]
-sha256 = "32a7b79ac57a2e83670ce329ccf675798bc5a2094783a63676866b70503f2e2b"
-
-[[packages]]
-name = "tomli-w"
-version = "1.2.0"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.9"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "tomli_w-1.2.0.tar.gz"
-upload-time = 2025-01-15 12:07:24.262974+00:00
-url = "https://files.pythonhosted.org/packages/19/75/241269d1da26b624c0d5e110e8149093c759b7a286138f4efd61a60e75fe/tomli_w-1.2.0.tar.gz"
-size = 7184
-
-[packages.sdist.hashes]
-sha256 = "2dd14fac5a47c27be9cd4c976af5a12d87fb1f0b4512f81d69cce3b35ae25021"
-
-[[packages.wheels]]
-name = "tomli_w-1.2.0-py3-none-any.whl"
-upload-time = 2025-01-15 12:07:22.074224+00:00
-url = "https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl"
-size = 6675
-
-[packages.wheels.hashes]
-sha256 = "188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90"
-
-[[packages]]
 name = "tomlkit"
 version = "0.15.2"
 marker = "\"build\" in dependency_groups"
@@ -2174,31 +1824,6 @@ size = 14232
 sha256 = "8b1ff4f9c191b1040b71c37f1e445ab99732911e3cd91de52838453a854d7a17"
 
 [[packages]]
-name = "truststore"
-version = "0.10.5"
-marker = "\"lock-tools\" in dependency_groups"
-requires-python = ">=3.10"
-index = "https://pypi.org/simple/"
-
-[packages.sdist]
-name = "truststore-0.10.5.tar.gz"
-upload-time = 2026-10-12 22:27:31.808128+00:00
-url = "https://files.pythonhosted.org/packages/ee/9f/c5201d42a484c061e528825fc8e2d565f5abd50a4ced6fb7d29c4ec99b2b/truststore-0.10.5.tar.gz"
-size = 28091
-
-[packages.sdist.hashes]
-sha256 = "30d36967ccaded5cbb38d602c433f53600036c79d502f4533a49b60a03bbefcd"
-
-[[packages.wheels]]
-name = "truststore-0.10.5-py3-none-any.whl"
-upload-time = 2026-10-12 22:27:30.377491+00:00
-url = "https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl"
-size = 19017
-
-[packages.wheels.hashes]
-sha256 = "9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c"
-
-[[packages]]
 name = "twine"
 version = "7.0.0"
 marker = "\"release-build\" in dependency_groups"
@@ -2237,7 +1862,7 @@ sha256 = "b854164df26db268af05f49aa5c0344b10e27a494343ff05b1e0bad3b135f5a7"
 [[packages]]
 name = "typing-extensions"
 version = "4.16.0"
-marker = "\"lock-tools\" in dependency_groups or \"release-build\" in dependency_groups"
+marker = "\"release-build\" in dependency_groups"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
@@ -2290,7 +1915,7 @@ sha256 = "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147"
 [[packages]]
 name = "urllib3"
 version = "2.8.0"
-marker = "\"lock-tools\" in dependency_groups or \"release-build\" in dependency_groups"
+marker = "\"release-build\" in dependency_groups"
 requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
@@ -2517,12 +2142,11 @@ sha256 = "3fa599046443d4ca830d06e3d180cd0a675d5871af0a68daa5623318bb4d17e3"
 
 [tool.nab]
 nab-version = "0.0.22"
-created-at = 2026-10-23 20:06:32.606286+00:00
+created-at = 2026-10-24 06:24:12.974330+00:00
 command-line = [
     "nab",
     "lock",
     "--no-cache",
-    "--no-progress",
     "--groups",
     "release-build",
     "release-check",
@@ -2530,7 +2154,6 @@ command-line = [
     "release-notes",
     "release-prepare",
     "release-validate",
-    "lock-tools",
     "--output",
     "pylock.toml",
     "--upgrade",
