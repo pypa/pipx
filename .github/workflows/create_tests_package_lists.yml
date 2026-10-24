@@ -15,9 +15,9 @@ jobs:
         os: [ubuntu-26.04]
         python-version: ["3.15", "3.14", "3.13", "3.12", "3.11"]
         include:
-          - os: macos-latest
+          - os: macos-26
             python-version: "3.15"
-          - os: windows-latest
+          - os: windows-2025
             python-version: "3.15"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,6 +28,7 @@ jobs:
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.python-version }}

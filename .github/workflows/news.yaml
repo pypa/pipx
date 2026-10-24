@@ -1,0 +1,32 @@
+name: Changelog
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: Install locked release tools
+        uses: tox-dev/github-workflows/install-locked-tools@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          groups: release-news
+          venv: ${{ runner.temp }}/tools
+      - uses: tox-dev/github-workflows/validate-news@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0

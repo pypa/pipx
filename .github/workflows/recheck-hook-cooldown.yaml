@@ -1,0 +1,18 @@
+name: Recheck hook cooldown
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  recheck:
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: tox-dev/github-workflows/recheck-hook-update-cooldown@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          workflow: tests.yml
+          job-name: hook-cooldown

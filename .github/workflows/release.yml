@@ -1,13 +1,11 @@
 name: Release
 on:
   push:
-    tags:
-      - "*.*.*"
+    tags: ["*.*.*"]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-env:
-  default-python: "3.15"
+permissions: {}
 jobs:
   test:
     name: Gate release on the test suite
@@ -21,142 +19,253 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: "${{ github.ref_name }}"
+          fetch-depth: 0
           persist-credentials: false
-      - name: Require a changelog section for the tag
+      - name: Set source timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >>"$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: Install locked release checks
+        uses: tox-dev/github-workflows/install-locked-tools@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          groups: release-build
+          venv: ${{ runner.temp }}/tools
+      - name: Validate release tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: release-creator tags "$TAG"
+      - name: Select locked build backend
+        id: constraints
+        uses: tox-dev/github-workflows/export-build-constraints@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+      - name: Build sdist and wheel
+        env:
+          BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
+        run: uv build --sdist --wheel --out-dir dist --build-constraints "$BUILD_CONSTRAINTS" --require-build-hashes
+      - name: Check artifact versions
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
-            ! grep -Fq "$TAG <https://github.com/pypa/pipx/tree/$TAG>" docs/changelog.rst; then
-            echo "::error::docs/changelog.rst has no section for $TAG"
-            exit 1
-          fi
-      - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        env:
-          UV_VENV_SEED: "true"
-        with:
-          enable-cache: false
-          activate-environment: true
-          python-version: ${{ env.default-python }}
-      - name: Build sdist and wheel
-        run: |
-          pip install build
-          python -m build
-      - name: Validate distributions and match the tag
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          pip install twine packaging
-          twine check dist/*
-          python - "${RELEASE_TAG}" <<'PY'
-          import pathlib
-          import sys
-
-          from packaging.utils import parse_sdist_filename
-          from packaging.version import Version
-
-          tag = Version(sys.argv[1])
-          _, built = parse_sdist_filename(next(pathlib.Path("dist").glob("*.tar.gz")).name)
-          if built != tag:
-              sys.exit(f"Built version {built} does not match release tag {tag}")
-          print(f"Built version {built} matches release tag {tag}")
-          PY
-      - name: Upload distributions
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          ((${#wheels[@]} == 1 && ${#sdists[@]} == 1))
+          for path in "${wheels[@]}" "${sdists[@]}"; do
+            case "${path#dist/}" in
+            pipx-"$TAG"-*.whl | pipx-"$TAG".tar.gz) ;;
+            *)
+              echo "::error::$path is not version $TAG"
+              exit 1
+              ;;
+            esac
+          done
+      - name: Check package descriptions
+        run: twine check dist/*
+      - name: Check wheel contents
+        run: check-wheel-contents --no-config dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
+  previous:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.previous.outputs.previous }}
+      commit: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: Install locked release tools
+        uses: tox-dev/github-workflows/install-locked-tools@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          groups: release-notes
+          venv: ${{ runner.temp }}/tools
+      - name: Find previous release
+        id: previous
+        uses: tox-dev/github-workflows/select-previous-tag@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          tag: ${{ github.ref_name }}
+      - name: Resolve release commit
+        id: commit
+        env:
+          TAG: ${{ github.ref_name }}
+        run: echo "sha=$(git rev-parse "$TAG^{commit}")" >>"$GITHUB_OUTPUT"
+  metadata:
+    needs: previous
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch contributor metadata
+        if: needs.previous.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES_API: repos/${{ github.repository }}/releases/generate-notes
+          NOTES_FILE: ${{ runner.temp }}/generated-notes.md
+          TAG: ${{ github.ref_name }}
+          PREVIOUS: ${{ needs.previous.outputs.tag }}
+        run: gh api -X POST "$NOTES_API" -f tag_name="$TAG" -f previous_tag_name="$PREVIOUS" --jq .body >"$NOTES_FILE"
+      - name: Fetch first-release metadata
+        if: needs.previous.outputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES_API: repos/${{ github.repository }}/releases/generate-notes
+          NOTES_FILE: ${{ runner.temp }}/generated-notes.md
+          TAG: ${{ github.ref_name }}
+        run: gh api -X POST "$NOTES_API" -f tag_name="$TAG" --jq .body >"$NOTES_FILE"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: contributor-metadata
+          path: ${{ runner.temp }}/generated-notes.md
+          if-no-files-found: error
+  notes:
+    needs: [previous, metadata]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: Install locked release tools
+        uses: tox-dev/github-workflows/install-locked-tools@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          groups: release-notes
+          venv: ${{ runner.temp }}/tools
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: contributor-metadata
+          path: ${{ runner.temp }}/contributor-metadata
+      - uses: tox-dev/github-workflows/render-release-notes@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          tag: ${{ github.ref_name }}
+          previous: ${{ needs.previous.outputs.tag }}
+          changelog: docs/changelog.rst
+          artifact-url: https://pypi.org/project/pipx/${{ github.ref_name }}/
+          generated-notes: ${{ runner.temp }}/contributor-metadata/generated-notes.md
+          output: ${{ runner.temp }}/release-notes.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: github-release-notes
+          path: ${{ runner.temp }}/release-notes.md
+          if-no-files-found: error
   pypi-publish:
     name: Publish pipx to PyPI
-    needs: build-package
+    needs:
+      - build-package
+      - notes
+      - stage-release
     runs-on: ubuntu-26.04
     environment:
       name: release
-      url: https://pypi.org/p/pipx
+      url: https://pypi.org/project/pipx/${{ github.ref_name }}/
     permissions:
       id-token: write
     steps:
-      - name: Download distributions
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-  create-release:
-    name: Create a release on GitHub's UI
-    needs: pypi-publish
+        with:
+          packages-dir: dist
+          skip-existing: true
+  verify-pypi:
+    name: Verify PyPI artifacts
+    needs:
+      - notes
+      - build-package
+      - stage-release
+      - pypi-publish
     runs-on: ubuntu-26.04
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Create release
-        run: |
-          set -euo pipefail
-          awk -v tag="$RELEASE_TAG" '
-            index($0, "`" tag " <https://github.com/pypa/pipx/tree/" tag ">`_") == 1 { found = 1; next }
-            found && /^`[0-9]+\.[0-9]+\.[0-9]+ </ { exit }
-            found && $0 !~ /^[=-]+$/ { print }
-          ' docs/changelog.rst > "$RUNNER_TEMP/release-notes.md"
-          python3 - "$RUNNER_TEMP/release-notes.md" <<'PY'
-          import re
-          import sys
-          from pathlib import Path
-
-          path = Path(sys.argv[1])
-          body = path.read_text()
-          body = re.sub(r":user:`([^`]+)`", r"\1", body)
-          body = re.sub(r":(?:issue|pr):`(\d+)`", r"#\1", body)
-          body = re.sub(r":[a-z]+:`~?([^`]+)`", lambda match: f"`{match.group(1).split('.')[-1]}`", body)
-          path.write_text(body.replace("``", "`"))
-          PY
-          test -s "$RUNNER_TEMP/release-notes.md"
-          printf '\n[PyPI release](https://pypi.org/project/pipx/%s/)\n' "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          previous=$({ gh api 'repos/pypa/pipx/releases?per_page=100' --paginate --jq '.[].tag_name'; printf '%s\n' "$RELEASE_TAG"; } | grep -E '^[0-9]+(\.[0-9]+){2,3}$' | sort -Vu | awk -v tag="$RELEASE_TAG" '$0 == tag { print previous; exit } { previous = $0 }')
-          if [[ -n "$previous" ]]; then
-            printf '\n**Full Changelog**: https://github.com/pypa/pipx/compare/%s...%s\n' "$previous" "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          else
-            printf '\n**Full Changelog**: https://github.com/pypa/pipx/commits/%s\n' "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          fi
-          gh release create --repo pypa/pipx "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
-  upload-zipapp:
-    name: Upload zipapp to GitHub Release
-    needs: create-release
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: tox-dev/github-workflows/reconcile-pypi-artifacts@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        with:
+          project: pipx
+          version: ${{ github.ref_name }}
+          dist: dist
+  stage-release:
+    name: Stage GitHub Release
+    needs: [build-package, notes, previous]
     runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
-      - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          ref: "${{ github.ref_name }}"
-          persist-credentials: false
-      - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        env:
-          UV_VENV_SEED: "true"
+          name: github-release-notes
+          path: ${{ runner.temp }}/release-notes
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          enable-cache: false
-          activate-environment: true
-          python-version: ${{ env.default-python }}
-      - name: Install tox
-        run: pip install tox
-      - name: Build zipapp
-        run: tox run -e zipapp
-      - name: Upload to release
-        run: |
-          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz
+          name: pipx.pyz
+          path: ${{ runner.temp }}/zipapp
+      - uses: tox-dev/github-workflows/publish-github-release@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          tag: ${{ github.ref_name }}
+          commit: ${{ needs.previous.outputs.commit }}
+          title: ${{ github.ref_name }}
+          notes-file: ${{ runner.temp }}/release-notes/release-notes.md
+          assets-directory: ${{ runner.temp }}/zipapp
+          mode: stage
+  publish-release:
+    name: Publish GitHub Release
+    needs: [verify-pypi, stage-release, previous]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: github-release-notes
+          path: ${{ runner.temp }}/release-notes
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pipx.pyz
+          path: ${{ runner.temp }}/zipapp
+      - uses: tox-dev/github-workflows/publish-github-release@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          tag: ${{ github.ref_name }}
+          commit: ${{ needs.previous.outputs.commit }}
+          title: ${{ github.ref_name }}
+          notes-file: ${{ runner.temp }}/release-notes/release-notes.md
+          assets-directory: ${{ runner.temp }}/zipapp
+          mode: publish

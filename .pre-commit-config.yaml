@@ -1,17 +1,8 @@
 default_language_version:
   python: python3.15
 repos:
-  - repo: local
-    hooks:
-      # towncrier orphan fragments (+name) and typos in the type render without a PR link or get silently
-      # dropped from the changelog, so enforce the <PR number>.<type>.md naming here
-      - id: changelog-fragment-naming
-        name: changelog fragments are named <PR number>.<type>.md
-        language: fail
-        entry: changelog.d entries must be named <PR number>.(feature|bugfix|performance|doc|removal).md
-        files: ^changelog\.d/(?!\.gitignore$)(?!\d+\.(feature|bugfix|performance|doc|removal)(\.\d+)?\.md$)
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: check-added-large-files
@@ -19,34 +10,38 @@ repos:
       - id: check-merge-conflict
       - id: check-case-conflict
   - repo: https://github.com/google/yamlfmt
-    rev: v0.21.0
+    rev: 21ca5323a9c87ee37a434e0ca908efc0a89daa07 # frozen: v0.21.0
     hooks:
       - id: yamlfmt
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0494aa7fa1314e98913a41227d8f0a515b2c1049 # frozen: 0.38.2
+    hooks:
+      - id: check-github-workflows
   - repo: https://github.com/hukkin/mdformat
-    rev: 1.0.0
+    rev: 82912cdaea4fb830f751504486a7879c70526547 # frozen: 1.0.0
     hooks:
       - id: mdformat
         args: ["--wrap", "120"]
         additional_dependencies:
-          - mdformat-mkdocs>=5.3
-          - mdformat-gfm>=1
-          - mdformat-gfm-alerts>=2.1
-          - mdformat-footnote>=0.1.3
-          - mdformat-config>=0.2.1
-          - mdformat-front-matters>=2
+          - mdformat-mkdocs==5.3.0
+          - mdformat-gfm==1.0.0
+          - mdformat-gfm-alerts==2.1.0
+          - mdformat-footnote==0.1.3
+          - mdformat-config==0.2.1
+          - mdformat-front-matters==2.0.0
         exclude: ^(docs/changelog\.md|testdata)
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.3
+    rev: 50e0f3aee9dc5747a5f173f79a7417403c18dda6 # frozen: v2.30.3
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.1
+    rev: 38bfb07c0c64c304f47eb52090f8288150c77730 # frozen: v0.17.1
     hooks:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
       - id: ruff-format
   - repo: https://github.com/henryiii/flake8-lazy
-    rev: v0.10.1
+    rev: 2db69f40494cc912ede966160695ede82eb6ebac # frozen: v0.10.1
     hooks:
       - id: flake8-lazy
         args: ["--apply=list"]
@@ -54,10 +49,19 @@ repos:
   # ty runs in the `type` tox environment via GitHub Actions, not here: pre-commit.ci cannot install its
   # heavier dependency set (e.g. GitPython) in its sandbox.
   # Configuration for codespell is in pyproject.toml
+  - repo: https://github.com/LilSpazJoekp/docstrfmt
+    rev: c1813841673cdcd6cf602dde1edb78a5d5e45235 # frozen: v2.2.1
+    hooks:
+      - id: docstrfmt
+        files: |
+          (?x)
+          ^docs/changelog[.]rst$  # Only the generated release history.
+        args: ["-l", "120", "--preserve-adornments"]
+        additional_dependencies: ["sphinx==9.2.0"]
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.3
+    rev: 57b21406f092110c18776e39b0bda50d37c945c8 # frozen: v2.4.3
     hooks:
       - id: codespell
         additional_dependencies:
-          - tomli>=2.4.1
+          - tomli==2.5.0
         exclude: ^testdata

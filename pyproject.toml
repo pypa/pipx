@@ -2,14 +2,15 @@
 build-backend = "hatchling.build"
 requires = [
   "docutils>=0.21.2",
+  "hatch-fancy-pypi-readme>=25.1",
   "hatch-vcs>=0.5",
   "hatchling>=1.32.4",
 ]
 
 [project]
 name = "pipx"
+import-names = [ "pipx" ]
 description = "Install and Run Python Applications in Isolated Environments"
-readme = "docs/README.md"
 keywords = [
   "cli",
   "install",
@@ -34,6 +35,7 @@ classifiers = [
   "Programming Language :: Python :: 3.15",
 ]
 dynamic = [
+  "readme",
   "version",
 ]
 dependencies = [
@@ -48,8 +50,8 @@ optional-dependencies.uv = [
   "uv>=0.12.22",
 ]
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
-urls."Release Notes" = "https://pipx.pypa.io/latest/changelog.html"
 urls."Source Code" = "https://github.com/pypa/pipx"
+urls.Changelog = "https://pipx.pypa.io/latest/changelog.html"
 urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
 scripts.pipx = "pipx.__main__:cli"
@@ -65,7 +67,7 @@ dev = [
 test = [
   "docutils>=0.21.2",
   "flit-core>=4.1",
-  "pypiserver[cache,passlib]>=2.4.2",
+  "pypiserver[passlib]>=2.4.2",
   "pytest>=9.1.1",
   "pytest-cov>=7.1",
   "pytest-mock>=3.16",
@@ -73,7 +75,6 @@ test = [
   "pytest-timeout>=2.4",
   "pytest-xdist>=3.8",
   "setuptools>=84; python_version>='3.12'",
-  "watchdog>=6",
 ]
 type = [
   "gitpython>=3.2",
@@ -112,12 +113,47 @@ lint = [
 man = [
   "docutils>=0.21.2",
 ]
+release = [
+  "check-wheel-contents>=0.6.3",
+  "prek>=0.5",
+  "release-creator>=1",
+  "towncrier>=26.9",
+  "twine>=7",
+  "uv>=0.12.22",
+]
+release-build = [
+  "check-wheel-contents>=0.6.3",
+  "release-creator>=1",
+  "twine>=7",
+  "uv>=0.12.22",
+]
+release-check = [
+  "prek>=0.5",
+]
+release-news = [
+  "release-creator>=1",
+  "towncrier>=26.9",
+]
+release-notes = [
+  "release-creator>=1",
+]
+release-prepare = [
+  "prek>=0.5",
+  "release-creator>=1",
+  "towncrier>=26.9",
+]
+release-validate = [
+  "prek>=0.5",
+  "release-creator>=1",
+]
 zipapp = [
   "shiv>=1.0.8",
 ]
 
 [tool.hatch]
 version.source = "vcs"
+metadata.hooks.fancy-pypi-readme.content-type = "text/markdown"
+metadata.hooks.fancy-pypi-readme.fragments = [ { path = "docs/README.md" } ]
 build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
@@ -129,6 +165,15 @@ build.targets.sdist.include = [
   "/pipx_demo.gif",
   "/src",
 ]
+
+[tool.uv]
+dependency-groups.release = { requires-python = ">=3.15" }
+dependency-groups.release-build = { requires-python = ">=3.15" }
+dependency-groups.release-check = { requires-python = ">=3.15" }
+dependency-groups.release-news = { requires-python = ">=3.15" }
+dependency-groups.release-notes = { requires-python = ">=3.15" }
+dependency-groups.release-prepare = { requires-python = ">=3.15" }
+dependency-groups.release-validate = { requires-python = ">=3.15" }
 
 [tool.ruff]
 line-length = 120
@@ -222,7 +267,8 @@ package = "pipx"
 directory = "changelog.d"
 filename = "docs/changelog.rst"
 start_string = ".. towncrier release notes start\n"
-title_format = "`{version} <https://github.com/pypa/pipx/tree/{version}>`_ - {project_date}"
+template = ".github/towncrier-template.rst"
+title_format = ""
 issue_format = ":issue:`{issue}`"
 underlines = [
   "=",
@@ -230,13 +276,16 @@ underlines = [
   "~",
 ]
 type = [
-  # defining any custom type replaces towncrier's built-ins, so pipx's default set is repeated here with a
-  # performance type added, otherwise `*.performance.md` fragments are silently dropped from the changelog
-  { directory = "feature", name = "Features", showcontent = true },
-  { directory = "bugfix", name = "Bugfixes", showcontent = true },
+  { directory = "feature", name = "Added", showcontent = true },
+  { directory = "change", name = "Changes", showcontent = true },
+  { directory = "bugfix", name = "Fixed", showcontent = true },
+  { directory = "breaking", name = "Breaking changes", showcontent = true },
   { directory = "performance", name = "Performance", showcontent = true },
-  { directory = "doc", name = "Improved Documentation", showcontent = true },
-  { directory = "removal", name = "Deprecations and Removals", showcontent = true },
+  { directory = "doc", name = "Documentation", showcontent = true },
+  { directory = "security", name = "Security", showcontent = true },
+  { directory = "deprecation", name = "Deprecated", showcontent = true },
+  { directory = "removal", name = "Removed", showcontent = true },
+  { directory = "packaging", name = "Packaging", showcontent = true },
 ]
 
 [tool.flake8-lazy]
@@ -251,3 +300,18 @@ standalone.lazy-exclude-modules = [
   # reads PIPX_USE_EMOJI and USE_EMOJI at startup
   "pipx.emojis",
 ]
+
+[tool.nab]
+mode = "universal"
+base-group = "project-runtime"
+build-group = "build"
+default-groups = []
+uploaded-prior-to = "P7D"
+decision-order = "stable"
+matrix.python = ">=3.15,<3.16"
+matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_amd64" ]
+packages.release-creator.uploaded-prior-to = "2026-10-24T06:07:46Z"
+
+[[tool.nab.package-rules]]
+match = [ "nab", "nab-index", "nab-markersets", "nab-project", "nab-provider", "nab-resolver" ]
+uploaded-prior-to = "2026-10-18T05:45:09Z"

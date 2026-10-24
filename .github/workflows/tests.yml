@@ -6,7 +6,7 @@ on:
     branches:
       - "main"
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
   schedule:
     - cron: "0 8 * * *"
 concurrency:
@@ -40,12 +40,14 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 🐍 Setup Python ${{ matrix.py }}
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.py }}
@@ -90,11 +92,27 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: 🔍 Run ty
         run: tox run -e type
+  pkg-meta:
+    name: Check package distributions
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
+      - run: tox run -e pkg_meta
   man:
     name: 📖 Build man page
     runs-on: ubuntu-26.04
@@ -106,6 +124,7 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -128,12 +147,14 @@ jobs:
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: "3.11"
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
+          version: latest-known
           python-version: "3.15"
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
@@ -147,27 +168,17 @@ jobs:
         with:
           name: pipx.pyz
           path: pipx.pyz
-          retention-days: 3
-  changelog:
-    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip news')
+  hook-cooldown:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: tox-dev/github-workflows/check-hook-update-cooldown@e2d5e308194a31710039f3237b7157431c0e38b5 # v2.0.0
         with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          python-version: "3.15"
-          enable-cache: false
-      - run: |
-          for fragment in changelog.d/*.md; do
-            if [[ ! "$fragment" =~ ^changelog\.d/[0-9]+\.(feature|bugfix|performance|doc|removal)(\.[0-9]+)?\.md$ ]]; then
-              echo "::error::unsupported news fragment: $fragment"
-              exit 1
-            fi
-          done
-          uvx towncrier check --compare-with "origin/${GITHUB_BASE_REF}"
+          release-app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
   zipapp-windows:
     name: 🪟 Test zipapp on Windows
     needs: zipapp
@@ -178,6 +189,7 @@ jobs:
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: "3.11"
@@ -192,16 +204,20 @@ jobs:
   gate:
     name: Required checks pass
     if: always()
-    needs: [test, type, man, zipapp, zipapp-windows, changelog]
+    needs: [test, type, pkg-meta, man, zipapp, zipapp-windows, hook-cooldown]
     runs-on: ubuntu-26.04
     steps:
       - env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          jq -e '
+          jq -e --arg event "$EVENT_NAME" '
             all(
               to_entries[];
               .value.result == "success" or
-              (.key == "changelog" and .value.result == "skipped")
+              (
+                (.key == "hook-cooldown") and
+                .value.result == "skipped" and $event != "pull_request"
+              )
             )
-          ' <<< "$NEEDS_JSON"
+          ' <<<"$NEEDS_JSON"

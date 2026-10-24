@@ -15,3 +15,22 @@ updates:
           - "*"
     cooldown:
       default-days: 7
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    allow:
+      - dependency-name: mdformat-mkdocs
+      - dependency-name: mdformat-gfm
+      - dependency-name: mdformat-gfm-alerts
+      - dependency-name: mdformat-footnote
+      - dependency-name: mdformat-config
+      - dependency-name: mdformat-front-matters
+      - dependency-name: sphinx
+      - dependency-name: tomli
+    labels:
+      - dependencies
+      - skip news
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    cooldown:
+      default-days: 7
