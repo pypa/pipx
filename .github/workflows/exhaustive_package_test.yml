@@ -1,4 +1,4 @@
-name: Exhaustive Package Test (slow)
+name: 🧪 Exhaustive Package Test (slow)
 on:
   workflow_dispatch:
 concurrency:
@@ -8,46 +8,48 @@ permissions:
   contents: read
 jobs:
   test_all_packages:
-    name: Exhaustive Package Test
+    name: 🧪 Exhaustive Package Test
     continue-on-error: true
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-26.04, macos-latest, windows-latest]
+        os: [ubuntu-26.04, macos-26, windows-2025]
         python-version: ["3.12", "3.11"]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: 📥 Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.python-version }}
-      - name: Install tox
+      - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
-      - name: Execute Tests
+      - name: 🧪 Execute Tests
         continue-on-error: true
         run: tox run -e ${{ matrix.python-version }} -- -v --tb=no --show-capture=no --net-pypiserver --all-packages tests
-      - name: Store reports as artifacts
+      - name: 📤 Store reports as artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reports-raw-${{ matrix.os }}-${{ matrix.python-version }}
           path: reports
   report_all_packages:
-    name: Collate test reports
+    name: 📊 Collate test reports
     needs: test_all_packages
     runs-on: ubuntu-26.04
     steps:
-      - name: Get report artifacts
+      - name: 📩 Get report artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: reports-raw-*
           merge-multiple: true
-      - name: Collate reports
+      - name: 📊 Collate reports
         run: |
           ls # DEBUG
           mkdir reports
@@ -61,7 +63,7 @@ jobs:
           tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
           find . -maxdepth 1 -name 'all_packages_deps_errors_*' -exec cat {} + > all_deps_errors_lf.txt
           tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
-      - name: Store collated and raw reports as artifacts
+      - name: 📤 Store collated and raw reports as artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reports-final

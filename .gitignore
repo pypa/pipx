@@ -18,3 +18,4 @@ build
 /pipx.1
 /docs/_draft_changelog.md
 /.vscode/
+/uv.lock

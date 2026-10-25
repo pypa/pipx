@@ -1,4 +1,4 @@
-name: Create tests package lists for offline tests
+name: 🧪 Create tests package lists for offline tests
 on:
   workflow_dispatch:
 concurrency:
@@ -8,34 +8,36 @@ permissions:
   contents: read
 jobs:
   create_package_lists:
-    name: Create package lists
+    name: 🧪 Create package lists
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-26.04]
         python-version: ["3.15", "3.14", "3.13", "3.12", "3.11"]
         include:
-          - os: macos-latest
+          - os: macos-26
             python-version: "3.15"
-          - os: windows-latest
+          - os: windows-2025
             python-version: "3.15"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: 📥 Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.python-version }}
-      - name: Upgrade pip
+      - name: 📦 Upgrade pip
         run: python -m pip install --upgrade pip
-      - name: Create lists
+      - name: ⚙️ Create test package lists
         run: python scripts/list_test_packages.py testdata/tests_packages/primary_packages.txt ./new_tests_packages
-      - name: Store reports as artifacts
+      - name: 📤 Store reports as artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: lists-${{ matrix.os }}-${{ matrix.python-version }}

@@ -1,0 +1,226 @@
+lock-version = "1.0"
+environments = [
+    "python_version == \"3.11\" and sys_platform == \"linux\" and platform_machine == \"x86_64\"",
+    "python_version == \"3.11\" and sys_platform == \"win32\" and platform_machine == \"AMD64\"",
+    "python_version == \"3.11\" and sys_platform == \"darwin\" and platform_machine == \"arm64\"",
+]
+requires-python = ">=3.11"
+dependency-groups = [
+    "project-runtime",
+]
+default-groups = [
+    "project-runtime",
+]
+created-by = "nab"
+
+[[packages]]
+name = "argcomplete"
+version = "3.7.2"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.10"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "argcomplete-3.7.2.tar.gz"
+upload-time = 2026-08-06 04:53:21.662042+00:00
+url = "https://files.pythonhosted.org/packages/87/6f/5a73f04007ca950701765949209f068da628bd11f9c2da287278ce91e0ee/argcomplete-3.7.2.tar.gz"
+size = 74473
+
+[packages.sdist.hashes]
+sha256 = "aad8b69a0b9969edb62db0d1752354c0d50717b10e0cbb00e2a958381b9fc6b9"
+
+[[packages.wheels]]
+name = "argcomplete-3.7.2-py3-none-any.whl"
+upload-time = 2026-08-06 04:53:20.246664+00:00
+url = "https://files.pythonhosted.org/packages/46/bd/551ee6af426af84ca33e02622be722925c196608e9127d731ef17c47f06e/argcomplete-3.7.2-py3-none-any.whl"
+size = 43294
+
+[packages.wheels.hashes]
+sha256 = "6029205678bdd9c1c728a155f5f9ecf5812393f969eef58807641a2bc2aa5b19"
+
+[[packages]]
+name = "click"
+version = "8.5.0"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.10"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "click-8.5.0.tar.gz"
+upload-time = 2026-08-26 13:33:14.560531+00:00
+url = "https://files.pythonhosted.org/packages/c7/0e/7fa0ef50764b67090eca4114772a2abf8b6148198475e54c660b97caeee6/click-8.5.0.tar.gz"
+size = 382235
+
+[packages.sdist.hashes]
+sha256 = "ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34"
+
+[[packages.wheels]]
+name = "click-8.5.0-py3-none-any.whl"
+upload-time = 2026-08-26 13:33:12.928043+00:00
+url = "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl"
+size = 125251
+
+[packages.wheels.hashes]
+sha256 = "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"
+
+[[packages]]
+name = "colorama"
+version = "0.4.6"
+marker = "\"project-runtime\" in dependency_groups and sys_platform == \"win32\""
+requires-python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "colorama-0.4.6.tar.gz"
+upload-time = 2022-10-25 02:36:22.414799+00:00
+url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz"
+size = 27697
+
+[packages.sdist.hashes]
+sha256 = "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"
+
+[[packages.wheels]]
+name = "colorama-0.4.6-py2.py3-none-any.whl"
+upload-time = 2022-10-25 02:36:20.889702+00:00
+url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl"
+size = 25335
+
+[packages.wheels.hashes]
+sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
+
+[[packages]]
+name = "filelock"
+version = "4.2.2"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.11"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "filelock-4.2.2.tar.gz"
+upload-time = 2026-10-18 07:26:44.624023+00:00
+url = "https://files.pythonhosted.org/packages/d4/08/d8f81287742010e38daf3632380c8d80ede7b4df2716f8ca3d0a2b087d44/filelock-4.2.2.tar.gz"
+size = 651339
+
+[packages.sdist.hashes]
+sha256 = "b29ff2ae9140bb17b3bc77c648dc4f010d9ac0955eccabff4f2b01dde859f787"
+
+[[packages.wheels]]
+name = "filelock-4.2.2-py3-none-any.whl"
+upload-time = 2026-10-18 07:26:43.115949+00:00
+url = "https://files.pythonhosted.org/packages/4e/53/35698fff350cb99c49ee01ae5cb1eb4408567792a286314ea984b53b5002/filelock-4.2.2-py3-none-any.whl"
+size = 162415
+
+[packages.wheels.hashes]
+sha256 = "1851d2f14ca2901e98069d68333b33ad7409f56904e17b48cc0c32a0db8ed73a"
+
+[[packages]]
+name = "packaging"
+version = "26.3"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.9"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "packaging-26.3.tar.gz"
+upload-time = 2026-08-04 18:15:28.737071+00:00
+url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz"
+size = 313412
+
+[packages.sdist.hashes]
+sha256 = "94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79"
+
+[[packages.wheels]]
+name = "packaging-26.3-py3-none-any.whl"
+upload-time = 2026-08-04 18:15:27.159957+00:00
+url = "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl"
+size = 129956
+
+[packages.wheels.hashes]
+sha256 = "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+
+[[packages]]
+name = "platformdirs"
+version = "4.13.4"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.11"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "platformdirs-4.13.4.tar.gz"
+upload-time = 2026-10-17 19:31:53.690937+00:00
+url = "https://files.pythonhosted.org/packages/b7/89/dfd269de936e76319cf27787d9eaaca513491f635d49b0fbe7cdb6d3bf6f/platformdirs-4.13.4.tar.gz"
+size = 62364
+
+[packages.sdist.hashes]
+sha256 = "dd96496961684a7f42041923f842ec7494e09f5e87aded99117e1109cd40570e"
+
+[[packages.wheels]]
+name = "platformdirs-4.13.4-py3-none-any.whl"
+upload-time = 2026-10-17 19:31:52.293703+00:00
+url = "https://files.pythonhosted.org/packages/58/51/5614d0537dd830ca64d95a2f254bd66bdf3ac61d41cffcccaec62121fcfd/platformdirs-4.13.4-py3-none-any.whl"
+size = 32782
+
+[packages.wheels.hashes]
+sha256 = "502ce08e9d36cf90579ee44e1e764838842fa658e4975ef47344fd053011d2c8"
+
+[[packages]]
+name = "userpath"
+version = "1.9.2"
+marker = "\"project-runtime\" in dependency_groups"
+requires-python = ">=3.7"
+dependencies = [
+    { name = "click" },
+]
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "userpath-1.9.2.tar.gz"
+upload-time = 2024-02-29 21:39:08.742371+00:00
+url = "https://files.pythonhosted.org/packages/d5/b7/30753098208505d7ff9be5b3a32112fb8a4cb3ddfccbbb7ba9973f2e29ff/userpath-1.9.2.tar.gz"
+size = 11140
+
+[packages.sdist.hashes]
+sha256 = "6c52288dab069257cc831846d15d48133522455d4677ee69a9781f11dbefd815"
+
+[[packages.wheels]]
+name = "userpath-1.9.2-py3-none-any.whl"
+upload-time = 2024-02-29 21:39:07.551460+00:00
+url = "https://files.pythonhosted.org/packages/43/99/3ec6335ded5b88c2f7ed25c56ffd952546f7ed007ffb1e1539dc3b57015a/userpath-1.9.2-py3-none-any.whl"
+size = 9065
+
+[packages.wheels.hashes]
+sha256 = "2cbf01a23d655a1ff8fc166dfb78da1b641d1ceabf0fe5f970767d380b14e89d"
+
+[tool.nab]
+nab-version = "0.0.22"
+created-at = 2026-10-26 00:00:43.449500+00:00
+command-line = [
+    "nab",
+    "lock",
+    "--no-cache",
+    "pyproject.toml",
+    "--project-matrix-python",
+    ">=3.11,<3.12",
+    "--project-matrix-platforms",
+    "linux_x86_64",
+    "windows_amd64",
+    "macos_arm64",
+    "--project-matrix-implementations",
+    "cpython",
+    "--output",
+    "pylock.zipapp.toml",
+    "--upgrade",
+]
+input-path = "pyproject.toml"
+mode = "universal"
+python-specifier = ">=3.11,<3.12"
+platforms = [
+    "linux_x86_64",
+    "windows_amd64",
+    "macos_arm64",
+]
+cli-project-overrides = [
+    "--project-matrix-python=>=3.11,<3.12",
+    "--project-matrix-platforms=linux_x86_64 windows_amd64 macos_arm64",
+    "--project-matrix-implementations=cpython",
+]

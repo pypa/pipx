@@ -507,10 +507,23 @@ def test_get_site_packages_skips_a_lib64_linked_to_lib(tmp_path: Path) -> None:
 @skip_if_windows
 def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp_path: Path) -> None:
     EnvBuilder(symlinks=True).create(tmp_path)
-    expected: Final[list[Path]] = list(tmp_path.glob("lib/python3*/site-packages"))
     (tmp_path / "lib" / "python3.0" / "site-packages").mkdir(parents=True)
+    interpreter = tmp_path / "bin" / "python"
+    output = subprocess.run(
+        (
+            str(interpreter),
+            "-c",
+            "import sysconfig; print(sysconfig.get_path('purelib')); print(sysconfig.get_path('platlib'))",
+        ),
+        capture_output=True,
+        check=True,
+        text=True,
+    ).stdout.splitlines()
+    purelib, platlib = (Path(path) for path in output)
 
-    assert get_site_packages(tmp_path / "bin" / "python") == expected
+    assert get_site_packages(interpreter) == (
+        [purelib] if purelib.resolve() == platlib.resolve() else [purelib, platlib]
+    )
 
 
 def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
