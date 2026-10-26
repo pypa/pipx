@@ -1,0 +1,38 @@
+name: 🛡️ CodeQL
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  schedule:
+    - cron: "0 9 * * 2"
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  analyze:
+    name: 🛡️ Analyze ${{ matrix.language }}
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read # check out the code to analyze
+      security-events: write # upload the analysis results to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, python]
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🛡️ Initialize CodeQL
+        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - name: 🛡️ Analyze
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: "/language:${{ matrix.language }}"
