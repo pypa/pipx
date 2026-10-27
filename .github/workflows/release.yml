@@ -1,162 +1,239 @@
-name: Release
+name: 🚀 Release
 on:
   push:
-    tags:
-      - "*.*.*"
+    tags: ["*.*.*"]
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-env:
-  default-python: "3.15"
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+permissions: {}
 jobs:
-  test:
-    name: Gate release on the test suite
-    permissions:
-      contents: read
-    uses: ./.github/workflows/tests.yml
   build-package:
-    name: Build pipx package
-    needs: test
+    name: 🏗️ Build pipx package
     runs-on: ubuntu-26.04
     permissions:
       contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: 📥 Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: "${{ github.ref_name }}"
+          fetch-depth: 0
           persist-credentials: false
-      - name: Require a changelog section for the tag
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
-            ! grep -Fq "$TAG <https://github.com/pypa/pipx/tree/$TAG>" docs/changelog.rst; then
-            echo "::error::docs/changelog.rst has no section for $TAG"
-            exit 1
-          fi
-      - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        env:
-          UV_VENV_SEED: "true"
+      - name: ⚙️ Set source timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >>"$GITHUB_ENV"
+      - name: 🐍 Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
+          version: latest-known
+          python-version: "3.15"
           enable-cache: false
-          activate-environment: true
-          python-version: ${{ env.default-python }}
-      - name: Build sdist and wheel
-        run: |
-          pip install build
-          python -m build
-      - name: Validate distributions and match the tag
+      - name: 📦 Select locked build backend
+        id: constraints
+        uses: tox-dev/github-workflows/export-build-constraints@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+      - name: 🏗️ Build sdist and wheel
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          pip install twine packaging
-          twine check dist/*
-          python - "${RELEASE_TAG}" <<'PY'
-          import pathlib
-          import sys
-
-          from packaging.utils import parse_sdist_filename
-          from packaging.version import Version
-
-          tag = Version(sys.argv[1])
-          _, built = parse_sdist_filename(next(pathlib.Path("dist").glob("*.tar.gz")).name)
-          if built != tag:
-              sys.exit(f"Built version {built} does not match release tag {tag}")
-          print(f"Built version {built} matches release tag {tag}")
-          PY
-      - name: Upload distributions
+          BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
+        run: uv build --sdist --wheel --out-dir dist --build-constraints "$BUILD_CONSTRAINTS" --require-build-hashes
+      - name: 📤 Store distributions
+        id: upload
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
-  pypi-publish:
-    name: Publish pipx to PyPI
+          if-no-files-found: error
+  zipapp:
+    name: 🏗️ Build pipx zipapp
     needs: build-package
     runs-on: ubuntu-26.04
-    environment:
-      name: release
-      url: https://pypi.org/p/pipx
     permissions:
-      id-token: write
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
-      - name: Download distributions
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: dist
-          path: dist/
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-  create-release:
-    name: Create a release on GitHub's UI
-    needs: pypi-publish
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Create release
-        run: |
-          set -euo pipefail
-          awk -v tag="$RELEASE_TAG" '
-            index($0, "`" tag " <https://github.com/pypa/pipx/tree/" tag ">`_") == 1 { found = 1; next }
-            found && /^`[0-9]+\.[0-9]+\.[0-9]+ </ { exit }
-            found && $0 !~ /^[=-]+$/ { print }
-          ' docs/changelog.rst > "$RUNNER_TEMP/release-notes.md"
-          python3 - "$RUNNER_TEMP/release-notes.md" <<'PY'
-          import re
-          import sys
-          from pathlib import Path
-
-          path = Path(sys.argv[1])
-          body = path.read_text()
-          body = re.sub(r":user:`([^`]+)`", r"\1", body)
-          body = re.sub(r":(?:issue|pr):`(\d+)`", r"#\1", body)
-          body = re.sub(r":[a-z]+:`~?([^`]+)`", lambda match: f"`{match.group(1).split('.')[-1]}`", body)
-          path.write_text(body.replace("``", "`"))
-          PY
-          test -s "$RUNNER_TEMP/release-notes.md"
-          printf '\n[PyPI release](https://pypi.org/project/pipx/%s/)\n' "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          previous=$({ gh api 'repos/pypa/pipx/releases?per_page=100' --paginate --jq '.[].tag_name'; printf '%s\n' "$RELEASE_TAG"; } | grep -E '^[0-9]+(\.[0-9]+){2,3}$' | sort -Vu | awk -v tag="$RELEASE_TAG" '$0 == tag { print previous; exit } { previous = $0 }')
-          if [[ -n "$previous" ]]; then
-            printf '\n**Full Changelog**: https://github.com/pypa/pipx/compare/%s...%s\n' "$previous" "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          else
-            printf '\n**Full Changelog**: https://github.com/pypa/pipx/commits/%s\n' "$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
-          fi
-          gh release create --repo pypa/pipx "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
-  upload-zipapp:
-    name: Upload zipapp to GitHub Release
-    needs: create-release
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: 📥 Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: "${{ github.ref_name }}"
           persist-credentials: false
-      - name: Set up Python ${{ env.default-python }}
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: ⚙️ Set source timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >>"$GITHUB_ENV"
+      - name: 📩 Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-package.outputs.artifact-id }}
+          path: ${{ runner.temp }}/dist
+      - name: 🐍 Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: 📦 Install locked zipapp tools
+        uses: tox-dev/github-workflows/install-locked-tools@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        with:
+          groups: zipapp
+          venv: ${{ runner.temp }}/tools
+      # shiv's pip would resolve the runtime dependencies fresh and drop colorama on Linux, so install the hashed runtime
+      # selection that pylock.zipapp.toml locks for each zipapp target, and the built wheel. The lock's environments name
+      # Windows as AMD64, while uv's Windows target reports x86_64, so the copy drops them and uv checks the package
+      # markers and requires-python against each target alone.
+      - name: 📦 Install locked runtime packages
+        env:
+          SITE: ${{ runner.temp }}/zipapp-site
+          TAG: ${{ github.ref_name }}
+          DIST: ${{ runner.temp }}/dist
+          LOCK: ${{ runner.temp }}/zipapp-lock/pylock.zipapp.toml
+        run: |
+          set -euo pipefail
+          unset UV_EXCLUDE_NEWER UV_EXCLUDE_NEWER_PACKAGE
+          mkdir "$(dirname "$LOCK")"
+          sed '/^environments = \[$/,/^\]$/d' pylock.zipapp.toml >"$LOCK"
+          for platform in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc aarch64-apple-darwin; do
+            uv pip install --no-config --preview-features pylock --target "$SITE" --python 3.15 --python-version 3.11 \
+              --python-platform "$platform" --group project-runtime --only-binary :all: --require-hashes -r "$LOCK"
+          done
+          uv pip install --no-config --target "$SITE" --python 3.15 --no-deps --no-index "$DIST/pipx-$TAG-py3-none-any.whl"
+      - name: 🏗️ Build zipapp
+        env:
+          SITE: ${{ runner.temp }}/zipapp-site
+        run: |
+          mkdir "$RUNNER_TEMP/zipapp"
+          shiv --site-packages "$SITE" -c pipx -o "$RUNNER_TEMP/zipapp/pipx.pyz" --reproducible
+      - name: 📤 Store zipapp
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-zipapp
+          path: ${{ runner.temp }}/zipapp/pipx.pyz
+          if-no-files-found: error
+  zipapp-test:
+    name: 🧪 Test pipx zipapp on ${{ matrix.os }}
+    needs: zipapp
+    runs-on: ${{ matrix.os }}
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, windows-2025]
+    steps:
+      - name: 🐍 Set up Python 3.11
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         env:
           UV_VENV_SEED: "true"
         with:
+          version: latest-known
           enable-cache: false
           activate-environment: true
-          python-version: ${{ env.default-python }}
-      - name: Install tox
-        run: pip install tox
-      - name: Build zipapp
-        run: tox run -e zipapp
-      - name: Upload to release
+          python-version: "3.11"
+          ignore-empty-workdir: true
+      - name: 📩 Download zipapp
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.zipapp.outputs.artifact-id }}
+          path: ${{ runner.temp }}/zipapp
+      - name: 🧪 Test zipapp by installing black
+        shell: bash
         run: |
-          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz
+          set -euo pipefail
+          python "$RUNNER_TEMP/zipapp/pipx.pyz" install black
+  notes:
+    name: 📝 Render GitHub Release notes
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - name: 📥 Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 🐍 Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+      - name: 📦 Install locked release tools
+        uses: tox-dev/github-workflows/install-locked-tools@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        with:
+          groups: release-notes
+          venv: ${{ runner.temp }}/tools
+      - name: 📝 Render release notes
+        uses: tox-dev/github-workflows/render-release-notes@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        with:
+          tag: ${{ github.ref_name }}
+          changelog: docs/changelog.rst
+          artifact-url: https://pypi.org/project/pipx/${{ github.ref_name }}/
+      - name: 📤 Store release notes
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: github-release-notes
+          path: ${{ runner.temp }}/release-notes.md
+          if-no-files-found: error
+  pypi-publish:
+    name: 🚀 Publish to PyPI
+    needs: [build-package, notes, zipapp-test]
+    runs-on: ubuntu-26.04
+    environment:
+      name: release
+      url: https://pypi.org/project/pipx/${{ github.ref_name }}/
+    permissions:
+      id-token: write
+    steps:
+      - name: 📩 Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-package.outputs.artifact-id }}
+          path: dist/
+      - name: 🚀 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist
+  release:
+    name: 🚀 Publish GitHub Release
+    needs: [build-package, notes, zipapp, pypi-publish]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - name: 🐍 Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: latest-known
+          python-version: "3.15"
+          enable-cache: false
+          ignore-empty-workdir: true
+      - name: 📩 Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-package.outputs.artifact-id }}
+          path: dist/
+      - name: 📩 Download release notes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.notes.outputs.artifact-id }}
+          path: ${{ runner.temp }}/release-notes
+      - name: 📩 Download zipapp
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.zipapp.outputs.artifact-id }}
+          path: ${{ runner.temp }}/zipapp
+      - name: 🔍 Verify PyPI artifacts
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        with:
+          project: pipx
+          version: ${{ github.ref_name }}
+          dist: dist
+      - name: 🚀 Publish GitHub release
+        uses: tox-dev/github-workflows/publish-github-release@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          tag: ${{ github.ref_name }}
+          commit: ${{ github.sha }}
+          title: ${{ github.ref_name }}
+          notes-file: ${{ runner.temp }}/release-notes/release-notes.md
+          assets-directory: ${{ runner.temp }}/zipapp

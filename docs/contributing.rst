@@ -13,31 +13,33 @@ the `PSF Code of Conduct <https://github.com/pypa/.github/blob/main/CODE_OF_COND
 
 #. Fork `the GitHub repository <https://github.com/pypa/pipx>`_.
 #. Make a branch off of ``main`` and commit your changes to it.
-#. Add a changelog entry.
+#. Add a user-facing changelog entry, or apply ``skip news`` to a maintenance-only pull request.
 #. Submit a pull request to the ``main`` branch on GitHub, referencing an open issue.
 
 Changelog entries
 =================
 
 The changelog at ``docs/changelog.rst`` is built by `towncrier <https://pypi.org/project/towncrier/>`_ from news
-fragments in the ``changelog.d/`` directory. To add an entry, create a news fragment in that directory named
-``{number}.{type}.md``, where ``{number}`` is the pull request number, and ``{type}`` is one of ``feature``, ``bugfix``,
-``performance``, ``doc``, ``removal``, or ``misc``.
+fragments in ``changelog.d/``. Name a fragment ``+topic.type.rst`` before opening a pull request, for example
+``+reset-eof.bugfix.rst``. Existing numbered names such as ``1234.bugfix.rst`` remain valid. The release workflow gets
+the pull request number, the commit author, and its co-authors from the squash commit and links them when it assembles
+the changelog.
 
-For example, if your pull request number is 1234 and it fixes a bug, then you would create
-``changelog.d/1234.bugfix.md``. PRs can span multiple categories by creating multiple files: if you added a feature and
-deprecated/removed an old feature in pull request #5678, you would create ``changelog.d/5678.feature.md`` and
-``changelog.d/5678.removal.md``.
+Use ``feature`` for new capabilities and Python support additions or removals; either causes a minor version bump.
+Use ``change`` for user-visible behavior changes, ``bugfix`` for corrections, ``doc`` for documentation, ``security``
+for security fixes, and ``performance`` for speed or resource improvements. ``deprecation`` announces a future removal;
+``removal`` describes a removed command or option; ``packaging`` covers user-visible distribution or installation
+changes. Use ``breaking`` only for an incompatible behavior change that is not a Python support change.
 
-A changelog entry is meant for end users and should only contain details relevant to them. In order to maintain a
-consistent style, please keep the entry to the point, in sentence case, shorter than 80 characters, and in an
-imperative tone. An entry should complete the sentence "This change will ...". If one line is not enough, use a summary
-line in an imperative tone, followed by a description of the change in one or more paragraphs, each wrapped at 80
-characters and separated by blank lines.
+One pull request may carry several fragments, including two of the same type: ``+reset-eof.bugfix.rst`` and
+``+reset-output.bugfix.rst`` are separate entries. Write each one as a concrete sentence about the effect for a pipx
+user. Internal tests, dependency updates, and CI work need no entry; apply ``skip news`` instead. Bot pull requests
+without a fragment receive that label automatically. If a bot supplies a fragment, the changelog check validates it.
 
-You don't need to reference the pull request or issue number in a changelog entry, since towncrier will add a link
-using the number in the file name. Similarly, you don't need to add your name to the entry, since that will be
-associated with the pull request.
+Do not put a pull request link or author credit in the fragment; hand-written credits fail the changelog check. The
+release workflow appends the squash pull request link and credits the commit's human author and co-authors in the RST
+changelog. GitHub Release notes use their GitHub handles. Keep each fragment wrapped to 120 columns; the generated
+changelog is formatted through ``prek`` before the release commit.
 
 **********************
  Codebase Architecture
@@ -283,36 +285,31 @@ preview while editing, use ``tox run -e docs-live``.
  Releasing New ``pipx`` Versions
 ********************************
 
-The release process for pipx is designed to be simple and fully automated with a single button press. The workflow
-automatically determines the next version based on changelog fragments, generates the changelog, creates the release
-commit, and publishes to PyPI.
+The protected pre-release workflow determines the next version from the fragment types, builds the changelog, runs
+``release-creator contributors`` to add a *New Contributors* subsection, formats the changelog with ``prek``, and
+prepares a patch. The repository-scoped App then pushes the release commit and annotated tag.
 
 Initiating a Release
 ====================
 
-Navigate to the **Actions** tab in the GitHub repository and select the **Pre-release** workflow. Click **Run
-workflow** and choose the appropriate version bump strategy. The ``auto`` option intelligently determines whether a
-minor or patch bump is needed by examining the types of changelog fragments present. If new features, performance
-improvements or removals exist, it performs a minor version bump; otherwise, it increments the patch version. Alternatively, you can explicitly select
-``major``, ``minor``, or ``patch`` to control the version increment directly.
+Run **Pre-release** from the Actions tab on ``main``. Choose ``auto`` to calculate the version from the fragments, or
+choose ``major``, ``minor``, or ``patch`` to override the bump. The input is a bump type, never a typed version number.
+You can preview the same inputs locally without pushing by running ``python scripts/release.py`` or
+``python scripts/release.py --bump minor`` from an installed ``release`` dependency group.
 
 What Happens During Release
 ===========================
 
-Once triggered, the pre-release workflow executes the ``scripts/release.py`` script which collects all changelog
-fragments from the ``changelog.d/`` directory and uses towncrier to generate the updated changelog. It then creates a
-release commit with the message "Release {version}" and tags it with the version number. After running pre-commit hooks
-to ensure formatting, both the commit and tag are pushed to the main branch.
-
-The act of pushing a version tag (matching the pattern ``*.*.*``) automatically triggers the main release workflow.
-This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a
-GitHub release with auto-generated notes, and builds the zipapp with Python 3.15 before uploading it to the GitHub
-release assets.
+The tag starts the release workflow. It builds the sdist and wheel with locked build dependencies, and builds
+``pipx.pyz`` from the wheel and the runtime dependencies that ``pylock.zipapp.toml`` locks for the zipapp targets. In
+parallel it renders Markdown notes from that tag's RST changelog. Once the zipapp passes its smoke test, the
+distributions go to PyPI with trusted publishing. After PyPI has the expected files, a single step creates the GitHub
+Release with the zipapp attached. A failed run should be retried with "Re-run failed jobs", which uploads the same
+built files; the release job checks their SHA256 digests against PyPI before it writes the GitHub Release.
 
 Version Calculation Examples
 ============================
 
-Starting from version ``1.8.0``, the version bump types produce the following results: ``auto`` with feature or performance
-fragments becomes ``1.9.0``, while ``auto`` with only bugfixes becomes ``1.8.1``. Selecting ``major`` explicitly jumps to
-``2.0.0``, ``minor`` moves to ``1.9.0``, and ``patch`` increments to ``1.8.1``. This automation eliminates the need for
-manual version management and ensures consistency across releases.
+Starting from ``1.8.0``, ``auto`` with a feature becomes ``1.9.0`` and ``auto`` with only bug fixes becomes ``1.8.1``.
+Selecting ``major`` yields ``2.0.0``, ``minor`` yields ``1.9.0``, and ``patch`` yields ``1.8.1``. Removing support for
+an older Python is a feature here because earlier pipx releases remain installable on that interpreter.

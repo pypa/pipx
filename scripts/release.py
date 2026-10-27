@@ -1,82 +1,169 @@
-"""Handles creating a release."""
+"""Preview a release locally, or dispatch its protected workflow."""
 
 from __future__ import annotations
 
+import argparse
+import os
+import subprocess
+import sys
 from pathlib import Path
-from subprocess import call, check_call
+from tempfile import TemporaryDirectory
+from typing import Final
 
-from git import Commit, Remote, Repo, TagReference
-from packaging.version import Version
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-CHANGELOG_DIR = ROOT_DIR / "changelog.d"
+_ROOT: Final = Path(__file__).resolve().parent.parent
 
 
-def main(version_str: str, *, push: bool) -> None:
-    repo = Repo(str(ROOT_DIR))
-    if repo.is_dirty():
-        msg = "Current repository is dirty. Please commit any changes and try again."
-        raise RuntimeError(msg)
-    remote = get_remote(repo)
-    remote.fetch()
-    version = resolve_version(version_str, repo)
-    release_commit = release_changelog(repo, version)
-    tag = tag_release_commit(release_commit, repo, version)
-    if push:
-        repo.git.push(remote.name, "HEAD:main")
-        repo.git.push(remote.name, str(tag))
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bump", choices=("auto", "major", "minor", "patch"), default="auto")
+    parser.add_argument("--dispatch", action="store_true", help="start the protected release workflow on GitHub")
+    args = parser.parse_args()
+    if args.dispatch:
+        _run(
+            "gh",
+            "workflow",
+            "run",
+            "pre-release.yml",
+            "--repo",
+            "pypa/pipx",
+            "--ref",
+            "main",
+            "-f",
+            f"bump={args.bump}",
+        )
+        return
+    with TemporaryDirectory(prefix="pipx-release-") as temporary_directory:
+        source = Path(temporary_directory) / "source"
+        build_environment = Path(temporary_directory) / "build"
+        _run("git", "clone", "--quiet", "--shared", str(_ROOT), str(source))
+        tags = _run("git", "tag", "--list", cwd=source, capture_output=True).stdout
+        version = _run(
+            "release-creator",
+            "tags",
+            "--next",
+            args.bump,
+            "--directory",
+            "changelog.d",
+            cwd=source,
+            stdin_text=tags,
+            capture_output=True,
+        ).stdout.strip()
+        previous = _run(
+            "release-creator",
+            "tags",
+            version,
+            "--previous",
+            cwd=source,
+            stdin_text=tags,
+            capture_output=True,
+        ).stdout.strip()
+        _run(
+            "release-creator",
+            "fragments",
+            "--directory",
+            "changelog.d",
+            "--repository",
+            "pypa/pipx",
+            cwd=source,
+        )
+        _run("towncrier", "build", "--yes", "--version", version, cwd=source)
+        _run(
+            "release-creator",
+            "contributors",
+            "--changelog",
+            "docs/changelog.rst",
+            "--version",
+            version,
+            "--repository",
+            "pypa/pipx",
+            cwd=source,
+        )
+        try:
+            _run("prek", "run", "docstrfmt", "--files", "docs/changelog.rst", cwd=source)
+        except subprocess.CalledProcessError:
+            _run("prek", "run", "docstrfmt", "--files", "docs/changelog.rst", cwd=source)
+        _run("prek", "run", "--all-files", cwd=source)
+        _run("git", "config", "user.name", "pipx release preview", cwd=source)
+        _run("git", "config", "user.email", "preview@localhost", cwd=source)
+        _run("git", "add", "docs/changelog.rst", "changelog.d", cwd=source)
+        _run("git", "commit", "-m", f"Release {version}", cwd=source)
+        _run("git", "tag", "-a", version, "-m", f"release {version}", cwd=source)
+        note_args = [
+            "release-creator",
+            "notes",
+            "--changelog",
+            "docs/changelog.rst",
+            "--tag",
+            version,
+            "--repository",
+            "pypa/pipx",
+            "--artifact-url",
+            f"https://pypi.org/project/pipx/{version}/",
+        ]
+        if previous:
+            note_args.extend(("--previous", previous))
+        notes = _run(*note_args, cwd=source, capture_output=True).stdout
+        _run("uv", "venv", "--python", "3.15", str(build_environment), cwd=source)
+        _run(
+            "uv",
+            "pip",
+            "sync",
+            "--preview-features",
+            "pylock",
+            "--python",
+            str(build_environment),
+            "--group",
+            "build",
+            "--require-hashes",
+            "pylock.toml",
+            cwd=source,
+        )
+        epoch = _run("git", "log", "-1", "--format=%ct", cwd=source, capture_output=True).stdout.strip()
+        _run(
+            "uv",
+            "build",
+            "--python",
+            str(build_environment),
+            "--sdist",
+            "--wheel",
+            "--no-build-isolation",
+            "--out-dir",
+            "dist",
+            cwd=source,
+            env=dict(os.environ, SOURCE_DATE_EPOCH=epoch),
+        )
+        sys.stdout.write(notes)
 
 
-def resolve_version(version_str: str, repo: Repo) -> Version:
-    if version_str not in {"auto", "major", "minor", "patch"}:
-        return Version(version_str)
-    latest_tag = repo.git.describe("--tags", "--abbrev=0")
-    parts = [int(x) for x in latest_tag.split(".")]
-    if version_str == "major":
-        parts = [parts[0] + 1, 0, 0]
-    elif version_str == "minor":
-        parts = [parts[0], parts[1] + 1, 0]
-    elif version_str == "patch":
-        parts[2] += 1
-    elif any(any(CHANGELOG_DIR.glob(f"*.{kind}*.md")) for kind in ("feature", "performance", "removal")):
-        parts = [parts[0], parts[1] + 1, 0]
-    else:
-        parts[2] += 1
-    return Version(".".join(str(p) for p in parts))
-
-
-def get_remote(repo: Repo) -> Remote:
-    upstream_remote = "pypa/pipx"
-    urls = set()
-    for remote in repo.remotes:
-        for url in remote.urls:
-            if url.rstrip(".git").endswith(upstream_remote):
-                return remote
-            urls.add(url)
-    msg = f"Could not find {upstream_remote} remote, has {urls}"
-    raise RuntimeError(msg)
-
-
-def release_changelog(repo: Repo, version: Version) -> Commit:
-    check_call(["towncrier", "build", "--yes", "--version", version.public], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # towncrier resolved from PATH
-    call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # pre-commit resolved from PATH
-    repo.git.add(".")
-    check_call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # pre-commit resolved from PATH
-    return repo.index.commit(f"Release {version}")
-
-
-def tag_release_commit(release_commit: Commit, repo: Repo, version: Version) -> TagReference:
-    if str(version) in {tag.name for tag in repo.tags}:
-        msg = f"tag {version} already exists"
-        raise RuntimeError(msg)
-    return repo.create_tag(str(version), ref=release_commit.hexsha, message=f"release {version}")
+def _run(
+    *command: str,
+    cwd: Path = _ROOT,
+    stdin_text: str | None = None,
+    capture_output: bool = False,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        input=stdin_text,
+        capture_output=capture_output,
+        stdout=None if capture_output else sys.stderr,
+        text=True,
+        check=True,
+        shell=False,
+        env=env,
+    )
 
 
 if __name__ == "__main__":
-    import argparse
+    try:
+        main()
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            sys.stderr.write(error.stderr)
+        raise SystemExit(error.returncode) from None
 
-    parser = argparse.ArgumentParser(prog="release")
-    parser.add_argument("--version", default="auto")
-    parser.add_argument("--no-push", action="store_true")
-    options = parser.parse_args()
-    main(options.version, push=not options.no_push)
+
+__all__ = [
+    "main",
+]
