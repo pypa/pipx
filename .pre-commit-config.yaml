@@ -57,7 +57,7 @@ repos:
           (?x)
           ^docs/changelog[.]rst$  # Only the generated release history.
         args: ["-l", "120", "--preserve-adornments"]
-        additional_dependencies: ["sphinx==9.2.0"]
+        additional_dependencies: ["sphinx==9.1.1"]
   - repo: https://github.com/codespell-project/codespell
     rev: 57b21406f092110c18776e39b0bda50d37c945c8 # frozen: v2.4.3
     hooks:
