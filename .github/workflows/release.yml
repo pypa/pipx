@@ -30,7 +30,7 @@ jobs:
           enable-cache: false
       - name: 📦 Select locked build backend
         id: constraints
-        uses: tox-dev/github-workflows/export-build-constraints@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/export-build-constraints@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
       - name: 🏗️ Build sdist and wheel
         env:
           BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
@@ -69,7 +69,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: 📦 Install locked zipapp tools
-        uses: tox-dev/github-workflows/install-locked-tools@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/install-locked-tools@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
         with:
           groups: zipapp
           venv: ${{ runner.temp }}/tools
@@ -156,12 +156,12 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: 📦 Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/install-locked-tools@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
         with:
           groups: release-notes
           venv: ${{ runner.temp }}/tools
       - name: 📝 Render release notes
-        uses: tox-dev/github-workflows/render-release-notes@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/render-release-notes@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
         with:
           tag: ${{ github.ref_name }}
           changelog: docs/changelog.rst
@@ -222,13 +222,13 @@ jobs:
           artifact-ids: ${{ needs.zipapp.outputs.artifact-id }}
           path: ${{ runner.temp }}/zipapp
       - name: 🔍 Verify PyPI artifacts
-        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
         with:
           project: pipx
           version: ${{ github.ref_name }}
           dist: dist
       - name: 🚀 Publish GitHub release
-        uses: tox-dev/github-workflows/publish-github-release@259a3d3fb578d00517ffb73341fdd463259b0b2f # 6.0.1
+        uses: tox-dev/github-workflows/publish-github-release@64359a1fc6231df83d3bf2674688264d6fd34494 # 6.0.2
         env:
           GH_TOKEN: ${{ github.token }}
         with:

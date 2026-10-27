@@ -560,28 +560,28 @@ sha256 = "cf09d55b1e85a89576b036aeb71550bfd68320f3f21761ca329eadadad918638"
 
 [[packages]]
 name = "docutils"
-version = "0.22.4"
+version = "0.23"
 marker = "\"build\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"man\" in dependency_groups or \"release\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"test\" in dependency_groups or \"type\" in dependency_groups"
 requires-python = ">=3.9"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "docutils-0.22.4.tar.gz"
-upload-time = 2025-12-18 19:00:26.443107+00:00
-url = "https://files.pythonhosted.org/packages/ae/b6/03bb70946330e88ffec97aefd3ea75ba575cb2e762061e0e62a213befee8/docutils-0.22.4.tar.gz"
-size = 2291750
+name = "docutils-0.23.tar.gz"
+upload-time = 2026-05-27 17:41:06.934109+00:00
+url = "https://files.pythonhosted.org/packages/39/a4/5180d9afc57e8fca05601dd652bdff19604c218814037fe90ffc7625a50a/docutils-0.23.tar.gz"
+size = 2303823
 
 [packages.sdist.hashes]
-sha256 = "4db53b1fde9abecbb74d91230d32ab626d94f6badfc575d6db9194a49df29968"
+sha256 = "746f5060322511280a1e50eb76846ed6bf2342984b2ac04dc42caa1a8d78799e"
 
 [[packages.wheels]]
-name = "docutils-0.22.4-py3-none-any.whl"
-upload-time = 2025-12-18 19:00:18.077803+00:00
-url = "https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl"
-size = 633196
+name = "docutils-0.23-py3-none-any.whl"
+upload-time = 2026-05-27 17:40:58.442528+00:00
+url = "https://files.pythonhosted.org/packages/32/91/30151a39f7570f448ed84529390628a651d7f27c87d73c9b887f8189695e/docutils-0.23-py3-none-any.whl"
+size = 634701
 
 [packages.wheels.hashes]
-sha256 = "d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de"
+sha256 = "25d013af9bf23bc1c7b2b093dff4208166c53a94786c9e447808335ef1185fea"
 
 [[packages]]
 name = "execnet"
@@ -2000,9 +2000,9 @@ sha256 = "fa30e3ba4809cb81ce1f3209f2fbe3e779fc445f0439bc147a0d7c4601743f21"
 
 [[packages]]
 name = "sphinx"
-version = "9.1.0"
+version = "9.2.0"
 marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"type\" in dependency_groups"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     { name = "alabaster" },
     { name = "babel" },
@@ -2024,23 +2024,14 @@ dependencies = [
 ]
 index = "https://pypi.org/simple/"
 
-[packages.sdist]
-name = "sphinx-9.1.0.tar.gz"
-upload-time = 2025-12-31 15:09:27.646696+00:00
-url = "https://files.pythonhosted.org/packages/cd/bd/f08eb0f4eed5c83f1ba2a3bd18f7745a2b1525fad70660a1c00224ec468a/sphinx-9.1.0.tar.gz"
-size = 8718324
-
-[packages.sdist.hashes]
-sha256 = "7741722357dd75f8190766926071fed3bdc211c74dd2d7d4df5404da95930ddb"
-
 [[packages.wheels]]
-name = "sphinx-9.1.0-py3-none-any.whl"
-upload-time = 2025-12-31 15:09:25.561651+00:00
-url = "https://files.pythonhosted.org/packages/73/f7/b1884cb3188ab181fc81fa00c266699dab600f927a964df02ec3d5d1916a/sphinx-9.1.0-py3-none-any.whl"
-size = 3921742
+name = "sphinx-9.2.0-py3-none-any.whl"
+upload-time = 2026-10-21 00:05:12.241734+00:00
+url = "https://files.pythonhosted.org/packages/c4/28/a0c50761cd215b7042f4bc617a6bc5c0cd7be62f75bc908e169e28a4d21e/sphinx-9.2.0-py3-none-any.whl"
+size = 3925388
 
 [packages.wheels.hashes]
-sha256 = "c84fdd4e782504495fe4f2c0b3413d6c2bf388589bb352d439b2a3bb99991978"
+sha256 = "4c3ec13b612712c0d3ce4cbdd9e3eb91e68577e07a8e31f32f21cf178453578c"
 
 [[packages]]
 name = "sphinx-argparse-cli"
