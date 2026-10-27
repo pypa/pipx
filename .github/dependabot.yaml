@@ -1,27 +1,24 @@
 version: 2
-updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    labels:
-      - dependencies
-      - github_actions
-      - skip news
+multi-ecosystem-groups:
+  dependencies:
     schedule:
       interval: weekly
       day: tuesday
-    groups:
-      actions:
-        patterns:
-          - "*"
-    cooldown:
-      default-days: 7
-  - package-ecosystem: "pre-commit"
-    directory: "/"
     labels:
       - dependencies
       - skip news
-    schedule:
-      interval: "weekly"
-      day: "tuesday"
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    patterns:
+      - '*'
+    multi-ecosystem-group: dependencies
+    cooldown:
+      default-days: 7
+  - package-ecosystem: pre-commit
+    directory: /
+    patterns:
+      - '*'
+    multi-ecosystem-group: dependencies
     cooldown:
       default-days: 7
