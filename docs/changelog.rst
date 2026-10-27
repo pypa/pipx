@@ -14,6 +14,19 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-5:
+
+`1.18.5 <https://github.com/pypa/pipx/tree/1.18.5>`_ - 2026-10-27
+=================================================================
+
+.. _release-1-18-5-packaging:
+
+Packaging
+---------
+
+- Releases now run on the shared tox-dev/github-workflows pipeline, with a locked release toolchain and generated GitHub
+  Release notes (:pr:`2190`) by :user:`gaborbernat`.
+
 .. _release-1-18-4:
 
 `1.18.4 <https://github.com/pypa/pipx/tree/1.18.4>`_ - 2026-10-18
