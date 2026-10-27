@@ -13,6 +13,9 @@ updates:
     patterns:
       - '*'
     multi-ecosystem-group: dependencies
+    labels:
+      - dependencies
+      - skip news
     cooldown:
       default-days: 7
   - package-ecosystem: pre-commit
@@ -20,5 +23,8 @@ updates:
     patterns:
       - '*'
     multi-ecosystem-group: dependencies
+    labels:
+      - dependencies
+      - skip news
     cooldown:
       default-days: 7
