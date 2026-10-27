@@ -302,3 +302,5 @@ matrix.python = ">=3.15,<3.16"
 matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_amd64" ]
 # temporary, delete after 2026-11-02
 packages.release-creator.uploaded-prior-to = 2026-10-26T18:24:46Z
+# temporary, delete after 2026-10-28: the docstrfmt hook pins sphinx 9.2.0
+packages.sphinx.uploaded-prior-to = 2026-10-21T00:05:13Z
