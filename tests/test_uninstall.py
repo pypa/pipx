@@ -385,3 +385,18 @@ def test_uninstall_proper_dep_behavior_missing_interpreter(metadata_version: str
     # THIS is what we're making sure is true:
     for isort_app_path in isort_app_paths:
         assert isort_app_path.exists()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_killed_midway_leaves_nothing_for_reinstall_to_guess(mocker: MockerFixture) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    def lose_the_record_then_die(path: Path, **_kwargs: bool) -> None:
+        (path / "pipx_metadata.json").unlink()
+        raise KeyboardInterrupt
+
+    mocker.patch("pipx.util.shutil.rmtree", autospec=True, side_effect=lose_the_record_then_die)
+    assert run_pipx_cli(["uninstall", "pycowsay"])
+    mocker.stopall()
+
+    assert run_pipx_cli(["reinstall", "pycowsay"])

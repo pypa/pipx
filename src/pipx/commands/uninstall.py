@@ -33,7 +33,7 @@ from pipx.constants import (
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
-from pipx.util import PipxError, rmdir, safe_unlink
+from pipx.util import PipxError, rmdir_via_trash, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -122,7 +122,8 @@ def uninstall(
         version=None if package_info is None else package_info.package_version or None,
         location=str(venv.root),
     )
-    rmdir(venv_dir)
+    # to reinstall, a venv that lost its record but kept its package looks like one from pipx before 0.15
+    rmdir_via_trash(venv_dir)
     return OperationResult(
         command=("uninstall",),
         data=UninstallData(packages=(package,)),
