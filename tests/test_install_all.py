@@ -300,7 +300,7 @@ def test_install_all_warning_redacts_index_credentials(
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
-    redacted: Final[str] = credentialed_index_url.replace("s3cret", "****")
+    redacted: Final[str] = credentialed_index_url.replace("user:s3cret", "****:****")
     assert (
         "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off; translated for uv: "
         f"--default-index {redacted}\n"

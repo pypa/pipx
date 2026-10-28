@@ -363,12 +363,13 @@ def _command_line(cmd: Sequence[str | Path]) -> str:
 
 
 def redact_url_credentials(text: str) -> str:
-    # index and package URLs can carry credentials, which must not reach the log file or the verbose output; masked the
-    # way pip masks them in its own messages, which also hides a bare user such as git@ since it may be a token. The
-    # authority ends at the first /, ? or #, and its userinfo runs to the last @ before that.
+    # index and package URLs can carry credentials, which must not reach the log file or the verbose output. A bare user
+    # such as git@ may be a token, and so may the user before an empty or placeholder password (TOKEN:@), so with a
+    # colon both parts are masked. The authority ends at the first /, ? or #, and its userinfo runs to the last @ before
+    # that.
     return re.sub(
         r"(?<=://)([^\s/?#]*)@",
-        lambda match: f"{userinfo[0]}:****@" if (userinfo := match[1].partition(":"))[1] else "****@",
+        lambda match: "****:****@" if ":" in match[1] else "****@",
         text,
     )
 

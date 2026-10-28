@@ -546,18 +546,24 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
     [
         pytest.param(
             "pip --index-url https://alice:s3cr3t@host/simple",
-            "pip --index-url https://alice:****@host/simple",
+            "pip --index-url https://****:****@host/simple",
             id="user-and-password",
         ),
         pytest.param("pip git+https://t0ken@host/repo.git", "pip git+https://****@host/repo.git", id="token"),
         pytest.param("pip foo @ https://host/a@b.whl", "pip foo @ https://host/a@b.whl", id="no-credentials"),
         pytest.param("https://host?x=a@b", "https://host?x=a@b", id="at-in-query"),
         pytest.param("https://host#egg=x@1", "https://host#egg=x@1", id="at-in-fragment"),
-        pytest.param("https://u:p@w@host/x", "https://u:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("https://u:p@w@host/x", "https://****:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("https://t0ken:@host/simple", "https://****:****@host/simple", id="token-with-empty-password"),
+        pytest.param(
+            "git+https://t0ken:x-oauth-basic@host/repo.git",
+            "git+https://****:****@host/repo.git",
+            id="token-with-placeholder-password",
+        ),
         pytest.param("git+ssh://git@github.com/a/b", "git+ssh://****@github.com/a/b", id="bare-user"),
         pytest.param(
             "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
-            "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
+            "--index-url https://****:****@one/s --extra-index-url https://****@two/s",
             id="two-urls",
         ),
     ],
@@ -572,4 +578,4 @@ def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: p
     with caplog.at_level(logging.INFO, logger="pipx.util"):
         subprocess_post_check(process, raise_error=False)
 
-    assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]
+    assert caplog.messages == ["'pip --index-url https://****:****@host/simple' failed"]
