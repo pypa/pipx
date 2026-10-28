@@ -335,6 +335,14 @@ def test_install_all_warning_redacts_index_credentials(
         pytest.param("pip", "--index-url {url}", "--default-index {url}", id="pip-index-url"),
         pytest.param("pip", "--index-url={url}", "--default-index {url}", id="pip-joined-value"),
         pytest.param("pip", "-i{url}", "--default-index {url}", id="pip-short-joined-value"),
+        pytest.param("pip", "--index-u {url}", "--default-index {url}", id="pip-abbreviated-index-url"),
+        pytest.param("pip", "--index={url}", "--default-index {url}", id="pip-index-abbreviates-index-url"),
+        pytest.param(
+            "pip",
+            "--extra-i {url} --find-l {links} --no-ind --tr localhost",
+            "--index {url} --find-links {links} --no-index --allow-insecure-host localhost",
+            id="pip-abbreviated-options",
+        ),
         pytest.param(
             "pip",
             "--extra-index-url {url} --find-links {links} --no-index",
@@ -401,6 +409,7 @@ def test_install_all_translates_recorded_pip_args_for_another_backend(  # ruff:i
             id="uv-insecure-host-url",
         ),
         pytest.param("pip", "--keyring-provider import", "--keyring-provider import", id="pip-keyring-provider"),
+        pytest.param("pip", "--keyring-p import", "--keyring-provider import", id="pip-abbreviated-keyring-provider"),
     ],
 )
 def test_install_all_refuses_untranslatable_index_args(
