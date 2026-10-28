@@ -93,7 +93,7 @@ def test_run_via_uv_tool_run_threads_spec_and_with(
         "click",
         "--no-cache",
         "--verbose",
-        "--index-url",
+        "--default-index",
         "https://example.com/simple",
         "--prerelease=allow",
         "rope",

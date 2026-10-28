@@ -464,8 +464,13 @@ def test_uv_run_raw_pip_verbosity(
         pytest.param(["--quiet"], [], id="strip-quiet-long"),
         pytest.param(
             ["--index-url", "https://example.com/simple"],
-            ["--index-url", "https://example.com/simple"],
+            ["--default-index", "https://example.com/simple"],
             id="index-url",
+        ),
+        pytest.param(
+            ["-i", "https://example.com/simple"],
+            ["--default-index", "https://example.com/simple"],
+            id="index-url-short",
         ),
         pytest.param(
             ["--extra-index-url", "https://other.example/simple"],
@@ -473,7 +478,7 @@ def test_uv_run_raw_pip_verbosity(
             id="extra-index",
         ),
         pytest.param(["--pre"], ["--prerelease=allow"], id="pre-to-prerelease"),
-        pytest.param(["--index-url=https://example.com"], ["--index-url=https://example.com"], id="equals-form"),
+        pytest.param(["--index-url=https://example.com"], ["--default-index=https://example.com"], id="equals-form"),
         pytest.param(["--no-binary", ":all:"], ["--no-binary"], id="no-binary-all"),
         pytest.param(
             ["--no-binary", "one,two"],
@@ -605,7 +610,7 @@ def test_backend_list_outdated_forwards_index_settings(
             "--quiet",
             "--outdated",
             "--format=json",
-            "--index-url",
+            "--default-index",
             "https://index.example/simple",
             "--exclude=click",
             "--exclude=pip",

@@ -106,7 +106,7 @@ class UvBackend(Backend):
             cmd.append("--upgrade")
         if no_deps:
             cmd.append("--no-deps")
-        cmd += [*_strip_pip_quiet_flags(pip_args), *requirements]
+        cmd += [*_default_index_args(_strip_pip_quiet_flags(pip_args)), *requirements]
         process = run_subprocess(
             cmd,
             run_dir=str(venv_root),
@@ -170,7 +170,12 @@ class UvBackend(Backend):
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
-        cmd += ["--outdated", "--format=json", *index_args, *(f"--exclude={name}" for name in exclude)]
+        cmd += [
+            "--outdated",
+            "--format=json",
+            *_default_index_args(index_args),
+            *(f"--exclude={name}" for name in exclude),
+        ]
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         return outdated_packages_from_process(process)
 
@@ -335,6 +340,15 @@ def _uv_env_overrides() -> dict[str, str | None]:
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
     return [arg for arg in pip_args if arg not in {"-q", "-qq", "--quiet"}]
+
+
+def _default_index_args(pip_args: list[str]) -> list[str]:
+    # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
+    return [
+        f"--default-index{separator}{value}" if flag in {"--index-url", "-i"} else arg
+        for arg in pip_args
+        for flag, separator, value in [arg.partition("=")]
+    ]
 
 
 __all__ = [
