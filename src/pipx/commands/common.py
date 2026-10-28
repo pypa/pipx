@@ -247,7 +247,7 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
     if len(first_line) + len(separator) + len(_IGNORE_ENVIRONMENT_FLAG) > _MAX_SHEBANG_LENGTH:
         return
 
-    # uv hard-links or symlinks installed files to its cache, which other environments share; a new inode keeps them
+    # uv hard-links or symlinks installed files to its cache, which other environments share, so write a new inode
     with TemporaryDirectory(dir=path.parent) as directory:
         (rewritten := Path(directory) / path.name).write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
         shutil.copymode(path, rewritten)

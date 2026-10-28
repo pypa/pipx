@@ -119,7 +119,7 @@ def test_expose_app_scripts_keep_mode_on_shebang_rewrite(tmp_path: Path) -> None
 
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
-    assert app_path.stat().st_mode & 0o777 == 0o750
+    assert (app_path.read_bytes(), app_path.stat().st_mode & 0o777) == (b"#!/usr/bin/python3 -E\n", 0o750)
 
 
 @pytest.mark.parametrize(
