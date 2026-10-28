@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
+from zipfile import ZipFile
 
 import pytest
 
@@ -173,16 +174,37 @@ def test_script_name_from_spec_without_suffix_needs_a_path(
     [
         pytest.param("https://example.invalid/app.py", id="py-suffix"),
         pytest.param("https://example.invalid/app", id="no-suffix"),
+        pytest.param("file:///srv/app.py", id="file-url"),
     ],
 )
 def test_local_script_ignores_file_below_cwd_named_like_url(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, url: str
 ) -> None:
     monkeypatch.chdir(tmp_path)
-    (lookalike := tmp_path / url.replace("//", "/")).parent.mkdir(parents=True)
+    (lookalike := tmp_path / url).parent.mkdir(parents=True)
     lookalike.write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8")
 
     assert local_script(url) is None
+
+
+@skip_if_windows
+def test_installable_script_downloads_url_over_file_below_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    url: Final[str] = "https://example.invalid/app.py"
+    (lookalike := tmp_path / url).parent.mkdir(parents=True)
+    lookalike.write_text("# /// script\n# dependencies = []\n# ///\nprint('local')\n", encoding="utf-8")
+    remote: Final[str] = "# /// script\n# dependencies = []\n# ///\nprint('remote')\n"
+    response = mocker.MagicMock(**{
+        "read.return_value": remote.encode(),
+        "headers.get_content_charset.return_value": "utf-8",
+    })
+    response.__enter__.return_value = response
+    mocker.patch("urllib.request.urlopen", return_value=response)
+
+    with installable_script("app", url, ()) as wheel, ZipFile(wheel) as archive:
+        assert archive.read("_pipx_script_app/_script.py").decode() == remote
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
