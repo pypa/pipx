@@ -1203,6 +1203,7 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
     )
     mocker.patch.object(venv, "_backend", backend)
     mocker.patch.object(venv, "list_installed_packages", return_value=set())
+    mocker.patch("pipx.venv.get_site_packages", return_value=[])
 
     with pytest.raises(PipxError) as excinfo:
         venv.install_package_no_deps("requires-newer-python", [])
@@ -1210,6 +1211,44 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
     error: Final[str] = str(excinfo.value)
     assert "requires a different Python" in error
     assert "Cannot determine package name from spec" not in error
+
+
+@pytest.mark.parametrize(
+    ("listed_name", "dist_info_dirs"),
+    [
+        pytest.param("blacken", ["cooltool-1.0.dist-info"], id="rewritten-metadata"),
+        pytest.param("blacken", ["cooltool-1.0.dist-info", "blacken-9.0.dist-info"], id="added-distribution"),
+    ],
+)
+def test_package_name_determination_rejects_name_not_matching_dist_info(
+    mocker: MockerFixture, tmp_path: Path, listed_name: str, dist_info_dirs: list[str]
+) -> None:
+    venv: Final[Venv] = _probe_venv(mocker, tmp_path, listed_name, dist_info_dirs)
+
+    with pytest.raises(PipxError, match=r"declares\s+the\s+name\s+'blacken'"):
+        venv.install_package_no_deps("https://example.com/cooltool-1.0-py3-none-any.whl", [])
+
+
+def test_package_name_determination_accepts_normalized_dist_info_name(mocker: MockerFixture, tmp_path: Path) -> None:
+    venv: Final[Venv] = _probe_venv(mocker, tmp_path, "Cool.Tool", ["cool_tool-1.0.dist-info"])
+
+    assert venv.install_package_no_deps("https://example.com/cool_tool-1.0-py3-none-any.whl", []) == "Cool.Tool"
+
+
+def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, dist_info_dirs: list[str]) -> Venv:
+    def install(**_kwargs: object) -> subprocess.CompletedProcess[str]:
+        for dist_info_dir in dist_info_dirs:
+            (site_packages / dist_info_dir).mkdir()
+        return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
+
+    venv: Final[Venv] = Venv(Path("probe-venv"))
+    backend: Final[MagicMock] = mocker.create_autospec(
+        Backend, instance=True, **{"cooldown_args.return_value": [], "install.side_effect": install}
+    )
+    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
+    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
+    return venv
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
