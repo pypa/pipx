@@ -1831,7 +1831,8 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
         action="store_true",
         help=(
             "Add text to your shell's config file even if it looks like your "
-            "PATH already contains paths to pipx and pipx-install apps."
+            "PATH already contains paths to pipx and pipx-install apps. With --global, "
+            "also replace a system PATH configuration file that holds content pipx did not write."
         ),
     )
     parser.add_argument(

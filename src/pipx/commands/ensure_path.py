@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.util", "shlex", "typing", "userpath"]
+__lazy_modules__ = ["pipx", "pipx.util", "re", "shlex", "typing", "userpath"]
 
 import logging
+import re
 import shlex
 import site
 import sys
@@ -14,7 +15,7 @@ import userpath  # type: ignore[import-not-found]
 from pipx import paths
 from pipx.constants import EXIT_CODE_OK, MACOS, ExitCode
 from pipx.emojis import hazard, stars
-from pipx.util import pipx_wrap
+from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -131,11 +132,19 @@ def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: 
         assignment = f'export PATH={quoted_location}:"$PATH"' if prepend else f'export PATH="$PATH":{quoted_location}'
         contents = f'case ":$PATH:" in *:{quoted_location}:*) ;; *) {assignment} ;; esac\n'
 
-    if not force and config_file.exists() and config_file.read_text(encoding="utf-8") == contents:
+    existing: Final[str] = config_file.read_text(encoding="utf-8") if config_file.exists() else ""
+    if not force and existing == contents:
         print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(f"{location} is already in the system PATH configuration.", subsequent_indent=" " * 4)
         )
         return False
+    # the name alone does not make the file pipx's: an administrator may keep other settings in it
+    if not force and existing and not _written_by_pipx(existing):
+        msg = (
+            f"{config_file} holds content pipx did not write, so pipx left it alone. Add {location} to PATH there "
+            "yourself, or pass --force to replace the file."
+        )
+        raise PipxError(msg)
 
     if dry_run:
         print(  # ruff:ignore[print]  # user-facing CLI output
@@ -155,6 +164,17 @@ def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: 
         )
     )
     return True
+
+
+def _written_by_pipx(contents: str) -> bool:
+    if MACOS:  # /etc/paths.d holds one directory per line, so only a single line can be pipx's own entry
+        return len(contents.splitlines()) == 1
+    # the entry an earlier run wrote for any location, appended or prepended
+    entry: Final[str] = (
+        r'case ":\$PATH:" in \*:(?P<location>.+?):\*\) ;; \*\) '
+        r'export PATH=(?:(?P=location):"\$PATH"|"\$PATH":(?P=location)) ;; esac\n'
+    )
+    return re.fullmatch(entry, contents) is not None
 
 
 def ensure_pipx_paths(
