@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from packaging.utils import canonicalize_name
 
+from helpers import skip_if_windows
 from pipx import venv_inspect
 
 if TYPE_CHECKING:
@@ -47,6 +49,23 @@ def test_inspect_venv_indexes_distribution_names_once(tmp_path: Path, mocker: Mo
     assert result.package_version == "1.0"
     assert [call.args[0] for call in canonicalize.call_args_list].count("Root_Package") == 1
     assert [call.args[0] for call in canonicalize.call_args_list].count("Dependency_Package") == 1
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        pytest.param("-t/some/dir", id="target-option"),
+        pytest.param("-rdrop", id="requirement-option"),
+        pytest.param("../escape", id="path"),
+        pytest.param("a b", id="space"),
+    ],
+)
+def test_not_required_packages_skips_invalid_distribution_names(tmp_path: Path, name: str) -> None:
+    _write_dist_info(tmp_path, "top-package")
+    (egg_info := tmp_path / "extra.egg-info").mkdir()
+    (egg_info / "PKG-INFO").write_text(f"Name: {name}\nVersion: 1.0\n", encoding="utf-8")
+
+    assert venv_inspect.not_required_packages([str(tmp_path)], {}) == {"top-package"}
 
 
 def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: MockerFixture) -> None:
@@ -95,6 +114,57 @@ def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, m
     result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
 
     assert result.package_version == "1.0"
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        pytest.param("man/inside.1", [str(Path("man1") / "inside.1")], id="inside"),
+        pytest.param("{outside}", [], id="absolute-outside"),
+        pytest.param("../outside.1", [], id="parent-outside"),
+    ],
+)
+def test_inspect_venv_copies_editable_man_pages_only_from_the_project(
+    editable_project: Path, source: str, expected: list[str]
+) -> None:
+    source = source.format(outside=editable_project.parent / "outside.1")
+
+    assert _inspect_editable_man_pages(editable_project, source) == expected
+
+
+@skip_if_windows
+def test_inspect_venv_skips_editable_man_page_symlinked_out_of_the_project(editable_project: Path) -> None:
+    (editable_project / "man" / "link.1").symlink_to(editable_project.parent / "outside.1")
+
+    assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
+
+
+@pytest.fixture
+def editable_project(tmp_path: Path, mocker: MockerFixture) -> Path:
+    project = tmp_path / "project"
+    (project / "man").mkdir(parents=True)
+    (project / "man" / "inside.1").touch()
+    (tmp_path / "outside.1").touch()
+    site_packages = tmp_path / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    (site_packages / "root-package-1.0.dist-info" / "direct_url.json").write_text(
+        json.dumps({"url": project.as_uri(), "dir_info": {"editable": True}}), encoding="utf-8"
+    )
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+    return project
+
+
+def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
+    (project / "setup.cfg").write_text(f"[options.data_files]\nshare/man/man1 =\n    {source}\n", encoding="utf-8")
+    venv = project.parent
+    return venv_inspect.inspect_venv(
+        "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
+    ).man_pages
 
 
 @pytest.mark.parametrize(
@@ -173,6 +243,38 @@ def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_ven
         {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
         {"second-app": [extras_venv / "share" / "bash-completion" / "completions" / "second-app"]},
     )
+
+
+@pytest.mark.parametrize(
+    ("metadata_files", "expected"),
+    [
+        pytest.param({"installed-files.txt": "../../bin/other\n"}, ["other"], id="installed-files-only"),
+        pytest.param(
+            {"installed-files.txt": "../../bin/other\n", "RECORD": "root_package/__init__.py,,\n"},
+            [],
+            id="installed-files-beside-record",
+        ),
+    ],
+)
+def test_inspect_venv_reads_installed_files_only_without_record(
+    tmp_path: Path, mocker: MockerFixture, metadata_files: dict[str, str], expected: list[str]
+) -> None:
+    site_packages = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    for name, content in metadata_files.items():
+        (site_packages / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "other").touch()
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+
+    assert result.apps == expected
 
 
 def test_inspect_venv_ignores_resources_that_name_no_file(tmp_path: Path, mocker: MockerFixture) -> None:

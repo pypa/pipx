@@ -79,7 +79,7 @@ from pipx.interpreter import (
 )
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
-from pipx.shared_libs import skip_shared_libs_maintenance
+from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
 from pipx.util import (
     PipxError,
     mkdir,
@@ -302,6 +302,14 @@ def _non_negative_int(value: str) -> int:
     return result
 
 
+def _package_spec(value: str) -> str:
+    # pip and uv would read a dash-leading value as one of their own options rather than a package
+    if value.startswith("-"):
+        msg = f"{redact_url_credentials(value)!r} is an installer option, not a package; pass it with --pip-args"
+        raise argparse.ArgumentTypeError(msg)
+    return value
+
+
 def get_runpip_args(pip_args: list[str]) -> list[str]:
     if len(pip_args) != 1:
         return pip_args
@@ -434,6 +442,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     output: Final[OutputFormat] = _output_format(args)
     with (
         skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)),
+        shared_pip_cooldown(ctx.effective_cooldown_days),
         # pip writes its progress to stdout, which under JSON belongs to the envelope alone
         stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
     ):
@@ -670,6 +679,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     parser.add_argument(
         "--preinstall",
         action="append",
+        type=_package_spec,
         help=(
             "Optional package to be installed into the Virtual Environment before "
             "installing the main package. Use this flag multiple times if you want to preinstall multiple packages."
@@ -774,7 +784,6 @@ def _add_manifest(
         "manifest",
         help="Manage tools declared in an explicit manifest",
         description="Manage tools declared in an explicit manifest",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",
@@ -1526,7 +1535,6 @@ def _add_interpreter(
         "interpreter",
         help="Interact with interpreters managed by pipx",
         description="Interact with interpreters managed by pipx",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",
@@ -1589,7 +1597,6 @@ def _add_cache(
         "cache",
         help="Manage cached run environments",
         description="Manage cached run environments",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",
@@ -1695,6 +1702,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         "--with",
         dest="with_",
         action="append",
+        type=_package_spec,
         default=[],
         help="Extra dependencies to add to the temporary environment",
     )
@@ -1832,7 +1840,8 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
         action="store_true",
         help=(
             "Add text to your shell's config file even if it looks like your "
-            "PATH already contains paths to pipx and pipx-install apps."
+            "PATH already contains paths to pipx and pipx-install apps. With --global, "
+            "also replace a system PATH configuration file that holds content pipx did not write."
         ),
     )
     parser.add_argument(

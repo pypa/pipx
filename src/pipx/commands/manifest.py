@@ -6,6 +6,7 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
+    "pipx.commands.common",
     "pipx.commands.expose",
     "pipx.commands.install",
     "pipx.commands.uninstall",
@@ -31,6 +32,7 @@ from typing import TYPE_CHECKING, Final, TypeAlias, cast
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
+from pipx.commands.common import force_replaces_only
 from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -75,33 +77,35 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
             try:
                 if was_exposed:
                     unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
-                outcome = install(
-                    venv_dir,
-                    [tool.package_name],
-                    [tool.package],
-                    local_bin_dir,
-                    local_man_dir,
-                    python,
-                    recorded.main_package.pip_args,
-                    recorded.venv_args,
-                    verbose=verbose,
-                    force=existed,
-                    reinstall=False,
-                    include_dependencies=tool.include_dependencies,
-                    include_resources_from=tool.include_resources_from,
-                    preinstall_packages=None,
-                    expected_apps=tool.apps,
-                    lock_file=tool.lock_file,
-                    suffix=tool.suffix,
-                    backend=backend,
-                    env_backend=env_backend,
-                    exposure_enabled=tool.expose,
-                    preserve_existing=True,
-                    replace_expected_apps=True,
-                    replace_lock=True,
-                    venv_lock=venv_lock,
-                    emit_output=False,
-                )
+                # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
+                with force_replaces_only(()):
+                    outcome = install(
+                        venv_dir,
+                        [tool.package_name],
+                        [tool.package],
+                        local_bin_dir,
+                        local_man_dir,
+                        python,
+                        recorded.main_package.pip_args,
+                        recorded.venv_args,
+                        verbose=verbose,
+                        force=existed,
+                        reinstall=False,
+                        include_dependencies=tool.include_dependencies,
+                        include_resources_from=tool.include_resources_from,
+                        preinstall_packages=None,
+                        expected_apps=tool.apps,
+                        lock_file=tool.lock_file,
+                        suffix=tool.suffix,
+                        backend=backend,
+                        env_backend=env_backend,
+                        exposure_enabled=tool.expose,
+                        preserve_existing=True,
+                        replace_expected_apps=True,
+                        replace_lock=True,
+                        venv_lock=venv_lock,
+                        emit_output=False,
+                    )
                 error_message = outcome.errors[0].message if outcome.errors else None
             except PipxError as error:
                 error_message = str(error)
