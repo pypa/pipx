@@ -68,6 +68,18 @@ def test_sync_manifest_installs_declared_tool(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_sync_manifest_again_keeps_a_file_it_did_not_expose(write_manifest: Callable[[str], Path]) -> None:
+    manifest: Final[Path] = write_manifest(_manifest("pycowsay==0.0.0.2", "pycowsay"))
+    paths.ctx.bin_dir.mkdir(parents=True, exist_ok=True)
+    (user_file := paths.ctx.bin_dir / app_name("pycowsay")).write_text("mine", encoding="utf-8")
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
+
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
+
+    assert (user_file.is_symlink(), user_file.read_text(encoding="utf-8")) == (False, "mine")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_selects_dependency_apps(
     write_manifest: Callable[[str], Path],
     local_extras_wheel: Path,
