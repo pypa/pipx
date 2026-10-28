@@ -444,7 +444,7 @@ def test_run_script_from_url_ignores_working_directory_modules(
 
     run_pipx_cli_exit(["run", served_script.replace("pipx-demo.py", "imports-json.py")], assert_exit=0)
 
-    assert capfd.readouterr().out == '"ok"\n'
+    assert capfd.readouterr().out.splitlines() == ['"ok"']
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
@@ -458,7 +458,7 @@ def test_run_entry_point_ignores_working_directory_modules(
 
     run_pipx_cli_exit(["run", "--spec", str(empty_project), "empty-project"], assert_exit=0)
 
-    assert capfd.readouterr().out == '"ok"\n'
+    assert capfd.readouterr().out.splitlines() == ['"ok"']
 
 
 @pytest.fixture
