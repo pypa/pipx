@@ -151,10 +151,10 @@ def expose_resources_globally(
             msg = f"Refusing to expose {path} as {name!r}, which is not a file name."
             raise PipxError(msg)
         if resource_type == "app":
-            if module := _shadowed_stdlib_module(name, path):
+            if module := _shadowed_module(name, path):
                 _LOGGER.warning(
                     "%s  Not exposing %s: a Python script started from %s, such as pip's pipx launcher, would import "
-                    "it in place of the standard library module %s.",
+                    "it in place of the %s module.",
                     hazard,
                     name,
                     local_resource_dir,
@@ -190,16 +190,19 @@ def expose_resources_globally(
     return collisions
 
 
-def _shadowed_stdlib_module(name: str, path: Path) -> str | None:
+_SHADOWED_MODULES: Final[frozenset[str]] = frozenset({*sys.stdlib_module_names, "pipx"})
+
+
+def _shadowed_module(name: str, path: Path) -> str | None:
     # a script started from the bin dir, such as pip's pipx launcher, searches that dir first, and the launcher imports
-    # re (and through it enum, functools and more) before pipx can drop the entry from sys.path
+    # re (and through it enum, functools and more) and then pipx itself before pipx can drop the entry from sys.path
     if path.is_dir():
-        return name if name in sys.stdlib_module_names else None
+        return name if name in _SHADOWED_MODULES else None
     return next(
         (
             module
             for suffix in all_suffixes()
-            if (module := name.removesuffix(suffix)) != name and module in sys.stdlib_module_names
+            if (module := name.removesuffix(suffix)) != name and module in _SHADOWED_MODULES
         ),
         None,
     )

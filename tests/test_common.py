@@ -155,9 +155,11 @@ def test_expose_refuses_name_leading_out_of_resource_dir(
         pytest.param("bin/re.pyc", "", "re", id="bytecode-module"),
         pytest.param("bin/collections/__init__.py", "", "collections", id="package-directory"),
         pytest.param("bin/re", ".py", "re", id="suffix-makes-module"),
+        pytest.param("bin/pipx.py", "", "pipx", id="pipx-module"),
+        pytest.param("bin/pipx/__init__.py", "", "pipx", id="pipx-package"),
     ],
 )
-def test_expose_refuses_app_named_like_stdlib_module(
+def test_expose_refuses_app_named_like_shadowed_module(
     tmp_path: Path, caplog: pytest.LogCaptureFixture, resource: str, suffix: str, module: str
 ) -> None:
     (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
@@ -167,7 +169,7 @@ def test_expose_refuses_app_named_like_stdlib_module(
 
     expose_resources_globally("app", tmp_path / "local", [app_path], force=False, suffix=suffix)
 
-    assert (list((tmp_path / "local").iterdir()), f"the standard library module {module}." in caplog.text) == ([], True)
+    assert (list((tmp_path / "local").iterdir()), f"in place of the {module} module." in caplog.text) == ([], True)
 
 
 @pytest.mark.parametrize(
