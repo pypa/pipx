@@ -63,10 +63,36 @@ def test_extract_index_options_missing_value(option: str) -> None:
         ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
         ("black-18.9b0-py36-none-any.whl", None),
         ("black-18.9b0.tar.gz", None),
+        ("black-18.9b0.zip", None),
+        ("black-18.9b0.tar", None),
+        ("black-18.9b0.tgz", None),
+        ("black-18.9b0.tar.bz2", None),
+        ("black-18.9b0.tbz", None),
+        ("black-18.9b0.tar.xz", None),
+        ("black-18.9b0.txz", None),
+        ("black-18.9b0.tlz", None),
+        ("black-18.9b0.tar.lz", None),
+        ("black-18.9b0.tar.lzma", None),
+        ("black-18.9b0.TAR.GZ", None),
     ],
 )
 def test_valid_pypi_name(package_spec_in: str, package_name_out: str | None) -> None:
     assert valid_pypi_name(package_spec_in) == package_name_out
+
+
+@pytest.mark.parametrize(
+    "name", [pytest.param("pkg-1.0.tar.xz", id="lowercase"), pytest.param("Pkg-1.0.TAR.XZ", id="uppercase")]
+)
+def test_parse_specifier_for_install_bare_archive(name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (archive := tmp_path / name).touch()
+    monkeypatch.chdir(tmp_path)
+    assert parse_specifier_for_install(name, []) == (str(archive.resolve()), [])
+
+
+def test_parse_specifier_for_install_missing_bare_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(PipxError, match=r"pkg-1\.0\.tar\.xz does not exist"):
+        parse_specifier_for_install("pkg-1.0.tar.xz", [])
 
 
 @pytest.mark.parametrize(
@@ -103,6 +129,8 @@ def test_package_spec_satisfied(package_spec: str, installed_spec: str, expected
             "black",
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
         ),
+        ("black-18.9b0.tar.xz", "black", "black-18.9b0.tar.xz"),
+        ("Black-18.9b0.TAR.XZ", "black", "Black-18.9b0.TAR.XZ"),
     ],
 )
 def test_fix_package_name(package_spec_in: str, package_name: str, package_spec_out: str) -> None:
