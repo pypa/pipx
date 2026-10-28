@@ -131,6 +131,13 @@ def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
     if not any(tool.lock_file is not None for tool in manifest.tools):
         msg = "The manifest does not declare any lock files."
         raise PipxError(msg)
+    if outside := sorted(
+        str(tool.lock_file)
+        for tool in manifest.tools
+        if tool.lock_file is not None and not tool.lock_file.is_relative_to(manifest.path.parent)
+    ):
+        msg = f"Manifest lock files must be inside the manifest directory {manifest.path.parent}: {', '.join(outside)}"
+        raise PipxError(msg)
     if not (nab := which("nab")):
         msg = "The nab command is required. Install it with `pipx install nab`."
         raise PipxError(msg)

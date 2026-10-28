@@ -579,6 +579,39 @@ offline = false
 
 
 @pytest.mark.parametrize(
+    "lock",
+    [
+        pytest.param("../outside/pylock.toml", id="parent"),
+        pytest.param("{outside}/pylock.toml", id="absolute"),
+        pytest.param("link/pylock.toml", id="symlink"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_lock_manifest_refuses_lock_outside_manifest_directory(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    lock: str,
+) -> None:
+    (manifest_dir := tmp_path / "manifest").mkdir()
+    (outside := tmp_path / "outside").mkdir()
+    (outside_lock := outside / "pylock.toml").write_text("old\n", encoding="utf-8")
+    (manifest_dir / "link").symlink_to(outside, target_is_directory=True)
+    manifest = manifest_dir / "pipx.toml"
+    manifest.write_text(_manifest(tool=f'lock = "{lock.format(outside=outside.as_posix())}"\n'), encoding="utf-8")
+    mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
+    run = mocker.patch.object(manifest_module.subprocess, "run", autospec=True)
+
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
+
+    assert (
+        "must be inside the manifest directory" in capsys.readouterr().err,
+        run.called,
+        outside_lock.read_text(encoding="utf-8"),
+    ) == (True, False, "old\n")
+
+
+@pytest.mark.parametrize(
     ("nab", "lock", "expected_error"),
     [
         pytest.param(None, 'lock = "pylock.toml"\n', "nab command is required", id="nab"),
