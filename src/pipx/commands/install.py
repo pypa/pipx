@@ -291,8 +291,6 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         fetch_python=fetch_python,
                         python_flag_passed=python_flag_passed,
                         verbose=verbose,
-                        backend=install_backend,
-                        env_backend=env_backend,
                         messages=messages,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
@@ -1060,8 +1058,6 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
     messages: list[OutputMessage],
 ) -> Venv:
     try:
@@ -1078,8 +1074,8 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
         verbose=verbose,
-        backend=backend,
-        env_backend=env_backend,
+        # the rebuild deletes the recorded backend; resolving it again could switch installer and index
+        backend=venv.backend_name,
         messages=messages,
     )
     build.run(venv)
@@ -1111,8 +1107,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: str,
     messages: list[OutputMessage],
 ) -> Venv:
     interpreter: Final[str] = _supported_python(
@@ -1122,7 +1117,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         messages=messages,
     )
     rmdir(venv_dir)
-    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend, env_backend=env_backend)
+    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend)
 
 
 __all__ = [
