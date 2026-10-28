@@ -148,6 +148,50 @@ def test_expose_refuses_name_leading_out_of_resource_dir(
     )
 
 
+@pytest.mark.parametrize(
+    ("resource", "suffix", "module"),
+    [
+        pytest.param("bin/enum.py", "", "enum", id="source-module"),
+        pytest.param("bin/re.pyc", "", "re", id="bytecode-module"),
+        pytest.param("bin/collections/__init__.py", "", "collections", id="package-directory"),
+        pytest.param("bin/re", ".py", "re", id="suffix-makes-module"),
+        pytest.param("bin/pipx.py", "", "pipx", id="pipx-module"),
+        pytest.param("bin/pipx/__init__.py", "", "pipx", id="pipx-package"),
+    ],
+)
+def test_expose_refuses_app_named_like_shadowed_module(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, resource: str, suffix: str, module: str
+) -> None:
+    (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
+    resource_path.write_text("")
+    app_path = tmp_path / "venv" / "bin" / Path(resource).relative_to("bin").parts[0]
+    (tmp_path / "local").mkdir()
+
+    expose_resources_globally("app", tmp_path / "local", [app_path], force=False, suffix=suffix)
+
+    assert (list((tmp_path / "local").iterdir()), f"in place of the {module} module." in caplog.text) == ([], True)
+
+
+@pytest.mark.parametrize(
+    ("resource_type", "resource", "source", "exposed"),
+    [
+        pytest.param("app", "bin/enum", "bin/enum", "enum", id="app-without-module-suffix"),
+        pytest.param("app", "bin/enum_tool.py", "bin/enum_tool.py", "enum_tool.py", id="app-not-a-stdlib-module"),
+        pytest.param("app", "bin/tools/__init__.py", "bin/tools", "tools", id="directory-not-a-stdlib-module"),
+        pytest.param("man", "share/man/man1/re.py", "share/man/man1/re.py", "man1/re.py", id="man-page"),
+    ],
+)
+def test_expose_keeps_names_that_shadow_no_stdlib_module(
+    tmp_path: Path, resource_type: str, resource: str, source: str, exposed: str
+) -> None:
+    (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
+    resource_path.write_text("")
+
+    expose_resources_globally(resource_type, tmp_path / "local", [tmp_path / "venv" / source], force=False)
+
+    assert (tmp_path / "local" / exposed).exists()
+
+
 @skip_if_windows
 def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
     (app_path := tmp_path / "venv" / "demo").parent.mkdir()

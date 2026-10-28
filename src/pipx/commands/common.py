@@ -3,6 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = [
     "collections",
     "filecmp",
+    "importlib.machinery",
     "packaging.utils",
     "pathlib",
     "pipx",
@@ -25,12 +26,14 @@ import os
 import re
 import shlex
 import shutil
+import sys
 import tempfile
 import time
 from collections import Counter
 from contextlib import AbstractContextManager, contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass
+from importlib.machinery import all_suffixes
 from pathlib import Path
 from re import Pattern
 from shutil import which
@@ -148,6 +151,16 @@ def expose_resources_globally(
             msg = f"Refusing to expose {path} as {name!r}, which is not a file name."
             raise PipxError(msg)
         if resource_type == "app":
+            if module := _shadowed_module(name, path):
+                _LOGGER.warning(
+                    "%s  Not exposing %s: a Python script started from %s, such as pip's pipx launcher, would import "
+                    "it in place of the %s module.",
+                    hazard,
+                    name,
+                    local_resource_dir,
+                    module,
+                )
+                continue
             _add_ignore_environment_to_python_shebang(path)
         src = path.resolve()
         if resource_type == "man":
@@ -175,6 +188,24 @@ def expose_resources_globally(
             else:
                 collisions.append(collision)
     return collisions
+
+
+_SHADOWED_MODULES: Final[frozenset[str]] = frozenset({*sys.stdlib_module_names, "pipx"})
+
+
+def _shadowed_module(name: str, path: Path) -> str | None:
+    # a script started from the bin dir, such as pip's pipx launcher, searches that dir first, and the launcher imports
+    # re (and through it enum, functools and more) and then pipx itself before pipx can drop the entry from sys.path
+    if path.is_dir():
+        return name if name in _SHADOWED_MODULES else None
+    return next(
+        (
+            module
+            for suffix in all_suffixes()
+            if (module := name.removesuffix(suffix)) != name and module in _SHADOWED_MODULES
+        ),
+        None,
+    )
 
 
 def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
