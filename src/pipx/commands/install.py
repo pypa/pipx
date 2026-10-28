@@ -150,7 +150,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     resolution_cooldown: Final[int | None] = (
         None if lock_file is not None else _first_cooldown(cooldown_days, env_cooldown_days)
     )
-    package_names, resolution_failure, python = _resolve_package_names(
+    package_names, resolution_failure, interpreters = _resolve_package_names(
         package_names,
         package_specs,
         python,
@@ -169,7 +169,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
         return _finish_install(_failed_install_result(package_spec, resolution_error), emit_output=emit_output)
 
     venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.ctx.venvs)
-    for package_name, package_spec in zip(package_names, package_specs, strict=False):
+    for package_name, package_spec, package_python in zip(package_names, package_specs, interpreters, strict=False):
         if venv_dir is None:
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
         environment = venv_dir.name
@@ -191,7 +191,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
             try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole existing-venv resolution
                 venv = Venv(
                     venv_dir,
-                    python=python,
+                    python=package_python,
                     verbose=verbose,
                     backend=install_backend,
                     env_backend=install_env_backend,
@@ -223,7 +223,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         package_spec,
                         local_bin_dir,
                         local_man_dir,
-                        python=python,
+                        python=package_python,
                         pip_args=pip_args,
                         verbose=verbose,
                         force=force,
@@ -370,20 +370,23 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     messages: list[OutputMessage],
-) -> tuple[list[str], tuple[str, PipxError] | None, str]:
+) -> tuple[list[str], tuple[str, PipxError] | None, list[str]]:
     if package_names is not None and len(package_names) == len(package_specs):
-        return package_names, None, python
+        return package_names, None, [python] * len(package_specs)
 
     resolved: Final[list[str]] = []
+    interpreters: Final[list[str]] = []
     for package_spec in package_specs:
+        interpreter = python
         try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole per-spec name resolution
             if (script_name := script_name_from_spec(package_spec, expected_apps)) is not None:
                 resolved.append(script_name)
+                interpreters.append(interpreter)
                 continue
             try:
                 name = package_name_from_spec(
                     package_spec,
-                    python,
+                    interpreter,
                     pip_args=pip_args,
                     verbose=verbose,
                     backend=backend,
@@ -392,7 +395,7 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
                 )
             except IncompatiblePythonError as error:
                 # reading the name off a local project already runs an install, so the constraint surfaces here first
-                python = _supported_python(
+                interpreter = _supported_python(
                     error.constraint,
                     fetch_python=fetch_python,
                     python_flag_passed=python_flag_passed,
@@ -400,7 +403,7 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
                 )
                 name = package_name_from_spec(
                     package_spec,
-                    python,
+                    interpreter,
                     pip_args=pip_args,
                     verbose=verbose,
                     backend=backend,
@@ -408,9 +411,10 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
                     cooldown_days=cooldown_days,
                 )
             resolved.append(name)
+            interpreters.append(interpreter)
         except PipxError as error:
-            return resolved, (package_spec, error), python
-    return resolved, None, python
+            return resolved, (package_spec, error), interpreters
+    return resolved, None, interpreters
 
 
 def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates the flat set of install options together
