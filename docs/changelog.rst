@@ -14,6 +14,20 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-7:
+
+`1.18.7 <https://github.com/pypa/pipx/tree/1.18.7>`_ - 2026-10-28
+=================================================================
+
+.. _release-1-18-7-security:
+
+Security
+--------
+
+- Require pip 26.2.2 or later in the shared libraries, and replace an older shared pip on the next pipx command instead
+  of waiting for the 30-day refresh. Older pip releases bundle a certifi that still trusts the compromised
+  eMudhra/emSign root CA (:pr:`2197`) by :user:`gaborbernat`.
+
 .. _release-1-18-6:
 
 `1.18.6 <https://github.com/pypa/pipx/tree/1.18.6>`_ - 2026-10-28
