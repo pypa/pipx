@@ -222,6 +222,11 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
         )
         pip_args.remove("--editable")
 
+    return package_or_url, resolve_pip_path_args(pip_args)
+
+
+def resolve_pip_path_args(pip_args: list[str]) -> list[str]:
+    pip_args = pip_args.copy()
     for index in range(len(pip_args)):
         option = pip_args[index]
         if (
@@ -247,7 +252,11 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
         if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
             pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
 
-    return package_or_url, pip_args
+    return pip_args
+
+
+def resolve_local_path(package_spec: str) -> str:
+    return _parse_specifier(package_spec).valid_local_path or package_spec
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
@@ -503,6 +512,8 @@ __all__ = [
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
     "replace_index_options",
+    "resolve_local_path",
+    "resolve_pip_path_args",
     "source_without_extras",
     "static_project_name",
     "valid_pypi_name",

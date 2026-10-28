@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import zipfile
 from functools import partial
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -1227,6 +1228,42 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
 
     run_pipx_cli_exit(command, assert_exit=0)
     assert "Reusing cached venv" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        pytest.param("./dist/tool-1.0-py3-none-any.whl", id="dot-slash"),
+        pytest.param("dist/tool-1.0-py3-none-any.whl", id="bare"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_relative_spec_keys_cache_per_directory(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+    spec: str,
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    for checkout in ("first", "second"):
+        (dist := tmp_path / checkout / "dist").mkdir(parents=True)
+        with zipfile.ZipFile(dist / "tool-1.0-py3-none-any.whl", "w") as archive:
+            archive.writestr("tool.py", f"def main():\n    print('built in {checkout}')\n")
+            archive.writestr("tool-1.0.dist-info/METADATA", "Metadata-Version: 2.1\nName: tool\nVersion: 1.0\n")
+            archive.writestr(
+                "tool-1.0.dist-info/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+            )
+            archive.writestr("tool-1.0.dist-info/entry_points.txt", "[console_scripts]\ntool = tool:main\n")
+            archive.writestr("tool-1.0.dist-info/RECORD", "")
+    monkeypatch.chdir(tmp_path / "first")
+    run_pipx_cli_exit(["run", "--spec", spec, "tool"], assert_exit=0)
+    monkeypatch.chdir(tmp_path / "second")
+    capfd.readouterr()
+
+    run_pipx_cli_exit(["run", "--spec", spec, "tool"], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines()[-1] == "built in second"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
