@@ -402,6 +402,37 @@ def test_backend_install_captures_output_without_verbose(
     )
 
 
+@pytest.fixture
+def uv_run_subprocess(tmp_path: Path, mocker: MockerFixture) -> MagicMock:
+    binary: Final[Path] = tmp_path / "uv"
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+    return mocker.patch("pipx.backends.uv.run_subprocess", autospec=True)
+
+
+def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
+    with pytest.raises(PipxError, match=r"^--index-url is empty"):
+        UvBackend().install(
+            venv_root=tmp_path,
+            venv_python=tmp_path / "bin" / "python",
+            requirements=["demo"],
+            pip_args=["--index-url="],
+        )
+    uv_run_subprocess.assert_not_called()
+
+
+def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
+    with pytest.raises(PipxError, match=r"^--default-index is empty"):
+        UvBackend().list_outdated(
+            venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", index_args=["--default-index="], exclude=[]
+        )
+    uv_run_subprocess.assert_not_called()
+
+
 def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture) -> None:
     binary: Final[Path] = tmp_path / "uv"
     mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)

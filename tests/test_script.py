@@ -201,6 +201,7 @@ def test_installable_script_downloads_url_over_file_below_cwd(
     response = mocker.MagicMock(**{
         "read.return_value": remote.encode(),
         "headers.get_content_charset.return_value": "utf-8",
+        "length": 0,
     })
     response.__enter__.return_value = response
     mocker.patch("urllib.request.urlopen", return_value=response)
@@ -257,7 +258,7 @@ def test_read_script_metadata_invalid_requirement_hides_url_credentials() -> Non
 
 @pytest.mark.parametrize(
     ("userinfo", "masked"),
-    [pytest.param("alice:s3cr3t@", "alice:****@", id="password"), pytest.param("t0ken@", "****@", id="token")],
+    [pytest.param("alice:s3cr3t@", "****:****@", id="password"), pytest.param("t0ken@", "****@", id="token")],
 )
 @pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
 @pytest.mark.usefixtures("pipx_temp_env")

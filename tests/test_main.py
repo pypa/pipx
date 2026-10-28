@@ -379,6 +379,35 @@ def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
         main.get_pip_args({"index_url": index_url})
 
 
+@pytest.mark.parametrize(
+    ("pip_args", "option"),
+    [
+        pytest.param("--index-url=", "--index-url", id="index-url-attached"),
+        pytest.param("--index-url ''", "--index-url", id="index-url-separate"),
+        pytest.param("-i=", "-i", id="short-attached"),
+        pytest.param("-i '  '", "-i", id="short-whitespace"),
+        pytest.param("--default-index=", "--default-index", id="default-index"),
+        pytest.param("--index=", "--index", id="index"),
+        pytest.param("--pre --extra-index-url=", "--extra-index-url", id="extra-index-url"),
+    ],
+)
+def test_get_pip_args_rejects_empty_index_in_pip_args(pip_args: str, option: str) -> None:
+    with pytest.raises(PipxError, match=f"^{option} is empty"):
+        main.get_pip_args({"pip_args": pip_args})
+
+
+@pytest.mark.parametrize(
+    "pip_args",
+    [
+        pytest.param("--index-url", id="missing-value"),
+        pytest.param("-ihttps://example.com/simple", id="short-joined"),
+        pytest.param("--index-url https://example.com/simple", id="separate"),
+    ],
+)
+def test_get_pip_args_keeps_non_empty_index_in_pip_args(pip_args: str) -> None:
+    assert main.get_pip_args({"pip_args": pip_args}) == pip_args.split()
+
+
 _LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
 _GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
