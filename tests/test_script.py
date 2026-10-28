@@ -200,6 +200,7 @@ def test_installable_script_downloads_url_over_file_below_cwd(
     response = mocker.MagicMock(**{
         "read.return_value": remote.encode(),
         "headers.get_content_charset.return_value": "utf-8",
+        "length": 0,
     })
     response.__enter__.return_value = response
     mocker.patch("urllib.request.urlopen", return_value=response)
@@ -243,7 +244,7 @@ def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
 
 @pytest.mark.parametrize(
     ("userinfo", "masked"),
-    [pytest.param("alice:s3cr3t@", "alice:****@", id="password"), pytest.param("t0ken@", "****@", id="token")],
+    [pytest.param("alice:s3cr3t@", "****:****@", id="password"), pytest.param("t0ken@", "****@", id="token")],
 )
 @pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
 @pytest.mark.usefixtures("pipx_temp_env")
