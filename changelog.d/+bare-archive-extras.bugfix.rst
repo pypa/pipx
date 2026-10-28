@@ -1,3 +1,0 @@
-Keep the extras on a local archive named without ``./``, so ``pipx install "tool-1.0-py3-none-any.whl[cow]"`` installs
-the ``cow`` extra like ``./tool-1.0-py3-none-any.whl[cow]`` does. A version specifier, URL or environment marker after
-such a name now fails with an error instead of being silently dropped.

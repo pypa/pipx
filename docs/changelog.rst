@@ -14,6 +14,45 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-6:
+
+`1.18.6 <https://github.com/pypa/pipx/tree/1.18.6>`_ - 2026-10-28
+=================================================================
+
+.. _release-1-18-6-fixed:
+
+Fixed
+-----
+
+- Keep the extras on a local archive named without ``./``, so ``pipx install "tool-1.0-py3-none-any.whl[cow]"`` installs
+  the ``cow`` extra like ``./tool-1.0-py3-none-any.whl[cow]`` does. A version specifier, URL or environment marker after
+  such a name now fails with an error instead of being silently dropped (:pr:`2174`) by :user:`Cyber-Marty` and
+  :user:`gaborbernat`.
+- Keep the recorded source of a local wheel when ``pipx runpip <venv> install`` passes an option value that names the
+  package, such as ``--only-binary <name>``, ``--no-binary <name>``, or uv's ``--upgrade-package <name>`` (:pr:`2166`)
+  by :user:`dailyun` and :user:`gaborbernat`.
+- Read the full inline script metadata block when a TOML multiline string in it contains a ``# ///`` line, instead of
+  failing with ``Unterminated string``. As the inline script metadata specification requires, the block now ends at the
+  last ``# ///`` line of its comment run (:pr:`2172`) by :user:`zurrll` and :user:`gaborbernat`.
+- Retain commands enabled by additional dependency extras with ``--include-deps`` (:pr:`2185`) by :user:`JackyHsu-X` and
+  :user:`gaborbernat`.
+- ``pipx install pkg-1.0.tar.xz`` and other bare filenames ending in an archive extension pip accepts (``.tar.bz2``,
+  ``.tgz``, ``.tar`` and the rest, in any letter case) now install the local file instead of looking up a mangled
+  project name on PyPI (:pr:`2177`) by :user:`ShahabAhmed01` and :user:`gaborbernat`.
+- ``pipx upgrade-all --pip-args=--index-url``, or any other index option given without a value, now fails with an error
+  naming the option instead of a ``StopIteration`` traceback, and ``--output json`` reports it in the usual error
+  envelope (:pr:`2182`) by :user:`jdotc1` and :user:`gaborbernat`.
+
+.. _release-1-18-6-documentation:
+
+Documentation
+-------------
+
+- Fix the dead PythonBytes episode link on the docs home page (:pr:`2170`) by :user:`qodelicious` and
+  :user:`gaborbernat`.
+- Use a current black commit in the install-from-commit example (:pr:`2181`) by :user:`dcadolph` and
+  :user:`gaborbernat`.
+
 .. _release-1-18-5:
 
 `1.18.5 <https://github.com/pypa/pipx/tree/1.18.5>`_ - 2026-10-27

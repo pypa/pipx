@@ -1,3 +1,0 @@
-Read the full inline script metadata block when a TOML multiline string in it contains a ``# ///`` line, instead of
-failing with ``Unterminated string``. As the inline script metadata specification requires, the block now ends at the
-last ``# ///`` line of its comment run.
