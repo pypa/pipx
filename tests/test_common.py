@@ -20,6 +20,7 @@ from pipx.commands.common import (
     reuse_resource_dir_scans,
 )
 from pipx.constants import MACOS
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -94,6 +95,44 @@ def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
     assert app_path.read_bytes() == shebang + flag + separator
+
+
+@pytest.mark.parametrize(
+    ("resource_type", "resource", "suffix"),
+    [
+        pytest.param("app", "bin/..", "", id="app-parent-directory"),
+        pytest.param("man", "share/man/man1/..", "", id="man-parent-directory"),
+        pytest.param("app", "bin/demo", "/../../state/demo", id="suffix-with-separator"),
+    ],
+)
+def test_expose_refuses_name_leading_out_of_resource_dir(
+    tmp_path: Path, resource_type: str, resource: str, suffix: str
+) -> None:
+    (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
+    (local_resource_dir := tmp_path / "local" / "resources").mkdir(parents=True)
+    (unrelated := tmp_path / "local" / "state" / "history").parent.mkdir()
+    unrelated.touch()
+
+    with pytest.raises(PipxError, match=r"^Refusing to expose"):
+        expose_resources_globally(resource_type, local_resource_dir, [resource_path], force=True, suffix=suffix)
+
+    assert (unrelated.exists(), list(local_resource_dir.iterdir()), (unrelated.parent / "demo").exists()) == (
+        True,
+        [],
+        False,
+    )
+
+
+@skip_if_windows
+def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
+    (app_path := tmp_path / "venv" / "demo").parent.mkdir()
+    app_path.write_text("#!/bin/sh\n")
+    (kept := tmp_path / "bin" / "demo" / "keep").parent.mkdir(parents=True)
+    kept.touch()
+
+    collisions = expose_resources_globally("app", tmp_path / "bin", [app_path], force=True)
+
+    assert (collisions, kept.exists()) == ([kept.parent], True)
 
 
 @skip_if_windows

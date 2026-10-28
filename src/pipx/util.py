@@ -759,6 +759,11 @@ def is_paths_relative(path: Path, parent: Path) -> bool:
     return path.is_relative_to(parent)
 
 
+def is_file_name(name: str) -> bool:
+    # joined to a directory, ".." names its parent and a separator or a drive leads anywhere
+    return name not in {"", ".."} and Path(name).name == name
+
+
 __all__ = [
     "InstalledNameMismatchError",
     "PipxError",
@@ -770,6 +775,7 @@ __all__ = [
     "get_pypackage_bin_path",
     "get_site_packages",
     "get_venv_paths",
+    "is_file_name",
     "is_paths_relative",
     "mkdir",
     "open_owner_only",
