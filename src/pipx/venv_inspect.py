@@ -235,6 +235,7 @@ def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: 
     project_root = _get_editable_project_root(dist)
     if project_root is None:
         return set()
+    project_root = project_root.resolve()
 
     man_names = set()
     for target_dir, source_paths in _iter_editable_project_data_files(project_root):
@@ -242,15 +243,14 @@ def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: 
         if man_section is None:
             continue
         for source_path in source_paths:
-            source = Path(source_path)
-            if not source.is_absolute():
-                source = project_root / source
-            if not source.is_file():
+            source = project_root / source_path
+            # a wheel can ship its own direct_url.json, so only files inside the project count as its man pages
+            if not (resolved := source.resolve()).is_relative_to(project_root) or not resolved.is_file():
                 continue
             dest = man_path / man_section / source.name
             try:
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, dest)
+                shutil.copy2(resolved, dest)
             except OSError as exc:
                 logger.warning("Unable to copy editable man page %s to %s: %s", source, dest, exc)
                 continue
