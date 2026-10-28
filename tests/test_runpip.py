@@ -31,16 +31,35 @@ def test_runpip_global() -> None:
     assert not run_pipx_cli(["runpip", "--global", "pycowsay", "list"])
 
 
+@pytest.mark.parametrize(
+    ("backend", "option_args"),
+    [
+        pytest.param("pip", (), id="pip-no-option"),
+        pytest.param("pip", ("--only-binary", "empty-project"), id="pip-only-binary"),
+        pytest.param("pip", ("--no-binary", "empty-project"), id="pip-no-binary"),
+        pytest.param("pip", ("--proxy", "empty-project"), id="pip-proxy"),
+        pytest.param("uv", ("-P", "empty-project"), id="uv-upgrade-package"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_runpip_install_refreshes_main_package_metadata(empty_project: Path, empty_project_wheel: Path) -> None:
-    assert not run_pipx_cli(["install", "--editable", str(empty_project)])
+def test_runpip_install_refreshes_main_package_metadata(
+    empty_project: Path, empty_project_wheel: Path, backend: str, option_args: tuple[str, ...]
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", backend, "--editable", str(empty_project)])
 
     metadata_path = paths.ctx.venvs / "empty-project" / "pipx_metadata.json"
     before = json.loads(metadata_path.read_text())
     assert before["main_package"]["package_or_url"] == str(empty_project.resolve())
     assert before["main_package"]["pip_args"] == ["--editable"]
 
-    assert not run_pipx_cli(["runpip", "empty-project", "install", "--force-reinstall", str(empty_project_wheel)])
+    assert not run_pipx_cli([
+        "runpip",
+        "empty-project",
+        "install",
+        "--force-reinstall",
+        *option_args,
+        str(empty_project_wheel),
+    ])
 
     after = json.loads(metadata_path.read_text())
     assert after["main_package"]["package_or_url"] == str(empty_project_wheel.resolve())

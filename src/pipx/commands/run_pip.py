@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["packaging.utils", "pipx.commands.common", "pipx.util", "pipx.venv"]
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
@@ -16,49 +16,107 @@ if TYPE_CHECKING:
     from pipx.constants import ExitCode
 
 
+# runpip forwards to pip or uv pip depending on the backend, so skip the values of either one's install options
+_OPTIONS_WITH_VALUE: Final[frozenset[str]] = frozenset({
+    "--abi",
+    "--all-releases",
+    "--allow-insecure-host",
+    "--build-constraint",
+    "--build-constraints",
+    "--cache-dir",
+    "--cert",
+    "--client-cert",
+    "--color",
+    "--config-file",
+    "--config-setting",
+    "--config-settings",
+    "--config-settings-package",
+    "--constraint",
+    "--constraints",
+    "--default-index",
+    "--default-timeout",
+    "--directory",
+    "--exclude",
+    "--exclude-newer",
+    "--exclude-newer-package",
+    "--excludes",
+    "--exists-action",
+    "--extra",
+    "--extra-index-url",
+    "--find-links",
+    "--fork-strategy",
+    "--group",
+    "--implementation",
+    "--index",
+    "--index-strategy",
+    "--index-url",
+    "--keyring-provider",
+    "--link-mode",
+    "--local-log",
+    "--log",
+    "--log-file",
+    "--no-binary",
+    "--no-build-isolation-package",
+    "--no-editable-package",
+    "--no-sources-package",
+    "--only-binary",
+    "--only-final",
+    "--output-format",
+    "--override",
+    "--overrides",
+    "--platform",
+    "--prefix",
+    "--prerelease",
+    "--prerelease-package",
+    "--progress-bar",
+    "--project",
+    "--proxy",
+    "--pypi-url",
+    "--python",
+    "--python-platform",
+    "--python-version",
+    "--refresh-package",
+    "--reinstall-package",
+    "--report",
+    "--requirement",
+    "--requirements",
+    "--requirements-from-script",
+    "--resolution",
+    "--resume-retries",
+    "--retries",
+    "--root",
+    "--root-user-action",
+    "--source",
+    "--source-dir",
+    "--source-directory",
+    "--src",
+    "--target",
+    "--timeout",
+    "--torch-backend",
+    "--trusted-host",
+    "--upgrade-group",
+    "--upgrade-package",
+    "--upgrade-strategy",
+    "--uploaded-prior-to",
+    "--use-deprecated",
+    "--use-feature",
+    "-C",
+    "-P",
+    "-b",
+    "-c",
+    "-f",
+    "-i",
+    "-p",
+    "-r",
+    "-t",
+})
+
+
 def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     if not pip_args or pip_args[0] != "install":
         return []
 
     specs: list[tuple[str, bool]] = []
-    options_with_value = {
-        "-c",
-        "--constraint",
-        "--config-settings",
-        "-f",
-        "--find-links",
-        "-i",
-        "--index-url",
-        "--extra-index-url",
-        "--implementation",
-        "--platform",
-        "--prefix",
-        "--python-version",
-        "-r",
-        "--requirement",
-        "--report",
-        "--root",
-        "--src",
-        "--target",
-        "--trusted-host",
-    }
-    options_with_value_prefixes = (
-        "--constraint=",
-        "--config-settings=",
-        "--find-links=",
-        "--index-url=",
-        "--extra-index-url=",
-        "--implementation=",
-        "--platform=",
-        "--prefix=",
-        "--python-version=",
-        "--requirement=",
-        "--report=",
-        "--root=",
-        "--src=",
-        "--target=",
-        "--trusted-host=",
-    )
 
     index = 1
     while index < len(pip_args):
@@ -72,10 +130,10 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
             specs.append((arg.split("=", 1)[1], True))
             index += 1
             continue
-        if arg in options_with_value:
+        if arg in _OPTIONS_WITH_VALUE:
             index += 2
             continue
-        if arg.startswith(options_with_value_prefixes) or arg.startswith("-"):
+        if arg.startswith("-"):
             index += 1
             continue
         specs.append((arg, False))
