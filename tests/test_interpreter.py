@@ -421,6 +421,46 @@ def test_fetch_python_always_rejects_paths(python_version: str) -> None:
         find_python_interpreter(python_version, fetch_python=FetchPythonOptions.ALWAYS)
 
 
+@pytest.mark.usefixtures("mocked_github_api")
+@pytest.mark.parametrize(
+    ("python_version", "fetch_python"),
+    [
+        pytest.param("..", FetchPythonOptions.ALWAYS, id="parent-always"),
+        pytest.param("..", FetchPythonOptions.MISSING, id="parent-missing"),
+        pytest.param(".", FetchPythonOptions.ALWAYS, id="cache-dir"),
+        pytest.param("python", FetchPythonOptions.ALWAYS, id="python-stripped-to-empty"),
+        pytest.param("cpython", FetchPythonOptions.MISSING, id="cpython-stripped-to-empty"),
+        pytest.param(f"..{os.sep}venvs{os.sep}app", FetchPythonOptions.MISSING, id="sibling-venv"),
+    ],
+)
+def test_fetch_python_non_version_keeps_pipx_home(
+    monkeypatch: pytest.MonkeyPatch, python_version: str, fetch_python: FetchPythonOptions
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
+    cache_dir = pipx.paths.ctx.standalone_python_cachedir
+    kept = [cache_dir / "3.98", cache_dir.parent / "venvs" / "app"]
+    for directory in kept:
+        directory.mkdir(parents=True)
+
+    with pytest.raises(InterpreterResolutionError, match="python-build-standalone"):
+        find_python_interpreter(python_version, fetch_python=fetch_python)
+
+    assert [directory.is_dir() for directory in kept] == [True, True]
+
+
+@pytest.mark.usefixtures("mocked_github_api")
+def test_fetch_python_missing_keeps_directory_named_by_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
+    project = tmp_path_factory.mktemp("project")
+
+    with pytest.raises(InterpreterResolutionError, match="python-build-standalone"):
+        find_python_interpreter(str(project), fetch_python=FetchPythonOptions.MISSING)
+
+    assert project.is_dir()
+
+
 def test_find_python_interpreter_py_launcher_failure_without_fetch_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
 
