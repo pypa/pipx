@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from packaging.utils import canonicalize_name
 
+from helpers import skip_if_windows
 from pipx import venv_inspect
 
 if TYPE_CHECKING:
@@ -77,6 +79,57 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
     os.utime(site_packages, ns=(site_packages_stat.st_atime_ns, site_packages_stat.st_mtime_ns))
 
     assert venv_inspect.inspect_venv(*args).package_version == "1.0"
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        pytest.param("man/inside.1", [str(Path("man1") / "inside.1")], id="inside"),
+        pytest.param("{outside}", [], id="absolute-outside"),
+        pytest.param("../outside.1", [], id="parent-outside"),
+    ],
+)
+def test_inspect_venv_copies_editable_man_pages_only_from_the_project(
+    editable_project: Path, source: str, expected: list[str]
+) -> None:
+    source = source.format(outside=editable_project.parent / "outside.1")
+
+    assert _inspect_editable_man_pages(editable_project, source) == expected
+
+
+@skip_if_windows
+def test_inspect_venv_skips_editable_man_page_symlinked_out_of_the_project(editable_project: Path) -> None:
+    (editable_project / "man" / "link.1").symlink_to(editable_project.parent / "outside.1")
+
+    assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
+
+
+@pytest.fixture
+def editable_project(tmp_path: Path, mocker: MockerFixture) -> Path:
+    project = tmp_path / "project"
+    (project / "man").mkdir(parents=True)
+    (project / "man" / "inside.1").touch()
+    (tmp_path / "outside.1").touch()
+    site_packages = tmp_path / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    (site_packages / "root-package-1.0.dist-info" / "direct_url.json").write_text(
+        json.dumps({"url": project.as_uri(), "dir_info": {"editable": True}}), encoding="utf-8"
+    )
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+    return project
+
+
+def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
+    (project / "setup.cfg").write_text(f"[options.data_files]\nshare/man/man1 =\n    {source}\n", encoding="utf-8")
+    venv = project.parent
+    return venv_inspect.inspect_venv(
+        "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
+    ).man_pages
 
 
 @pytest.mark.parametrize(
