@@ -66,7 +66,9 @@ generate the declared locks:
 
 ``pipx manifest lock`` passes the manifest to nab once per locked dependency group, and records that group as the
 lock's default so installers select it. Existing locks seed their replacements, and pipx overwrites the declared files
-only after every resolution succeeds. Entries without ``lock`` stay unlocked.
+only after every resolution succeeds. Entries without ``lock`` stay unlocked. It refuses to run when a ``lock`` path
+resolves outside the manifest directory, through ``..``, ``~``, an absolute path, or a symlink; ``pipx manifest sync``
+still reads locks kept elsewhere.
 
 *******************
  Apply the manifest
