@@ -266,12 +266,31 @@ def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_ven
     ],
 )
 def test_inspect_venv_reads_installed_files_only_without_record(
-    tmp_path: Path, mocker: MockerFixture, metadata_files: dict[str, str], expected: list[str]
+    other_app_venv: Path, metadata_files: dict[str, str], expected: list[str]
 ) -> None:
+    for name, content in metadata_files.items():
+        (other_app_venv / "lib" / "site-packages" / "root-package-1.0.dist-info" / name).write_text(
+            content, encoding="utf-8"
+        )
+
+    assert _inspect_root_package(other_app_venv).apps == expected
+
+
+@skip_if_windows
+def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(other_app_venv: Path) -> None:
+    site_packages = other_app_venv / "lib" / "site-packages"
+    (site_packages / "root-package-1.0.dist-info" / "installed-files.txt").write_text(
+        "loop\n../../bin/other\n", encoding="utf-8"
+    )
+    (loop := site_packages / "loop").symlink_to(loop)
+
+    assert _inspect_root_package(other_app_venv).apps == ["other"]
+
+
+@pytest.fixture
+def other_app_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
     site_packages = tmp_path / "lib" / "site-packages"
     _write_dist_info(site_packages, "root-package")
-    for name, content in metadata_files.items():
-        (site_packages / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "other").touch()
     mocker.patch.object(
@@ -280,10 +299,11 @@ def test_inspect_venv_reads_installed_files_only_without_record(
         autospec=True,
         return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
     )
+    return tmp_path
 
-    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
 
-    assert result.apps == expected
+def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
+    return venv_inspect.inspect_venv("root-package", set(), venv / "bin", venv / "python", venv / "man")
 
 
 @pytest.mark.parametrize(
