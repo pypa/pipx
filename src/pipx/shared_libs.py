@@ -329,7 +329,7 @@ class _SharedLibs:
     ) -> None:
         logger.info("Upgrading shared libraries in %s", self.root)
 
-        # pip runs inside the shared venv, so relative --find-links/--constraint values must not follow that directory
+        # pip runs inside the shared venv, so relative path values such as --cert must not follow that directory
         filtered_pip_args = [arg for arg in absolute_path_pip_args(pip_args, Path.cwd()) if arg != "--editable"]
         if not verbose:
             filtered_pip_args.append("-q")

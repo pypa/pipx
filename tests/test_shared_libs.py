@@ -325,6 +325,23 @@ def test_shared_libs_upgrade_runs_pip_in_shared_root(mocker: MockerFixture) -> N
     assert run_subprocess.call_args.kwargs["run_dir"] == str(shared_libs.shared_libs.root)
 
 
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_upgrade_resolves_relative_cert_against_cwd(
+    mocker: MockerFixture, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    shared_libs.shared_libs.upgrade(pip_args=["--cert=ca.pem"], verbose=True, raises=True)
+
+    assert f"--cert={(tmp_path / 'ca.pem').resolve()}" in run_subprocess.call_args.args[0]
+
+
 @pytest.mark.usefixtures("shared_pip_layout")
 def test_shared_libs_upgrade_serializes_concurrent_calls(
     mocker: MockerFixture,

@@ -30,8 +30,35 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+file"})
-_PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
-_PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
+# pip install options taking a file or directory, from pip's cmdoptions.py and commands/install.py
+_PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
+    "-c",
+    "--constraint",
+    "--build-constraint",
+    "-f",
+    "--find-links",
+    "-r",
+    "--requirement",
+    "--requirements-from-script",
+    "-t",
+    "--target",
+    "--root",
+    "--prefix",
+    "--src",
+    "--source",
+    "--source-dir",
+    "--source-directory",
+    "--report",
+    "--log",
+    "--log-file",
+    "--local-log",
+    "--cert",
+    "--client-cert",
+    "--cache-dir",
+})
+_PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f", "-r", "-t"})
+# pip writes --report - to stdout
+_PIP_STDOUT_VALUE: Final[str] = "-"
 _SHORT_OPTION_LEN: Final[int] = 2
 # pip's and uv's spellings, since a uv environment records options as uv pip install accepts them
 _PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
@@ -234,9 +261,7 @@ def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
             and (option_name := option[:2]) in _PIP_ATTACHED_PATH_OPTIONS
             and option[2] != "="
         ):
-            value = option[2:]
-            if not urllib.parse.urlsplit(value).scheme:
-                pip_args[index] = f"{option_name}{(base / Path(value).expanduser()).resolve()}"
+            pip_args[index] = f"{option_name}{_absolute_path_value(option[2:], base)}"
             continue
 
         option_name, separator, value = option.partition("=")
@@ -244,15 +269,17 @@ def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
             continue
 
         if separator:
-            if not urllib.parse.urlsplit(value).scheme:
-                pip_args[index] = f"{option_name}={(base / Path(value).expanduser()).resolve()}"
-            continue
-
-        argument_index = index + 1
-        if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
-            pip_args[argument_index] = str((base / Path(pip_args[argument_index]).expanduser()).resolve())
+            pip_args[index] = f"{option_name}={_absolute_path_value(value, base)}"
+        elif (argument_index := index + 1) < len(pip_args):
+            pip_args[argument_index] = _absolute_path_value(pip_args[argument_index], base)
 
     return pip_args
+
+
+def _absolute_path_value(value: str, base: Path) -> str:
+    if value == _PIP_STDOUT_VALUE or urllib.parse.urlsplit(value).scheme:
+        return value
+    return str((base / Path(value).expanduser()).resolve())
 
 
 def resolve_local_path(package_spec: str) -> str:
