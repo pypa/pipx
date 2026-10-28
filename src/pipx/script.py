@@ -29,6 +29,8 @@ from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from http.client import HTTPResponse
+    from urllib.response import addinfourl
     from zipfile import ZipFile
 
 
@@ -140,8 +142,16 @@ def is_script_spec(package_spec: str) -> bool:
 
 
 def local_script(package_spec: str) -> Path | None:
+    # a single-letter scheme is a Windows drive; any longer one is a URL, whose path must not resolve below the cwd
+    if len(urllib.parse.urlsplit(package_spec).scheme) > 1:
+        return None
     path: Final[Path] = Path(package_spec).expanduser()
-    if path.is_file() and (path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))):
+    if not path.is_file():
+        return None
+    if path.suffix.lower() == ".py":
+        return path.resolve()
+    # a bare name is a package on the index, as pip reads it, so a file in the working directory must not shadow it
+    if not path.suffix and package_spec != path.name and _has_inline_script_metadata(path):
         return path.resolve()
     return None
 
@@ -162,9 +172,10 @@ def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
 
 
 def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
-    path: Final[Path] = Path(package_or_url).expanduser()
     content: Final[str] = (
-        path.read_text(encoding="utf-8") if path.is_file() else _read_url(package_or_url)
+        script.read_text(encoding="utf-8")
+        if (script := local_script(package_or_url)) is not None
+        else _read_url(package_or_url)
     ).removeprefix("\ufeff")
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
@@ -184,21 +195,29 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 
 def _read_url(url: str) -> str:
+    from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
+    reject_url_credentials(url)
     try:
         with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
-            if len(data) > _MAX_SCRIPT_BYTES:
-                msg = (
-                    f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; "
-                    "refusing to download it."
-                )
-                raise PipxError(msg)
+            _reject_incomplete_script(url, response, data)
             return data.decode(response.headers.get_content_charset() or "utf-8")
-    except OSError as error:
+    except (OSError, HTTPException) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
         raise PipxError(msg) from error
+
+
+def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
+    if len(data) > _MAX_SCRIPT_BYTES:
+        msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+        raise PipxError(msg)
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, which file:// responses lack; a script missing its tail can still run halfway
+    if missing := getattr(response, "length", None):
+        msg = f"Script {redact_url_credentials(url)} ended {missing} bytes short of its Content-Length."
+        raise PipxError(msg)
 
 
 def _normalize_requires_python(value: str | list[str] | None) -> str | None:
@@ -278,11 +297,21 @@ def _digest(data: bytes) -> str:
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
 
 
+def reject_url_credentials(url: str) -> None:
+    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
+    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
+    # does log in with them
+    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
+
+
 __all__ = [
     "ScriptMetadata",
     "installable_script",
     "is_script_spec",
     "local_script",
     "read_script_metadata",
+    "reject_url_credentials",
     "script_name_from_spec",
 ]

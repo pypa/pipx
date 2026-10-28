@@ -183,6 +183,10 @@ pipx writes a verbose log for every command to ``pipx environment --value PIPX_L
 not writable, pipx falls back to the platform user log directory. A command that fails while pip or uv runs also writes
 the backend output beside its log, as ``cmd_<timestamp>_pip_errors.log`` or ``cmd_<timestamp>_uv_errors.log``.
 
+On POSIX systems the log directory is readable by its owner only (``0700``) and every log file is ``0600``, because the
+logs record the full command line, including the arguments ``pipx run`` and ``pipx exec`` pass to the application. pipx
+tightens a log directory left with a wider mode by an older release; one owned by another account keeps its mode.
+
 pipx keeps the logs of the last 10 commands, counting the one that is running, and separately the last 10 error logs.
 Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest command's log stays, because a failing
 command points you at its error log. pipx never deletes the logs of a command that is still running in another pipx

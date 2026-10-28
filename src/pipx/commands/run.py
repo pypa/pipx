@@ -32,6 +32,8 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from http.client import HTTPResponse
+    from urllib.response import addinfourl
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -44,7 +46,7 @@ from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import hazard
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
-from pipx.script import ScriptMetadata, read_script_metadata
+from pipx.script import ScriptMetadata, read_script_metadata, reject_url_credentials
 from pipx.util import (
     PipxError,
     exec_app,
@@ -95,6 +97,7 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
                 'pipx run --spec URL BINARY'.
                 """
             raise PipxError(msg)
+        reject_url_credentials(app)
         _LOGGER.info("Detected url. Downloading and executing as a Python file.")
 
         return _http_get_request(app)
@@ -238,7 +241,7 @@ def _exec_script(
     if isinstance(content, Path):
         exec_app([python_path, *python_args, content, *app_args])
     else:
-        exec_app([python_path, *python_args, "-c", content, *app_args])
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
 def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` options; a struct would only relocate them
@@ -313,36 +316,42 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
             _LOGGER.info("venv location is %s", venv_dir)
-            venv, app, app_filename = _prepare_venv(
-                Path(venv_dir),
-                package_or_url,
-                app,
-                app_filename,
-                python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                infer_app_name=infer_app_name,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-            )
-            for dependency in dependencies:
-                inject_dep(
-                    venv_dir=venv_dir,
-                    package_name=None,
-                    package_spec=dependency,
+            try:
+                venv, app, app_filename = _prepare_venv(
+                    Path(venv_dir),
+                    package_or_url,
+                    app,
+                    app_filename,
+                    python,
                     pip_args=pip_args,
+                    venv_args=venv_args,
+                    use_cache=use_cache,
                     verbose=verbose,
-                    include_apps=False,
-                    include_dependencies=False,
-                    include_resources_from=(),
-                    force=False,
+                    infer_app_name=infer_app_name,
                     backend=backend,
                     env_backend=env_backend,
                     cooldown_days=cooldown_days,
                 )
+                for dependency in dependencies:
+                    inject_dep(
+                        venv_dir=venv_dir,
+                        package_name=None,
+                        package_spec=dependency,
+                        pip_args=pip_args,
+                        verbose=verbose,
+                        include_apps=False,
+                        include_dependencies=False,
+                        include_resources_from=(),
+                        force=False,
+                        backend=backend,
+                        env_backend=env_backend,
+                        cooldown_days=cooldown_days,
+                    )
+            except (OSError, PipxError, KeyboardInterrupt):
+                # a half-built venv has no record of its backend, so the next run must start from scratch
+                if venv_dir.is_dir():
+                    (venv_dir / _VENV_EXPIRED_FILENAME).touch()
+                raise
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
@@ -643,6 +652,7 @@ def _http_get_request(url: str) -> str:
         with urlopen(url, timeout=_URL_TIMEOUT) as res:  # ruff:ignore[suspicious-url-open-usage]  # scheme validated upstream
             data = res.read(_MAX_SCRIPT_BYTES + 1)
             _reject_oversized_script(url, data)
+            _reject_truncated_script(url, res)
             return data.decode(res.headers.get_content_charset() or "utf-8")
     except PipxError:
         raise
@@ -650,6 +660,14 @@ def _http_get_request(url: str) -> str:
         _LOGGER.debug("Uncaught Exception:", exc_info=True)
         msg = str(error)
         raise PipxError(msg) from error
+
+
+def _reject_truncated_script(url: str, response: HTTPResponse | addinfourl) -> None:
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, which file:// responses lack; a script missing its tail can still run halfway
+    if missing := getattr(response, "length", None):
+        msg = f"Script {redact_url_credentials(url)} ended {missing} bytes short of its Content-Length."
+        raise PipxError(msg)
 
 
 __all__ = [

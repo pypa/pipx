@@ -15,6 +15,7 @@ from pipx.package_specifier import (
     parse_specifier_for_install,
     parse_specifier_for_metadata,
     parse_specifier_for_upgrade,
+    replace_index_options,
     source_without_extras,
     static_project_name,
     valid_pypi_name,
@@ -46,13 +47,54 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
             ["--extra-index-url=https://extra.example/simple", "--trusted-host", "extra.example"],
             id="attached-value",
         ),
+        pytest.param(
+            [
+                "--default-index",
+                "https://index.example/simple",
+                "--index=https://extra.example/simple",
+                "--allow-insecure-host",
+                "extra.example",
+                "--index-strategy",
+                "unsafe-best-match",
+                "--keyring-provider",
+                "subprocess",
+                "--compile-bytecode",
+            ],
+            [
+                "--default-index",
+                "https://index.example/simple",
+                "--index=https://extra.example/simple",
+                "--allow-insecure-host",
+                "extra.example",
+                "--index-strategy",
+                "unsafe-best-match",
+                "--keyring-provider",
+                "subprocess",
+            ],
+            id="uv-spellings",
+        ),
     ],
 )
 def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None:
     assert extract_index_options(pip_args) == expected
 
 
-@pytest.mark.parametrize("option", ["-f", "-i", "--extra-index-url", "--find-links", "--index-url", "--trusted-host"])
+@pytest.mark.parametrize(
+    "option",
+    [
+        "-f",
+        "-i",
+        "--allow-insecure-host",
+        "--default-index",
+        "--extra-index-url",
+        "--find-links",
+        "--index",
+        "--index-strategy",
+        "--index-url",
+        "--keyring-provider",
+        "--trusted-host",
+    ],
+)
 def test_extract_index_options_missing_value(option: str) -> None:
     with pytest.raises(PipxError, match=re.escape(f"Missing value for {option!r} in --pip-args.")):
         extract_index_options(["--no-cache-dir", option])
@@ -89,6 +131,32 @@ def test_add_extras(package_or_url: str, expected: str) -> None:
 
 def test_add_extras_local_path(tmp_path: Path) -> None:
     assert add_extras(f"{tmp_path}[jupyter]", "black", {"d"}) == f"{tmp_path.resolve()}[d,jupyter]"
+
+
+@pytest.mark.parametrize(
+    ("pip_args", "index_args", "expected"),
+    [
+        pytest.param(
+            ["--no-cache-dir", "--index-url", "https://old.example/simple", "--pre"],
+            ["--find-links", "/wheels"],
+            ["--no-cache-dir", "--pre", "--find-links", "/wheels"],
+            id="pip-spellings",
+        ),
+        pytest.param(
+            [
+                "--default-index",
+                "https://old.example/simple",
+                "--index=https://extra.example/simple",
+                "--compile-bytecode",
+            ],
+            ["--default-index", "https://new.example/simple"],
+            ["--compile-bytecode", "--default-index", "https://new.example/simple"],
+            id="uv-spellings",
+        ),
+    ],
+)
+def test_replace_index_options(pip_args: list[str], index_args: list[str], expected: list[str]) -> None:
+    assert replace_index_options(pip_args, index_args) == expected
 
 
 @pytest.mark.parametrize(

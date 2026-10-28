@@ -35,9 +35,9 @@ environment`` to print each variable as set in your environment, followed by the
     - - ``PIPX_SHARED_LIBS``
       - Override the shared libraries directory. Ignored with ``--global``. Default: ``$PIPX_HOME/shared``.
     - - ``PIPX_DEFAULT_PYTHON``
-      - Python interpreter used when ``--python`` is not passed. Default: the interpreter running pipx
-        (``sys.executable``); on Windows, unless pipx runs inside a venv, the ``py`` launcher's default Python or
-        ``python`` on ``PATH``.
+      - Python interpreter used when ``--python`` is not passed: a path, or a command name (``python3.12``) or version
+        (``3.12``) looked up on ``PATH``. Default: the interpreter running pipx (``sys.executable``); on Windows,
+        unless pipx runs inside a venv, the ``py`` launcher's default Python or ``python`` on ``PATH``.
     - - ``PIPX_DEFAULT_BACKEND``
       - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv 0.9.17 or newer is available, else ``pip``.
     - - ``PIPX_COOLDOWN``
@@ -81,7 +81,9 @@ virtual environment when those variables are unset, and ``PIPX_BIN_DIR`` when pi
 link, so later shells stay attached to the same installation. A pipx installed with ``--global`` lives in the global
 home (``PIPX_GLOBAL_HOME``, ``/opt/pipx`` by default) and recovers only ``PIPX_DEFAULT_PYTHON``: without ``--global``
 it uses the per-user defaults, with ``--global`` the global ones. A custom ``PIPX_GLOBAL_HOME`` must be set for every
-user who runs that pipx; otherwise it treats the global home as their own ``PIPX_HOME``.
+user who runs that pipx; otherwise it treats the global home as their own ``PIPX_HOME``. ``PIPX_DEFAULT_PYTHON`` is
+recovered only while the recorded interpreter still resolves to the one pipx's environment runs on; a record left
+pointing into a removed bootstrap environment is ignored, and pipx falls back to its own interpreter.
 
 *******************************
  Derived (read-only) values

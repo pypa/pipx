@@ -353,6 +353,21 @@ def test_install_from_pylock(make_pylock: MakePylock, backend: str, group: str |
     ) == ("0.0.0.2", lock_file.resolve(), True)
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    ("recorded", "other"), [pytest.param("pip", "uv", id="pip"), pytest.param("uv", "pip", id="uv")]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_force_pylock_keeps_the_recorded_backend(make_pylock: MakePylock, recorded: str, other: str) -> None:
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2", None)
+    assert not run_pipx_cli(["install", "--backend", recorded, PKG["pycowsay"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--force", "--backend", other, "--lock", str(lock_file), "pycowsay>=0"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (metadata.backend, metadata.main_package.lock_file) == (recorded, lock_file.resolve())
+
+
 @pytest.mark.parametrize(
     ("backend", "backend_option"),
     [
@@ -952,6 +967,13 @@ def test_install_upgrade_strategy_requires_upgrade(capsys: pytest.CaptureFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_rejects_empty_index_url(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "--index-url", "", "pycowsay"])
+    assert "--index-url is empty" in capsys.readouterr().err
+    assert not (paths.ctx.venvs / "pycowsay").exists()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFixture) -> None:
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.shared_libs, "has_been_updated_this_run", False)
@@ -1203,6 +1225,7 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
     )
     mocker.patch.object(venv, "_backend", backend)
     mocker.patch.object(venv, "list_installed_packages", return_value=set())
+    mocker.patch("pipx.venv.get_site_packages", return_value=[])
 
     with pytest.raises(PipxError) as excinfo:
         venv.install_package_no_deps("requires-newer-python", [])
@@ -1210,6 +1233,63 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
     error: Final[str] = str(excinfo.value)
     assert "requires a different Python" in error
     assert "Cannot determine package name from spec" not in error
+
+
+@pytest.mark.parametrize(
+    ("listed_name", "dist_info_dirs"),
+    [
+        pytest.param("blacken", ["cooltool-1.0.dist-info"], id="rewritten-metadata"),
+        pytest.param("blacken", ["cooltool-1.0.dist-info", "blacken-9.0.dist-info"], id="added-distribution"),
+    ],
+)
+def test_package_name_determination_rejects_name_not_matching_dist_info(
+    mocker: MockerFixture, tmp_path: Path, listed_name: str, dist_info_dirs: list[str]
+) -> None:
+    venv: Final[Venv] = _probe_venv(mocker, tmp_path, listed_name, dist_info_dirs)
+
+    with pytest.raises(PipxError, match=r"declares\s+the\s+name\s+'blacken'"):
+        venv.install_package_no_deps("https://example.com/cooltool-1.0-py3-none-any.whl", [])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_url_refuses_wheel_whose_data_files_rename_it(
+    make_wheel: Callable[[dict[str, str]], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    metadata: Final[str] = "Metadata-Version: 2.1\nName: {}\nVersion: 1\n"
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "",
+        "foo_bar_x-1.dist-info/METADATA": metadata.format("foo-bar-x"),
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+        "foo_bar_x-1.data/purelib/foo_bar_x-1.dist-info/METADATA": metadata.format("pycowsay"),
+    })
+
+    assert run_pipx_cli(["install", "--backend", "pip", wheel.as_uri()])
+
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
+    assert ("declares the name 'pycowsay'" in error, list(paths.ctx.venvs.glob("*"))) == (True, [])
+
+
+def test_package_name_determination_accepts_normalized_dist_info_name(mocker: MockerFixture, tmp_path: Path) -> None:
+    venv: Final[Venv] = _probe_venv(mocker, tmp_path, "Cool.Tool", ["cool_tool-1.0.dist-info"])
+
+    assert venv.install_package_no_deps("https://example.com/cool_tool-1.0-py3-none-any.whl", []) == "Cool.Tool"
+
+
+def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, dist_info_dirs: list[str]) -> Venv:
+    def install(**_kwargs: object) -> subprocess.CompletedProcess[str]:
+        for dist_info_dir in dist_info_dirs:
+            (site_packages / dist_info_dir).mkdir()
+        return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
+
+    venv: Final[Venv] = Venv(Path("probe-venv"))
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
+    # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
+    backend.install.side_effect = install
+    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
+    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
+    return venv
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
@@ -1385,7 +1465,7 @@ def test_install_verbose_masks_index_credentials(
     assert run_pipx_cli(["install", "--verbose", "--backend", "uv", f"--pip-args={index_args}", str(project)])
 
     output: Final[str] = capsys.readouterr().err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
-    assert "alice:****@127.0.0.1" in output
+    assert "****:****@127.0.0.1" in output
     assert "s3cr3t" not in output
 
 
@@ -1612,7 +1692,7 @@ def test_install_inline_script_app_override(inline_script: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -> None:
-    response: Final[MagicMock] = mocker.MagicMock()
+    response: Final[MagicMock] = mocker.MagicMock(length=0)
     response.read.return_value = inline_script.read_bytes()
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response

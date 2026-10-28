@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import stat
 import subprocess
 import sys
 import threading
@@ -541,23 +542,49 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
     assert sorted(blocks) == sorted(tags)
 
 
+@skip_if_windows
+@pytest.mark.usefixtures("permissive_umask")
+def test_pip_error_log_is_owner_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+
+    subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, "out", "err"))
+
+    assert stat.S_IMODE((tmp_path / "cmd_pip_errors.log").stat().st_mode) == 0o600
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
         pytest.param(
             "pip --index-url https://alice:s3cr3t@host/simple",
-            "pip --index-url https://alice:****@host/simple",
+            "pip --index-url https://****:****@host/simple",
             id="user-and-password",
         ),
         pytest.param("pip git+https://t0ken@host/repo.git", "pip git+https://****@host/repo.git", id="token"),
         pytest.param("pip foo @ https://host/a@b.whl", "pip foo @ https://host/a@b.whl", id="no-credentials"),
         pytest.param("https://host?x=a@b", "https://host?x=a@b", id="at-in-query"),
         pytest.param("https://host#egg=x@1", "https://host#egg=x@1", id="at-in-fragment"),
-        pytest.param("https://u:p@w@host/x", "https://u:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("https://u:p@w@host/x", "https://****:****@host/x", id="unescaped-at-in-password"),
+        pytest.param("https://t0ken:@host/simple", "https://****:****@host/simple", id="token-with-empty-password"),
+        pytest.param(
+            "git+https://t0ken:x-oauth-basic@host/repo.git",
+            "git+https://****:****@host/repo.git",
+            id="token-with-placeholder-password",
+        ),
         pytest.param("git+ssh://git@github.com/a/b", "git+ssh://****@github.com/a/b", id="bare-user"),
         pytest.param(
+            "https://alice:correct horse@host/simple", "https://****:****@host/simple", id="space-in-password"
+        ),
+        pytest.param("https://alice:correct\thorse@host/simple", "https://****:****@host/simple", id="tab-in-password"),
+        pytest.param("see https://host\nfetching foo@1.0/x", "see https://host\nfetching foo@1.0/x", id="line-break"),
+        pytest.param(
+            "--index-url https://t0ken@host --trusted-host x:y@z",
+            "--index-url https://****@z",
+            id="token-then-later-colon-and-at",
+        ),
+        pytest.param(
             "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
-            "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
+            "--index-url https://****:****@one/s --extra-index-url https://****@two/s",
             id="two-urls",
         ),
     ],
@@ -566,10 +593,30 @@ def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None
     assert redact_url_credentials(text) == expected
 
 
-def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: pytest.LogCaptureFixture) -> None:
-    process: Final = subprocess.CompletedProcess(["pip", "--index-url", "https://alice:s3cr3t@host/simple"], 1, "", "")
-
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        pytest.param(
+            ["pip", "--index-url", "https://alice:s3cr3t@host/simple"],
+            "'pip --index-url https://****:****@host/simple' failed",
+            id="password",
+        ),
+        pytest.param(
+            ["pip", "--index-url", "https://alice:correct horse@host/simple"],
+            "'pip --index-url https://****:****@host/simple' failed",
+            id="space-in-password",
+        ),
+        pytest.param(
+            ["pip", "--index-url", "https://host", "tool @ https://host/tool.whl"],
+            "'pip --index-url https://host tool @ https://host/tool.whl' failed",
+            id="no-credentials-across-arguments",
+        ),
+    ],
+)
+def test_subprocess_post_check_logs_failed_command_without_credentials(
+    caplog: pytest.LogCaptureFixture, args: list[str], expected: str
+) -> None:
     with caplog.at_level(logging.INFO, logger="pipx.util"):
-        subprocess_post_check(process, raise_error=False)
+        subprocess_post_check(subprocess.CompletedProcess(args, 1, "", ""), raise_error=False)
 
-    assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]
+    assert caplog.messages == [expected]
