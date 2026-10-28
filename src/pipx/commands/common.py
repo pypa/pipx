@@ -28,7 +28,7 @@ import shutil
 import tempfile
 import time
 from collections import Counter
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager, contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,7 +54,7 @@ from pipx.package_specifier import (
 )
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OutputMessage, OutputStream
-from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
+from pipx.util import PipxError, is_file_name, mkdir, pipx_wrap, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -134,6 +134,10 @@ def expose_resources_globally(
 ) -> list[Path]:
     collisions: Final[list[Path]] = []
     for path in paths:
+        # names come from package metadata and pipx_metadata.json; ".." or a path would escape the exposure directory
+        if not is_file_name(name := add_suffix(path.name, suffix)):
+            msg = f"Refusing to expose {path} as {name!r}, which is not a file name."
+            raise PipxError(msg)
         if resource_type == "app":
             _add_ignore_environment_to_python_shebang(path)
         src = path.resolve()
@@ -272,12 +276,8 @@ def _symlink_package_resource(
 
     if force:
         _LOGGER.info("Force is true. Removing %s.", symlink_path)
-        try:
+        with suppress(FileNotFoundError, IsADirectoryError, RuntimeError):
             symlink_path.unlink()
-        except (FileNotFoundError, RuntimeError):
-            pass
-        except IsADirectoryError:
-            rmdir(symlink_path)
 
     exists = symlink_path.exists()
     is_symlink = symlink_path.is_symlink()
