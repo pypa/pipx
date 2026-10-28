@@ -122,6 +122,82 @@ def test_ensure_pipx_paths_global_updates_system_profile(
     assert config_file.read_text() == expected
 
 
+@pytest.mark.parametrize(
+    ("macos", "existing"),
+    [
+        pytest.param(False, "# site settings\nexport PIPX_GLOBAL_HOME=/srv/pipx\n", id="linux-foreign"),
+        pytest.param(
+            False,
+            'case ":$PATH:" in *:/site/bin:*) ;; *) export PATH="$PATH":/site/bin:/site/sbin ;; esac\n',
+            id="linux-similar-foreign-line",
+        ),
+        pytest.param(True, "/site/bin\n/other/bin\n", id="macos-foreign"),
+    ],
+)
+@_SKIP_GLOBAL_ON_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_ensurepath_cli_global_keeps_foreign_file(
+    mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str], macos: bool, existing: str
+) -> None:
+    (config_file := tmp_path / "pipx.sh").write_text(existing, encoding="utf-8")
+    config_file.chmod(0o640)
+    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
+    mocker.patch.object(ensure_path_module, "MACOS", macos)
+
+    exit_code = run_pipx_cli(["ensurepath", "--global"])
+
+    assert (
+        exit_code,
+        config_file.read_text(encoding="utf-8"),
+        stat.S_IMODE(config_file.stat().st_mode),
+        "pass --force to replace the file" in " ".join(capsys.readouterr().err.split()),
+    ) == (1, existing, 0o640, True)
+
+
+@_SKIP_GLOBAL_ON_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_ensurepath_cli_global_force_replaces_foreign_file(mocker: MockerFixture, tmp_path: Path) -> None:
+    (config_file := tmp_path / "pipx.sh").write_text("/site/bin\n/other/bin\n", encoding="utf-8")
+    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
+    mocker.patch.object(ensure_path_module, "MACOS", True)
+
+    exit_code = run_pipx_cli(["ensurepath", "--global", "--force"])
+
+    assert (exit_code, config_file.read_text(encoding="utf-8")) == (
+        EXIT_CODE_OK,
+        f"{ensure_path_module.paths.ctx.bin_dir}\n",
+    )
+
+
+@pytest.mark.parametrize(
+    ("macos", "prepend", "existing", "expected"),
+    [
+        pytest.param(
+            False,
+            True,
+            """case ":$PATH:" in *:'/old dir/bin':*) ;; *) export PATH="$PATH":'/old dir/bin' ;; esac\n""",
+            'case ":$PATH:" in *:/srv/pipx/bin:*) ;; *) export PATH=/srv/pipx/bin:"$PATH" ;; esac\n',
+            id="linux",
+        ),
+        pytest.param(True, False, "/old/bin\n", "/srv/pipx/bin\n", id="macos"),
+    ],
+)
+@_SKIP_GLOBAL_ON_WINDOWS
+def test_ensure_pipx_paths_global_replaces_own_entry(
+    mocker: MockerFixture, tmp_path: Path, *, macos: bool, prepend: bool, existing: str, expected: str
+) -> None:
+    (config_file := tmp_path / "pipx.sh").write_text(existing, encoding="utf-8")
+    mocker.patch.object(
+        type(ensure_path_module.paths.ctx), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin"))
+    )
+    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
+    mocker.patch.object(ensure_path_module, "MACOS", macos)
+
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=prepend, is_global=True)
+
+    assert config_file.read_text(encoding="utf-8") == expected
+
+
 @_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_skips_userpath(mocker: MockerFixture, tmp_path: Path) -> None:
     config_file = tmp_path / "pipx.sh"
