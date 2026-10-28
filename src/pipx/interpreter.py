@@ -159,7 +159,8 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
             )
             python_semver = python_semver.lstrip("python")
         # the Unix launcher reads only -X and -X.Y as a version and hands any other flag to the first interpreter its
-        # search finds, which can be a .venv in a parent directory
+        # search finds, which can be a .venv in a parent directory; see Action::from_main and venv_path_search in
+        # https://github.com/brettcannon/python-launcher/blob/3c9f207c07d5fed612b04dbf2980f67d40aa24b3/src/cli.rs
         if not WINDOWS and not re.fullmatch(r"[0-9]+(\.[0-9]+)?", python_semver):
             return None
         py = subprocess.run(
