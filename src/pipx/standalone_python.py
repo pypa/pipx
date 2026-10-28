@@ -30,12 +30,15 @@ import urllib.error
 from functools import partial
 from http import HTTPStatus
 from pathlib import Path, PurePosixPath
-from typing import Any, Final, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 from urllib.request import Request, urlopen
 
 from pipx import constants, paths
 from pipx.animate import animate
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from filelock import BaseFileLock
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -100,35 +103,55 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
     # python_version can be a bare version number like "3.10" or a "binary name" like python3.10
     # we'll convert it to a bare version number
     python_version = re.sub(r"[c]?python", "", python_version)
+    # the version names the cache directory that a failed attempt is cleared from below, so a path, "." or ".." would
+    # point that rmtree outside the cache; one to three numeric parts is all resolve_python_version can match anyway
+    if not re.fullmatch(r"[0-9]+(\.[0-9]+){0,2}", python_version):
+        msg = f"Cannot fetch a standalone python build for {python_version!r}: expected a version such as '3.13'."
+        raise PipxError(msg)
 
     install_dir = paths.ctx.standalone_python_cachedir / python_version
     installed_python = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
 
     if not override and installed_python.exists():
         return str(installed_python)
-    if not override and install_dir.exists():
-        # a leftover directory without a usable interpreter is a failed prior attempt with nothing to preserve, so clear
-        # it now; an override upgrade keeps its working install until the atomic swap below
-        _LOGGER.warning("A previous attempt to install python %s failed. Retrying.", python_version)
-        shutil.rmtree(install_dir)
 
-    full_version, (download_link, digest) = resolve_python_version(python_version)
+    # the staging and backup directories of the swap are named after the version, and whatever already has those names
+    # is cleared as a leftover, so a second pipx fetching this version must wait instead of deleting a live copy
+    with _version_lock(install_dir):
+        if not override and installed_python.exists():
+            # another pipx installed this version while this one waited for the lock
+            return str(installed_python)
+        if not override and install_dir.exists():
+            # a leftover directory without a usable interpreter is a failed prior attempt with nothing to preserve, so
+            # clear it now; an override upgrade keeps its working install until the atomic swap below
+            _LOGGER.warning("A previous attempt to install python %s failed. Retrying.", python_version)
+            shutil.rmtree(install_dir)
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        archive = Path(tempdir) / f"python-{full_version}.tar.gz"
-        download_dir = Path(tempdir) / "download"
+        full_version, (download_link, digest) = resolve_python_version(python_version)
 
-        # download the python build gz
-        _download(full_version, download_link, archive)
+        with tempfile.TemporaryDirectory() as tempdir:
+            archive = Path(tempdir) / f"python-{full_version}.tar.gz"
+            download_dir = Path(tempdir) / "download"
 
-        # unpack the python build
-        _unpack(full_version, archive, download_dir, digest)
+            # download the python build gz
+            _download(full_version, download_link, archive)
 
-        # the python installation we want is nested in the tarball under a directory named 'python'; only after it is
-        # fully extracted do we swap it into place, so a failed download or unpack never destroys a working interpreter
-        _install_atomically(download_dir / "python", install_dir)
+            # unpack the python build
+            _unpack(full_version, archive, download_dir, digest)
+
+            # the python installation we want is nested in the tarball under a directory named 'python'; only after it
+            # is fully extracted do we swap it into place, so a failed download or unpack never destroys a working
+            # interpreter
+            _install_atomically(download_dir / "python", install_dir)
 
     return str(installed_python)
+
+
+def _version_lock(install_dir: Path) -> BaseFileLock:
+    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    install_dir.parent.mkdir(parents=True, exist_ok=True)
+    return FileLock(install_dir.with_name(f".{install_dir.name}.lock"))
 
 
 def _install_atomically(source: Path, install_dir: Path) -> None:

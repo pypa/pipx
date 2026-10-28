@@ -57,8 +57,10 @@ upgrades. Set them in your shell profile or pip's own config file for a permanen
     $ pipx install my-private-package
 
 See the `pip configuration docs <https://pip.pypa.io/en/stable/topics/configuration/>`_ for the config-file form. pipx
-always sets ``PIP_USER=0`` and drops ``PIP_TARGET`` so packages land in the venv. The uv backend ignores ``PIP_*``; use
-uv's own variables (for example ``UV_INDEX_URL``) or ``--backend pip``.
+always sets ``PIP_USER=0`` and drops ``PIP_TARGET`` so packages land in the venv. For the same reason it removes pip's
+site-level file, ``pip.conf`` (``pip.ini`` on Windows) in the root of the venv, before it starts pip there: installed
+packages can place files in the venv root, so keep your settings in the user or global file. The uv backend ignores
+``PIP_*``; use uv's own variables (for example ``UV_INDEX_URL``) or ``--backend pip``.
 
 ****************
  Install offline

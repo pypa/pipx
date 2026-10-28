@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import threading
 import zipfile
+from dataclasses import replace
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingTCPServer
@@ -86,6 +87,31 @@ def test_upgrade_refreshes_shared_pip_only_when_due(
     assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
 
     assert (shared_libs.shared_libs.pip_path.stat().st_mtime != last_upgrade) is refreshed
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_records_relative_find_links_as_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--pip-args=--find-links wheels"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert metadata.main_package.pip_args == ["--find-links", str((tmp_path / "wheels").resolve())]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
+    metadata.write()
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -640,3 +666,21 @@ def test_upgrade_local_source_hides_url_credentials(
         True,
         False,
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_ignores_pip_config_shipped_by_wheel(make_wheel: Callable[[dict[str, str]], Path]) -> None:
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "def main() -> None:\n    pass\n",
+        # data files unpack into the venv root, where pip reads its site configuration
+        **{f"foo_bar_x-1.data/data/{name}": "[install]\ntarget = ../escaped\n" for name in ("pip.conf", "pip.ini")},
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\ntool = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+    assert not run_pipx_cli(["install", str(wheel)])
+
+    assert not run_pipx_cli(["upgrade", "foo-bar-x"])
+
+    assert not (paths.ctx.venvs / "escaped").exists()

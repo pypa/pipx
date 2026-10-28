@@ -25,7 +25,12 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def get_installed_standalone_interpreters() -> list[Path]:
-    return [python_dir for python_dir in paths.ctx.standalone_python_cachedir.iterdir() if python_dir.is_dir()]
+    # a dot-prefixed directory is the staging or backup copy of a fetch that may still be running, not an interpreter
+    return [
+        python_dir
+        for python_dir in paths.ctx.standalone_python_cachedir.iterdir()
+        if python_dir.is_dir() and not python_dir.name.startswith(".")
+    ]
 
 
 def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> list[Venv]:
@@ -131,10 +136,7 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
     upgraded = []
     venvs: list[Venv] | None = None
 
-    for interpreter_dir in paths.ctx.standalone_python_cachedir.iterdir():
-        if not interpreter_dir.is_dir():
-            continue
-
+    for interpreter_dir in get_installed_standalone_interpreters():
         interpreter_python = (
             interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
         )
@@ -176,6 +178,9 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                             local_man_dir=paths.ctx.man_dir,
                             python=upgraded_python,
                             verbose=verbose,
+                            # the new build is what this rebuild is for, so a package whose Requires-Python rules it
+                            # out fails (and keeps its environment) instead of moving to another Python from PATH
+                            python_flag_passed=True,
                             venv_lock=venv_lock,
                         )
                         upgraded.append((venv.name, interpreter_full_version, latest_micro_version))

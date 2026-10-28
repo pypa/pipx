@@ -57,6 +57,7 @@ def test_run_via_uv_tool_run_basic(
         "--python",
         "python3.12",
         *cooldown_args,
+        "--",
         "black",
         "--check",
     ]
@@ -97,6 +98,7 @@ def test_run_via_uv_tool_run_threads_spec_and_with(
         "--default-index",
         "https://example.com/simple",
         "--prerelease=allow",
+        "--",
         "rope",
         "--version",
     ]
@@ -164,6 +166,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
     with pytest.raises(RuntimeError, match="exec"):
         run_script_via_uv_run(
             script_path=script,
+            venv_dir=tmp_path / "venv",
             app_args=["--quiet"],
             python="python3.12",
             pip_args=[],
@@ -175,6 +178,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
     assert exec_mock.call_args.args[0] == [
         str(fake_uv),
         "run",
+        "--active",
         "--script",
         "--project",
         str(paths.ctx.home),
@@ -196,6 +200,7 @@ def test_run_script_via_uv_run_refreshes_cache(
     with pytest.raises(RuntimeError, match="exec"):
         run_script_via_uv_run(
             script_path=script,
+            venv_dir=tmp_path / "venv",
             app_args=[],
             python="",
             pip_args=[],

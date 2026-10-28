@@ -159,27 +159,7 @@ def list_packages(  # ruff:ignore[too-many-arguments]  # flat CLI-facing list op
             include_injected=include_injected,
         )
 
-    if all_venv_problems.bad_venv_name:
-        logger.warning(
-            "\nOne or more packages contain out-of-date internal data installed from a\n"
-            "previous pipx version and need to be updated.\n"
-            "    To fix, execute: pipx reinstall-all"
-        )
-    if all_venv_problems.invalid_interpreter:
-        logger.warning(
-            "\nOne or more packages have a missing python interpreter.\n    To fix, execute: pipx reinstall-all"
-        )
-    if all_venv_problems.missing_metadata:
-        logger.warning(
-            "\nOne or more packages have a missing internal pipx metadata.\n"
-            "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) to fix."
-        )
-    if all_venv_problems.not_installed:
-        logger.warning(
-            "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) to fix."
-        )
+    _log_venv_problems(all_venv_problems)
 
     if unfinished := [venv_dir.name for venv_dir in venv_dirs if is_unfinished(venv_dir)]:
         logger.warning(
@@ -193,6 +173,36 @@ def list_packages(  # ruff:ignore[too-many-arguments]  # flat CLI-facing list op
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK
+
+
+def _log_venv_problems(problems: VenvProblems) -> None:
+    if problems.bad_venv_name:
+        logger.warning(
+            "\nOne or more packages contain out-of-date internal data installed from a\n"
+            "previous pipx version and need to be updated.\n"
+            "    To fix, execute: pipx reinstall-all"
+        )
+    if problems.invalid_interpreter:
+        logger.warning(
+            "\nOne or more packages have a missing python interpreter.\n    To fix, execute: pipx reinstall-all"
+        )
+    if problems.missing_metadata:
+        logger.warning(
+            "\nOne or more packages have a missing internal pipx metadata.\n"
+            "   They were likely installed using a pipx version before 0.15.0.0.\n"
+            "   Please uninstall and install these package(s) to fix."
+        )
+    if problems.unreadable_metadata:
+        logger.warning(
+            "\nOne or more packages have internal pipx metadata this user cannot read.\n"
+            "   pipx keeps it readable by its owner only, since it can hold index credentials.\n"
+            "   Run the command as that user, for example with sudo for --global, to list them."
+        )
+    if problems.not_installed:
+        logger.warning(
+            "\nOne or more packages are not installed properly.\n"
+            "   Please uninstall and install these package(s) to fix."
+        )
 
 
 __all__ = [

@@ -12,6 +12,7 @@ import sys
 import tarfile
 import urllib.error
 import warnings
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
@@ -221,6 +222,32 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
         standalone_python.download_python_build_standalone("3.99", override=True)
 
     assert (install_dir / "keepme").read_text(encoding="utf-8") == "v1"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
+    _, publish = published_darwin_release
+    publish(_python_archive_bytes())
+    real_move = shutil.move
+    concurrent: list[Future[str]] = []
+
+    def move_into_staging(source: str, destination: str) -> str:
+        # start the second fetch while the first one is moving its build into the staging directory
+        if not concurrent:
+            concurrent.append(executor.submit(standalone_python.download_python_build_standalone, "3.99"))
+            with pytest.raises(TimeoutError):
+                concurrent[0].result(timeout=0.2)
+        return real_move(source, destination)
+
+    moves = mocker.patch.object(shutil, "move", side_effect=move_into_staging)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        python_path = standalone_python.download_python_build_standalone("3.99")
+
+    assert (concurrent[0].result(), moves.call_count, Path(python_path).is_file()) == (python_path, 1, True)
 
 
 @pytest.fixture
@@ -552,6 +579,16 @@ def test_prune_unused_standalone_interpreters(
     assert not run_pipx_cli(["interpreter", "prune"])
     captured = capsys.readouterr()
     assert "Nothing to remove" in captured.out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.CaptureFixture[str]) -> None:
+    staging_dir = paths.ctx.standalone_python_cachedir / ".3.99.incoming"
+    staging_dir.mkdir(parents=True)
+
+    assert not run_pipx_cli(["interpreter", "prune"])
+
+    assert ("Nothing to remove" in capsys.readouterr().out, staging_dir.is_dir()) == (True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
