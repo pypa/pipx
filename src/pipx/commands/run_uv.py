@@ -80,8 +80,8 @@ def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv
         cmd.append("--verbose")
     cmd += translate_pip_args_for_uv(pip_args)
     cmd += UvBackend.cooldown_args(cooldown_days)
-    cmd.append(app)
-    cmd += app_args
+    # without the separator uv reads an app name that starts with a dash as one of its own options
+    cmd += ["--", app, *app_args]
     exec_app(cmd)
 
 

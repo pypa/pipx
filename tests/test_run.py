@@ -874,6 +874,42 @@ def test_run_script_cooldown(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_resolves_relative_find_links(
+    root: Path, tmp_path: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    output: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+            # /// script
+            # dependencies = ["pycowsay==0.0.0.2"]
+            # ///
+
+            from pathlib import Path
+            Path({str(output)!r}).write_text("done")
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(root)
+
+    run_pipx_cli_exit(
+        [
+            "run",
+            "--backend",
+            "pip",
+            f"--pip-args=--no-index --find-links=.pipx_tests/package_cache/{PACKAGE_CACHE_DIR_NAME}",
+            str(script),
+        ],
+        assert_exit=0,
+    )
+
+    assert output.read_text(encoding="utf-8") == "done"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_old(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     script = tmp_path / "test.py"
@@ -1226,6 +1262,13 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
 
     run_pipx_cli_exit(command, assert_exit=0)
     assert "Reusing cached venv" in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_uv_dash_app_is_not_a_uv_option() -> None:
+    # uv rejects the operand as a usage error instead of reading -n as --no-cache and running pycowsay
+    run_pipx_cli_exit(["run", "--backend", "uv", "--", "-n", "pycowsay", "hi"], assert_exit=2)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

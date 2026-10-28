@@ -79,6 +79,24 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
     assert venv_inspect.inspect_venv(*args).package_version == "1.0"
 
 
+def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, mocker: MockerFixture) -> None:
+    site_packages = tmp_path / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    later = tmp_path / "base-site-packages" / "root_package-99.dist-info"
+    later.mkdir(parents=True)
+    (later / "METADATA").write_text("Name: root-package\nVersion: 99\n", encoding="utf-8")
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages), str(later.parent)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+
+    assert result.package_version == "1.0"
+
+
 @pytest.mark.parametrize(
     ("root_requirements", "shared_requirements", "expected"),
     [
