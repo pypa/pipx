@@ -3,6 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = ["pipx", "pipx.backends.uv", "pipx.util", "shutil"]
 
 import logging
+import os
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
 
@@ -88,6 +89,7 @@ def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv
 def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv run --script` invocation from the run options
     *,
     script_path: Path,
+    venv_dir: Path,
     app_args: list[str],
     python: str,
     pip_args: list[str],
@@ -100,7 +102,7 @@ def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `
 ) -> NoReturn:
     _reject_venv_args(venv_args)
     # uv searches for project config from --project, or else from the script's directory, which another account may own
-    cmd: list[str] = [str(resolve_uv_binary()), "run", "--script", "--project", str(paths.ctx.home)]
+    cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.ctx.home)]
     if python:
         cmd += ["--python", python]
     if not use_cache:
@@ -114,7 +116,7 @@ def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `
     cmd += translate_pip_args_for_uv(pip_args)
     cmd += UvBackend.cooldown_args(cooldown_days)
     cmd += [str(script_path), *app_args]
-    exec_app(cmd)
+    exec_app(cmd, env={**os.environ, "VIRTUAL_ENV": str(venv_dir)})
 
 
 def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:

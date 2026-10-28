@@ -151,18 +151,33 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
 
     if resolved_backend == UV and requirements is not None and not python_args:
         if script_source is not None:
-            run_script_via_uv_run(
-                script_path=script_source,
-                app_args=app_args,
-                python=python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                refresh=refresh,
-                dependencies=dependencies,
+            # uv keys its own script environment on the path alone and reuses it while it satisfies the script, so a
+            # changed index or cooldown, or --refresh, would keep running what an earlier request installed
+            venv_dir = _get_temporary_venv_path(
+                ["--script", str(script_source.resolve())],
+                python,
+                pip_args,
+                venv_args,
+                UV,
                 cooldown_days=cooldown_days,
             )
+            with _locked_venv_cache(venv_dir):
+                _prepare_venv_cache(
+                    Venv(venv_dir, backend=backend, env_backend=env_backend), None, use_cache=use_cache, refresh=refresh
+                )
+                run_script_via_uv_run(
+                    script_path=script_source,
+                    venv_dir=venv_dir,
+                    app_args=app_args,
+                    python=python,
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    use_cache=use_cache,
+                    verbose=verbose,
+                    refresh=refresh,
+                    dependencies=dependencies,
+                    cooldown_days=cooldown_days,
+                )
         # URL / named-pipe content has no on-disk path for ``uv run --script``;
         # warn so users on ``--backend uv`` notice they lose uv's cache and
         # Python-managing semantics for this run.
