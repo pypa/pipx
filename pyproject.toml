@@ -151,7 +151,6 @@ build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
 build.targets.sdist.include = [
-  "/*.md",
   "/docs/man",
   "/hatch_build.py",
   "/logo.png",
