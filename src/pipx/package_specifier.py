@@ -29,21 +29,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Keep in sync with pip's ARCHIVE_EXTENSIONS (pip._internal.utils.filetypes). pip matches these case-insensitively.
-ARCHIVE_EXTENSIONS = (
-    ".whl",
-    ".zip",
-    ".tar",
-    ".tar.gz",
-    ".tgz",
-    ".tar.bz2",
-    ".tbz",
-    ".tar.xz",
-    ".txz",
-    ".tlz",
-    ".tar.lz",
-    ".tar.lzma",
-)
 _LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+file"})
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
@@ -89,10 +74,6 @@ def _check_package_path(package_path: str) -> tuple[Path, bool]:
     pkg_path_exists = pkg_path.exists()
 
     return (pkg_path, pkg_path_exists)
-
-
-def _is_archive_name(name: str) -> bool:
-    return name.lower().endswith(ARCHIVE_EXTENSIONS)
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
@@ -152,6 +133,24 @@ def _requirement(package_spec: str) -> Requirement | None:
         return Requirement(package_spec)
     except InvalidRequirement:
         return None
+
+
+def _is_archive_name(name: str) -> bool:
+    # same extensions and case folding as pip's is_archive_file (pip._internal.utils.filetypes)
+    return name.lower().endswith((
+        ".whl",
+        ".zip",
+        ".tar.bz2",
+        ".tbz",
+        ".tar.gz",
+        ".tgz",
+        ".tar",
+        ".tar.xz",
+        ".txz",
+        ".tlz",
+        ".tar.lz",
+        ".tar.lzma",
+    ))
 
 
 def package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
