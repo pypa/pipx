@@ -762,7 +762,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             f"sys.exit(EntryPoint(name={entry_point.name!r}, value={entry_point.value!r}, "
             f"group={entry_point.group!r}).load()())\n"
         )
-        exec_app([str(self.python_path), *python_args, "-c", code, *app_args])
+        exec_app([str(self.python_path), "-P", *python_args, "-c", code, *app_args])
 
     def has_app(self, app: str, filename: str) -> bool:
         if self._find_entry_point(app, "pipx.run") is not None:

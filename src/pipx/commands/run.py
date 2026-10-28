@@ -238,7 +238,7 @@ def _exec_script(
     if isinstance(content, Path):
         exec_app([python_path, *python_args, content, *app_args])
     else:
-        exec_app([python_path, *python_args, "-c", content, *app_args])
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
 def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` options; a struct would only relocate them

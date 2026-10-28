@@ -435,6 +435,40 @@ def test_run_script_from_url(served_script: str) -> None:
     run_pipx_cli_exit(["run", served_script], assert_exit=0)
 
 
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_from_url_ignores_working_directory_modules(
+    served_script: str, tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "imports-json.py").write_text("import json\n\nprint(json.dumps('ok'))\n", encoding="utf-8")
+
+    run_pipx_cli_exit(["run", served_script.replace("pipx-demo.py", "imports-json.py")], assert_exit=0)
+
+    assert capfd.readouterr().out == '"ok"\n'
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_entry_point_ignores_working_directory_modules(
+    empty_project: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (empty_project / "empty_project" / "main.py").write_text(
+        "import json\n\n\ndef cli() -> None:\n    print(json.dumps('ok'))\n", encoding="utf-8"
+    )
+
+    run_pipx_cli_exit(["run", "--spec", str(empty_project), "empty-project"], assert_exit=0)
+
+    assert capfd.readouterr().out == '"ok"\n'
+
+
+@pytest.fixture
+def planted_json_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cwd: Final[Path] = tmp_path / "cwd"
+    cwd.mkdir()
+    (cwd / "json.py").write_text("raise SystemExit('imported json.py from the working directory')\n", encoding="utf-8")
+    monkeypatch.chdir(cwd)
+
+
 @pytest.fixture
 def served_script(tmp_path: Path) -> Iterator[str]:
     """Serves the script over loopback rather than fetching a third-party gist.
