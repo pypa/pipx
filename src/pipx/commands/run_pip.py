@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.utils", "pipx.commands.common", "pipx.package_specifier", "pipx.util", "pipx.venv"]
+__lazy_modules__ = [
+    "packaging.utils",
+    "pathlib",
+    "pipx.commands.common",
+    "pipx.package_specifier",
+    "pipx.util",
+    "pipx.venv",
+]
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
-from pipx.package_specifier import extract_index_options, replace_index_options
+from pipx.package_specifier import absolute_path_pip_args, extract_index_options, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pipx.constants import ExitCode
 
 
@@ -215,9 +221,10 @@ def _updated_main_package_pip_args(
     existing_pip_args: list[str], runpip_args: list[str], *, editable: bool
 ) -> list[str]:
     pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
-    # the new spec was resolved on the indexes this command named, so upgrade and reinstall must ask the same ones
+    # the new spec was resolved on the indexes this command named, so upgrade and reinstall must ask the same ones;
+    # runpip ran in the caller's directory but recorded paths resolve against the venv, so pin them to the cwd now
     if index_args := extract_index_options(runpip_args):
-        pip_args = replace_index_options(pip_args, index_args)
+        pip_args = replace_index_options(pip_args, absolute_path_pip_args(index_args, Path.cwd()))
     if editable:
         pip_args.append("--editable")
     return pip_args
