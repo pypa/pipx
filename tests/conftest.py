@@ -685,3 +685,10 @@ def _pipx_temp_env_helper(
         # uv ignores PIP_INDEX_URL; without UV_INDEX_URL the uv-backend tests
         # would hit real PyPI on CI.
         monkeypatch.setenv("UV_INDEX_URL", pypi)
+
+
+@pytest.fixture
+def permissive_umask() -> Iterator[None]:
+    previous = os.umask(0o022)
+    yield
+    os.umask(previous)
