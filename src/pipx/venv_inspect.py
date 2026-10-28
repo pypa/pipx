@@ -378,12 +378,8 @@ def _dfs_package_resources(  # ruff:ignore[too-many-arguments]  # threads three 
     app_paths_of_dependencies: dict[str, list[Path]],
     man_paths_of_dependencies: dict[str, list[Path]],
     completion_paths_of_dependencies: dict[str, list[Path]],
-    dep_visited: dict[str, set[str]] | None = None,
+    dep_visited: dict[str, set[str]],
 ) -> tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]:
-    if dep_visited is None:
-        # Initialize: we have already visited root
-        dep_visited = {canonicalize_name(package_req.name): package_req.extras.copy()}
-
     share_path: Final[Path] = venv_inspect_info.man_path.parent
     dependencies = get_package_dependencies(dist, package_req.extras, venv_inspect_info.env)
     for dep_req in dependencies:
@@ -551,6 +547,7 @@ def inspect_venv(  # ruff:ignore[too-many-locals]  # aggregates apps, man pages,
         app_paths_of_dependencies=app_paths_of_dependencies,
         man_paths_of_dependencies=man_paths_of_dependencies,
         completion_paths_of_dependencies=completion_paths_of_dependencies,
+        dep_visited={canonicalize_name(root_req.name): set(root_package_extras)},
     )
 
     venv_share_path: Final[Path] = venv_man_path.parent

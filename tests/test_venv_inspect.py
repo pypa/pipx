@@ -80,42 +80,40 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
     assert venv_inspect.inspect_venv(*args).package_version == "1.0"
 
 
-@pytest.mark.parametrize("reverse", [False, True], ids=["first-second", "second-first"])
-@pytest.mark.parametrize("graph", ["diamond", "base-first", "cycle", "root-extra"])
-def test_inspect_venv_combines_dependency_extras(
-    tmp_path: Path, mocker: MockerFixture, graph: str, *, reverse: bool
+@pytest.mark.parametrize(
+    ("root_requirements", "shared_requirements", "expected"),
+    [
+        pytest.param(("left", "right"), (), ["first-app", "second-app"], id="first-then-second"),
+        pytest.param(("right", "left"), (), ["first-app", "second-app"], id="second-then-first"),
+        pytest.param(("shared", "left", "right"), (), ["first-app", "second-app"], id="base-then-extras"),
+        pytest.param(("left", "right"), ("root",), ["first-app", "second-app"], id="cycle-to-root"),
+        pytest.param(
+            ("left", "right", 'third-app; extra == "other"'),
+            ("root[other]",),
+            ["first-app", "second-app", "third-app"],
+            id="cycle-enables-root-extra",
+        ),
+    ],
+)
+def test_inspect_venv_follows_extras_of_revisited_dependency(
+    extras_venv: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...], expected: list[str]
 ) -> None:
+    result = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
+
+    assert sorted(result.apps_of_dependencies) == expected
+
+
+@pytest.fixture
+def extras_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
     site_packages = tmp_path / "site-packages"
-    dependencies = ("left", "right") if not reverse else ("right", "left")
-    if graph == "base-first":
-        dependencies = ("shared", *dependencies)
-    if graph == "root-extra":
-        dependencies = (*dependencies, 'third-app; extra == "other"')
-    _write_dist_info(site_packages, "root", dependencies)
+    (tmp_path / "bin").mkdir()
     _write_dist_info(site_packages, "left", ("shared[first]",))
     _write_dist_info(site_packages, "right", ("shared[second]",))
-    requirements = ('first-app; extra == "first"', 'second-app; extra == "second"')
-    if graph == "cycle":
-        requirements = (*requirements, "root")
-    if graph == "root-extra":
-        requirements = (*requirements, "root[other]")
-    _write_dist_info(site_packages, "shared", requirements)
-    bin_path = tmp_path / "bin"
-    bin_path.mkdir()
-    apps = ("first-app", "second-app", "third-app") if graph == "root-extra" else ("first-app", "second-app")
-    for name in apps:
-        _write_dist_info(site_packages, name)
-    for name in ("root", *apps):
-        (site_packages / f"{name}-1.0.dist-info" / "entry_points.txt").write_text(
-            f"[console_scripts]\n{name} = app:main\n", encoding="utf-8"
-        )
-        (bin_path / name).touch()
-    man_path = tmp_path / "share" / "man"
-    manual = man_path / "man1" / "second-app.1"
-    completion = tmp_path / "share" / "bash-completion" / "completions" / "second-app"
-    for resource in (manual, completion):
-        resource.parent.mkdir(parents=True)
-        resource.touch()
+    for name in ("first-app", "second-app", "third-app"):
+        _write_app(tmp_path, name)
+    for resource in ("man/man1/second-app.1", "bash-completion/completions/second-app"):
+        (resource_path := tmp_path / "share" / resource).parent.mkdir(parents=True)
+        resource_path.touch()
     (site_packages / "second-app-1.0.dist-info" / "RECORD").write_text(
         "../share/man/man1/second-app.1,,\n../share/bash-completion/completions/second-app,,\n", encoding="utf-8"
     )
@@ -125,10 +123,36 @@ def test_inspect_venv_combines_dependency_extras(
         autospec=True,
         return_value=([str(site_packages)], {"python_full_version": "3.13.0"}, "3.13.0"),
     )
+    return tmp_path
 
-    result = venv_inspect.inspect_venv("root", set(), bin_path, tmp_path / "python", man_path)
 
-    assert result.apps == ["root"]
-    assert sorted(result.apps_of_dependencies) == list(apps)
-    assert result.man_paths_of_dependencies == {"second-app": [manual]}
-    assert result.completion_paths_of_dependencies == {"second-app": [completion]}
+def _write_app(venv_root: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
+    site_packages = venv_root / "site-packages"
+    _write_dist_info(site_packages, name, requirements)
+    (site_packages / f"{name}-1.0.dist-info" / "entry_points.txt").write_text(
+        f"[console_scripts]\n{name} = app:main\n", encoding="utf-8"
+    )
+    (venv_root / "bin" / name).touch()
+
+
+def _inspect_extras_venv(
+    venv_root: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...] = ()
+) -> venv_inspect.VenvMetadata:
+    _write_app(venv_root, "root", root_requirements)
+    _write_dist_info(
+        venv_root / "site-packages",
+        "shared",
+        ('first-app; extra == "first"', 'second-app; extra == "second"', *shared_requirements),
+    )
+    return venv_inspect.inspect_venv(
+        "root", set(), venv_root / "bin", venv_root / "python", venv_root / "share" / "man"
+    )
+
+
+def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_venv: Path) -> None:
+    result = _inspect_extras_venv(extras_venv, ("left", "right"))
+
+    assert (result.man_paths_of_dependencies, result.completion_paths_of_dependencies) == (
+        {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
+        {"second-app": [extras_venv / "share" / "bash-completion" / "completions" / "second-app"]},
+    )
