@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import signal
+import time
 from contextlib import contextmanager
+from pathlib import Path
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Final
 
@@ -16,7 +18,6 @@ from pipx.venv import VenvContainer
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
@@ -103,6 +104,68 @@ def test_preserve_venv_finishes_the_restore_through_an_interrupt(mocker: MockerF
 def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
     util.rmdir(path, safe_rm=safe_rm)
     signal.raise_signal(signal.SIGINT)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(mocker: MockerFixture) -> None:
+    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    mocker.patch.object(time, "sleep", autospec=True)
+    mocker.patch.object(Path, "rename", autospec=True, side_effect=PermissionError(32, "in use"))
+
+    with (
+        pytest.raises(PermissionError, match="in use"),
+        preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup,
+    ):
+        backup.remove_venv()
+
+    assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(mocker: MockerFixture) -> None:
+    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    mocker.patch.object(time, "sleep", autospec=True)
+    real_rename: Final = Path.rename
+    attempts: Final[list[Path]] = []
+
+    def rename_after_one_refusal(source: Path, target: Path) -> Path:
+        attempts.append(source)
+        if len(attempts) == 1:
+            raise PermissionError(32, "in use")
+        return real_rename(source, target)
+
+    mocker.patch.object(Path, "rename", autospec=True, side_effect=rename_after_one_refusal)
+
+    with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
+        backup.remove_venv()
+        moved = [(path / "marker").read_text(encoding="utf-8") for path in paths.ctx.trash.iterdir()]
+
+    assert (venv_dir.exists(), moved, attempts) == (False, ["v1"], [venv_dir, venv_dir])
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(mocker: MockerFixture) -> None:
+    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    real_rename: Final = Path.rename
+
+    def rename_then_interrupt(source: Path, target: Path) -> Path:
+        moved = real_rename(source, target)
+        if source == venv_dir:
+            signal.raise_signal(signal.SIGINT)
+        return moved
+
+    mocker.patch.object(Path, "rename", autospec=True, side_effect=rename_then_interrupt)
+
+    with pytest.raises(KeyboardInterrupt), preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
+        backup.remove_venv()
+
+    assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
 
 
 @pytest.mark.parametrize("copy_upfront", [pytest.param(True, id="copied"), pytest.param(False, id="moved")])

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.util", "pipx.venv", "shutil", "tempfile"]
 
+import time
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from shutil import Error, copytree
@@ -66,8 +67,11 @@ class VenvBackup:
     def remove_venv(self) -> None:
         if self._enabled and self._backup_dir is None:
             # a rename costs the same for any environment size, so rebuilds back up only when they delete
-            self._backup_dir = self._new_backup_dir()
-            self._venv_dir.rename(self._backup_dir)
+            backup_dir: Final[Path] = self._new_backup_dir()
+            # a signal between the rename and recording the backup would leave restore unaware of the moved venv
+            with uninterrupted():
+                rename_once_released(self._venv_dir, backup_dir)
+                self._backup_dir = backup_dir
         else:
             rmdir(self._venv_dir)
 
@@ -81,6 +85,19 @@ class VenvBackup:
     def discard(self) -> None:
         if self._backup_dir is not None:
             rmdir(self._backup_dir)
+
+
+def rename_once_released(source: Path, target: Path) -> None:
+    # Windows refuses to rename a directory while a handle inside it is open, and reinstall-all rebuilding another venv
+    # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
+    for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
+        try:
+            source.rename(target)
+        except PermissionError:
+            time.sleep(delay)
+        else:
+            return
+    source.rename(target)
 
 
 @contextmanager
@@ -143,4 +160,5 @@ __all__ = [
     "is_unfinished",
     "marked_unfinished",
     "preserve_venv",
+    "rename_once_released",
 ]
