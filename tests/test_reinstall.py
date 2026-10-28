@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -24,6 +25,7 @@ from helpers import (
 from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -176,6 +178,62 @@ def test_reinstall_legacy_venv_inspects_once_for_resources(mocker: MockerFixture
 
     assert executable_path.exists()
     assert run_subprocess.call_count == 2
+
+
+def _record_from_newer_pipx(venv_dir: Path) -> None:
+    record: Final[Path] = venv_dir / "pipx_metadata.json"
+    record.write_text(
+        json.dumps(json.loads(record.read_text(encoding="utf-8")) | {"pipx_metadata_version": "99.0"}), encoding="utf-8"
+    )
+
+
+def _killed_before_recording(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").unlink()
+    (venv_dir / "pipx_unfinished").touch()
+
+
+def _killed_before_installing(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").unlink()
+    for dist_info in venv_dir.rglob("pycowsay-*.dist-info"):
+        shutil.rmtree(dist_info)
+
+
+def _killed_while_creating(venv_dir: Path) -> None:
+    shutil.rmtree(venv_dir)
+    venv_dir.mkdir()
+    (venv_dir / "pyvenv.cfg").touch()
+
+
+@pytest.mark.parametrize(
+    "lose_record",
+    [
+        pytest.param(_record_from_newer_pipx, id="record-from-newer-pipx"),
+        pytest.param(_killed_before_recording, id="killed-before-recording"),
+        pytest.param(_killed_before_installing, id="killed-before-installing"),
+        pytest.param(_killed_while_creating, id="killed-while-creating"),
+    ],
+)
+@pytest.mark.parametrize(
+    "command",
+    [pytest.param(["reinstall", "pycowsay"], id="reinstall"), pytest.param(["reinstall-all"], id="reinstall-all")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    lose_record: Callable[[Path], None],
+    command: list[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    lose_record(paths.ctx.venvs / "pycowsay")
+    install = mocker.patch("pipx.commands.reinstall.install", autospec=True)
+    capsys.readouterr()
+
+    assert run_pipx_cli(command)
+
+    assert "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err
+    install.assert_not_called()
+    assert (paths.ctx.venvs / "pycowsay").is_dir()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -454,3 +512,20 @@ def test_reinstall_restores_venv_on_sigterm_to_pipx_alone(
     exit_code: Final[int] = run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
     assert (exit_code, (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()) == (1, metadata_before)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_injected_package_without_source_hides_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    index: Final[str] = "--index-url=https://u:s3cr3ttok@host/simple"
+    metadata.injected_packages["helper"] = replace(
+        metadata.main_package, package="helper", package_or_url=None, pip_args=[index]
+    )
+    metadata.write()
+    capsys.readouterr()
+
+    assert run_pipx_cli(["reinstall", "pycowsay"])
+
+    err: Final[str] = " ".join(capsys.readouterr().err.split())
+    assert (redact_url_credentials(index) in err, "s3cr3ttok" in err) == (True, False)

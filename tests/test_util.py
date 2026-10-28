@@ -21,9 +21,11 @@ from pipx import paths
 from pipx.fanout import fan_out
 from pipx.util import (
     exec_app,
+    full_package_description,
     get_site_packages,
     redact_url_credentials,
     rmdir,
+    rmdir_via_trash,
     run_subprocess,
     safe_unlink,
     subprocess_post_check,
@@ -102,6 +104,16 @@ def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
 
     assert path.is_dir()
     assert f"Failed to move {path} to the trash" in caplog.text
+
+
+def test_rmdir_via_trash_removes_in_place_when_the_move_fails(mocker: MockerFixture, tmp_path: Path) -> None:
+    (path := tmp_path / "venv").mkdir()
+    mocker.patch.object(Path, "rename", autospec=True, side_effect=OSError("cross-device link"))
+    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+
+    rmdir_via_trash(path)
+
+    assert sorted(entry.name for entry in tmp_path.iterdir()) == ["trash"]
 
 
 def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp_path: Path) -> None:
@@ -620,3 +632,18 @@ def test_subprocess_post_check_logs_failed_command_without_credentials(
         subprocess_post_check(subprocess.CompletedProcess(args, 1, "", ""), raise_error=False)
 
     assert caplog.messages == [expected]
+
+
+def test_full_package_description_of_bare_spec_hides_url_credentials() -> None:
+    spec: Final[str] = "helper @ http://u:s3cr3ttok@host/helper-1.0-py3-none-any.whl"
+
+    assert full_package_description(spec, spec) == redact_url_credentials(spec)
+
+
+@pytest.mark.parametrize("stream", [pytest.param("stdout", id="stdout"), pytest.param("stderr", id="stderr")])
+def test_run_subprocess_masks_url_credentials_in_output(stream: str) -> None:
+    url: Final[str] = "https://deploy:s3cr3ttok@host/team/tool"
+
+    process: Final = run_subprocess([sys.executable, "-c", f"import sys; print({url!r}, file=sys.{stream})"])
+
+    assert getattr(process, stream).strip() == redact_url_credentials(url)

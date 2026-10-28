@@ -12,7 +12,7 @@ from helpers import assert_package_metadata, create_package_info_ref, run_pipx_c
 from package_info import PKG
 from pipx import paths, pipx_metadata_file
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -291,3 +291,16 @@ def test_package_inject() -> None:
     assert pipx_metadata.injected_packages.keys() == {"black"}
     black_package_ref = create_package_info_ref("pycowsay", "black", pipx_venvs_dir, include_apps=False)
     assert_package_metadata(pipx_metadata.injected_packages["black"], black_package_ref)
+
+
+def test_pipx_metadata_corrupt_write_logs_without_url_credentials(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    index: Final[str] = "--index-url=https://u:s3cr3ttok@host/simple"
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir=tmp_path)
+    metadata.main_package = replace(TEST_PACKAGE1, package=None, pip_args=[index])
+
+    with caplog.at_level("DEBUG"), pytest.raises(PipxError, match="PipxMetadata is corrupt"):
+        metadata.write()
+
+    assert (redact_url_credentials(index) in caplog.text, "s3cr3ttok" in caplog.text) == (True, False)

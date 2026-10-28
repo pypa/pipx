@@ -13,7 +13,7 @@ from typing import Any, Final, TypedDict, cast
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
 from pipx.package_specifier import absolute_path_pip_args
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import PipxError, pipx_wrap, redact_url_credentials
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -341,7 +341,7 @@ class PipxMetadata:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
-            _LOGGER.debug("PipxMetadata corrupt:\n%s", self.to_dict())
+            _LOGGER.debug("PipxMetadata corrupt:\n%s", redact_url_credentials(str(self.to_dict())))
             msg = "Internal Error: PipxMetadata is corrupt, cannot write."
             raise PipxError(msg)
 

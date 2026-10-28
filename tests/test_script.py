@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import traceback
 from typing import TYPE_CHECKING, Final
 from urllib.error import URLError
 from zipfile import ZipFile
@@ -10,13 +11,13 @@ from helpers import run_pipx_cli, skip_if_windows
 from pipx.script import (
     _MAX_SCRIPT_BYTES,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     ScriptMetadata,
-    _read_url,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
+    download_script,
     installable_script,
     local_script,
     read_script_metadata,
     script_name_from_spec,
 )
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -230,7 +231,7 @@ def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: 
         script_name_from_spec("https://example.invalid/app.py", expected_apps)
 
 
-def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
+def test_download_script_bounds_the_response_size(mocker: MockerFixture) -> None:
     response = mocker.MagicMock()
     response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
     response.headers.get_content_charset.return_value = "utf-8"
@@ -238,8 +239,42 @@ def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
     urlopen = mocker.patch("urllib.request.urlopen", return_value=response)
 
     with pytest.raises(PipxError, match="larger than"):
-        _read_url("https://example.invalid/big.py")
+        download_script("https://example.invalid/big.py")
     assert urlopen.call_args.kwargs["timeout"] == 30
+
+
+def test_read_script_metadata_invalid_requirement_hides_url_credentials() -> None:
+    dependency: Final[str] = "pycowsay http://u:s3cr3ttok@host/pycowsay.whl"
+
+    with pytest.raises(PipxError) as error:
+        read_script_metadata(f'# /// script\n# dependencies = ["{dependency}"]\n# ///\n')
+
+    report: Final[str] = "".join(traceback.format_exception(error.value))
+    assert (f"Invalid requirement {redact_url_credentials(dependency)}:" in report, "s3cr3ttok" in report) == (
+        True,
+        False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "charset", "cause"),
+    [
+        pytest.param(b"\xff", "utf-8", UnicodeDecodeError, id="undecodable"),
+        pytest.param(b"x", "no-such-charset", LookupError, id="unknown-charset"),
+    ],
+)
+def test_download_script_reports_decode_failure(
+    mocker: MockerFixture, body: bytes, charset: str, cause: type[Exception]
+) -> None:
+    response = mocker.MagicMock(
+        length=None, **{"read.return_value": body, "headers.get_content_charset.return_value": charset}
+    )
+    response.__enter__.return_value = response
+    mocker.patch("urllib.request.urlopen", return_value=response)
+
+    with pytest.raises(PipxError, match=r"^Unable to read script https://example\.invalid/app\.py: ") as error:
+        download_script("https://example.invalid/app.py")
+    assert isinstance(error.value.__cause__, cause)
 
 
 @pytest.mark.parametrize(
@@ -256,9 +291,10 @@ def test_script_url_with_credentials_is_rejected_masked(
     assert f"Script URL https://{masked}localhost/tool.py must not contain credentials." in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["install", "https://localhost:port/tool.py"]) == 1
+def test_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[str], command: str) -> None:
+    assert run_pipx_cli([command, "https://localhost:port/tool.py"]) == 1
 
     assert "Unable to read script https://localhost:port/tool.py: nonnumeric port: 'port'" in capsys.readouterr().err
 

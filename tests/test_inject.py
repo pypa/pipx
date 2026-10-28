@@ -25,6 +25,7 @@ from helpers import (
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -667,3 +668,20 @@ def test_inject_inherits_cooldown(
         "--uploaded-prior-to P7D" in caplog.text,
         metadata.injected_packages["empty-project"].cooldown_days,
     ) == (True, 7)
+
+
+_CREDENTIALED_SPEC: Final[str] = "plugin @ http://u:s3cr3ttok@127.0.0.1:9/plugin-1.0-py3-none-any.whl"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_logs_packages_without_url_credentials(caplog: pytest.LogCaptureFixture) -> None:
+    run_pipx_cli(["inject", "missing-venv", _CREDENTIALED_SPEC])
+
+    assert f"Injecting packages: {[redact_url_credentials(_CREDENTIALED_SPEC)]!r}" in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_json_failure_reports_package_without_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    run_pipx_cli(["inject", "--output", "json", "missing-venv", _CREDENTIALED_SPEC])
+
+    assert json.loads(capsys.readouterr().out)["errors"][0]["package"] == redact_url_credentials(_CREDENTIALED_SPEC)

@@ -298,7 +298,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
             _inject_failure(venv_dir.name, None, "No packages have been specified."),
             emit_output=emit_output,
         )
-    _LOGGER.info("Injecting packages: %r", packages)
+    _LOGGER.info("Injecting packages: %r", [redact_url_credentials(package) for package in packages])
 
     expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_resources_from)
     changed: Final[list[InjectionPackage]] = []
@@ -325,7 +325,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 emit_output=False,
             )
         except PipxError as error:
-            failures.append(InjectionFailure(venv_dir.name, dependency, error.raw_message))
+            failures.append(InjectionFailure(venv_dir.name, redact_url_credentials(dependency), error.raw_message))
             messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
             break
         changed.extend(result.data.packages)

@@ -4,8 +4,12 @@ import datetime as dt
 import json
 import shutil
 import subprocess
+import threading
 import zipfile
 from dataclasses import replace
+from functools import partial
+from http.server import SimpleHTTPRequestHandler
+from socketserver import ThreadingTCPServer
 from typing import TYPE_CHECKING, Final, cast
 
 import pytest
@@ -25,9 +29,10 @@ from helpers import (
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
+from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from pathlib import Path
 
     from _pytest.capture import CaptureResult
@@ -630,3 +635,34 @@ def test_upgrade_suffix_removes_link_named_before_the_last_dot(make_wheel: Calla
     assert not run_pipx_cli(["upgrade", "foo-bar-x@1"])
 
     assert sorted(path.name for path in paths.ctx.bin_dir.iterdir()) == ["tool3.12@1"]
+
+
+@pytest.fixture
+def credentialed_wheel_url(dotted_app_wheel: Path) -> Iterator[str]:
+    handler: Final = partial(SimpleHTTPRequestHandler, directory=str(dotted_app_wheel.parent))
+    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
+    with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            yield f"http://u:s3cr3ttok@127.0.0.1:{server.server_address[1]}/{dotted_app_wheel.name}"
+        finally:
+            server.shutdown()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_source_hides_url_credentials(
+    credentialed_wheel_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", credentialed_wheel_url])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "foo-bar-x"])
+
+    out: Final[str] = capsys.readouterr().out
+    assert (
+        f"local source {redact_url_credentials(credentialed_wheel_url)};" in " ".join(out.split()),
+        "s3cr3ttok" in out,
+    ) == (
+        True,
+        False,
+    )
