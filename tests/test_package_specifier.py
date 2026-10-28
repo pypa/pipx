@@ -687,7 +687,7 @@ def test_parse_specifier_for_install_path_option_attached(option: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "pip_args",
+    "kept",
     [
         pytest.param(["--report", "-"], id="report-stdout"),
         pytest.param(["--report=-"], id="report-stdout-equals"),
@@ -695,9 +695,9 @@ def test_parse_specifier_for_install_path_option_attached(option: str) -> None:
         pytest.param(["-rhttps://example.com/requirements.txt"], id="requirement-url-attached"),
     ],
 )
-def test_parse_specifier_for_install_path_option_keeps_value(pip_args: list[str]) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", pip_args)
-    assert pip_args_out == pip_args
+def test_parse_specifier_for_install_path_option_keeps_value(kept: list[str]) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", [*kept, "--log", "file"])
+    assert pip_args_out == [*kept, "--log", str(Path("file").resolve())]
 
 
 @pytest.mark.parametrize(

@@ -69,7 +69,9 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``package_version``
       - Resolved installed version.
     - - ``pip_args``
-      - Arguments forwarded to the backend at install time.
+      - Arguments forwarded to the backend at install time. A relative path given to a pip option, such as ``--cert
+        ca.pem`` or ``-r requirements.txt``, is stored as an absolute path; a relative one already on file resolves
+        against the environment's directory.
     - - ``include_dependencies``
       - Whether apps and man pages from all dependencies are exposed.
     - - ``include_resources_from``
