@@ -186,8 +186,8 @@ def get_resources_from_inst_files(
     app_names = set()
     man_names = set()
     completion_names = set()
-    # not sure what is found here
-    inst_files = dist.read_text("installed-files.txt") or ""
+    # only a legacy egg-info owns this file; next to a RECORD another wheel planted it, and importlib ignores it too
+    inst_files = "" if dist.read_text("RECORD") is not None else dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
         entry = line.split(",")[0]
         inst_file_path = Path(str(dist.locate_file(entry))).resolve()

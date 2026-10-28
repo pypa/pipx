@@ -80,6 +80,38 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
 
 
 @pytest.mark.parametrize(
+    ("metadata_files", "expected"),
+    [
+        pytest.param({"installed-files.txt": "../../bin/other\n"}, ["other"], id="installed-files-only"),
+        pytest.param(
+            {"installed-files.txt": "../../bin/other\n", "RECORD": "root_package/__init__.py,,\n"},
+            [],
+            id="installed-files-beside-record",
+        ),
+    ],
+)
+def test_inspect_venv_reads_installed_files_only_without_record(
+    tmp_path: Path, mocker: MockerFixture, metadata_files: dict[str, str], expected: list[str]
+) -> None:
+    site_packages = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    for name, content in metadata_files.items():
+        (site_packages / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "other").touch()
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+
+    assert result.apps == expected
+
+
+@pytest.mark.parametrize(
     ("root_requirements", "shared_requirements", "expected"),
     [
         pytest.param(("left", "right"), (), ["first-app", "second-app"], id="first-then-second"),
