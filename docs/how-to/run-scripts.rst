@@ -33,6 +33,13 @@ Quote any specifier that contains ``>``, ``<``, or spaces.
 
     $ pipx run --with requests --with rich my-script.py
 
+pipx resolves the ``--with`` packages together with the app, so ``--with`` can also pin or cap one of the app's own
+dependencies:
+
+.. code-block:: console
+
+    $ pipx run --with 'click<8.2' black --version
+
 *************************
  Pass arguments to Python
 *************************

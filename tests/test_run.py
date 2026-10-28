@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 from filelock import AcquireReturnProxy, FileLock, Timeout
+from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -250,16 +251,14 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_isolates_cache_by_dependency(mocker: MockerFixture) -> None:
-    inject: Final = mocker.patch.object(importlib.import_module("pipx.commands.run"), "inject_dep")
-
+def test_run_with_isolates_cache_by_dependency() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
     plain_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
 
-    run_pipx_cli_exit(["run", "--with", "packaging", "pycowsay", "cowsay", "hi"])
+    run_pipx_cli_exit(["run", "--with", "six", "pycowsay", "cowsay", "hi"])
     with_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()} - plain_dirs
 
-    assert (len(with_dirs), inject.call_count, inject.call_args.kwargs["package_spec"]) == (1, 1, "packaging")
+    assert [bool(list(path.rglob("six-*.dist-info"))) for path in (*plain_dirs, *with_dirs)] == [False, True]
 
 
 @pytest.fixture
@@ -1231,10 +1230,10 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with(capsys: pytest.CaptureFixture[str]) -> None:
+def test_run_with() -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
-    captured = capsys.readouterr()
-    assert "injected package black into venv pycowsay" in captured.out
+
+    assert list(paths.ctx.venv_cache.rglob("black-*.dist-info"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1242,7 +1241,6 @@ def test_run_with_cooldown(
     root: Path,
     empty_project_wheel: Path,
     mocker: MockerFixture,
-    capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
@@ -1265,9 +1263,40 @@ def test_run_with_cooldown(
     )
 
     assert (
-        "injected package empty-project into venv" in capsys.readouterr().out,
+        bool(list(paths.ctx.venv_cache.rglob("empty_project-*.dist-info"))),
         "--uploaded-prior-to P7D" in caplog.text,
     ) == (True, True)
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_with_pins_app_dependency(
+    make_project_with_dependency: Callable[[str], Path], tmp_path: Path, mocker: MockerFixture, backend: str
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
+    app_wheel: Final[Path] = make_wheel_in(make_project_with_dependency("black") / "pyproject.toml", tmp_path).file
+
+    run_pipx_cli_exit([
+        "run",
+        "--backend",
+        backend,
+        "--spec",
+        str(app_wheel),
+        "--with",
+        "black==22.8.0",
+        "empty-project",
+    ])
+
+    assert [path.name for path in paths.ctx.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_with_app_extra_exposes_nothing(local_extras_wheel: Path, mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
+
+    run_pipx_cli_exit(["run", "--spec", str(local_extras_wheel), "--with", f"{local_extras_wheel}[cow]", "repeatme"])
+
+    assert list(paths.ctx.bin_dir.iterdir()) == []
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

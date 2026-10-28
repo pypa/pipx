@@ -396,6 +396,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         lock_file: Path | None = None,
         pinned: bool | None = None,
         cooldown_days: int | None = None,
+        extra_requirements: Sequence[str] = (),
     ) -> VenvMetadata:
         # a script path can also read as a PyPI name (bare.py) or as extras (dir[1]/app.py), so pin it to the file
         if (script := local_script(package_or_url)) is not None:
@@ -416,7 +417,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                     process = self.backend.install(
                         venv_root=self.root,
                         venv_python=self.python_path,
-                        requirements=[install_spec],
+                        requirements=[
+                            install_spec,
+                            *(parse_specifier_for_install(spec, pip_args)[0] for spec in extra_requirements),
+                        ],
                         pip_args=install_pip_args,
                         log_pip_errors=False,
                         verbose=self.verbose,
