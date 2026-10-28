@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import zipfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -25,7 +26,6 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
@@ -95,6 +95,31 @@ def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
     assert app_path.read_bytes() == shebang + flag + separator
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "link", [pytest.param(Path.hardlink_to, id="hard-link"), pytest.param(Path.symlink_to, id="symlink")]
+)
+def test_expose_app_scripts_leave_installer_cache_intact(tmp_path: Path, link: Callable[[Path, Path], None]) -> None:
+    (cached_path := tmp_path / "cache" / "demo").parent.mkdir()
+    cached_path.write_bytes(b"#!/usr/bin/python3\n")
+    (app_path := tmp_path / "venv_bin" / "demo").parent.mkdir()
+    link(app_path, cached_path)
+
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
+
+    assert (cached_path.read_bytes(), app_path.read_bytes()) == (b"#!/usr/bin/python3\n", b"#!/usr/bin/python3 -E\n")
+
+
+@skip_if_windows
+def test_expose_app_scripts_keep_mode_on_shebang_rewrite(tmp_path: Path) -> None:
+    (app_path := tmp_path / "demo").write_bytes(b"#!/usr/bin/python3\n")
+    app_path.chmod(0o750)
+
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
+
+    assert app_path.stat().st_mode & 0o777 == 0o750
 
 
 @pytest.mark.parametrize(
