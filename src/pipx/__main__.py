@@ -5,8 +5,27 @@ from __future__ import annotations
 __lazy_modules__ = ["typing"]
 
 import os
-import pathlib
 import sys
+
+if not sys.flags.safe_path and __spec__ and __spec__.parent:
+    # Python searches the directory of the script it started (the working directory under -m) ahead of the standard
+    # library. pip writes the pipx script into the directory pipx links apps into, so an app named shlex.py would be
+    # imported in place of that module; drop the entry before the next import, unless pipx itself was found through it
+    # (cd src && python -m pipx). pathlib is not imported yet, so os.path stands in for it.
+    try:
+        _SCRIPT_DIR = (
+            os.getcwd()  # ruff:ignore[os-getcwd]  # see above
+            if __name__ == "__main__"
+            else os.path.dirname(os.path.realpath(sys.argv[0]))  # ruff:ignore[os-path-dirname]  # see above
+        )
+    except OSError:
+        pass  # Python adds no entry for a working directory that is gone
+    else:
+        _PACKAGE_PARENT = os.path.dirname(os.path.dirname(__file__))  # ruff:ignore[os-path-dirname]  # see above
+        if sys.path[:1] == [_SCRIPT_DIR] != [_PACKAGE_PARENT]:
+            del sys.path[0]
+
+import pathlib
 from typing import Final
 
 if sys.version_info >= (3, 15):
