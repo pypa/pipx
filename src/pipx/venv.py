@@ -358,17 +358,31 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if self._backend_name == "uv":
             return
         with self.pipx_metadata.preserved():
-            self.backend.upgrade_packaging_libraries(self.python_path, pip_args, verbose=self.verbose)
+            self.backend.upgrade_packaging_libraries(self._installer_python, pip_args, verbose=self.verbose)
+
+    @property
+    def _installer_python(self) -> Path:
+        # without pyvenv.cfg the venv's python link starts the base interpreter, and the installer would write there
+        if not (self.root / "pyvenv.cfg").is_file():
+            msg = (
+                f"{self.root} has no pyvenv.cfg, so it is no longer a virtual environment.\n"
+                "Running the installer there would change the Python it was created from instead.\n"
+                f"To fix, execute: pipx reinstall {self.root.name}"
+            )
+            raise PipxError(msg, wrap_message=False)
+        return self.python_path
 
     def uninstall_packages(self, *packages: str, was_injected: bool = False) -> None:
         for package in packages:
             _LOGGER.info("Uninstalling %s", package)
         names = ", ".join(packages)
+        # resolved outside the try, which would replace the reason with a generic "Error uninstalling"
+        venv_python: Final[Path] = self._installer_python
         try:
             with animate(f"uninstalling {names}", do_animation=self.do_animation), self.pipx_metadata.preserved():
                 self.backend.uninstall(
                     venv_root=self.root,
-                    venv_python=self.python_path,
+                    venv_python=venv_python,
                     packages=packages,
                     verbose=self.verbose,
                 )
@@ -421,7 +435,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 ):
                     process = self.backend.install(
                         venv_root=self.root,
-                        venv_python=self.python_path,
+                        venv_python=self._installer_python,
                         requirements=[
                             install_spec,
                             *(parse_specifier_for_install(spec, pip_args)[0] for spec in extra_requirements),
@@ -499,7 +513,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         ):
             process = self.backend.install_lock(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 lock_file=lock_file,
                 pip_args=[argument for argument in pip_args if argument != "--editable"],
                 verbose=self.verbose,
@@ -513,7 +527,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             with animate(f"installing {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
                 process = self.backend.install(
                     venv_root=self.root,
-                    venv_python=self.python_path,
+                    venv_python=self._installer_python,
                     requirements=[package_or_url],
                     pip_args=pip_args,
                     no_deps=True,
@@ -534,7 +548,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
 
         process = self.backend.run_raw_pip(
             venv_root=self.root,
-            venv_python=self.python_path,
+            venv_python=self._installer_python,
             args=["check"],
             verbose=self.verbose,
         )
@@ -554,7 +568,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         with animate(f"installing {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
             process = self.backend.install(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 requirements=list(requirements),
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
                 verbose=self.verbose,
@@ -576,7 +590,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             old_dist_info_dirs = self._dist_info_dirs()
             process = self.backend.install(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 requirements=[package_or_url],
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
                 no_deps=True,
@@ -717,7 +731,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def list_installed_packages(self, *, not_required: bool = False) -> set[str]:
         return self.backend.list_installed(
             venv_root=self.root,
-            venv_python=self.python_path,
+            venv_python=self._installer_python,
             not_required=not_required,
         )
 
@@ -725,7 +739,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # pip and uv query the index for every installed distribution unless told to exclude it
         return self.backend.list_outdated(
             venv_root=self.root,
-            venv_python=self.python_path,
+            venv_python=self._installer_python,
             index_args=index_args,
             exclude=sorted(self._installed_distribution_names().difference(packages)),
         )
@@ -812,7 +826,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         with animate(f"upgrading {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
             process = self.backend.install(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 requirements=[package_name],
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
                 upgrade_package=package_name,
@@ -845,7 +859,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         ):
             process = self.backend.install(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 requirements=[install_spec],
                 pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
                 upgrade_package=package_name,
@@ -873,7 +887,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def _run_pip(self, cmd: list[str]) -> CompletedProcess[str]:
         return self.backend.run_raw_pip(
             venv_root=self.root,
-            venv_python=self.python_path,
+            venv_python=self._installer_python,
             args=cmd,
             verbose=self.verbose,
         )
@@ -882,7 +896,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         with self.pipx_metadata.preserved():
             process = self.backend.run_raw_pip(
                 venv_root=self.root,
-                venv_python=self.python_path,
+                venv_python=self._installer_python,
                 args=cmd,
                 capture_stdout=False,
                 capture_stderr=False,
