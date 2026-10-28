@@ -1231,6 +1231,13 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_uv_dash_app_is_not_a_uv_option() -> None:
+    # uv rejects the operand as a usage error instead of reading -n as --no-cache and running pycowsay
+    run_pipx_cli_exit(["run", "--backend", "uv", "--", "-n", "pycowsay", "hi"], assert_exit=2)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with(capsys: pytest.CaptureFixture[str]) -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
     captured = capsys.readouterr()

@@ -57,6 +57,7 @@ def test_run_via_uv_tool_run_basic(
         "--python",
         "python3.12",
         *cooldown_args,
+        "--",
         "black",
         "--check",
     ]
@@ -97,6 +98,7 @@ def test_run_via_uv_tool_run_threads_spec_and_with(
         "--default-index",
         "https://example.com/simple",
         "--prerelease=allow",
+        "--",
         "rope",
         "--version",
     ]
