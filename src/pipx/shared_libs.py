@@ -31,6 +31,7 @@ from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python
+from pipx.package_specifier import absolute_path_pip_args
 from pipx.util import (
     PipxError,
     get_site_packages,
@@ -295,7 +296,8 @@ class _SharedLibs:
     def _install_pip(self, *, pip_args: list[str], verbose: bool, raises: bool, pythonpath: str | None = None) -> None:
         logger.info("Upgrading shared libraries in %s", self.root)
 
-        filtered_pip_args = [arg for arg in pip_args if arg != "--editable"]
+        # pip runs inside the shared venv, so relative --find-links/--constraint values must not follow that directory
+        filtered_pip_args = [arg for arg in absolute_path_pip_args(pip_args, Path.cwd()) if arg != "--editable"]
         if not verbose:
             filtered_pip_args.append("-q")
 
