@@ -239,7 +239,7 @@ def _unpack(full_version: str, archive: Path, download_dir: Path, expected_check
                 if hasattr(tarfile, "data_filter"):
                     tar.extractall(download_dir, filter="data")
                 else:
-                    # Python 3.10.0-3.10.11 predate tarfile's data filter, so validate and extract by hand
+                    # Python 3.11.0-3.11.3 predate tarfile's data filter, so validate and extract by hand
                     _extract_safely(tar, download_dir)
         except tarfile.TarError as error:
             msg = f"Unable to unpack python {full_version} build."
@@ -256,20 +256,35 @@ def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
 
 
 def _reject_escape(member: tarfile.TarInfo, root: Path) -> None:
+    # like the data filter, extract under normalized names: "dir/.." leads elsewhere as soon as "dir" is a link
+    member.name = os.path.normpath(member.name)
     if _escapes(root, root / member.name):
         msg = f"Refusing to extract {member.name!r} outside the download directory."
         raise PipxError(msg)
     if member.issym() or member.islnk():
+        member.linkname = os.path.normpath(member.linkname)
         link: Final[PurePosixPath] = PurePosixPath(member.linkname)
         base: Final[Path] = root if member.islnk() else (root / member.name).parent
-        if link.is_absolute() or _escapes(root, base / member.linkname):
+        # a hard link to a symlink re-creates that symlink, and so its relative target, at another depth
+        relocates_symlink: Final[bool] = member.islnk() and (root / member.linkname).is_symlink()
+        if link.is_absolute() or relocates_symlink or _escapes(root, base / member.linkname):
             msg = f"Refusing to extract link {member.name!r} pointing outside the download directory."
             raise PipxError(msg)
 
 
 def _escapes(root: Path, target: Path) -> bool:
-    resolved: Final[Path] = Path(os.path.normpath(target))
-    return resolved != root and root not in resolved.parents
+    # members are extracted one at a time, so resolve the links unpacked so far for as much of the path as exists
+    for existing in (target, *target.parents):
+        try:
+            # strict: a lenient realpath takes a link it cannot follow (a loop, an overlong chain) for a directory
+            followed = os.path.realpath(existing, strict=True)
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return True
+        resolved = Path(os.path.normpath(Path(followed, target.relative_to(existing))))
+        return resolved != root and root not in resolved.parents
+    return True  # pragma: no cover  # target is below root, which exists, so the loop always returns
 
 
 def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -> None:
