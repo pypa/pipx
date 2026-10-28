@@ -872,6 +872,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             capture_stdout=False,
             capture_stderr=False,
             verbose=self.verbose,
+            # the user wrote these arguments for their own directory, so relative paths must not name venv-root files
+            in_working_dir=True,
         )
         if process.returncode:
             _LOGGER.error("%r failed", " ".join(redact_url_credentials(str(c)) for c in process.args))
