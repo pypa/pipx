@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["configparser", "pathlib", "pipx", "pipx.fanout", "pipx.interpreter", "pipx.util", "threading"]
+__lazy_modules__ = [
+    "configparser",
+    "packaging.version",
+    "pathlib",
+    "pipx",
+    "pipx.fanout",
+    "pipx.interpreter",
+    "pipx.util",
+    "threading",
+]
 
 import datetime as dt
 import logging
@@ -13,6 +22,8 @@ from contextvars import ContextVar
 from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Final
+
+from packaging.version import Version
 
 from pipx import paths
 from pipx.animate import animate
@@ -40,6 +51,8 @@ logger = logging.getLogger(__name__)
 SHARED_LIBS_MAX_AGE_SEC: Final[float] = dt.timedelta(days=30).total_seconds()
 DISABLE_SHARED_LIBS_AUTO_UPGRADE: Final[str] = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
 _SKIP_MAINTENANCE: Final[ContextVar[bool]] = ContextVar("skip_maintenance", default=False)
+# pip 26.2.2 vendors a certifi without the distrusted emSign root CA, see https://github.com/pypa/pipx/issues/2183
+_PIP_FLOOR: Final[str] = "26.2.2"
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
@@ -241,7 +254,7 @@ class _SharedLibs:
         if self.has_been_updated_this_run:
             return False
 
-        if not self.pip_path.is_file():
+        if not self.pip_path.is_file() or self._pip_below_floor():
             return True
 
         now = time.time()
@@ -255,6 +268,14 @@ class _SharedLibs:
             )
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
+
+    def _pip_below_floor(self) -> bool:
+        from importlib.metadata import distributions  # ruff:ignore[import-outside-top-level]  # slows startup
+
+        return any(
+            Version(dist.version) < Version(_PIP_FLOOR)
+            for dist in distributions(name="pip", path=[str(path) for path in self.site_packages])
+        )
 
     def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
         with in_turn(lambda: self.has_been_updated_this_run), self._lock, self._maintenance_lock():
@@ -290,7 +311,7 @@ class _SharedLibs:
                         "install",
                         "--upgrade",
                         *filtered_pip_args,
-                        "pip >= 26.1",
+                        f"pip >= {_PIP_FLOOR}",
                     ],
                     env_overrides={"PYTHONPATH": pythonpath},
                 )

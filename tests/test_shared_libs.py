@@ -237,6 +237,21 @@ def test_shared_libs_validity_check_is_cached(shared_pip_layout: dict[str, Path]
     assert shared_libs.shared_libs.is_valid
 
 
+@pytest.mark.parametrize(
+    ("version", "needs_upgrade"),
+    [
+        pytest.param("26.2.1", True, id="below-floor"),
+        pytest.param("26.2.2", False, id="at-floor"),
+    ],
+)
+@pytest.mark.usefixtures("shared_pip_layout")
+def test_fresh_shared_pip_needs_upgrade_below_floor(version: str, *, needs_upgrade: bool) -> None:
+    (dist_info := shared_libs.shared_libs.site_packages[0] / f"pip-{version}.dist-info").mkdir()
+    (dist_info / "METADATA").write_text(f"Metadata-Version: 2.1\nName: pip\nVersion: {version}\n", encoding="utf-8")
+
+    assert shared_libs.shared_libs.needs_upgrade is needs_upgrade
+
+
 def test_install_rebuilds_shared_libs_missing_pip_before_running_pip(
     shared_pip_layout: dict[str, Path], caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -293,7 +308,7 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     install_command = run_subprocess.call_args.args[0]
     run_subprocess.assert_called_once()
     assert "pip==20" in install_command
-    assert "pip >= 26.1" in install_command
+    assert "pip >= 26.2.2" in install_command
 
 
 @pytest.mark.usefixtures("shared_pip_layout")
