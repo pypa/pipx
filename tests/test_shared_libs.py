@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 from filelock import AcquireReturnProxy, FileLock
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli, skip_if_windows
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
@@ -443,3 +443,49 @@ def test_runpip_skips_rebuild_when_another_process_repaired_shared_pip(
     exit_code: Final[int] = run_pipx_cli(["runpip", "pycowsay", "list"])
 
     assert (exit_code, "does not import" in caplog.text) == (0, False)
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_install_cooldown_applies_to_new_shared_pip(root: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    # pip filters an index by its upload-time metadata, which the test index lacks; local files pass the filter
+    pip_args: Final[str] = f"--no-index --find-links={root / '.pipx_tests' / 'package_cache' / PACKAGE_CACHE_DIR_NAME}"
+
+    assert not run_pipx_cli(["install", "--backend", "pip", "--cooldown", "7", f"--pip-args={pip_args}", "pycowsay"])
+
+    assert [
+        message.partition(" -m pip ")[2]
+        for record in caplog.records
+        if (message := record.getMessage()).startswith(f"running {shared_libs.shared_libs.python_path} -m pip")
+        and " install " in message
+    ] == [
+        f"--no-input --disable-pip-version-check install --upgrade {pip_args} --force-reinstall -q pip == 26.2.2",
+        f"--no-input --disable-pip-version-check install --upgrade {pip_args} --uploaded-prior-to P7D -q pip >= 26.2.2",
+    ]
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(mocker: MockerFixture) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+    with shared_libs.shared_pip_cooldown(7):
+        shared_libs.shared_libs.upgrade(pip_args=[], verbose=True, raises=True)
+
+    assert [call.args[0][5:] for call in run_subprocess.call_args_list] == [
+        ["install", "--upgrade", "--uploaded-prior-to", "P7D", "pip >= 26.2.2"]
+    ]
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_create_under_cooldown_keeps_floor_when_index_lacks_upload_times() -> None:
+    with shared_libs.shared_pip_cooldown(7):
+        shared_libs.shared_libs.create(pip_args=[])
+
+    assert sorted(path.name for path in shared_libs.shared_libs.site_packages[0].glob("pip-*.dist-info")) == [
+        "pip-26.2.2.dist-info"
+    ]

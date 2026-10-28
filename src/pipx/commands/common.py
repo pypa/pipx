@@ -47,7 +47,7 @@ from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.fanout import in_turn
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, is_file_name, mkdir, pipx_wrap, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -71,11 +71,13 @@ class VenvProblems:
         bad_venv_name: bool = False,
         invalid_interpreter: bool = False,
         missing_metadata: bool = False,
+        unreadable_metadata: bool = False,
         not_installed: bool = False,
     ) -> None:
         self.bad_venv_name = bad_venv_name
         self.invalid_interpreter = invalid_interpreter
         self.missing_metadata = missing_metadata
+        self.unreadable_metadata = unreadable_metadata
         self.not_installed = not_installed
 
     def any_(self) -> bool:
@@ -91,6 +93,18 @@ class VenvProblems:
 
 
 _SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
+# None is a user's --force, which replaces whatever holds a name
+_REPLACEABLE_RESOURCES: Final[ContextVar[frozenset[Path] | None]] = ContextVar("replaceable_resources", default=None)
+
+
+@contextmanager
+def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
+    # a rebuild forces only so its own exposed files are refreshed, not to take names install left with their owner
+    token = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
+    try:
+        yield
+    finally:
+        _REPLACEABLE_RESOURCES.reset(token)
 
 
 @contextmanager
@@ -233,7 +247,11 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
     if len(first_line) + len(separator) + len(_IGNORE_ENVIRONMENT_FLAG) > _MAX_SHEBANG_LENGTH:
         return
 
-    path.write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
+    # uv hard-links or symlinks installed files to its cache, which other environments share; a new inode keeps them
+    with TemporaryDirectory(dir=path.parent) as directory:
+        (rewritten := Path(directory) / path.name).write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
+        shutil.copymode(path, rewritten)
+        rewritten.replace(path)
 
 
 def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> Path | None:
@@ -245,7 +263,7 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
     if dest.exists():
         if filecmp.cmp(dest, src, shallow=False):
             return None
-        if not force:
+        if not force or not _force_replaces(dest):
             _LOGGER.warning("%s  File exists at %s and does not match %s. Not modifying.", hazard, dest, src)
             return dest
         _LOGGER.warning("%s  Overwriting file %s with %s", hazard, dest, src)
@@ -253,6 +271,10 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
     if src.exists():
         shutil.copy(src, dest)
     return None
+
+
+def _force_replaces(path: Path) -> bool:
+    return (replaceable := _REPLACEABLE_RESOURCES.get()) is None or path in replaceable
 
 
 def _symlink_package_resource(
@@ -269,15 +291,15 @@ def _symlink_package_resource(
     if not symlink_path.parent.is_dir():
         mkdir(symlink_path.parent)
 
-    if force and (symlink_path.is_symlink() or not symlink_path.is_dir()):
+    if force and _force_replaces(symlink_path) and (symlink_path.is_symlink() or not symlink_path.is_dir()):
         _LOGGER.info("Force is true. Removing %s.", symlink_path)
         with suppress(FileNotFoundError, RuntimeError):
             symlink_path.unlink()
 
     exists = symlink_path.exists()
     is_symlink = symlink_path.is_symlink()
-    if exists:
-        if symlink_path.samefile(path):
+    if exists or (is_symlink and _links_into_another_venv(symlink_path, path)):
+        if exists and symlink_path.samefile(path):
             _LOGGER.info("Same path %s and %s", symlink_path, path)
             return None
         _LOGGER.warning(
@@ -311,6 +333,18 @@ def _symlink_package_resource(
     return None
 
 
+def _links_into_another_venv(symlink_path: Path, path: Path) -> bool:
+    # an installer removes a package's old files before it writes the new ones, and another task of a fan-out or another
+    # pipx run can expose meanwhile, so a dangling link into a venv that still exists is that venv's, not a left-over
+    venvs: Final[Path] = paths.ctx.venvs.resolve()
+    try:
+        target: Final[Path] = symlink_path.resolve()
+    except RuntimeError:  # a symlink loop, which Python before 3.13 reports this way
+        return False
+    venv_dir: Final[Path | None] = next((parent for parent in target.parents if parent.parent == venvs), None)
+    return venv_dir is not None and venv_dir.is_dir() and not path.resolve().is_relative_to(venv_dir)
+
+
 def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
     new_name: Final[str] = add_suffix(path.name, suffix)
     for legacy in (dest_dir / name for name in exposed_app_names(path.name, suffix) - {new_name}):
@@ -339,6 +373,13 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
         return (
             VenvProblems(invalid_interpreter=True),
             f"   package {red(bold(venv_dir.name))} has invalid interpreter {python_path!s}\r{hazard}",
+        )
+    # the metadata is owner-only as it can hold index credentials, so another user sees a --global environment this way
+    metadata_file: Final[Path] = venv_dir / PIPX_INFO_FILENAME
+    if not venv.package_metadata and metadata_file.exists() and not os.access(metadata_file, os.R_OK):
+        return (
+            VenvProblems(unreadable_metadata=True),
+            f"   package {red(bold(venv_dir.name))} has pipx metadata this user cannot read.\r{hazard}",
         )
     if not venv.package_metadata:
         return (
@@ -734,7 +775,8 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend, env_backend=env_backend)
-        venv.create_venv(venv_args=[], pip_args=[])
+        # under pip this can be the call that builds the shared libraries, so their pip must come from the user's index
+        venv.create_venv(venv_args=[], pip_args=pip_args)
         package_name = venv.install_package_no_deps(
             package_or_url=package_spec,
             pip_args=pip_args,
@@ -948,6 +990,7 @@ __all__ = [
     "expose_resources_globally",
     "expose_shared_resources_in_order",
     "exposed_app_names",
+    "force_replaces_only",
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",

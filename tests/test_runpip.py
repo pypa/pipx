@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import shutil
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -132,3 +134,21 @@ def test_runpip_install_records_index_options(
     metadata = json.loads((paths.ctx.venvs / "empty-project" / "pipx_metadata.json").read_text())
     expected = [arg.format_map(links) for arg in runpip_index_args or install_index_args]
     assert metadata["main_package"]["pip_args"] == expected
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_runpip_resolves_relative_paths_in_working_directory(
+    empty_project_wheel: Path, local_extras_wheel: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, backend: str
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv is not installed")
+    assert not run_pipx_cli(["install", "--backend", backend, str(empty_project_wheel)])
+    # a wheel's data files unpack into the venv root, so a file there must not stand in for the user's
+    (paths.ctx.venvs / "empty-project" / "requirements.txt").write_text("picked-by-an-installed-wheel\n")
+    (tmp_path / "requirements.txt").write_text(f"{local_extras_wheel}\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["runpip", "empty-project", "install", "-r", "requirements.txt"])
+
+    assert "repeatme" in Venv(paths.ctx.venvs / "empty-project").list_installed_packages()

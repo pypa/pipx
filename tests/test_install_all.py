@@ -517,6 +517,22 @@ def test_install_all_refuses_an_environment_name_outside_the_store(spec_file: Pa
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_leaves_injected_packages_of_a_skipped_environment(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["pbr"]["spec"]])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    (spec_file := tmp_path / "pipx.json").write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninject", "pycowsay", "pbr"])
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    assert list(PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages) == []
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) -> None:
     spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
     spec["venvs"] = {"pycowsay": spec["venvs"]["pycowsay"], "malformed": {}}
