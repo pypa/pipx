@@ -858,7 +858,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             verbose=self.verbose,
         )
         if process.returncode:
-            _LOGGER.error("%r failed", redact_url_credentials(" ".join(str(c) for c in process.args)))
+            _LOGGER.error("%r failed", " ".join(redact_url_credentials(str(c)) for c in process.args))
         return ExitCode(process.returncode)
 
 
