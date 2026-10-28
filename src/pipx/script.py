@@ -98,8 +98,9 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
         for dependency in dependencies:
             normalized.append(str(Requirement(dependency)))
     except InvalidRequirement as error:
-        msg = f"Invalid requirement {dependency}: {error}"
-        raise PipxError(msg) from error
+        msg = f"Invalid requirement {redact_url_credentials(dependency)}: {redact_url_credentials(str(error))}"
+        # packaging quotes the requirement in its message, so chaining it would log the credentials with the traceback
+        raise PipxError(msg) from None
 
     requires_python: Final[str | None] = _normalize_requires_python(raw.get("requires-python"))
     return ScriptMetadata(tuple(normalized), requires_python)

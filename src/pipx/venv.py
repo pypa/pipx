@@ -538,7 +538,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         cooldown_days: int | None = None,
     ) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
-        _LOGGER.info("Installing %s", package_descr := ", ".join(requirements))
+        _LOGGER.info("Installing %s", package_descr := ", ".join(map(redact_url_credentials, requirements)))
         with animate(f"installing {package_descr}", do_animation=self.do_animation):
             process = self.backend.install(
                 venv_root=self.root,
@@ -548,7 +548,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 verbose=self.verbose,
             )
         if process.returncode:
-            msg = f"Error installing {', '.join(requirements)}."
+            msg = f"Error installing {package_descr}."
             raise PipxError(msg)
 
     def install_package_no_deps(

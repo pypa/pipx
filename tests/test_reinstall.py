@@ -24,6 +24,7 @@ from helpers import (
 from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -438,3 +439,20 @@ def test_reinstall_restores_venv_on_sigterm_to_pipx_alone(
     exit_code: Final[int] = run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
     assert (exit_code, (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()) == (1, metadata_before)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_injected_package_without_source_hides_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    index: Final[str] = "--index-url=https://u:s3cr3ttok@host/simple"
+    metadata.injected_packages["helper"] = replace(
+        metadata.main_package, package="helper", package_or_url=None, pip_args=[index]
+    )
+    metadata.write()
+    capsys.readouterr()
+
+    assert run_pipx_cli(["reinstall", "pycowsay"])
+
+    err: Final[str] = " ".join(capsys.readouterr().err.split())
+    assert (redact_url_credentials(index) in err, "s3cr3ttok" in err) == (True, False)

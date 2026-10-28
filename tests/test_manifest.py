@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Literal
+from typing import TYPE_CHECKING, Final, Literal, cast
 
 import pytest
 
@@ -10,6 +10,7 @@ from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli
 from pipx import paths
 from pipx.commands import manifest as manifest_module
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -633,3 +634,16 @@ def test_lock_manifest_requires_nab_and_lock(
 
     assert run_pipx_cli(["manifest", "lock", str(manifest)])
     assert expected_error in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_sync_manifest_invalid_requirement_hides_url_credentials(
+    write_manifest: Callable[[str], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    package: Final[str] = "internal-tool git+https://bot:s3cr3ttok@host/repo.git"
+
+    assert run_pipx_cli(["manifest", "sync", str(write_manifest(_manifest(package, "internal")))])
+
+    err: Final[str] = capsys.readouterr().err
+    output: Final[str] = err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert (redact_url_credentials(package) in " ".join(err.split()), "s3cr3ttok" in output) == (True, False)

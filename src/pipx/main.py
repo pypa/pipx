@@ -348,7 +348,7 @@ def package_is_path(package: str) -> None:
         raise PipxError(
             pipx_wrap(
                 f"""
-                Error: '{package}' looks like a path.
+                Error: '{redact_url_credentials(package)}' looks like a path.
                 Expected the name of an installed package.
                 """
             )

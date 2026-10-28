@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import traceback
 from typing import TYPE_CHECKING, Final
 from urllib.error import URLError
 from zipfile import ZipFile
@@ -16,7 +17,7 @@ from pipx.script import (
     read_script_metadata,
     script_name_from_spec,
 )
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -240,6 +241,19 @@ def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
     with pytest.raises(PipxError, match="larger than"):
         _read_url("https://example.invalid/big.py")
     assert urlopen.call_args.kwargs["timeout"] == 30
+
+
+def test_read_script_metadata_invalid_requirement_hides_url_credentials() -> None:
+    dependency: Final[str] = "pycowsay http://u:s3cr3ttok@host/pycowsay.whl"
+
+    with pytest.raises(PipxError) as error:
+        read_script_metadata(f'# /// script\n# dependencies = ["{dependency}"]\n# ///\n')
+
+    report: Final[str] = "".join(traceback.format_exception(error.value))
+    assert (f"Invalid requirement {redact_url_credentials(dependency)}:" in report, "s3cr3ttok" in report) == (
+        True,
+        False,
+    )
 
 
 @pytest.mark.parametrize(

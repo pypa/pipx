@@ -47,7 +47,7 @@ from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
 from pipx.shared_libs import shared_libs
-from pipx.util import PipxError, pipx_wrap, run_subprocess
+from pipx.util import PipxError, pipx_wrap, redact_url_credentials, run_subprocess
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -612,7 +612,7 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
 def _local_source(package_metadata: PackageInfo) -> str | None:
     """The install source when it is a local path/URL rather than an index name, else None."""
     if package_metadata.package_or_url is not None and valid_pypi_name(package_metadata.package_or_url) is None:
-        return package_metadata.package_or_url
+        return redact_url_credentials(package_metadata.package_or_url)
     return None
 
 

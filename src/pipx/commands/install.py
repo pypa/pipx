@@ -456,7 +456,13 @@ def _failed_install_result(environment: str, error: PipxError) -> OperationResul
         data=InstallData(packages=(), skipped=()),
         messages=(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
-        errors=(OperationError(code="package_install_failed", message=_error_report(error), environment=environment),),
+        errors=(
+            OperationError(
+                code="package_install_failed",
+                message=_error_report(error),
+                environment=redact_url_credentials(environment),
+            ),
+        ),
     )
 
 

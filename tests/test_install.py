@@ -31,7 +31,7 @@ from pipx import main, paths, shared_libs
 from pipx.backends import Backend
 from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -2186,3 +2186,12 @@ def test_install_skip_maintenance_without_index(capsys: pytest.CaptureFixture[st
 
     assert "installed package pycowsay" in capsys.readouterr().out
     assert not shared_libs.shared_libs_auto_upgrade_disabled()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_json_failure_reports_environment_without_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    spec: Final[str] = "http://u:s3cr3ttok@127.0.0.1:9/tool-1.0-py3-none-any.whl"
+
+    assert run_pipx_cli(["install", "--output", "json", "--upgrade-strategy", "eager", spec])
+
+    assert json.loads(capsys.readouterr().out)["errors"][0]["environment"] == redact_url_credentials(spec)
