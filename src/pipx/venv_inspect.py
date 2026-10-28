@@ -142,6 +142,8 @@ def not_required_packages(sys_path: list[str], env: dict[str, str]) -> set[str]:
 
 def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> set[str]:
     app_names = set()
+    if not _owns_entry_points(dist):
+        return app_names
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
     for ep in dist.entry_points:
@@ -153,6 +155,13 @@ def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> s
             # WINDOWS adds .exe to entry_point name
             app_names.add(ep.name + ".exe")
     return app_names
+
+
+def _owns_entry_points(dist: metadata.Distribution) -> bool:
+    # every wheel unpacks into one site-packages, so a dependency can plant entry_points.txt in this .dist-info
+    if dist.read_text("RECORD") is None:
+        return True
+    return any(path.name == "entry_points.txt" and path.parent.suffix == ".dist-info" for path in dist.files or [])
 
 
 def get_resources_from_dist_files(
