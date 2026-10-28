@@ -176,6 +176,9 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                             local_man_dir=paths.ctx.man_dir,
                             python=upgraded_python,
                             verbose=verbose,
+                            # the new build is what this rebuild is for, so a package whose Requires-Python rules it
+                            # out fails (and keeps its environment) instead of moving to another Python from PATH
+                            python_flag_passed=True,
                             venv_lock=venv_lock,
                         )
                         upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
