@@ -298,7 +298,16 @@ class PipxMetadata:
         self.python_version = input_dict.get("python_version")
         source_interpreter_raw = input_dict.get("source_interpreter")
         self.source_interpreter = Path(source_interpreter_raw) if source_interpreter_raw else None
-        self.venv_args = input_dict.get("venv_args", [])
+        # The command line can only record ``--system-site-packages``; anything else came from an edited file and
+        # would reach ``python -m venv``, where an extra operand or ``--clear DIR`` rewrites a directory outside pipx.
+        recorded_venv_args = input_dict.get("venv_args", [])
+        self.venv_args = [arg for arg in recorded_venv_args if arg == "--system-site-packages"]
+        if ignored_venv_args := [arg for arg in recorded_venv_args if arg != "--system-site-packages"]:
+            _LOGGER.warning(
+                "%s: ignoring recorded venv arguments %s; only --system-site-packages is replayed.",
+                self.venv_dir.name,
+                " ".join(ignored_venv_args),
+            )
         # Key by the record's own package name, as ``Venv.update_package_metadata`` writes it, so a read-modify-write
         # cycle keeps keys stable and files where earlier pipx versions saved a suffixed key (``black@1``) heal.
         self.injected_packages = {

@@ -175,7 +175,7 @@ def older_python(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch) -> str:
 def make_needs_project(tmp_path: Path) -> Callable[[str], Path]:
     def create(requires_python: str) -> Path:
         project: Final[Path] = tmp_path / "needs-older"
-        (project / "needs_older").mkdir(parents=True)
+        (project / "needs_older").mkdir(parents=True, exist_ok=True)
         (project / "needs_older" / "__init__.py").touch()
         (project / "needs_older" / "main.py").write_text("def main() -> None:\n    print('needs-older')\n")
         (project / "pyproject.toml").write_text(
@@ -207,6 +207,43 @@ def test_install_moves_to_a_python_the_package_supports(
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_keeps_the_default_python_for_the_other_packages(project_excluding_this_python: Path) -> None:
+    # a URL carries no name, so pipx meets the constraint while it resolves the names, before it builds any environment
+    assert not run_pipx_cli(["install", "--backend", "pip", project_excluding_this_python.as_uri(), "pycowsay"])
+
+    recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "pycowsay").python_version or ""
+    assert recorded == f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    ("recorded", "other", "backend_args"),
+    [
+        pytest.param("pip", "uv", [], id="pip-default-backend"),
+        pytest.param("pip", "uv", ["--backend", "uv"], id="pip-ignored-flag"),
+        pytest.param("uv", "pip", [], id="uv-default-backend"),
+        pytest.param("uv", "pip", ["--backend", "pip"], id="uv-ignored-flag"),
+    ],
+)
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_force_moving_to_a_supported_python_keeps_the_recorded_backend(
+    make_needs_project: Callable[[str], Path],
+    monkeypatch: pytest.MonkeyPatch,
+    recorded: str,
+    other: str,
+    backend_args: list[str],
+) -> None:
+    this_python: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
+    assert not run_pipx_cli(["install", "--backend", recorded, str(make_needs_project(f">={this_python}"))])
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", other)
+
+    assert not run_pipx_cli(["install", "--force", *backend_args, str(make_needs_project(f"<{this_python}"))])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "needs-older")
+    assert (metadata.backend, (metadata.python_version or "").startswith(f"Python {this_python}.")) == (recorded, False)
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
@@ -263,3 +300,30 @@ def test_install_refuses_a_named_python_the_package_rules_out(
     run_pipx_cli(["install", "--backend", backend, "--python", sys.executable, str(project_excluding_this_python)])
 
     assert "The Python you named does not satisfy" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("working", "broken"),
+    [
+        pytest.param('version = "0.1"\n', 'version = "0.2"\ndependencies = ["unobtainable-package"]\n', id="build"),
+        pytest.param('scripts.needs-older = "needs_older.main:main"\n', "", id="post-install"),
+    ],
+)
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_force_failing_on_a_supported_python_keeps_the_environment(
+    make_needs_project: Callable[[str], Path], working: str, broken: str
+) -> None:
+    project: Final[Path] = make_needs_project(f">={MINIMUM_PYTHON_VERSION}")
+    assert not run_pipx_cli(["install", "--backend", "pip", str(project)])
+    venv_dir: Final[Path] = paths.ctx.venvs / "needs-older"
+    recorded: Final[str] = (venv_dir / "pipx_metadata.json").read_text()
+    (marker := venv_dir / "marker").touch()
+    pyproject: Final[Path] = project / "pyproject.toml"
+    text: Final[str] = pyproject.read_text().replace(
+        f">={MINIMUM_PYTHON_VERSION}", f"<{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pyproject.write_text(text.replace(working, broken))
+
+    assert run_pipx_cli(["install", "--force", str(project)])
+
+    assert (marker.exists(), (venv_dir / "pipx_metadata.json").read_text()) == (True, recorded)

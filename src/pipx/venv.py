@@ -203,10 +203,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
             self._existing = False
+        # a directory without a readable record (an install that failed before writing it) has no backend to keep
+        recorded = self._existing and self.pipx_metadata.read_metadata_version is not None
         self._backend_name, self._backend_source = _resolve_backend_for_venv(
             root=self.root,
-            existing=self._existing,
-            metadata_backend=self.pipx_metadata.backend if self._existing else None,
+            existing=recorded,
+            metadata_backend=self.pipx_metadata.backend if recorded else None,
             cli_backend=backend,
             env_backend=env_backend,
         )
@@ -560,6 +562,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             f"determining package name from {redact_url_credentials(package_or_url)!r}", do_animation=self.do_animation
         ):
             old_package_set = self.list_installed_packages()
+            old_dist_info_dirs = self._dist_info_dirs()
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
@@ -594,7 +597,22 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 """
             raise PipxError(msg)
 
+        # a wheel's data files are unpacked after the installer validated its METADATA and can rewrite the listed name,
+        # but the .dist-info directory keeps the name the installer accepted
+        if any(
+            _distribution_name(path) != canonicalize_name(package_name)
+            for path in self._dist_info_dirs() - old_dist_info_dirs
+        ):
+            msg = f"""
+                The package installed from spec {redact_url_credentials(package_or_url)!r} declares the name
+                {package_name!r}, which is not the name the installer installed it under.
+                """
+            raise PipxError(msg)
+
         return package_name
+
+    def _dist_info_dirs(self) -> set[Path]:
+        return {path for directory in self.site_packages for path in directory.glob("*.dist-info")}
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
         from pipx.venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
@@ -763,7 +781,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             f"sys.exit(EntryPoint(name={entry_point.name!r}, value={entry_point.value!r}, "
             f"group={entry_point.group!r}).load()())\n"
         )
-        exec_app([str(self.python_path), *python_args, "-c", code, *app_args])
+        exec_app([str(self.python_path), "-P", *python_args, "-c", code, *app_args])
 
     def has_app(self, app: str, filename: str) -> bool:
         if self._find_entry_point(app, "pipx.run") is not None:
@@ -786,7 +804,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 venv_python=self.python_path,
                 requirements=[package_name],
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
-                upgrade=True,
+                upgrade_package=package_name,
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
@@ -818,7 +836,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 venv_python=self.python_path,
                 requirements=[install_spec],
                 pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
-                upgrade=True,
+                upgrade_package=package_name,
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
@@ -858,7 +876,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             verbose=self.verbose,
         )
         if process.returncode:
-            _LOGGER.error("%r failed", redact_url_credentials(" ".join(str(c) for c in process.args)))
+            _LOGGER.error("%r failed", " ".join(redact_url_credentials(str(c)) for c in process.args))
         return ExitCode(process.returncode)
 
 

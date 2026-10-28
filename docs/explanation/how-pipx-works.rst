@@ -166,8 +166,10 @@ installer output.
 
 pipx prefers a real system Python and only downloads a standalone build as a fallback. When you pass ``--python``, it
 tries the value as a literal path, then as a command on ``PATH``, then as a ``pythonX.Y`` command, then through the
-``py`` launcher when one is on ``PATH``. Only if every step fails, and ``--fetch-python=missing`` is set, does pipx
-fetch a build from `python-build-standalone <https://github.com/astral-sh/python-build-standalone>`_.
+``py`` launcher when one is on ``PATH``. Outside Windows the launcher is asked only for an ``X`` or ``X.Y`` version, the
+only form the Python Launcher for Unix reads as a version request. Only if every step fails, and
+``--fetch-python=missing`` is set, does pipx fetch a build from `python-build-standalone
+<https://github.com/astral-sh/python-build-standalone>`_.
 ``--fetch-python=always`` skips these steps and downloads directly. The default, ``--fetch-python=never``, keeps pipx
 offline and errors out instead.
 
