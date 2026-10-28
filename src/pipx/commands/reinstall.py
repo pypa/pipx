@@ -48,7 +48,7 @@ from pipx.emojis import error, sleep, stars
 from pipx.fanout import fan_out, locked_in_order
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import PipxError, rmdir, safe_unlink
+from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -152,7 +152,7 @@ def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
 def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
     # package_or_url is Optional[str] for mypy, though reinstall metadata always carries it
     if injected_package.package_or_url is None:
-        msg = f"Internal Error injecting package {injected_package} into {venv_name}"
+        msg = f"Internal Error injecting package {redact_url_credentials(str(injected_package))} into {venv_name}"
         raise PipxError(msg)
     return injected_package.package_or_url
 

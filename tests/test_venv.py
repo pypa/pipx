@@ -10,7 +10,7 @@ import pytest
 from helpers import run_pipx_cli
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -75,3 +75,31 @@ def test_install_records_the_venv_python_version(backend: str) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, "pycowsay"])
 
     assert PipxMetadata(paths.ctx.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"
+
+
+_CREDENTIALED_REQUIREMENT: Final[str] = "helper @ http://u:s3cr3ttok@127.0.0.1:9/helper-1.0-py3-none-any.whl"
+
+
+@pytest.fixture
+def venv_failing_install(tmp_path: Path, mocker: MockerFixture) -> Venv:
+    venv: Final[Venv] = Venv(tmp_path / "demo")
+    mocker.patch.object(venv.backend, "install", autospec=True, return_value=subprocess.CompletedProcess([], 1, "", ""))
+    return venv
+
+
+def test_install_unmanaged_packages_error_hides_url_credentials(venv_failing_install: Venv) -> None:
+    with pytest.raises(PipxError) as error:
+        venv_failing_install.install_unmanaged_packages([_CREDENTIALED_REQUIREMENT], [])
+
+    assert (
+        " ".join(str(error.value).split()) == f"Error installing {redact_url_credentials(_CREDENTIALED_REQUIREMENT)}."
+    )
+
+
+def test_install_unmanaged_packages_logs_without_url_credentials(
+    venv_failing_install: Venv, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level("INFO"), pytest.raises(PipxError):
+        venv_failing_install.install_unmanaged_packages([_CREDENTIALED_REQUIREMENT], [])
+
+    assert f"Installing {redact_url_credentials(_CREDENTIALED_REQUIREMENT)}" in caplog.messages

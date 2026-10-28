@@ -17,7 +17,7 @@ from docutils.writers.manpage import Writer
 from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import constants, main, paths
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -521,3 +521,12 @@ def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> 
     assert run_pipx_cli([]) == 1
 
     assert capsys.readouterr().out.startswith("usage: pipx")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_is_path_hides_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    spec: Final[str] = "tool @ https://u:s3cr3ttok@host/tool.whl"
+
+    assert run_pipx_cli(["upgrade", spec])
+
+    assert f"'{redact_url_credentials(spec)}' looks like a path" in " ".join(capsys.readouterr().err.split())

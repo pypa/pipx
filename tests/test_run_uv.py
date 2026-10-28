@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
-from pipx.util import PipxError
+from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -229,3 +229,34 @@ def exec_mock(mocker: MockerFixture) -> MagicMock:
     mocked_exec: Final[MagicMock] = mocker.MagicMock(side_effect=RuntimeError("exec"))
     mocker.patch("pipx.commands.run_uv.exec_app", new=mocked_exec)
     return mocked_exec
+
+
+def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
+    proxy: Final[str] = "--proxy=http://u:s3cr3ttok@proxy:3128"
+
+    with pytest.raises(PipxError) as error:
+        translate_pip_args_for_uv([proxy])
+
+    assert str(error.value).startswith(f"--pip-args contains {redact_url_credentials(proxy)!r}, which has no")
+
+
+@pytest.mark.usefixtures("fake_uv")
+def test_run_via_uv_tool_run_venv_args_rejection_hides_url_credentials(mocker: MockerFixture) -> None:
+    mocker.patch("pipx.commands.run_uv.exec_app")
+    mocker.patch("pipx.commands.run_uv.which", return_value=None)
+    venv_arg: Final[str] = "--prompt=http://u:s3cr3ttok@host/"
+
+    with pytest.raises(PipxError) as error:
+        run_via_uv_tool_run(
+            app="black",
+            package_or_url="black",
+            dependencies=[],
+            app_args=[],
+            python="",
+            pip_args=[],
+            venv_args=[venv_arg],
+            use_cache=True,
+            verbose=False,
+        )
+
+    assert str(error.value).startswith(f"{redact_url_credentials(venv_arg)} is not supported")

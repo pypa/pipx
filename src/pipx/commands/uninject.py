@@ -39,7 +39,7 @@ from pipx.constants import (
 )
 from pipx.emojis import stars
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import pipx_wrap, safe_unlink
+from pipx.util import pipx_wrap, redact_url_credentials, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import (
     fetch_info_in_venv,
@@ -156,8 +156,8 @@ def uninject_dep(
     if package_name not in venv.pipx_metadata.injected_packages:
         return _uninject_failure(
             venv.name,
-            package_name,
-            f"{package_name} is not in the {venv.root.name} venv. Skipping.",
+            masked_name := redact_url_credentials(package_name),
+            f"{masked_name} is not in the {venv.root.name} venv. Skipping.",
         )
 
     package: Final[PackageInfo] = venv.package_metadata[package_name]

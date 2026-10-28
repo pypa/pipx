@@ -341,6 +341,11 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             None if hold_stderr else _without_terminal_escapes(stderr),
         )
 
+    # an installer quotes an operand it rejects as typed, so its output can carry the credentials of a URL
+    completed_process.stdout, completed_process.stderr = (
+        None if output is None else redact_url_credentials(output)
+        for output in (completed_process.stdout, completed_process.stderr)
+    )
     if capture_stdout and log_stdout and not stream_output:
         _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr and log_stderr and not stream_output:
@@ -741,7 +746,7 @@ def exec_app(
 
 def full_package_description(package_name: str, package_spec: str) -> str:
     if package_name == package_spec:
-        return package_name
+        return redact_url_credentials(package_name)
     return f"{package_name} from spec {redact_url_credentials(package_spec)!r}"
 
 

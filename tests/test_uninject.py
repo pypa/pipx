@@ -12,7 +12,7 @@ from package_info import PKG
 from pipx import paths
 from pipx.commands import common
 from pipx.constants import WINDOWS
-from pipx.util import pipx_wrap
+from pipx.util import pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -425,3 +425,19 @@ def test_uninject_removes_copied_app_named_before_last_dot(
     assert not run_pipx_cli(["uninject", "empty-project@1", "foo-bar-x@1"])
 
     assert not legacy.exists()
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_unknown_package_hides_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
+    masked: Final[str] = redact_url_credentials("git+https://u:s3cr3ttok@host/org/plugin-git")
+
+    assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "git+https://u:s3cr3ttok@host/org/plugin.git"])
+
+    assert json.loads(capsys.readouterr().out)["errors"] == [
+        {
+            "code": "package_uninject_failed",
+            "environment": "pycowsay",
+            "message": f"{masked} is not in the pycowsay venv. Skipping.",
+            "package": masked,
+        }
+    ]

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.emojis import hazard
-from pipx.util import PipxError, exec_app, pipx_wrap
+from pipx.util import PipxError, exec_app, pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -143,7 +143,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
                 translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
             continue
         msg = (
-            f"--pip-args contains {arg!r}, which has no `uv tool run` equivalent.\n"
+            f"--pip-args contains {redact_url_credentials(arg)!r}, which has no `uv tool run` equivalent.\n"
             "Use `--backend pip` if you need pip-only flags."
         )
         raise PipxError(msg)
@@ -154,7 +154,7 @@ def _reject_venv_args(venv_args: list[str]) -> None:
     # uv creates the venv, so accepting these options would ignore the requested behavior.
     if venv_args:
         msg = (
-            f"{' '.join(venv_args)} is not supported by `pipx run` under the uv backend.\n"
+            f"{' '.join(map(redact_url_credentials, venv_args))} is not supported by `pipx run` under the uv backend.\n"
             "Use `pipx run --backend pip` if you need it, or drop it."
         )
         raise PipxError(msg)

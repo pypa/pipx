@@ -20,6 +20,7 @@ from pipx import paths
 from pipx.fanout import fan_out
 from pipx.util import (
     exec_app,
+    full_package_description,
     get_site_packages,
     redact_url_credentials,
     rmdir,
@@ -573,3 +574,18 @@ def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: p
         subprocess_post_check(process, raise_error=False)
 
     assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]
+
+
+def test_full_package_description_of_bare_spec_hides_url_credentials() -> None:
+    spec: Final[str] = "helper @ http://u:s3cr3ttok@host/helper-1.0-py3-none-any.whl"
+
+    assert full_package_description(spec, spec) == redact_url_credentials(spec)
+
+
+@pytest.mark.parametrize("stream", [pytest.param("stdout", id="stdout"), pytest.param("stderr", id="stderr")])
+def test_run_subprocess_masks_url_credentials_in_output(stream: str) -> None:
+    url: Final[str] = "https://deploy:s3cr3ttok@host/team/tool"
+
+    process: Final = run_subprocess([sys.executable, "-c", f"import sys; print({url!r}, file=sys.{stream})"])
+
+    assert getattr(process, stream).strip() == redact_url_credentials(url)

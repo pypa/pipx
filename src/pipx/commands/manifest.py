@@ -42,7 +42,7 @@ from pipx.result import (
     OutputMessage,
     OutputStream,
 )
-from pipx.util import PipxError
+from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from pipx.venv import VenvContainer
@@ -284,9 +284,10 @@ def _parse_tool(
 def _parse_package(environment: str, package: str) -> str:
     try:
         requirement = Requirement(package)
-    except InvalidRequirement as error:
-        msg = f"Manifest tool {environment} has an invalid package requirement: {package}"
-        raise PipxError(msg) from error
+    except InvalidRequirement:
+        msg = f"Manifest tool {environment} has an invalid package requirement: {redact_url_credentials(package)}"
+        # packaging quotes the requirement in its message, so chaining it would log the credentials with the traceback
+        raise PipxError(msg) from None
     if requirement.marker is not None:
         msg = f"Manifest tool {environment} cannot use an environment marker."
         raise PipxError(msg)
