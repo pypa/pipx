@@ -79,7 +79,7 @@ from pipx.interpreter import (
 )
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
-from pipx.shared_libs import skip_shared_libs_maintenance
+from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
 from pipx.util import (
     PipxError,
     mkdir,
@@ -442,6 +442,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     output: Final[OutputFormat] = _output_format(args)
     with (
         skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)),
+        shared_pip_cooldown(ctx.effective_cooldown_days),
         # pip writes its progress to stdout, which under JSON belongs to the envelope alone
         stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
     ):

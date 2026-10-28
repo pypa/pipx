@@ -19,6 +19,11 @@ lag the newest version.
 pipx translates one policy for both backends: pip receives ``--uploaded-prior-to P7D`` and uv receives
 ``--exclude-newer P7D``.
 
+Under the pip backend the cooldown also covers the shared pip that pipx installs or refreshes during the command. A new
+shared environment starts from the oldest pip pipx supports, then upgrades only to a release older than the cooldown;
+when none is, or the index publishes no upload times, pipx keeps that oldest pip. The metadata value in the table below
+does not apply here: only ``--cooldown`` and ``PIPX_COOLDOWN`` do, and ``pipx upgrade-shared`` ignores both.
+
 *********************
  Set it for a machine
 *********************
