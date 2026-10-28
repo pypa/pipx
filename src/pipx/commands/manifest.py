@@ -93,7 +93,6 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                     backend=backend,
                     env_backend=env_backend,
                     exposure_enabled=tool.expose,
-                    preserve_existing=True,
                     replace_expected_apps=True,
                     replace_lock=True,
                     venv_lock=venv_lock,
