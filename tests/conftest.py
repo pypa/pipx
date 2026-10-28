@@ -63,8 +63,20 @@ def root() -> Path:
 
 
 @pytest.fixture
-def signal_handlers() -> Iterator[None]:
-    """Take signals with Python's default handlers, restored afterwards: an interrupted pipx ignores further signals."""
+def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Take signals with Python's default handlers, restored afterwards: an interrupted pipx ignores further signals.
+
+    A signal that lands while the main thread runs a weakref callback or a finalizer, as garbage collection does at
+    any allocation, raises its KeyboardInterrupt there, and the interpreter reports it as unraisable instead of
+    propagating it. pipx's handler leaves a mark it acts on instead, so the report is dropped; any other unraisable
+    exception still fails the test.
+    """
+    report: Final = sys.unraisablehook
+    monkeypatch.setattr(
+        sys,
+        "unraisablehook",
+        lambda unraisable: None if issubclass(unraisable.exc_type, KeyboardInterrupt) else report(unraisable),
+    )
     numbers: Final = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
     previous: Final = {number: signal.getsignal(number) for number in numbers}
     signal.signal(signal.SIGINT, signal.default_int_handler)
