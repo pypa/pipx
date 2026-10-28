@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import zipfile
 from functools import partial
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -797,6 +798,54 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
     run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
 
     assert out.read_text() == "ran"
+
+
+@pytest.mark.parametrize(
+    ("second_links", "second_flags"),
+    [
+        pytest.param("new", [], id="changed-find-links"),
+        pytest.param("old", ["--refresh"], id="refresh"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_uv_rebuilds_for_new_request(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    second_links: str,
+    second_flags: list[str],
+    publish_demodep: Callable[[str, str], Path],
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    out: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
+        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
+    )
+    run_pipx_cli_exit(
+        ["run", "--backend", "uv", f"--pip-args=--find-links={publish_demodep('old', '1.0')}", str(script)],
+        assert_exit=0,
+    )
+    links: Final[Path] = publish_demodep(second_links, "2.0")
+
+    run_pipx_cli_exit(["run", "--backend", "uv", *second_flags, f"--pip-args=--find-links={links}", str(script)])
+
+    assert out.read_text() == "2.0"
+
+
+@pytest.fixture
+def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
+    def publish(links_name: str, version: str) -> Path:
+        (links := tmp_path / links_name).mkdir(exist_ok=True)
+        info: Final[str] = f"demodep-{version}.dist-info"
+        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
+            archive.writestr("demodep.py", "")
+            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
+            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+            archive.writestr(f"{info}/RECORD", "")
+        return links
+
+    return publish
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

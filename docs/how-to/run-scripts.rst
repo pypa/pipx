@@ -4,7 +4,8 @@
 
 Run an app or a script in a temporary environment with ``pipx run``, without installing it first. pipx downloads the
 package, caches the environment, and runs the app. Under the uv backend, pipx hands packages to ``uv tool run`` and
-local scripts with inline metadata to ``uv run --script``, so uv's cache applies instead of pipx's.
+local scripts with inline metadata to ``uv run --script``. uv's cache applies to packages, while a script's
+environment stays in pipx's cache.
 
 ***********************
  Run a specific version
@@ -114,7 +115,10 @@ and installs the listed packages before running:
     $ pipx run test.py pipx
     1.9.0
 
-pipx caches an environment keyed to the script's dependency list. Changing the dependencies builds a fresh one.
+pipx caches an environment keyed to the script's dependency list. Changing the dependencies builds a fresh one. Under the
+uv backend a local script's environment is keyed to the script's path instead, and uv syncs the dependencies into it on
+each run. Under both backends a changed ``--python``, ``--pip-args`` or ``--cooldown`` also builds a fresh one, and
+``--refresh`` rebuilds it.
 
 When the block sets ``requires-python``, pipx keeps the default Python if it satisfies the constraint and otherwise
 looks for an interpreter that does, the same way ``pipx install`` does (see :doc:`standalone-python`). An explicit
