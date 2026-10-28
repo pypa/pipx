@@ -226,17 +226,16 @@ def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> 
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_all_gives_shared_man_page_to_the_last_venv(
+def test_reinstall_all_keeps_shared_man_page_with_its_owner(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
-    first, last = (venv_dir for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir())
-    before_venv_subprocess(first, lambda: time.sleep(0.5))
+    before_venv_subprocess(owner := paths.ctx.venvs / "pycowsay", lambda: time.sleep(0.5))
 
     assert not run_pipx_cli(["reinstall-all"])
 
-    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(last)
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(owner)
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")

@@ -21,7 +21,7 @@ from pipx.backends import (
 from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.commands.run_uv import translate_pip_args_for_uv
-from pipx.constants import PIPX_SHARED_PTH
+from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.main import (
     _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
 )
@@ -659,6 +659,59 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
     ) == {"root-package", "top-package"}
 
 
+@pytest.mark.parametrize(
+    "run_pip",
+    [
+        pytest.param(
+            lambda _root, python: PipBackend().upgrade_packaging_libraries(python, [], verbose=False),
+            id="upgrade-packaging-libraries",
+        ),
+        pytest.param(
+            lambda root, python: PipBackend().install(
+                venv_root=root, venv_python=python, requirements=["demo"], pip_args=[]
+            ),
+            id="install",
+        ),
+        pytest.param(
+            lambda root, python: PipBackend().uninstall(
+                venv_root=root, venv_python=python, packages=["demo"], verbose=False
+            ),
+            id="uninstall",
+        ),
+        pytest.param(
+            lambda root, python: PipBackend().list_installed(venv_root=root, venv_python=python), id="list-installed"
+        ),
+        pytest.param(
+            lambda root, python: PipBackend().list_outdated(
+                venv_root=root, venv_python=python, index_args=[], exclude=[]
+            ),
+            id="list-outdated",
+        ),
+        pytest.param(
+            lambda root, python: PipBackend().run_raw_pip(venv_root=root, venv_python=python, args=["check"]),
+            id="run-raw-pip",
+        ),
+    ],
+)
+def test_pip_backend_starts_pip_without_site_config(
+    run_pip: Callable[[Path, Path], object], tmp_path: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    (site_config := tmp_path / ("pip.ini" if WINDOWS else "pip.conf")).write_text(
+        "[install]\ntarget = ..\n", encoding="utf-8"
+    )
+    seen_by_pip: Final[list[bool]] = []
+
+    def record(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        seen_by_pip.append(site_config.exists())
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr="")
+
+    mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, side_effect=record)
+
+    run_pip(tmp_path, tmp_path / "bin" / "python")
+
+    assert (seen_by_pip, f"Removing {site_config}" in caplog.text) == ([False], True)
+
+
 @pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
 def test_backend_list_outdated_forwards_index_settings(
     backend_name: str, tmp_path: Path, mocker: MockerFixture
@@ -931,3 +984,55 @@ def test_venv_without_record_resolves_like_a_fresh_one(
     venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
 
     assert (venv.backend_name, venv.backend_source) == expected
+
+
+@pytest.mark.parametrize(
+    ("version_output", "reported"),
+    [
+        pytest.param("pip 24.0 from /site-packages/pip (python 3.11)\n", "pip 24.0", id="before-lock-support"),
+        pytest.param("", "pip of an unknown version", id="unknown"),
+    ],
+)
+def test_pip_backend_install_lock_refuses_pip_without_lock_support(
+    version_output: str, reported: str, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    run = mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=version_output, stderr=""),
+    )
+
+    with pytest.raises(PipxError) as error:
+        PipBackend().install_lock(
+            venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+        )
+
+    assert (
+        f"needs pip>=26.1, but this environment runs {reported}." in " ".join(str(error.value).split()),
+        run.call_count,
+    ) == (
+        True,
+        1,
+    )
+
+
+def test_pip_backend_install_lock_passes_lock_to_pip_with_lock_support(tmp_path: Path, mocker: MockerFixture) -> None:
+    run = mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="pip 26.1 from /pip\n", stderr=""),
+    )
+
+    PipBackend().install_lock(
+        venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+    )
+
+    assert run.call_args.args[0] == [
+        str(tmp_path / "bin" / "python"),
+        "-m",
+        "pip",
+        "--no-input",
+        "install",
+        "--requirement",
+        str(tmp_path / "pylock.toml"),
+    ]
