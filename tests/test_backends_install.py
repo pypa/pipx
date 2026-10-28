@@ -70,7 +70,9 @@ def test_uv_backend_install_reads_user_uv_toml(
     user_config = tmp_path / "xdg" / "uv" / "uv.toml"
     user_config.parent.mkdir(parents=True)
     user_config.write_text("index-url = [\n")
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(user_config.parent.parent))
+    # uv's user config directory is XDG_CONFIG_HOME on Unix and APPDATA on Windows
+    for variable in ("XDG_CONFIG_HOME", "APPDATA"):
+        monkeypatch.setenv(variable, str(user_config.parent.parent))
 
     assert (run_pipx_cli(["install", "pycowsay", "--backend", "uv"]), str(user_config) in capsys.readouterr().err) == (
         1,
