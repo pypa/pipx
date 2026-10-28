@@ -277,6 +277,28 @@ def test_inspect_venv_reads_installed_files_only_without_record(
     assert result.apps == expected
 
 
+@skip_if_windows
+def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(tmp_path: Path, mocker: MockerFixture) -> None:
+    site_packages = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    (site_packages / "root-package-1.0.dist-info" / "installed-files.txt").write_text(
+        "loop\n../../bin/other\n", encoding="utf-8"
+    )
+    (loop := site_packages / "loop").symlink_to(loop)
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "other").touch()
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+
+    assert result.apps == ["other"]
+
+
 def test_inspect_venv_ignores_resources_that_name_no_file(tmp_path: Path, mocker: MockerFixture) -> None:
     site_packages = tmp_path / "lib" / "site-packages"
     _write_dist_info(site_packages, "root-package")
