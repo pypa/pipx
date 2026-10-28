@@ -9,7 +9,7 @@ from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.fanout import finished_on_interrupt
+from pipx.fanout import finished_on_interrupt, uninterrupted
 from pipx.util import PipxError, rmdir
 from pipx.venv import VenvContainer
 
@@ -73,8 +73,10 @@ class VenvBackup:
 
     def restore(self) -> None:
         if self._backup_dir is not None:
-            rmdir(self._venv_dir)
-            self._backup_dir.rename(self._venv_dir)
+            # a signal between the two steps would leave the venv deleted and its only copy in the trash
+            with uninterrupted():
+                rmdir(self._venv_dir)
+                self._backup_dir.rename(self._venv_dir)
 
     def discard(self) -> None:
         if self._backup_dir is not None:

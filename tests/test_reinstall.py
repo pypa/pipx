@@ -25,6 +25,7 @@ from helpers import (
 from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.commands import common
+from pipx.commands import reinstall as reinstall_module
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import redact_url_credentials
 
@@ -577,6 +578,26 @@ def test_reinstall_restores_venv_on_sigterm_to_pipx_alone(
     exit_code: Final[int] = run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
     assert (exit_code, (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()) == (1, metadata_before)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_reinstall_finishes_the_restore_through_a_second_signal(
+    mocker: MockerFixture, before_venv_subprocess: Callable[[Path, Callable[[], None]], None]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    metadata_before: Final[str] = (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()
+    before_venv_subprocess(paths.ctx.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
+
+    def rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
+        util.rmdir(path, safe_rm=safe_rm)
+        signal.raise_signal(signal.SIGINT)
+
+    mocker.patch.object(reinstall_module, "rmdir", autospec=True, side_effect=rmdir_then_interrupt)
+
+    run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text() == metadata_before
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 from contextlib import contextmanager
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Final
@@ -7,7 +8,8 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
-from pipx import paths
+from pipx import paths, util
+from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv
 from pipx.util import PipxError
 from pipx.venv import VenvContainer
@@ -15,6 +17,8 @@ from pipx.venv import VenvContainer
 if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -76,6 +80,29 @@ def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success
         venv_dir.mkdir()
 
     assert (list(venv_dir.iterdir()), [path for path in paths.ctx.trash.iterdir() if path.is_dir()]) == ([], [])
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_preserve_venv_finishes_the_restore_through_an_interrupt(mocker: MockerFixture) -> None:
+    venv_dir = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    mocker.patch.object(transaction, "rmdir", autospec=True, side_effect=_rmdir_then_interrupt)
+
+    def corrupt_then_fail() -> None:
+        (venv_dir / "marker").write_text("v2", encoding="utf-8")
+        msg = "boom"
+        raise PipxError(msg)
+
+    with pytest.raises(KeyboardInterrupt), preserve_venv(venv_dir, enabled=True):
+        corrupt_then_fail()
+
+    assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
+
+
+def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
+    util.rmdir(path, safe_rm=safe_rm)
+    signal.raise_signal(signal.SIGINT)
 
 
 @pytest.mark.parametrize("copy_upfront", [pytest.param(True, id="copied"), pytest.param(False, id="moved")])

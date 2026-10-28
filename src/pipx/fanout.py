@@ -70,6 +70,30 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
             signal.signal(number, signal.SIG_IGN if signalled.is_set() else handler)
 
 
+@contextmanager
+def uninterrupted() -> Generator[None, None, None]:
+    """Hold SIGINT, SIGTERM and SIGHUP back until the block ends, then deliver the first one that arrived."""
+    if current_thread() is not main_thread():
+        yield
+        return
+    received: Final[list[int]] = []
+
+    def record(number: int, _frame: FrameType | None) -> None:
+        received.append(number)
+
+    previous: Final = {
+        number: signal.signal(number, record)
+        for number in {signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
+    }
+    try:
+        yield
+    finally:
+        for number, handler in previous.items():
+            signal.signal(number, handler)
+        if received:
+            signal.raise_signal(received[0])
+
+
 def fan_out(
     tasks: Sequence[Callable[[], _ResultT]],
     *,
@@ -426,4 +450,5 @@ __all__ = [
     "stop_process_group",
     "stopped_on_interrupt",
     "stopping_children_on_signals",
+    "uninterrupted",
 ]
