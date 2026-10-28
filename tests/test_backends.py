@@ -422,6 +422,60 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture)
 
 
 @pytest.mark.parametrize(
+    ("pip_args", "expected"),
+    [
+        pytest.param(
+            ["--index-url", "https://index.example/simple"],
+            ["--default-index", "https://index.example/simple"],
+            id="separate",
+        ),
+        pytest.param(
+            ["--index-url=https://index.example/simple"],
+            ["--default-index=https://index.example/simple"],
+            id="attached",
+        ),
+        pytest.param(
+            ["-i", "https://index.example/simple"],
+            ["--default-index", "https://index.example/simple"],
+            id="short-separate",
+        ),
+        pytest.param(
+            ["-ihttps://index.example/simple"], ["--default-index=https://index.example/simple"], id="short-attached"
+        ),
+    ],
+)
+def test_uv_install_passes_index_url_as_default_index(
+    pip_args: list[str], expected: list[str], tmp_path: Path, mocker: MockerFixture
+) -> None:
+    binary: Final[Path] = tmp_path / "uv"
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        "pipx.backends.uv.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    UvBackend().install(venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=pip_args)
+
+    assert run_subprocess.call_args.args[0] == [
+        binary,
+        "pip",
+        "install",
+        "--python",
+        str(venv_python),
+        "--quiet",
+        *expected,
+        "demo",
+    ]
+
+
+@pytest.mark.parametrize(
     ("verbose", "args", "flags"),
     [
         # verbose means "do not silence", matching pip; uv's --verbose would print DEBUG logs on every `pipx runpip`

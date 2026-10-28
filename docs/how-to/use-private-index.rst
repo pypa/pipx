@@ -61,7 +61,8 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
     ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
     ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. Any other flag raises an error rather than being
     silently dropped. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
-    (``-i``), so uv decides which flags it accepts. Use ``--backend pip`` when you need a pip-only flag. See :doc:`use-uv-backend`.
+    (``-i``), so uv decides which flags it accepts. Use ``--backend pip`` when you need a pip-only flag. See
+    :doc:`use-uv-backend`.
 
 **********
  Verify it

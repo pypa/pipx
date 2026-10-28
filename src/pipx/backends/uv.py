@@ -345,7 +345,11 @@ def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
 def _default_index_args(pip_args: list[str]) -> list[str]:
     # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
     return [
-        f"--default-index{separator}{value}" if flag in {"--index-url", "-i"} else arg
+        f"--default-index{separator}{value}"
+        if flag in {"--index-url", "-i"}
+        else f"--default-index={arg[2:]}"
+        if arg.startswith("-i")
+        else arg
         for arg in pip_args
         for flag, separator, value in [arg.partition("=")]
     ]
