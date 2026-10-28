@@ -117,8 +117,12 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
             raise PipxError(msg)
         return _fetch_standalone_interpreter(python_version)
 
-    if Path(python_version).is_file() or shutil.which(python_version):
+    # a bare name such as 3.11 must not match a file of that name in the working directory
+    if (os.sep in python_version or "/" in python_version) and Path(python_version).is_file():
         return python_version
+    # uv reads a bare name such as python3.11 as a version request and may settle on a .venv in a parent directory
+    if found := shutil.which(python_version):
+        return found
 
     if not WINDOWS:
         python_unix_command = find_unix_command_python(python_version)

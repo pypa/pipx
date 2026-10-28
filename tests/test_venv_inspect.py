@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -9,8 +10,6 @@ from packaging.utils import canonicalize_name
 from pipx import venv_inspect
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 
@@ -155,4 +154,36 @@ def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_ven
     assert (result.man_paths_of_dependencies, result.completion_paths_of_dependencies) == (
         {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
         {"second-app": [extras_venv / "share" / "bash-completion" / "completions" / "second-app"]},
+    )
+
+
+def test_inspect_venv_ignores_resources_that_name_no_file(tmp_path: Path, mocker: MockerFixture) -> None:
+    site_packages = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    dist_info = site_packages / "root-package-1.0.dist-info"
+    (dist_info / "entry_points.txt").write_text(
+        "[console_scripts]\napp = root:main\n.. = root:main\n../lib = root:main\n", encoding="utf-8"
+    )
+    sections = ("bin", "share/man/man1", "share/bash-completion/completions")
+    (dist_info / "RECORD").write_text(
+        "".join(f"../../{section}/{name},,\n" for section in sections for name in ("app", "..")), encoding="utf-8"
+    )
+    for section in sections:
+        (tmp_path / section).mkdir(parents=True)
+        (tmp_path / section / "app").touch()
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv(
+        "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "share" / "man"
+    )
+
+    assert (result.apps, [Path(page) for page in result.man_pages], [Path(c) for c in result.completions]) == (
+        ["app"],
+        [Path("man1/app")],
+        [Path("bash-completion/completions/app")],
     )

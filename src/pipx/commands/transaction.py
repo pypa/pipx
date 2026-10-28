@@ -19,31 +19,61 @@ _UNFINISHED_MARKER: Final[str] = "pipx_unfinished"
 
 
 @contextmanager
-def preserve_venv(venv_dir: Path, *, enabled: bool) -> Generator[None, None, None]:
-    if not enabled:
-        yield
-        return
-
-    # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate it as
-    # a broken environment; the trash shares the home's filesystem, so restoring it is still an atomic rename
-    paths.ctx.trash.mkdir(parents=True, exist_ok=True)
-    backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix="-pipx-backup", dir=paths.ctx.trash))
-    backup_dir.rmdir()
+def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -> Generator[VenvBackup, None, None]:
+    backup: Final[VenvBackup] = VenvBackup(venv_dir, enabled=enabled)
+    if enabled and copy_upfront:
+        backup.copy()
     try:
-        copytree(venv_dir, backup_dir, symlinks=True)
-    except (Error, OSError) as error:
-        rmdir(backup_dir)
-        msg = f"pipx could not back up environment {venv_dir.name}: {error}"
-        raise PipxError(msg) from error
-
-    try:
-        yield
+        yield backup
     except (Exception, KeyboardInterrupt):
-        rmdir(venv_dir)
-        backup_dir.rename(venv_dir)
+        backup.restore()
         raise
     else:
-        rmdir(backup_dir)
+        backup.discard()
+
+
+class VenvBackup:
+    def __init__(self, venv_dir: Path, *, enabled: bool) -> None:
+        self._venv_dir: Final[Path] = venv_dir
+        self._enabled: Final[bool] = enabled
+        self._backup_dir: Path | None = None
+
+    def copy(self) -> None:
+        backup_dir: Final[Path] = self._new_backup_dir()
+        try:
+            copytree(self._venv_dir, backup_dir, symlinks=True)
+        except (Error, OSError) as error:
+            rmdir(backup_dir)
+            msg = f"pipx could not back up environment {self._venv_dir.name}: {error}"
+            raise PipxError(msg) from error
+        self._backup_dir = backup_dir
+
+    def _new_backup_dir(self) -> Path:
+        # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate
+        # it as a broken environment; the trash shares the home's filesystem, so restoring it is an atomic rename
+        paths.ctx.trash.mkdir(parents=True, exist_ok=True)
+        backup_dir: Final[Path] = Path(
+            mkdtemp(prefix=f"{self._venv_dir.name}-", suffix="-pipx-backup", dir=paths.ctx.trash)
+        )
+        backup_dir.rmdir()
+        return backup_dir
+
+    def remove_venv(self) -> None:
+        if self._enabled and self._backup_dir is None:
+            # a rename costs the same for any environment size, so rebuilds back up only when they delete
+            self._backup_dir = self._new_backup_dir()
+            self._venv_dir.rename(self._backup_dir)
+        else:
+            rmdir(self._venv_dir)
+
+    def restore(self) -> None:
+        if self._backup_dir is not None:
+            rmdir(self._venv_dir)
+            self._backup_dir.rename(self._venv_dir)
+
+    def discard(self) -> None:
+        if self._backup_dir is not None:
+            rmdir(self._backup_dir)
 
 
 @contextmanager
@@ -68,6 +98,7 @@ def is_unfinished(venv_dir: Path) -> bool:
 
 
 __all__ = [
+    "VenvBackup",
     "is_unfinished",
     "marked_unfinished",
     "preserve_venv",

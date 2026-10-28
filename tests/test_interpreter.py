@@ -297,6 +297,28 @@ def test_find_python_interpreter_by_version() -> None:
     assert result.stdout.strip() == f"{major}.{minor}"
 
 
+def test_find_python_interpreter_by_name_returns_path_lookup_result(python_on_path: Path) -> None:
+    assert find_python_interpreter(python_on_path.name) == str(python_on_path)
+
+
+@pytest.mark.skipif(WINDOWS, reason="Windows searches the working directory for a bare command name by design")
+def test_find_python_interpreter_by_name_skips_working_directory_file(
+    python_on_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (cwd := tmp_path / "cwd").mkdir()
+    (cwd / python_on_path.name).touch(mode=0o755)
+    monkeypatch.chdir(cwd)
+
+    assert find_python_interpreter(python_on_path.name) == str(python_on_path)
+
+
+@pytest.fixture
+def python_on_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    (python := tmp_path / "mypython.exe").touch(mode=0o755)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    return python
+
+
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
     interpreter_path = sys.executable + "99"
     with pytest.raises(InterpreterResolutionError) as e:  # ruff:ignore[pytest-raises-with-multiple-statements]  # trailing assert is dead code today; hoisting it would change behavior

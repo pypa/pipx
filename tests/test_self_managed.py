@@ -13,7 +13,7 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME
 from pipx.self_install import discover_self_managed_environment
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
 _SKIP_ON_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     os.name == "nt", reason="Self-managed path discovery is only supported on Unix"
@@ -123,6 +123,33 @@ def test_self_managed_global_home_keeps_default_paths(
     ) == {"PIPX_DEFAULT_PYTHON": str(self_managed_installation.source_interpreter)}
 
 
+@_SKIP_ON_WINDOWS
+@pytest.mark.parametrize(
+    "recorded",
+    [
+        pytest.param(lambda tmp_path: tmp_path / "bootstrap" / "bin" / "python3", id="removed"),
+        pytest.param(lambda _tmp_path: Path(sys.executable), id="other-interpreter"),
+    ],
+)
+def test_self_managed_default_python_not_backing_the_venv_is_ignored(
+    self_managed_installation: _SelfManagedInstallation,
+    tmp_path: Path,
+    recorded: Callable[[Path], Path],
+) -> None:
+    (self_managed_installation.venv / PIPX_INFO_FILENAME).write_text(
+        json.dumps({
+            "main_package": {"package": "pipx"},
+            "source_interpreter": {"__type__": "Path", "__Path__": str(recorded(tmp_path))},
+        }),
+        encoding="utf-8",
+    )
+
+    assert discover_self_managed_environment(
+        prefix=self_managed_installation.venv,
+        executable=str(self_managed_installation.executable),
+    ) == {"PIPX_HOME": str(self_managed_installation.home), "PIPX_BIN_DIR": str(self_managed_installation.bin_dir)}
+
+
 def test_self_managed_windows_is_ignored(
     self_managed_installation: _SelfManagedInstallation,
     monkeypatch: pytest.MonkeyPatch,
@@ -195,6 +222,7 @@ def self_managed_installation(tmp_path: Path) -> _SelfManagedInstallation:
     (venv / "bin" / "pipx").touch(mode=0o755)
     source_interpreter = tmp_path / "python-custom"
     source_interpreter.touch(mode=0o755)
+    (venv / "bin" / "python").symlink_to(source_interpreter)
     (venv / PIPX_INFO_FILENAME).write_text(
         json.dumps({
             "main_package": {"package": "pipx"},
