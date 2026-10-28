@@ -497,6 +497,21 @@ def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path
     return resource_paths - (copies & _claimed_by_other_venvs(venv_bin_path)) if copies else resource_paths
 
 
+def drop_links_taken_over(resource_paths: set[Path], *venv_dirs: Path) -> set[Path]:
+    # a link dangles while its venv is rebuilt or its package uninstalled, and the next package claiming a dangling name
+    # takes it, so a path gathered before then is still the venv's only if it links into the venv
+    venv_roots: Final[list[Path]] = [venv_dir.resolve() for venv_dir in venv_dirs]
+    return {
+        path
+        for path in resource_paths
+        if (
+            any(path.resolve().is_relative_to(venv_root) for venv_root in venv_roots)
+            if path.is_symlink()
+            else not can_symlink(path.parent)
+        )
+    }
+
+
 def _directory_id_or_none(path: Path) -> tuple[int, int] | None:
     try:
         return _directory_id(path)
@@ -944,6 +959,7 @@ __all__ = [
     "add_suffix",
     "can_symlink",
     "drop_copies_claimed_elsewhere",
+    "drop_links_taken_over",
     "expose_package_resources",
     "expose_resources_globally",
     "expose_shared_resources_in_order",

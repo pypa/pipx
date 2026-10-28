@@ -17,6 +17,7 @@ from pipx import paths
 from pipx.commands.common import (
     can_symlink,
     drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
     get_exposed_man_paths_for_package,
     get_exposed_paths_for_package,
     group_app_paths,
@@ -109,7 +110,7 @@ def uninstall(
             package_infos,
         )
 
-    for path in drop_copies_claimed_elsewhere(resource_paths, venv.bin_path):
+    for path in drop_links_taken_over(drop_copies_claimed_elsewhere(resource_paths, venv.bin_path), venv_dir):
         _remove_resource(path)
 
     package_info = next(

@@ -20,7 +20,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold
-from pipx.commands.common import drop_copies_claimed_elsewhere, exposed_app_names
+from pipx.commands.common import drop_copies_claimed_elsewhere, drop_links_taken_over, exposed_app_names
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
@@ -192,7 +192,7 @@ def uninject_dep(
         deps_string = ""
 
     if need_app_uninstall:
-        for path in new_resource_paths:
+        for path in drop_links_taken_over(new_resource_paths, venv.root):
             _unlink_injected_resource(path)
 
     return OperationResult(

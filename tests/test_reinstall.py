@@ -228,6 +228,40 @@ def test_reinstall_suffix() -> None:
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
 
 
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_keeps_a_dropped_app_name_taken_over_during_the_rebuild(
+    make_wheel: Callable[[dict[str, str]], Path],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+    tmp_path: Path,
+) -> None:
+    def release(*apps: str) -> Path:
+        return make_wheel({
+            "foo_bar_x.py": "def main() -> None:\n    pass\n",
+            "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+            "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+            "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\n"
+            + "".join(f"{app} = foo_bar_x:main\n" for app in apps),
+            "foo_bar_x-1.dist-info/RECORD": "",
+        })
+
+    assert not run_pipx_cli(["install", str(release("tool", "shared"))])
+    release("tool")
+    shared: Final[Path] = paths.ctx.bin_dir / "shared"
+    (other := tmp_path / "other").touch()
+
+    def take_over_dangling_name() -> None:
+        if not shared.exists():
+            shared.unlink()
+            shared.symlink_to(other)
+
+    before_venv_subprocess(paths.ctx.venvs / "foo-bar-x", take_over_dangling_name)
+
+    assert not run_pipx_cli(["reinstall", "foo-bar-x"])
+
+    assert shared.resolve() == other.resolve()
+
+
 @pytest.mark.parametrize("metadata_version", ["0.1"])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_suffix_legacy_venv(metadata_version: str) -> None:
