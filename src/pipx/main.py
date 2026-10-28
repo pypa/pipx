@@ -784,7 +784,6 @@ def _add_manifest(
         "manifest",
         help="Manage tools declared in an explicit manifest",
         description="Manage tools declared in an explicit manifest",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",
@@ -1536,7 +1535,6 @@ def _add_interpreter(
         "interpreter",
         help="Interact with interpreters managed by pipx",
         description="Interact with interpreters managed by pipx",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",
@@ -1599,7 +1597,6 @@ def _add_cache(
         "cache",
         help="Manage cached run environments",
         description="Manage cached run environments",
-        parents=[shared_parser],
     )
     subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
         title="subcommands",

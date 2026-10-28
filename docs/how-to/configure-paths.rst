@@ -108,7 +108,8 @@ Commands that write to the global locations need root. ``pipx list --global`` an
 read them, so any user can run those.
 
 Putting ``--global`` before the subcommand, as in ``sudo pipx --global install pycowsay``, raises
-``unrecognized arguments: --global``.
+``unrecognized arguments: --global``. For ``manifest``, ``interpreter`` and ``cache`` it goes after their own
+subcommand, as in ``sudo pipx manifest sync --global ./pipx.toml``.
 
 Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, ``/usr/local/share``
 for shell completions, and ``/opt/pipx`` for environments. Override them with ``PIPX_GLOBAL_BIN_DIR``,
