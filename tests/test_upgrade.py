@@ -82,6 +82,17 @@ def test_upgrade_refreshes_shared_pip_only_when_due(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_records_relative_find_links_as_absolute(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--pip-args=--find-links wheels"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert metadata.main_package.pip_args == ["--find-links", str((tmp_path / "wheels").resolve())]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_inline_script(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
     inline_script.write_text(

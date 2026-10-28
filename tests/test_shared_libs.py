@@ -311,6 +311,20 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     assert "pip >= 26.2.2" in install_command
 
 
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_upgrade_runs_pip_in_shared_root(mocker: MockerFixture) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+    shared_libs.shared_libs.upgrade(pip_args=["--find-links", "wheels"], verbose=True, raises=True)
+
+    assert run_subprocess.call_args.kwargs["run_dir"] == str(shared_libs.shared_libs.root)
+
+
 @pytest.mark.usefixtures("shared_pip_layout")
 def test_shared_libs_upgrade_serializes_concurrent_calls(
     mocker: MockerFixture,

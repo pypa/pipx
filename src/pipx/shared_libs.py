@@ -313,6 +313,7 @@ class _SharedLibs:
                         *filtered_pip_args,
                         f"pip >= {_PIP_FLOOR}",
                     ],
+                    run_dir=str(self.root),
                     env_overrides={"PYTHONPATH": pythonpath},
                 )
             subprocess_post_check(upgrade_process)

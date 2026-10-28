@@ -1,0 +1,3 @@
+Record relative ``--find-links`` and ``--constraint`` values passed to ``pipx upgrade --pip-args`` and ``pipx run``
+scripts as absolute paths, and run the shared pip refresh inside the shared libraries directory, so a later ``pipx
+upgrade`` or ``pipx reinstall`` no longer reads wheels from whatever directory it is started in.
