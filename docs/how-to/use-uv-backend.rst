@@ -70,10 +70,14 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
 - ``pipx run script.py`` execs ``uv run --script script.py`` for PEP 723 inline scripts.
 - ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. See :doc:`Dependency cooldown
   <dependency-cooldown>`.
-- pipx runs uv with ``UV_NO_CONFIG=1`` and ``uv run --script`` with ``--no-config``, so uv reads no ``uv.toml`` or
-  ``[tool.uv]`` table from the directory it runs in, the script's directory, their parents, or your user and system
-  config directories. Configure uv through its ``UV_*`` environment variables, or point ``UV_CONFIG_FILE`` at a config
-  file to apply it. ``pipx run APP`` execs ``uv tool run``, which keeps reading your user and system config.
+- uv reads your user config (``~/.config/uv/uv.toml``, ``%APPDATA%\uv\uv.toml`` on Windows), the system config
+  (``/etc/uv/uv.toml``), and a ``UV_CONFIG_FILE``, but no project config from your working directory or the script's
+  directory. pipx sets ``UV_PROJECT`` (``--project`` for ``uv run --script``) to ``PIPX_HOME``, so uv looks for a
+  ``uv.toml`` or a ``pyproject.toml`` with a ``[tool.uv]`` table in ``PIPX_HOME`` and each of its parents up to the
+  filesystem root. With the default ``PIPX_HOME`` under your home directory those parents belong to you or to root.
+  If ``PIPX_HOME`` (or ``PIPX_GLOBAL_HOME``) sits below a directory other accounts can write, such as ``/tmp`` or a
+  group-writable share, any of them can place a ``uv.toml`` there that steers pipx's uv calls; keep it in a
+  directory only you can write.
 
 ************
  Limitations

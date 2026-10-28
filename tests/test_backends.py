@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final, TypedDict
 
 import pytest
 
-from pipx import backends, pipx_metadata_file
+from pipx import backends, paths, pipx_metadata_file
 from pipx.backends import (
     KNOWN_BACKENDS,
     PIP,
@@ -421,7 +421,7 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture)
     assert run_subprocess.call_args.kwargs["env_overrides"] == {
         "VIRTUAL_ENV": None,
         "UV_NO_PROGRESS": "1",
-        "UV_NO_CONFIG": "1",
+        "UV_PROJECT": str(paths.ctx.home),
     }
 
 

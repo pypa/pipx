@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["importlib", "json", "pathlib", "pipx.util", "shutil", "subprocess"]
+__lazy_modules__ = ["importlib", "json", "pathlib", "pipx", "pipx.util", "shutil", "subprocess"]
 
 import json
 import logging
@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Final, cast
 
 from packaging.version import InvalidVersion, Version
 
+from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.util import (
@@ -329,9 +330,10 @@ def _run_uv_version(binary: Path) -> subprocess.CompletedProcess[str]:
 
 def _uv_env_overrides() -> dict[str, str | None]:
     # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed. pipx shows
-    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway. uv would otherwise apply a
-    # uv.toml or pyproject.toml from its working directory or any parent, such as a shared /tmp.
-    return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_NO_CONFIG": "1"}
+    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway. UV_PROJECT moves uv's
+    # project-config search from its working directory, which can sit in a shared /tmp, to pipx's home; user and system
+    # config still load.
+    return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_PROJECT": str(paths.ctx.home)}
 
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
