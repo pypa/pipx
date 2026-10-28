@@ -293,6 +293,15 @@ def valid_pypi_name(package_spec: str) -> str | None:
     return canonicalize_name(package_req.name)
 
 
+def local_project_name(package_spec: str) -> str | None:
+    """Return the name a local project directory or wheel declares statically, or ``None`` for a URL or index spec."""
+    # Path() reads a URL as a relative path (http://host/x is http:/host/x), so files below the working directory could
+    # otherwise name the environment for a remote spec
+    if (local_path := _parse_specifier(package_spec).valid_local_path) is None:
+        return None
+    return static_project_name(local_path) or wheel_project_name(local_path)
+
+
 def static_project_name(package_spec: str) -> str | None:
     """Return the name a local project directory declares statically in its pyproject.toml, if any."""
     try:
@@ -447,6 +456,7 @@ __all__ = [
     "extract_index_options",
     "fix_package_name",
     "get_extras",
+    "local_project_name",
     "package_spec_satisfied",
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",

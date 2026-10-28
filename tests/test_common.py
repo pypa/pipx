@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import zipfile
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -295,6 +296,47 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
         )
         == expected
     )
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    ("package_spec", "planted"),
+    [
+        pytest.param(
+            "https://files.example/acme_tool-1.0-py3-none-any.whl",
+            "https:/files.example/acme_tool-1.0-py3-none-any.whl",
+            id="wheel-url",
+        ),
+        pytest.param(
+            "acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl",
+            "acme-tool @ https:/files.example/acme_tool-1.0-py3-none-any.whl",
+            id="pep508-wheel-url",
+        ),
+        pytest.param(
+            "git+https://git.example/acme-tool.git",
+            "git+https:/git.example/acme-tool.git/pyproject.toml",
+            id="vcs-url",
+        ),
+    ],
+)
+def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, package_spec: str, planted: str
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (lookalike := tmp_path / planted).parent.mkdir(parents=True)
+    if lookalike.suffix == ".whl":
+        with zipfile.ZipFile(lookalike, "w") as archive:
+            archive.writestr("x-0.dist-info/METADATA", "Name: other-app\n")
+    else:
+        lookalike.write_text(
+            '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n'
+            '[project]\nname = "other-app"\n',
+            encoding="utf-8",
+        )
+    venv = mocker.patch.object(common, "Venv", autospec=True)
+    venv.return_value.install_package_no_deps.return_value = "acme-tool"
+
+    assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
