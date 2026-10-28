@@ -170,6 +170,15 @@ def _takes_value(arg: str) -> bool:
     return bool(candidates) and candidates <= _OPTIONS_WITH_VALUE
 
 
+def _abbreviates_editable(option: str) -> bool:
+    # pip reads --edit as --editable, and recording its path as a plain spec would drop the editable install on upgrade
+    return (
+        option.startswith("--")
+        and "--editable".startswith(option)
+        and not any(known.startswith(option) for known in _OPTIONS_WITH_VALUE | _LONG_FLAGS)
+    )
+
+
 def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     if not pip_args or pip_args[0] != "install":
         return []
@@ -179,13 +188,14 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     index = 1
     while index < len(pip_args):
         arg = pip_args[index]
-        if arg in {"-e", "--editable"}:
+        if arg == "-e" or _abbreviates_editable(arg):
             if index + 1 < len(pip_args):
                 specs.append((pip_args[index + 1], True))
             index += 2
             continue
-        if arg.startswith("--editable="):
-            specs.append((arg.split("=", 1)[1], True))
+        option, separator, value = arg.partition("=")
+        if separator and _abbreviates_editable(option):
+            specs.append((value, True))
             index += 1
             continue
         if _takes_value(arg):

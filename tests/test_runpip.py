@@ -69,3 +69,28 @@ def test_runpip_install_refreshes_main_package_metadata(
     after = json.loads(metadata_path.read_text())
     assert after["main_package"]["package_or_url"] == str(empty_project_wheel.resolve())
     assert after["main_package"]["pip_args"] == []
+
+
+@pytest.mark.parametrize(
+    "editable_args",
+    [
+        pytest.param(("--edit", "{project}"), id="abbreviated"),
+        pytest.param(("--edit={project}",), id="abbreviated-attached"),
+        pytest.param(("--editable={project}",), id="attached"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_runpip_install_records_editable_spelling(
+    empty_project: Path, empty_project_wheel: Path, editable_args: tuple[str, ...]
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
+
+    assert not run_pipx_cli([
+        "runpip",
+        "empty-project",
+        "install",
+        *(arg.format(project=empty_project) for arg in editable_args),
+    ])
+
+    main_package = json.loads((paths.ctx.venvs / "empty-project" / "pipx_metadata.json").read_text())["main_package"]
+    assert (main_package["package_or_url"], main_package["pip_args"]) == (str(empty_project.resolve()), ["--editable"])
