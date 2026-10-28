@@ -36,6 +36,7 @@ from pipx import paths
 from pipx.commands.common import (
     add_suffix,
     drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
     expose_shared_resources_in_order,
     force_replaces_only,
 )
@@ -314,7 +315,11 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
             Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir
         )
         _remove_stale_reinstall_resources(
-            drop_copies_claimed_elsewhere(old_resource_paths - new_resource_paths, venv.bin_path)
+            drop_links_taken_over(
+                drop_copies_claimed_elsewhere(old_resource_paths - new_resource_paths, venv.bin_path),
+                original_venv_dir,
+                venv_dir,
+            )
         )
     except PipxError:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)

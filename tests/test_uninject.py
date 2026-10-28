@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows, write_wheel
 from package_info import PKG
 from pipx import paths
 from pipx.commands import common
@@ -15,6 +15,7 @@ from pipx.constants import WINDOWS
 from pipx.util import pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from _pytest.capture import CaptureResult
@@ -460,3 +461,25 @@ def test_uninject_unknown_package_hides_url_credentials(capsys: pytest.CaptureFi
             "package": masked,
         }
     ]
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_keeps_an_app_name_taken_over_during_the_uninstall(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], tmp_path: Path
+) -> None:
+    assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "alpha", "1"))])
+    assert not run_pipx_cli(["inject", "alpha", str(write_wheel(tmp_path / "wheels", "beta", "1")), "--include-apps"])
+    beta: Final[Path] = paths.ctx.bin_dir / "beta"
+    (other := tmp_path / "other").touch()
+
+    def take_over_dangling_name() -> None:
+        if not beta.exists():
+            beta.unlink()
+            beta.symlink_to(other)
+
+    before_venv_subprocess(paths.ctx.venvs / "alpha", take_over_dangling_name)
+
+    assert not run_pipx_cli(["uninject", "alpha", "beta"])
+
+    assert beta.resolve() == other.resolve()

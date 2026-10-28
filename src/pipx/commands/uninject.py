@@ -20,7 +20,12 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold
-from pipx.commands.common import drop_copies_claimed_elsewhere, exposed_app_names, get_expected_venv_resource_paths
+from pipx.commands.common import (
+    drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
+    exposed_app_names,
+    get_expected_venv_resource_paths,
+)
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
@@ -193,7 +198,8 @@ def uninject_dep(
 
     if need_app_uninstall:
         # the uninstall dropped this package's record, so what the venv still expects belongs to its other packages
-        for path in new_resource_paths - get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir):
+        expected: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
+        for path in drop_links_taken_over(new_resource_paths - expected, venv.root):
             _unlink_injected_resource(path)
 
     return OperationResult(
