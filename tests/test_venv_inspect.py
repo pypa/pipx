@@ -49,6 +49,23 @@ def test_inspect_venv_indexes_distribution_names_once(tmp_path: Path, mocker: Mo
     assert [call.args[0] for call in canonicalize.call_args_list].count("Dependency_Package") == 1
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        pytest.param("-t/some/dir", id="target-option"),
+        pytest.param("-rdrop", id="requirement-option"),
+        pytest.param("../escape", id="path"),
+        pytest.param("a b", id="space"),
+    ],
+)
+def test_not_required_packages_skips_invalid_distribution_names(tmp_path: Path, name: str) -> None:
+    _write_dist_info(tmp_path, "top-package")
+    (egg_info := tmp_path / "extra.egg-info").mkdir()
+    (egg_info / "PKG-INFO").write_text(f"Name: {name}\nVersion: 1.0\n", encoding="utf-8")
+
+    assert venv_inspect.not_required_packages([str(tmp_path)], {}) == {"top-package"}
+
+
 def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: MockerFixture) -> None:
     site_packages = tmp_path / "site-packages"
     _write_dist_info(site_packages, "root-package")

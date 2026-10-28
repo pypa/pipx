@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple, TypedDict
 from urllib.parse import urlparse
 
 from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
+from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.requires_python import unsatisfied_constraint
@@ -73,9 +73,10 @@ class VenvMetadata(NamedTuple):
 
 
 def _distribution_name(dist: metadata.Distribution) -> str | None:
+    # uninject passes these names to the installer, which would read a metadata Name like ``-t/dir`` as an option
     try:
-        return dist.name
-    except KeyError:  # Python 3.15+ raises instead of returning None when the metadata has no Name
+        return canonicalize_name(dist.name or "", validate=True)
+    except (KeyError, InvalidName):  # Python 3.15+ raises KeyError instead of returning None when there is no Name
         return None
 
 
