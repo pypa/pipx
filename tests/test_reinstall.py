@@ -16,8 +16,10 @@ from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     mock_legacy_venv,
+    module_version,
     run_pipx_cli,
     skip_if_windows,
+    write_wheel,
 )
 from package_info import PKG
 from pipx import paths, util, venv_inspect
@@ -407,6 +409,20 @@ def test_reinstall_records_injected_local_project_under_its_new_name(
     assert not run_pipx_cli(["reinstall", "empty-project"])
 
     assert list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages) == ["renamed"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_keeps_main_package_a_plugin_depends_on(tmp_path: Path) -> None:
+    plugin_index: Final[Path] = tmp_path / "plugin-index"
+    write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
+    write_wheel(plugin_index, "tool", "99.0")
+    local_tool: Final[Path] = write_wheel(tmp_path / "local", "tool", "1.0")
+    assert not run_pipx_cli(["install", "--backend", "pip", str(local_tool)])
+    assert not run_pipx_cli(["inject", "tool", "plugin", f"--pip-args=--no-index --find-links={plugin_index}"])
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "tool"])
+
+    assert module_version("tool") == "1.0"
 
 
 @skip_if_windows
