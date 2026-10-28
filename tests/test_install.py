@@ -1242,9 +1242,9 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
         return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
 
     venv: Final[Venv] = Venv(Path("probe-venv"))
-    backend: Final[MagicMock] = mocker.create_autospec(
-        Backend, instance=True, **{"cooldown_args.return_value": [], "install.side_effect": install}
-    )
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
+    # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
+    backend.install.side_effect = install
     mocker.patch.object(venv, "_backend", backend)
     mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
     mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
