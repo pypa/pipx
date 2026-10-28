@@ -32,6 +32,8 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from http.client import HTTPResponse
+    from urllib.response import addinfourl
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -650,6 +652,7 @@ def _http_get_request(url: str) -> str:
         with urlopen(url, timeout=_URL_TIMEOUT) as res:  # ruff:ignore[suspicious-url-open-usage]  # scheme validated upstream
             data = res.read(_MAX_SCRIPT_BYTES + 1)
             _reject_oversized_script(url, data)
+            _reject_truncated_script(url, res)
             return data.decode(res.headers.get_content_charset() or "utf-8")
     except PipxError:
         raise
@@ -657,6 +660,14 @@ def _http_get_request(url: str) -> str:
         _LOGGER.debug("Uncaught Exception:", exc_info=True)
         msg = str(error)
         raise PipxError(msg) from error
+
+
+def _reject_truncated_script(url: str, response: HTTPResponse | addinfourl) -> None:
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, which file:// responses lack; a script missing its tail can still run halfway
+    if missing := getattr(response, "length", None):
+        msg = f"Script {redact_url_credentials(url)} ended {missing} bytes short of its Content-Length."
+        raise PipxError(msg)
 
 
 __all__ = [

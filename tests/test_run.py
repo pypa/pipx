@@ -9,7 +9,7 @@ import subprocess
 import sys
 import textwrap
 from functools import partial
-from http.server import SimpleHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
 from threading import Thread
@@ -1288,6 +1288,44 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
 
     with pytest.raises(PipxError, match="larger than"):
         run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
+
+
+@pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_script_url_cut_short_is_rejected(
+    truncated_script_url: str, capsys: pytest.CaptureFixture[str], command: str
+) -> None:
+    assert run_pipx_cli([command, truncated_script_url]) == 1
+
+    assert f"Script {truncated_script_url} ended 80 bytes short of its Content-Length." in " ".join(
+        capsys.readouterr().err.split()
+    )
+
+
+@pytest.fixture
+def truncated_script_url() -> Iterator[str]:
+    server = ThreadingTCPServer(("127.0.0.1", 0), _TruncatingHandler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}/tool.py"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+class _TruncatingHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Length", "100")
+        self.end_headers()
+        self.wfile.write(b"print('first half')\n")
+        self.close_connection = True
+
+    def log_message(self, format: str, *args: object) -> None:  # ruff:ignore[builtin-argument-shadowing]  # overrides the stdlib signature
+        pass
 
 
 @pytest.mark.parametrize(

@@ -1692,7 +1692,7 @@ def test_install_inline_script_app_override(inline_script: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -> None:
-    response: Final[MagicMock] = mocker.MagicMock()
+    response: Final[MagicMock] = mocker.MagicMock(length=0)
     response.read.return_value = inline_script.read_bytes()
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response

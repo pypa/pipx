@@ -29,6 +29,8 @@ from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from http.client import HTTPResponse
+    from urllib.response import addinfourl
     from zipfile import ZipFile
 
 
@@ -200,16 +202,22 @@ def _read_url(url: str) -> str:
     try:
         with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
-            if len(data) > _MAX_SCRIPT_BYTES:
-                msg = (
-                    f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; "
-                    "refusing to download it."
-                )
-                raise PipxError(msg)
+            _reject_incomplete_script(url, response, data)
             return data.decode(response.headers.get_content_charset() or "utf-8")
     except (OSError, HTTPException) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
         raise PipxError(msg) from error
+
+
+def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
+    if len(data) > _MAX_SCRIPT_BYTES:
+        msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+        raise PipxError(msg)
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, which file:// responses lack; a script missing its tail can still run halfway
+    if missing := getattr(response, "length", None):
+        msg = f"Script {redact_url_credentials(url)} ended {missing} bytes short of its Content-Length."
+        raise PipxError(msg)
 
 
 def _normalize_requires_python(value: str | list[str] | None) -> str | None:
