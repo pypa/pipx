@@ -389,7 +389,7 @@ def test_inject_main_package_extra_missing_recorded_source(
 @pytest.mark.usefixtures("pipx_temp_env", "capsys")
 def test_inject_simple_global() -> None:
     assert not run_pipx_cli(["install", "--global", "pycowsay"])
-    assert not run_pipx_cli(["inject", "--global", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["inject", "--global", "pycowsay", PKG["pbr"]["spec"]])
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
