@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
+from helpers import run_pipx_cli
 from pipx.script import (
     _MAX_SCRIPT_BYTES,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     ScriptMetadata,
@@ -180,3 +181,24 @@ def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
     with pytest.raises(PipxError, match="larger than"):
         _read_url("https://example.invalid/big.py")
     assert urlopen.call_args.kwargs["timeout"] == 30
+
+
+@pytest.mark.parametrize(
+    ("userinfo", "masked"),
+    [pytest.param("alice:s3cr3t@", "alice:****@", id="password"), pytest.param("t0ken@", "****@", id="token")],
+)
+@pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_script_url_with_credentials_is_rejected_masked(
+    capsys: pytest.CaptureFixture[str], command: str, userinfo: str, masked: str
+) -> None:
+    assert run_pipx_cli([command, f"https://{userinfo}localhost/tool.py"]) == 1
+
+    assert f"Script URL https://{masked}localhost/tool.py must not contain credentials." in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "https://localhost:port/tool.py"]) == 1
+
+    assert "Unable to read script https://localhost:port/tool.py: nonnumeric port: 'port'" in capsys.readouterr().err

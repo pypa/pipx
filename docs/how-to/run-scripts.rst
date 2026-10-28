@@ -71,6 +71,9 @@ You can run ``.py`` files hosted anywhere:
 
     $ pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 
+pipx downloads the script with Python's ``urllib``, which cannot send credentials embedded in a URL, so ``pipx run`` and
+``pipx install`` refuse a script URL with a ``user@`` or ``user:password@`` part.
+
 .. _run-pep-723:
 
 *****************************************

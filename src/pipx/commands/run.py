@@ -44,7 +44,7 @@ from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import hazard
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
-from pipx.script import ScriptMetadata, read_script_metadata
+from pipx.script import ScriptMetadata, read_script_metadata, reject_url_credentials
 from pipx.util import (
     PipxError,
     exec_app,
@@ -95,6 +95,7 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
                 'pipx run --spec URL BINARY'.
                 """
             raise PipxError(msg)
+        reject_url_credentials(app)
         _LOGGER.info("Detected url. Downloading and executing as a Python file.")
 
         return _http_get_request(app)

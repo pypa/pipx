@@ -184,8 +184,10 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 
 def _read_url(url: str) -> str:
+    from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
+    reject_url_credentials(url)
     try:
         with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
@@ -196,9 +198,17 @@ def _read_url(url: str) -> str:
                 )
                 raise PipxError(msg)
             return data.decode(response.headers.get_content_charset() or "utf-8")
-    except OSError as error:
+    except (OSError, HTTPException) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
         raise PipxError(msg) from error
+
+
+def reject_url_credentials(url: str) -> None:
+    # urllib keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never authenticate
+    # the download, and a failed host:port split puts the password into the error message
+    if urllib.parse.urlsplit(url).username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
 
 
 def _normalize_requires_python(value: str | list[str] | None) -> str | None:
@@ -284,5 +294,6 @@ __all__ = [
     "is_script_spec",
     "local_script",
     "read_script_metadata",
+    "reject_url_credentials",
     "script_name_from_spec",
 ]
