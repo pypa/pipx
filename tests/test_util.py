@@ -561,6 +561,7 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
         pytest.param(
             "https://alice:correct\thorse@host/simple", "https://alice:****@host/simple", id="tab-in-password"
         ),
+        pytest.param("see https://host\nfetching foo@1.0/x", "see https://host\nfetching foo@1.0/x", id="line-break"),
         pytest.param(
             "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
             "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
