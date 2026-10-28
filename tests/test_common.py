@@ -161,6 +161,61 @@ def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
 
 
 @skip_if_windows
+@pytest.mark.parametrize(
+    ("resource_type", "resource", "exposed"),
+    [
+        pytest.param("app", "bin/tool", "tool", id="app"),
+        pytest.param("man", "share/man/man1/tool.1", "man1/tool.1", id="man"),
+        pytest.param(
+            "completion", "share/bash-completion/completions/tool", "bash-completion/completions/tool", id="completion"
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_keeps_link_to_resource_another_venv_is_replacing(
+    tmp_path: Path, resource_type: str, resource: str, exposed: str
+) -> None:
+    (paths.ctx.venvs / "holder").mkdir(parents=True)
+    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(held := paths.ctx.venvs / "holder" / resource)
+
+    assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([link], held)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_force_replaces_link_to_resource_another_venv_is_replacing(tmp_path: Path) -> None:
+    (paths.ctx.venvs / "holder").mkdir(parents=True)
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
+
+    assert (expose_resources_globally("app", tmp_path, [path], force=True), link.readlink()) == ([], path)
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param("venvs/removed/bin/tool", id="removed-venv"),
+        pytest.param("venvs/other/bin/renamed", id="own-venv"),
+        pytest.param("venvs/removed", id="venv-dir"),
+        pytest.param("trash/tool", id="outside-venvs"),
+        pytest.param("../../tool", id="loop"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_replaces_left_over_link(tmp_path: Path, target: str) -> None:
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs.parent / target)
+
+    assert (expose_resources_globally("app", tmp_path, [path], force=False), link.readlink()) == ([], path)
+
+
+@skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "pycowsay"]) == 0

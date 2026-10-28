@@ -280,8 +280,8 @@ def _symlink_package_resource(
 
     exists = symlink_path.exists()
     is_symlink = symlink_path.is_symlink()
-    if exists:
-        if symlink_path.samefile(path):
+    if exists or (is_symlink and _links_into_another_venv(symlink_path, path)):
+        if exists and symlink_path.samefile(path):
             _LOGGER.info("Same path %s and %s", symlink_path, path)
             return None
         _LOGGER.warning(
@@ -313,6 +313,18 @@ def _symlink_package_resource(
             )
         )
     return None
+
+
+def _links_into_another_venv(symlink_path: Path, path: Path) -> bool:
+    # an installer removes a package's old files before it writes the new ones, and another task of a fan-out or another
+    # pipx run can expose meanwhile, so a dangling link into a venv that still exists is that venv's, not a left-over
+    venvs: Final[Path] = paths.ctx.venvs.resolve()
+    try:
+        target: Final[Path] = symlink_path.resolve()
+    except RuntimeError:  # a symlink loop, which Python before 3.13 reports this way
+        return False
+    venv_dir: Final[Path | None] = next((parent for parent in target.parents if parent.parent == venvs), None)
+    return venv_dir is not None and venv_dir.is_dir() and not path.resolve().is_relative_to(venv_dir)
 
 
 def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
