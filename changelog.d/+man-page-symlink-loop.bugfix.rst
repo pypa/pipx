@@ -1,2 +1,2 @@
-The editable man page check skips a man page or project directory that is a looping symlink instead of crashing the
-install on Python 3.11 and 3.12.
+Installing an editable project whose man page or project directory is a looping symlink no longer crashes pipx on
+Python 3.11 and 3.12; pipx skips that man page.

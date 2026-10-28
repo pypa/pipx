@@ -133,17 +133,17 @@ def test_inspect_venv_copies_editable_man_pages_only_from_the_project(
 
 
 @skip_if_windows
-def test_inspect_venv_skips_editable_man_page_symlinked_out_of_the_project(editable_project: Path) -> None:
-    (editable_project / "man" / "link.1").symlink_to(editable_project.parent / "outside.1")
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param("../../outside.1", id="out-of-the-project"),
+        pytest.param("link.1", id="symlink-loop"),
+    ],
+)
+def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, target: str) -> None:
+    (editable_project / "man" / "link.1").symlink_to(target)
 
     assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
-
-
-@skip_if_windows
-def test_inspect_venv_skips_editable_man_page_in_a_symlink_loop(editable_project: Path) -> None:
-    (loop := editable_project / "man" / "loop.1").symlink_to(loop)
-
-    assert _inspect_editable_man_pages(editable_project, "man/loop.1") == []
 
 
 @pytest.fixture
