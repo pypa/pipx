@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["importlib.util", "packaging", "pathlib", "pipx.self_install", "shutil", "subprocess"]
+__lazy_modules__ = ["importlib.util", "packaging", "pathlib", "pipx.self_install", "re", "shutil", "subprocess"]
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -116,8 +117,12 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
             raise PipxError(msg)
         return _fetch_standalone_interpreter(python_version)
 
-    if Path(python_version).is_file() or shutil.which(python_version):
+    # a bare name such as 3.11 must not match a file of that name in the working directory
+    if (os.sep in python_version or "/" in python_version) and Path(python_version).is_file():
         return python_version
+    # uv reads a bare name such as python3.11 as a version request and may settle on a .venv in a parent directory
+    if found := shutil.which(python_version):
+        return found
 
     if not WINDOWS:
         python_unix_command = find_unix_command_python(python_version)
@@ -157,6 +162,11 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
                 "Removing `python` from the start of the version, as pylauncher just expects the semantic version"
             )
             python_semver = python_semver.lstrip("python")
+        # the Unix launcher reads only -X and -X.Y as a version and hands any other flag to the first interpreter its
+        # search finds, which can be a .venv in a parent directory; see Action::from_main and venv_path_search in
+        # https://github.com/brettcannon/python-launcher/blob/3c9f207c07d5fed612b04dbf2980f67d40aa24b3/src/cli.rs
+        if not WINDOWS and not re.fullmatch(r"[0-9]+(\.[0-9]+)?", python_semver):
+            return None
         py = subprocess.run(
             [py, f"-{python_semver}", "-c", "import sys; print(sys.executable)"],
             capture_output=True,
@@ -201,7 +211,8 @@ def _get_sys_executable() -> str:
 
 
 def _resolve_python(python: str) -> str:
-    if (path := Path(python)).is_file():
+    # a bare name goes to PATH only; testing it as a file first would pick up one sitting in the working directory
+    if (os.sep in python or "/" in python) and (path := Path(python)).is_file():
         return str(path.resolve())
     if found := shutil.which(python):
         return found

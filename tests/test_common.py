@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import zipfile
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -19,6 +20,7 @@ from pipx.commands.common import (
     reuse_resource_dir_scans,
 )
 from pipx.constants import MACOS
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -93,6 +95,44 @@ def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
     assert app_path.read_bytes() == shebang + flag + separator
+
+
+@pytest.mark.parametrize(
+    ("resource_type", "resource", "suffix"),
+    [
+        pytest.param("app", "bin/..", "", id="app-parent-directory"),
+        pytest.param("man", "share/man/man1/..", "", id="man-parent-directory"),
+        pytest.param("app", "bin/demo", "/../../state/demo", id="suffix-with-separator"),
+    ],
+)
+def test_expose_refuses_name_leading_out_of_resource_dir(
+    tmp_path: Path, resource_type: str, resource: str, suffix: str
+) -> None:
+    (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
+    (local_resource_dir := tmp_path / "local" / "resources").mkdir(parents=True)
+    (unrelated := tmp_path / "local" / "state" / "history").parent.mkdir()
+    unrelated.touch()
+
+    with pytest.raises(PipxError, match=r"^Refusing to expose"):
+        expose_resources_globally(resource_type, local_resource_dir, [resource_path], force=True, suffix=suffix)
+
+    assert (unrelated.exists(), list(local_resource_dir.iterdir()), (unrelated.parent / "demo").exists()) == (
+        True,
+        [],
+        False,
+    )
+
+
+@skip_if_windows
+def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
+    (app_path := tmp_path / "venv" / "demo").parent.mkdir()
+    app_path.write_text("#!/bin/sh\n")
+    (kept := tmp_path / "bin" / "demo" / "keep").parent.mkdir(parents=True)
+    kept.touch()
+
+    collisions = expose_resources_globally("app", tmp_path / "bin", [app_path], force=True)
+
+    assert (collisions, kept.exists()) == ([kept.parent], True)
 
 
 @skip_if_windows
@@ -295,6 +335,40 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
         )
         == expected
     )
+
+
+@pytest.fixture
+def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Path() collapses the URL's // so each file sits at the relative path one of the URLs below spells
+    monkeypatch.chdir(tmp_path)
+    for wheel in ("https:/files.example", "acme-tool @ https:/files.example"):
+        (directory := tmp_path / wheel).mkdir(parents=True)
+        with zipfile.ZipFile(directory / "acme_tool-1.0-py3-none-any.whl", "w") as archive:
+            archive.writestr("x-0.dist-info/METADATA", "Name: other-app\n")
+    (project := tmp_path / "git+https:/git.example/acme-tool.git").mkdir(parents=True)
+    (project / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n[project]\nname = "other-app"\n',
+        encoding="utf-8",
+    )
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        pytest.param("https://files.example/acme_tool-1.0-py3-none-any.whl", id="wheel-url"),
+        pytest.param("acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl", id="pep508-wheel-url"),
+        pytest.param("git+https://git.example/acme-tool.git", id="vcs-url"),
+    ],
+)
+@pytest.mark.usefixtures("lookalikes_below_cwd")
+def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
+    mocker: MockerFixture, package_spec: str
+) -> None:
+    venv = mocker.patch.object(common, "Venv", autospec=True)
+    venv.return_value.install_package_no_deps.return_value = "acme-tool"
+
+    assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

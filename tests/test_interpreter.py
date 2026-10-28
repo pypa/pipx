@@ -25,6 +25,8 @@ from pipx.interpreter import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pytest_mock import MockerFixture
 
 original_which = shutil.which
@@ -239,6 +241,34 @@ def test_resolve_python_relative_path_resolves_to_absolute(tmp_path: Path) -> No
     assert Path(result).is_absolute()
 
 
+@pytest.mark.skipif(WINDOWS, reason="Windows searches the working directory for a bare command name by design")
+@pytest.mark.usefixtures("uncached_default_python")
+def test_get_default_python_ignores_bare_name_in_working_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "python3").touch(mode=0o755)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", "python3")
+
+    assert pipx.interpreter.get_default_python() == shutil.which("python3")
+
+
+@pytest.mark.usefixtures("uncached_default_python")
+def test_get_default_python_resolves_relative_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "mypython").touch(mode=0o755)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", f".{os.sep}mypython")
+
+    assert pipx.interpreter.get_default_python() == str((tmp_path / "mypython").resolve())
+
+
+@pytest.fixture
+def uncached_default_python() -> Iterator[None]:
+    pipx.interpreter.get_default_python.cache_clear()
+    yield
+    pipx.interpreter.get_default_python.cache_clear()
+
+
 def test_resolve_python_invalid_raises() -> None:
     with pytest.raises(InterpreterResolutionError, match="PIPX_DEFAULT_PYTHON"):
         _resolve_python("no_such_python_99.99")
@@ -265,6 +295,28 @@ def test_find_python_interpreter_by_version() -> None:
         check=True,
     )
     assert result.stdout.strip() == f"{major}.{minor}"
+
+
+def test_find_python_interpreter_by_name_returns_path_lookup_result(python_on_path: Path) -> None:
+    assert find_python_interpreter(python_on_path.name) == str(python_on_path)
+
+
+@pytest.mark.skipif(WINDOWS, reason="Windows searches the working directory for a bare command name by design")
+def test_find_python_interpreter_by_name_skips_working_directory_file(
+    python_on_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (cwd := tmp_path / "cwd").mkdir()
+    (cwd / python_on_path.name).touch(mode=0o755)
+    monkeypatch.chdir(cwd)
+
+    assert find_python_interpreter(python_on_path.name) == str(python_on_path)
+
+
+@pytest.fixture
+def python_on_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    (python := tmp_path / "mypython.exe").touch(mode=0o755)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    return python
 
 
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
@@ -384,6 +436,39 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(shutil, "which", lambda _name: None)
     monkeypatch.setattr(pipx.interpreter, "find_py_launcher_python", lambda v: f"/fake/python{v}")
     assert find_python_interpreter("3.13", fetch_python=FetchPythonOptions.NEVER) == "/fake/python3.13"
+
+
+@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        pytest.param("3.14.8", id="micro"),
+        pytest.param("python3.14.8", id="python-prefix-micro"),
+        pytest.param("3.13t", id="free-threaded"),
+    ],
+)
+def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
+    mocker: MockerFixture, python_version: str
+) -> None:
+    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    launcher = mocker.patch.object(subprocess, "run", autospec=True)
+
+    with pytest.raises(InterpreterResolutionError, match="found in PATH"):
+        find_python_interpreter(python_version)
+    launcher.assert_not_called()
+
+
+@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+def test_find_python_interpreter_asks_unix_py_launcher_for_minor_version(mocker: MockerFixture) -> None:
+    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    mocker.patch.object(
+        subprocess,
+        "run",
+        autospec=True,
+        return_value=subprocess.CompletedProcess([], 0, stdout="/opt/python3.99/bin/python3.99\n"),
+    )
+
+    assert find_python_interpreter("3.99") == "/opt/python3.99/bin/python3.99"
 
 
 @pytest.mark.parametrize(

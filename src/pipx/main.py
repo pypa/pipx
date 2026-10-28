@@ -78,7 +78,15 @@ from pipx.interpreter import (
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import skip_shared_libs_maintenance
-from pipx.util import PipxError, mkdir, pipx_wrap, redact_url_credentials, rmdir, stream_subprocess_stdout_to_stderr
+from pipx.util import (
+    PipxError,
+    mkdir,
+    open_owner_only,
+    pipx_wrap,
+    redact_url_credentials,
+    rmdir,
+    stream_subprocess_stdout_to_stderr,
+)
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 
@@ -247,8 +255,12 @@ class InstalledVenvsCompleter:
 
 def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
     pip_args: list[str] = []
-    if parsed_args.get("index_url"):
-        pip_args += ["--index-url", parsed_args["index_url"]]
+    # an omitted option is None; an empty one usually comes from an unset variable, as in --index-url "$INDEX_URL"
+    if (index_url := parsed_args.get("index_url")) is not None:
+        if not index_url.strip():
+            msg = "--index-url is empty; pass the index URL or leave the option out"
+            raise PipxError(msg)
+        pip_args += ["--index-url", index_url]
 
     if value := parsed_args.get("pip_args"):
         pip_args += _split_pip_args(value)
@@ -2034,7 +2046,10 @@ def _setup_log_file(pipx_log_dir: Path | None = None) -> TextIOWrapper:
     max_logs, _ = _compute_max_logs(os.getenv("PIPX_MAX_LOGS"))
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
-    pipx_log_dir.mkdir(parents=True, exist_ok=True)
+    pipx_log_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # a directory created by an older pipx kept the umask mode; one owned by another account keeps whatever it has
+    with contextlib.suppress(OSError):
+        pipx_log_dir.chmod(0o700)
     log_stream: Final[TextIOWrapper] = _create_log_file(pipx_log_dir)
     _rotate_logs(Path(log_stream.name), max_logs)
     return log_stream
@@ -2045,8 +2060,11 @@ def _create_log_file(pipx_log_dir: Path) -> TextIOWrapper:
     counter = 0
     while True:
         with contextlib.suppress(FileExistsError):
-            log_stream = (pipx_log_dir / f"cmd_{datetime_str}{f'_{counter}' if counter else ''}.log").open(
-                "x", encoding="utf-8"
+            log_stream = open(  # ruff:ignore[open-file-with-context-handler]  # the logging handler owns the stream
+                pipx_log_dir / f"cmd_{datetime_str}{f'_{counter}' if counter else ''}.log",
+                "x",
+                encoding="utf-8",
+                opener=open_owner_only,
             )
             break
         counter += 1
@@ -2163,7 +2181,7 @@ def setup(args: argparse.Namespace) -> None:
     paths.ctx.log_warnings()
 
     _LOGGER.debug("%s", time.strftime("%Y-%m-%d %H:%M:%S"))
-    _LOGGER.debug("%s", redact_url_credentials(" ".join(sys.argv)))
+    _LOGGER.debug("%s", " ".join(map(redact_url_credentials, sys.argv)))
     _LOGGER.info("pipx version is %s", __version__)
     _LOGGER.info("Default python interpreter is '%s'", get_default_python())
 

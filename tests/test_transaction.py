@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from pipx import paths
-from pipx.commands.transaction import preserve_venv
+from pipx.commands.transaction import VenvBackup, preserve_venv
 from pipx.util import PipxError
 
 
@@ -35,3 +35,34 @@ def test_preserve_venv_restores_the_backup_on_failure() -> None:
         corrupt_then_fail()
 
     assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_preserve_venv_without_upfront_copy_restores_a_removed_venv_on_failure() -> None:
+    venv_dir = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+
+    def rebuild_then_fail(backup: VenvBackup) -> None:
+        backup.remove_venv()
+        venv_dir.mkdir()
+        msg = "boom"
+        raise PipxError(msg)
+
+    with pytest.raises(PipxError, match="boom"), preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
+        rebuild_then_fail(backup)
+
+    assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success() -> None:
+    venv_dir = paths.ctx.venvs / "demo"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+
+    with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
+        backup.remove_venv()
+        venv_dir.mkdir()
+
+    assert (list(venv_dir.iterdir()), [path for path in paths.ctx.trash.iterdir() if path.is_dir()]) == ([], [])

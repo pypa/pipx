@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.utils", "pipx.commands.common", "pipx.util", "pipx.venv"]
+__lazy_modules__ = ["packaging.utils", "pipx.commands.common", "pipx.package_specifier", "pipx.util", "pipx.venv"]
 
 from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
+from pipx.package_specifier import extract_index_options, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
 
@@ -142,8 +143,13 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     return specs
 
 
-def _updated_main_package_pip_args(existing_pip_args: list[str], *, editable: bool) -> list[str]:
+def _updated_main_package_pip_args(
+    existing_pip_args: list[str], runpip_args: list[str], *, editable: bool
+) -> list[str]:
     pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
+    # the new spec was resolved on the indexes this command named, so upgrade and reinstall must ask the same ones
+    if index_args := extract_index_options(runpip_args):
+        pip_args = replace_index_options(pip_args, index_args)
     if editable:
         pip_args.append("--editable")
     return pip_args
@@ -168,7 +174,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
         venv.update_package_metadata(
             package_name=main_package.package,
             package_or_url=package_spec,
-            pip_args=_updated_main_package_pip_args(main_package.pip_args, editable=editable),
+            pip_args=_updated_main_package_pip_args(main_package.pip_args, pip_args, editable=editable),
             include_dependencies=main_package.include_dependencies,
             include_resources_from=main_package.include_resources_from,
             include_apps=main_package.include_apps,
