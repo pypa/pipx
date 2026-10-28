@@ -267,10 +267,13 @@ def test_find_python_interpreter_by_version() -> None:
     assert result.stdout.strip() == f"{major}.{minor}"
 
 
-def test_find_python_interpreter_by_name_returns_path_lookup_result() -> None:
-    name = f"python{sys.version_info.major}.{sys.version_info.minor}"
+def test_find_python_interpreter_by_name_returns_path_lookup_result(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "mypython.exe").touch(mode=0o755)
+    monkeypatch.setenv("PATH", str(tmp_path))
 
-    assert find_python_interpreter(name) == shutil.which(name)
+    assert find_python_interpreter("mypython.exe") == str(tmp_path / "mypython.exe")
 
 
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
