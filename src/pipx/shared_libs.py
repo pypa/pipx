@@ -7,6 +7,7 @@ __lazy_modules__ = [
     "pipx",
     "pipx.fanout",
     "pipx.interpreter",
+    "pipx.package_specifier",
     "pipx.util",
     "threading",
 ]
