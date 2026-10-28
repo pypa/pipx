@@ -19,6 +19,7 @@ from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.util import (
     PipxError,
+    reject_empty_index,
     run_subprocess,
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
@@ -102,6 +103,7 @@ class UvBackend(Backend):
         log_pip_errors: bool = True,
         verbose: bool = False,
     ) -> CompletedProcess[str]:
+        reject_empty_index(pip_args)
         cmd = self._uv_pip_command("install", venv_python, verbose=verbose)
         if upgrade:
             cmd.append("--upgrade")
@@ -170,6 +172,7 @@ class UvBackend(Backend):
         index_args: list[str],
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
+        reject_empty_index(index_args)
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
         cmd += ["--outdated", "--format=json", *index_args, *(f"--exclude={name}" for name in exclude)]
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())

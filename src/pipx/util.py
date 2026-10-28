@@ -759,6 +759,20 @@ def is_paths_relative(path: Path, parent: Path) -> bool:
     return path.is_relative_to(parent)
 
 
+def reject_empty_index(pip_args: Sequence[str]) -> None:
+    # an empty value usually comes from an unset variable, as in --index-url "$INDEX_URL", and uv reads it as the
+    # default index
+    for position, argument in enumerate(pip_args):
+        option, separator, value = argument.partition("=")
+        if option not in {"--default-index", "--extra-index-url", "--index", "--index-url", "-i"} or (
+            not separator and position + 1 == len(pip_args)
+        ):
+            continue
+        if not (value if separator else pip_args[position + 1]).strip():
+            msg = f"{option} is empty; pass the index URL or leave the option out"
+            raise PipxError(msg)
+
+
 __all__ = [
     "InstalledNameMismatchError",
     "PipxError",
@@ -775,6 +789,7 @@ __all__ = [
     "open_owner_only",
     "pipx_wrap",
     "redact_url_credentials",
+    "reject_empty_index",
     "rmdir",
     "run_pypackage_bin",
     "run_subprocess",
