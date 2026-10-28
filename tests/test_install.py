@@ -1229,6 +1229,25 @@ def test_package_name_determination_rejects_name_not_matching_dist_info(
         venv.install_package_no_deps("https://example.com/cooltool-1.0-py3-none-any.whl", [])
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_url_refuses_wheel_whose_data_files_rename_it(
+    make_wheel: Callable[[dict[str, str]], Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    metadata: Final[str] = "Metadata-Version: 2.1\nName: {}\nVersion: 1\n"
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "",
+        "foo_bar_x-1.dist-info/METADATA": metadata.format("foo-bar-x"),
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+        "foo_bar_x-1.data/purelib/foo_bar_x-1.dist-info/METADATA": metadata.format("pycowsay"),
+    })
+
+    assert run_pipx_cli(["install", "--backend", "pip", wheel.as_uri()])
+
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
+    assert ("declares the name 'pycowsay'" in error, list(paths.ctx.venvs.glob("*"))) == (True, [])
+
+
 def test_package_name_determination_accepts_normalized_dist_info_name(mocker: MockerFixture, tmp_path: Path) -> None:
     venv: Final[Venv] = _probe_venv(mocker, tmp_path, "Cool.Tool", ["cool_tool-1.0.dist-info"])
 
