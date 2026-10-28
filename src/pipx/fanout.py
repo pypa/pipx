@@ -113,7 +113,7 @@ def fan_out(
         return [task() for task in tasks]
     # capped like the outdated check, so a large pipx home does not start dozens of pip or uv runs against the index
     workers: Final[int] = min(len(tasks), os.cpu_count() or 1, 8)
-    turn: Final[Condition] = Condition()
+    turn: Final[Condition] = _Turn()
     # the turn's lock also guards the children, which no task holds while waiting for a child to exit
     children: Final[_Children] = _Children(turn, Event(), finishes=interrupted is not None)
     slots: Final[list[_Slot]] = []
@@ -302,6 +302,14 @@ def stop_process_group(process: _Child) -> None:
     # ProcessLookupError, and macOS raises PermissionError for one holding only zombies
     with suppress(ProcessLookupError, PermissionError):
         os.killpg(process.pid, signal.SIGTERM)
+
+
+class _Turn(Condition):
+    # Condition.__enter__ and __exit__ are Python frames around the lock's own methods: a signal handled right after the
+    # lock was taken, or right before it is released, raises KeyboardInterrupt from that frame, so the main thread keeps
+    # the lock and every task waiting for its turn waits forever. The lock's C methods leave no point to raise between.
+    __enter__ = property(lambda self: self._lock.__enter__)
+    __exit__ = property(lambda self: self._lock.__exit__)
 
 
 @dataclass
