@@ -30,7 +30,7 @@ from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.backends import Backend
 from pipx.constants import EXIT_CODE_OK
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.util import PipxError, redact_url_credentials
 from pipx.venv import Venv
 
@@ -290,6 +290,29 @@ def test_force_install_does_not_record_internal_pip_args() -> None:
         run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"]),
         PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args,
     ) == (0, [])
+
+
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_failed_force_install_keeps_recorded_metadata(
+    dotted_app_wheel: Path, make_wheel: Callable[[dict[str, str]], Path], backend: str
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", backend, str(dotted_app_wheel)])
+    metadata_path: Final[Path] = paths.ctx.venvs / "foo-bar-x" / PIPX_INFO_FILENAME
+    recorded: Final[str] = metadata_path.read_text(encoding="utf-8")
+    # data files unpack into the venv root before the installer writes INSTALLER, here a directory, and fails
+    make_wheel({
+        "foo_bar_x-1.data/data/pipx_metadata.json": "{}",
+        "foo_bar_x-1.dist-info/INSTALLER/placeholder": "",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+
+    assert (
+        run_pipx_cli(["install", "--force", str(dotted_app_wheel)]),
+        metadata_path.read_text(encoding="utf-8"),
+    ) == (1, recorded)
 
 
 @pytest.mark.parametrize(

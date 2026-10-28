@@ -357,7 +357,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # would have happened anyway).
         if self._backend_name == "uv":
             return
-        self.backend.upgrade_packaging_libraries(self._installer_python, pip_args, verbose=self.verbose)
+        with self.pipx_metadata.preserved():
+            self.backend.upgrade_packaging_libraries(self._installer_python, pip_args, verbose=self.verbose)
 
     @property
     def _installer_python(self) -> Path:
@@ -378,7 +379,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # resolved outside the try, which would replace the reason with a generic "Error uninstalling"
         venv_python: Final[Path] = self._installer_python
         try:
-            with animate(f"uninstalling {names}", do_animation=self.do_animation):
+            with animate(f"uninstalling {names}", do_animation=self.do_animation), self.pipx_metadata.preserved():
                 self.backend.uninstall(
                     venv_root=self.root,
                     venv_python=venv_python,
@@ -428,7 +429,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         with installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec:
             if lock_file is None:
                 _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-                with animate(f"installing {package_descr}", do_animation=self.do_animation):
+                with (
+                    animate(f"installing {package_descr}", do_animation=self.do_animation),
+                    self.pipx_metadata.preserved(),
+                ):
                     process = self.backend.install(
                         venv_root=self.root,
                         venv_python=self._installer_python,
@@ -503,7 +507,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         pip_args: list[str],
     ) -> None:
         _LOGGER.info("Installing packages from %s", lock_file)
-        with animate(f"installing packages from {lock_file.name}", do_animation=self.do_animation):
+        with (
+            animate(f"installing packages from {lock_file.name}", do_animation=self.do_animation),
+            self.pipx_metadata.preserved(),
+        ):
             process = self.backend.install_lock(
                 venv_root=self.root,
                 venv_python=self._installer_python,
@@ -517,7 +524,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
 
         if valid_pypi_name(package_or_url) is None:
             package_descr = full_package_description(package_name, package_or_url)
-            with animate(f"installing {package_descr}", do_animation=self.do_animation):
+            with animate(f"installing {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
                 process = self.backend.install(
                     venv_root=self.root,
                     venv_python=self._installer_python,
@@ -558,7 +565,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     ) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
         _LOGGER.info("Installing %s", package_descr := ", ".join(map(redact_url_credentials, requirements)))
-        with animate(f"installing {package_descr}", do_animation=self.do_animation):
+        with animate(f"installing {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self._installer_python,
@@ -816,7 +823,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         cooldown_days: int | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
-        with animate(f"upgrading {package_descr}", do_animation=self.do_animation):
+        with animate(f"upgrading {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self._installer_python,
@@ -848,6 +855,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         with (
             installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec,
             animate(f"upgrading {package_descr}", do_animation=self.do_animation),
+            self.pipx_metadata.preserved(),
         ):
             process = self.backend.install(
                 venv_root=self.root,
@@ -885,16 +893,18 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         )
 
     def run_pip_get_exit_code(self, cmd: list[str]) -> ExitCode:
-        process = self.backend.run_raw_pip(
-            venv_root=self.root,
-            venv_python=self._installer_python,
-            args=cmd,
-            capture_stdout=False,
-            capture_stderr=False,
-            verbose=self.verbose,
-            # the user wrote these arguments for their own directory, so relative paths must not name venv-root files
-            in_working_dir=True,
-        )
+        with self.pipx_metadata.preserved():
+            process = self.backend.run_raw_pip(
+                venv_root=self.root,
+                venv_python=self._installer_python,
+                args=cmd,
+                capture_stdout=False,
+                capture_stderr=False,
+                verbose=self.verbose,
+                # the user wrote these arguments for their own directory, so relative paths must not name
+                # venv-root files
+                in_working_dir=True,
+            )
         if process.returncode:
             _LOGGER.error("%r failed", " ".join(redact_url_credentials(str(c)) for c in process.args))
         return ExitCode(process.returncode)
