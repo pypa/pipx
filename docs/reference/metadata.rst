@@ -8,7 +8,9 @@ environment.
 
 Every environment under ``$PIPX_HOME/venvs/<environment>/`` holds a ``pipx_metadata.json`` file. pipx writes it after
 each operation and reads it to drive ``list``, ``upgrade``, ``reinstall``, ``uninstall``, and the rest. Treat it as
-pipx-owned; pipx rewrites it atomically and may change its shape between versions.
+pipx-owned; pipx rewrites it atomically and may change its shape between versions. A package can't change it: pipx
+puts the file back after each installer run, including ``pipx runpip``, so a wheel's data file of the same name never
+replaces it.
 
 pipx masks passwords and tokens in URLs it prints or logs, but keeps ``package_or_url`` and ``pip_args`` here as given,
 since ``reinstall`` and ``upgrade`` need them. Those credentials stay in plain text in this file and in the ``pipx list
