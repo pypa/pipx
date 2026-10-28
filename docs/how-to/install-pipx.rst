@@ -195,7 +195,7 @@ pipx accepts any source pip supports, including git repositories. Using ``black`
     $ pipx install git+https://github.com/psf/black.git
     $ pipx install git+ssh://git@github.com/psf/black
     $ pipx install git+https://github.com/psf/black.git@branch
-    $ pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1
+    $ pipx install git+https://github.com/psf/black.git@258e7dbf348bc23cb70b8cdf693481c04634ebcc
     $ pipx install https://github.com/psf/black/archive/18.9b0.zip
 
 Use a direct URL requirement to install extras:
