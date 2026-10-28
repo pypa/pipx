@@ -452,6 +452,12 @@ def test_list_outdated_rejects_other_filters(
     assert capsys.readouterr().err == "--outdated cannot be combined with --short or --pinned.\n"
 
 
+@pytest.mark.usefixtures("outdated_environment")
+def test_upgrade_all_missing_index_value(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["upgrade-all", "--pip-args=--index-url"]) == 1
+    assert "Missing value for '--index-url' in --pip-args." in capsys.readouterr().err
+
+
 def _outdated_result(
     *,
     packages_checked: int = 0,

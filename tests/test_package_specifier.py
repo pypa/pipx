@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -46,6 +47,12 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
 )
 def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None:
     assert extract_index_options(pip_args) == expected
+
+
+@pytest.mark.parametrize("option", ["-f", "-i", "--extra-index-url", "--find-links", "--index-url", "--trusted-host"])
+def test_extract_index_options_missing_value(option: str) -> None:
+    with pytest.raises(PipxError, match=re.escape(f"Missing value for {option!r} in --pip-args.")):
+        extract_index_options(["--no-cache-dir", option])
 
 
 @pytest.mark.parametrize(

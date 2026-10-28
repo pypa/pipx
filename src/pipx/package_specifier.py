@@ -389,7 +389,11 @@ def extract_index_options(pip_args: list[str]) -> list[str]:
             continue
         option, separator = argument.partition("=")[:2]
         if option in _PIP_INDEX_VALUE_OPTIONS:
-            index_args.extend([argument] if separator else [argument, next(iterator)])
+            try:
+                index_args.extend([argument] if separator else [argument, next(iterator)])
+            except StopIteration as error:
+                msg = f"Missing value for {option!r} in --pip-args."
+                raise PipxError(msg) from error
         elif len(argument) > _SHORT_OPTION_LEN and argument[:2] in {"-f", "-i"}:
             index_args.append(argument)
     return index_args
