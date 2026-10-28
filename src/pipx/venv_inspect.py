@@ -20,6 +20,7 @@ import ast
 import configparser
 import json
 import logging
+import os
 import shutil
 import textwrap
 import tomllib
@@ -236,7 +237,8 @@ def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: 
     project_root = _get_editable_project_root(dist)
     if project_root is None:
         return set()
-    project_root = project_root.resolve()
+    # Path.resolve() raises RuntimeError on a symlink loop before Python 3.13, os.path.realpath() does not
+    project_root = Path(os.path.realpath(project_root))
 
     man_names = set()
     for target_dir, source_paths in _iter_editable_project_data_files(project_root):
@@ -246,7 +248,7 @@ def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: 
         for source_path in source_paths:
             source = project_root / source_path
             # a wheel can ship its own direct_url.json, so only files inside the project count as its man pages
-            if not (resolved := source.resolve()).is_relative_to(project_root) or not resolved.is_file():
+            if not (resolved := Path(os.path.realpath(source))).is_relative_to(project_root) or not resolved.is_file():
                 continue
             dest = man_path / man_section / source.name
             try:
