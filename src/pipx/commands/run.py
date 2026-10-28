@@ -189,7 +189,7 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
     # same environment, which means fewer environments need to be
     # managed. The requirements are normalised so that irrelevant differences
     # in whitespace, and similar, don't prevent environment sharing.
-    pip_args = absolute_path_pip_args(pip_args)
+    pip_args = absolute_path_pip_args(pip_args, Path.cwd())
     venv_dir = _get_temporary_venv_path(
         requirements,
         python,

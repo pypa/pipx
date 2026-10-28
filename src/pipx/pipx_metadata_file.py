@@ -5,13 +5,14 @@ __lazy_modules__ = ["contextlib", "pathlib", "pipx.backends._base", "pipx.util",
 import json
 import logging
 from contextlib import suppress
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, Final, TypedDict, cast
 
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
+from pipx.package_specifier import absolute_path_pip_args
 from pipx.util import PipxError, pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -293,7 +294,7 @@ class PipxMetadata:
     def from_dict(self, input_dict: _RawMetadata) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.environment = input_dict.get("environment")
-        self.main_package = PackageInfo(**input_dict["main_package"])
+        self.main_package = self._package_info(input_dict["main_package"])
         self.python_version = input_dict.get("python_version")
         source_interpreter_raw = input_dict.get("source_interpreter")
         self.source_interpreter = Path(source_interpreter_raw) if source_interpreter_raw else None
@@ -301,7 +302,7 @@ class PipxMetadata:
         # Key by the record's own package name, as ``Venv.update_package_metadata`` writes it, so a read-modify-write
         # cycle keeps keys stable and files where earlier pipx versions saved a suffixed key (``black@1``) heal.
         self.injected_packages = {
-            data.get("package") or name: PackageInfo(**data)
+            data.get("package") or name: self._package_info(data)
             for (name, data) in input_dict.get("injected_packages", {}).items()
         }
         # Permissive: an unknown ``backend`` (manual edit, post-downgrade
@@ -319,6 +320,11 @@ class PipxMetadata:
         self.backend = recorded_backend
         self.exposure_enabled = input_dict["exposure_enabled"]
         self.read_metadata_version = input_dict.get("pipx_metadata_version")
+
+    def _package_info(self, data: _RawPackageInfo) -> PackageInfo:
+        # The record's installer ran in the venv root, so a relative path resolves there, never against the caller's
+        # working directory, which another account may control
+        return replace(PackageInfo(**data), pip_args=absolute_path_pip_args(data["pip_args"], self.venv_dir))
 
     def _validate_before_write(self) -> None:
         if (

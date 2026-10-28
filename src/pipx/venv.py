@@ -808,7 +808,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         cooldown_days: int | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
-        pip_args = absolute_path_pip_args(pip_args)
+        pip_args = absolute_path_pip_args(pip_args, Path.cwd())
         with (
             installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec,
             animate(f"upgrading {package_descr}", do_animation=self.do_animation),
