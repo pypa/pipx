@@ -32,20 +32,20 @@ def test_runpip_global() -> None:
 
 
 @pytest.mark.parametrize(
-    "format_args",
+    ("backend", "option_args"),
     [
-        (),
-        ("--only-binary", "empty-project"),
-        ("--no-binary", "empty-project"),
-        ("--only-binary=empty-project",),
-        ("--no-binary=empty-project",),
+        pytest.param("pip", (), id="pip-no-option"),
+        pytest.param("pip", ("--only-binary", "empty-project"), id="pip-only-binary"),
+        pytest.param("pip", ("--no-binary", "empty-project"), id="pip-no-binary"),
+        pytest.param("pip", ("--proxy", "empty-project"), id="pip-proxy"),
+        pytest.param("uv", ("-P", "empty-project"), id="uv-upgrade-package"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_runpip_install_refreshes_main_package_metadata(
-    empty_project: Path, empty_project_wheel: Path, format_args: tuple[str, ...]
+    empty_project: Path, empty_project_wheel: Path, backend: str, option_args: tuple[str, ...]
 ) -> None:
-    assert not run_pipx_cli(["install", "--editable", str(empty_project)])
+    assert not run_pipx_cli(["install", "--backend", backend, "--editable", str(empty_project)])
 
     metadata_path = paths.ctx.venvs / "empty-project" / "pipx_metadata.json"
     before = json.loads(metadata_path.read_text())
@@ -57,7 +57,7 @@ def test_runpip_install_refreshes_main_package_metadata(
         "empty-project",
         "install",
         "--force-reinstall",
-        *format_args,
+        *option_args,
         str(empty_project_wheel),
     ])
 
