@@ -28,6 +28,17 @@ install`` that reinstalls the main package with index options (``--index-url``, 
 ``--allow-insecure-host``, ``--keyring-provider``) replaces the recorded ones with them; without index options the
 record stays.
 
+pipx refuses an empty or whitespace-only index URL before it creates an environment, whether it comes from
+``--index-url`` (``-i``) or from ``--index-url``, ``-i``, ``--extra-index-url``, ``--default-index`` or ``--index``
+inside ``--pip-args``. An empty value usually means an unset variable, as in ``--index-url "$INDEX_URL"``, and uv reads
+it as the default index, so the package would come from PyPI instead of your index. Under the uv backend pipx also
+refuses an empty index recorded by an earlier install when ``upgrade``, ``reinstall`` or ``install-all`` replays it:
+
+.. code-block:: console
+
+    $ pipx install my-package --pip-args="--index-url=$UNSET_VARIABLE"
+    --index-url is empty; pass the index URL or leave the option out
+
 *************************
  Set it for every command
 *************************
