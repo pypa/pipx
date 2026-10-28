@@ -235,6 +235,27 @@ def test_install_all_restores_recorded_args(
     ) == (["--system-site-packages"], expected_pip_args, expected_pip_args)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_leaves_directory_named_in_recorded_venv_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    other_dir: Final[Path] = tmp_path / "documents"
+    other_dir.mkdir()
+    (other_dir / "notes.txt").write_text("keep", encoding="utf-8")
+    spec = json.loads(capsys.readouterr().out)
+    spec["venvs"]["pycowsay"]["metadata"]["venv_args"] = ["--clear", str(other_dir)]
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(json.dumps(spec), encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    assert sorted(path.name for path in other_dir.iterdir()) == ["notes.txt"]
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all_drops_recorded_pip_args_for_another_backend(
