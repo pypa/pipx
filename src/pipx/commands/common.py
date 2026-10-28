@@ -47,7 +47,7 @@ from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.fanout import in_turn
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, is_file_name, mkdir, pipx_wrap, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -71,11 +71,13 @@ class VenvProblems:
         bad_venv_name: bool = False,
         invalid_interpreter: bool = False,
         missing_metadata: bool = False,
+        unreadable_metadata: bool = False,
         not_installed: bool = False,
     ) -> None:
         self.bad_venv_name = bad_venv_name
         self.invalid_interpreter = invalid_interpreter
         self.missing_metadata = missing_metadata
+        self.unreadable_metadata = unreadable_metadata
         self.not_installed = not_installed
 
     def any_(self) -> bool:
@@ -371,6 +373,13 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
         return (
             VenvProblems(invalid_interpreter=True),
             f"   package {red(bold(venv_dir.name))} has invalid interpreter {python_path!s}\r{hazard}",
+        )
+    # the metadata is owner-only as it can hold index credentials, so another user sees a --global environment this way
+    metadata_file: Final[Path] = venv_dir / PIPX_INFO_FILENAME
+    if not venv.package_metadata and metadata_file.exists() and not os.access(metadata_file, os.R_OK):
+        return (
+            VenvProblems(unreadable_metadata=True),
+            f"   package {red(bold(venv_dir.name))} has pipx metadata this user cannot read.\r{hazard}",
         )
     if not venv.package_metadata:
         return (

@@ -104,8 +104,10 @@ Use ``--global`` **after** the subcommand to operate on the system-wide installa
     $ sudo pipx install --global pycowsay
     $ pipx list --global
 
-Commands that write to the global locations need root. ``pipx list --global`` and ``pipx environment --global`` only
-read them, so any user can run those.
+Commands that write to the global locations need root. ``pipx environment --global`` only reads them, so any user can
+run it. ``pipx list --global`` needs to read each environment's ``pipx_metadata.json``, which pipx keeps readable by its
+owner only because it can hold index credentials; other users see each environment reported as unreadable, so run it
+with ``sudo`` to list them.
 
 Putting ``--global`` before the subcommand, as in ``sudo pipx --global install pycowsay``, raises
 ``unrecognized arguments: --global``. For ``manifest``, ``interpreter`` and ``cache`` it goes after their own
