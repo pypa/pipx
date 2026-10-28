@@ -1378,7 +1378,7 @@ def test_pip_args_with_wrong_constraint_fail(
     assert run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", "pycowsay"])
 
     # pip phrases this as "requirements file" (<26) or "constraint file" (>=26), so match the common part
-    assert f"[Errno 2] No such file or directory: '{constraint_file_name}'" in capsys.readouterr().err
+    assert f"[Errno 2] No such file or directory: {str(tmp_path / constraint_file_name)!r}" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -2019,6 +2019,34 @@ def test_global_flag_before_subcommand_rejected(capsys: pytest.CaptureFixture[st
     assert exc_info.value.code == 2, "argparse error should exit with code 2"
     captured = capsys.readouterr()
     assert "unrecognized arguments: --global" in captured.err
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        pytest.param("--global", marks=skip_if_windows, id="global"),
+        pytest.param("--skip-maintenance", id="skip-maintenance"),
+        pytest.param("--verbose", id="verbose"),
+        pytest.param("--quiet", id="quiet"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("group", "subcommand"),
+    [
+        pytest.param("manifest", ["sync", "pipx.toml"], id="manifest"),
+        pytest.param("interpreter", ["prune"], id="interpreter"),
+        pytest.param("cache", ["purge"], id="cache"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_shared_flag_before_nested_subcommand_rejected(
+    capsys: pytest.CaptureFixture[str], group: str, subcommand: list[str], flag: str
+) -> None:
+    # the subcommand's namespace used to overwrite the flag parsed by the group parser, silently dropping it
+    with pytest.raises(SystemExit) as exc_info:
+        run_pipx_cli([group, flag, *subcommand])
+
+    assert (exc_info.value.code, f"unrecognized arguments: {flag}" in capsys.readouterr().err) == (2, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -14,7 +14,8 @@ replaces it.
 
 pipx masks passwords and tokens in URLs it prints or logs, but keeps ``package_or_url`` and ``pip_args`` here as given,
 since ``reinstall`` and ``upgrade`` need them. Those credentials stay in plain text in this file and in the ``pipx list
---json`` snapshot, so prefer a keyring or a ``.netrc`` file over credentials embedded in a URL.
+--json`` snapshot, so prefer a keyring or a ``.netrc`` file over credentials embedded in a URL. pipx writes the file
+readable by its owner only, whatever the umask; for a ``--global`` environment that owner is root.
 
 The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrates older files forward on read.
 

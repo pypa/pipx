@@ -24,6 +24,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths, util, venv_inspect
+from pipx.commands import common
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import redact_url_credentials
 
@@ -39,6 +40,22 @@ if TYPE_CHECKING:
 def test_reinstall() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_resolves_recorded_relative_find_links_in_venv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
+    metadata.write()
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["reinstall", "pycowsay"])
+
+    assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
 
 
 @pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
@@ -226,6 +243,36 @@ def test_reinstall_suffix() -> None:
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
+
+
+@pytest.mark.parametrize(
+    "symlinks", [pytest.param(True, id="symlink", marks=skip_if_windows), pytest.param(False, id="copy")]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_keeps_a_file_it_did_not_expose(
+    dotted_app_wheel: Path, mocker: MockerFixture, symlinks: bool
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=symlinks)
+    paths.ctx.bin_dir.mkdir(parents=True, exist_ok=True)
+    (user_file := paths.ctx.bin_dir / app_name("tool3.12")).write_text("mine", encoding="utf-8")
+    assert not run_pipx_cli(["install", str(dotted_app_wheel)])
+
+    assert not run_pipx_cli(["reinstall", "foo-bar-x"])
+
+    assert (user_file.is_symlink(), user_file.read_text(encoding="utf-8")) == (False, "mine")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", str(dotted_app_wheel)])
+    exposed: Final[Path] = paths.ctx.bin_dir / app_name("tool3.12")
+    fresh: Final[bytes] = exposed.read_bytes()
+    exposed.write_bytes(fresh + b"# stale\n")
+
+    assert not run_pipx_cli(["reinstall", "foo-bar-x"])
+
+    assert exposed.read_bytes() == fresh
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])

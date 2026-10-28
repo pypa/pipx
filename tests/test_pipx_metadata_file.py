@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -8,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
+from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import paths, pipx_metadata_file
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
@@ -288,6 +290,21 @@ def test_preserved_removes_a_record_the_block_created(tmp_path: Path) -> None:
         (tmp_path / PIPX_INFO_FILENAME).write_bytes(b"{}")
 
     assert list(tmp_path.iterdir()) == []
+
+
+@skip_if_windows
+def test_write_keeps_metadata_owner_only(tmp_path: Path) -> None:
+    (venv_dir := tmp_path / "venv").mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    previous_umask: Final[int] = os.umask(0o022)
+    try:
+        metadata.write()
+    finally:
+        os.umask(previous_umask)
+
+    # pip_args and package_or_url keep index credentials as given
+    assert stat.S_IMODE((venv_dir / PIPX_INFO_FILENAME).stat().st_mode) == 0o600
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
