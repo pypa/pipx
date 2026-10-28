@@ -366,6 +366,19 @@ def test_get_pip_args_rejects_unclosed_quote() -> None:
         main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
 
 
+def test_get_pip_args_forwards_index_url() -> None:
+    assert main.get_pip_args({"index_url": "https://example.com/simple"}) == [
+        "--index-url",
+        "https://example.com/simple",
+    ]
+
+
+@pytest.mark.parametrize("index_url", [pytest.param("", id="empty"), pytest.param("  ", id="whitespace")])
+def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
+    with pytest.raises(PipxError, match="--index-url is empty"):
+        main.get_pip_args({"index_url": index_url})
+
+
 _LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
 _GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
@@ -531,6 +544,14 @@ def test_package_is_path_hides_url_credentials(capsys: pytest.CaptureFixture[str
     assert run_pipx_cli(["upgrade", spec])
 
     assert f"'{redact_url_credentials(spec)}' looks like a path" in " ".join(capsys.readouterr().err.split())
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_log_masks_command_line_password_with_space() -> None:
+    run_pipx_cli(["upgrade", "--index-url", "https://alice:correct horse@host/simple", "nosuchpackage"])
+
+    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "upgrade --index-url https://alice:****@host/simple nosuchpackage" in log
 
 
 @skip_if_windows

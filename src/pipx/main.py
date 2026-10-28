@@ -255,8 +255,12 @@ class InstalledVenvsCompleter:
 
 def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
     pip_args: list[str] = []
-    if parsed_args.get("index_url"):
-        pip_args += ["--index-url", parsed_args["index_url"]]
+    # an omitted option is None; an empty one usually comes from an unset variable, as in --index-url "$INDEX_URL"
+    if (index_url := parsed_args.get("index_url")) is not None:
+        if not index_url.strip():
+            msg = "--index-url is empty; pass the index URL or leave the option out"
+            raise PipxError(msg)
+        pip_args += ["--index-url", index_url]
 
     if value := parsed_args.get("pip_args"):
         pip_args += _split_pip_args(value)
@@ -2177,7 +2181,7 @@ def setup(args: argparse.Namespace) -> None:
     paths.ctx.log_warnings()
 
     _LOGGER.debug("%s", time.strftime("%Y-%m-%d %H:%M:%S"))
-    _LOGGER.debug("%s", redact_url_credentials(" ".join(sys.argv)))
+    _LOGGER.debug("%s", " ".join(map(redact_url_credentials, sys.argv)))
     _LOGGER.info("pipx version is %s", __version__)
     _LOGGER.info("Default python interpreter is '%s'", get_default_python())
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.backends.uv", "pipx.util", "shutil"]
+__lazy_modules__ = ["pipx", "pipx.backends.uv", "pipx.util", "shutil"]
 
 import logging
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
 
+from pipx import paths
 from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.emojis import hazard
 from pipx.util import PipxError, exec_app, pipx_wrap, redact_url_credentials
@@ -97,7 +98,8 @@ def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `
     cooldown_days: int | None = None,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
-    cmd: list[str] = [str(resolve_uv_binary()), "run", "--script"]
+    # uv searches for project config from --project, or else from the script's directory, which another account may own
+    cmd: list[str] = [str(resolve_uv_binary()), "run", "--script", "--project", str(paths.ctx.home)]
     if python:
         cmd += ["--python", python]
     if not use_cache:

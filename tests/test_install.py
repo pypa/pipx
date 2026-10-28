@@ -353,6 +353,21 @@ def test_install_from_pylock(make_pylock: MakePylock, backend: str, group: str |
     ) == ("0.0.0.2", lock_file.resolve(), True)
 
 
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    ("recorded", "other"), [pytest.param("pip", "uv", id="pip"), pytest.param("uv", "pip", id="uv")]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_force_pylock_keeps_the_recorded_backend(make_pylock: MakePylock, recorded: str, other: str) -> None:
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2", None)
+    assert not run_pipx_cli(["install", "--backend", recorded, PKG["pycowsay"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--force", "--backend", other, "--lock", str(lock_file), "pycowsay>=0"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (metadata.backend, metadata.main_package.lock_file) == (recorded, lock_file.resolve())
+
+
 @pytest.mark.parametrize(
     ("backend", "backend_option"),
     [
@@ -949,6 +964,13 @@ def test_install_upgrade_satisfied_spec_is_offline(capsys: pytest.CaptureFixture
 def test_install_upgrade_strategy_requires_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--upgrade-strategy=eager", PKG["black"]["spec"]])
     assert "--upgrade-strategy requires --upgrade" in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_rejects_empty_index_url(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "--index-url", "", "pycowsay"])
+    assert "--index-url is empty" in capsys.readouterr().err
+    assert not (paths.ctx.venvs / "pycowsay").exists()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

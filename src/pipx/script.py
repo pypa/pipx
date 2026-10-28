@@ -141,8 +141,16 @@ def is_script_spec(package_spec: str) -> bool:
 
 
 def local_script(package_spec: str) -> Path | None:
+    # a single-letter scheme is a Windows drive; any longer one is a URL, whose path must not resolve below the cwd
+    if len(urllib.parse.urlsplit(package_spec).scheme) > 1:
+        return None
     path: Final[Path] = Path(package_spec).expanduser()
-    if path.is_file() and (path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))):
+    if not path.is_file():
+        return None
+    if path.suffix.lower() == ".py":
+        return path.resolve()
+    # a bare name is a package on the index, as pip reads it, so a file in the working directory must not shadow it
+    if not path.suffix and package_spec != path.name and _has_inline_script_metadata(path):
         return path.resolve()
     return None
 
@@ -163,9 +171,10 @@ def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
 
 
 def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
-    path: Final[Path] = Path(package_or_url).expanduser()
     content: Final[str] = (
-        path.read_text(encoding="utf-8") if path.is_file() else _read_url(package_or_url)
+        script.read_text(encoding="utf-8")
+        if (script := local_script(package_or_url)) is not None
+        else _read_url(package_or_url)
     ).removeprefix("\ufeff")
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)

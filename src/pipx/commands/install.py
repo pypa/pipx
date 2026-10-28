@@ -259,14 +259,8 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 with preserve_venv(venv_dir, enabled=preserve_existing_venv):
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
-                        recorded_backend = venv.pipx_metadata.backend
                         rmdir(venv_dir)
-                        venv = Venv(
-                            venv_dir,
-                            python=venv.python,
-                            verbose=verbose,
-                            backend=install_backend or recorded_backend,
-                        )
+                        venv = Venv(venv_dir, python=venv.python, verbose=verbose, backend=venv.backend_name)
                     build = _EnvironmentBuild(
                         venv_args=venv_args,
                         pip_args=pip_args,
@@ -291,8 +285,6 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         fetch_python=fetch_python,
                         python_flag_passed=python_flag_passed,
                         verbose=verbose,
-                        backend=install_backend,
-                        env_backend=env_backend,
                         messages=messages,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
@@ -848,17 +840,21 @@ def _translate_recorded_pip_args(
     translations: Final[list[tuple[list[str], list[str]]]] = [
         _translate_pip_args(package.pip_args, backend, environment) for package in packages
     ]
-    if dropped := list(dict.fromkeys(" ".join(other) for _, other in translations if other)):
+    if dropped := list(
+        dict.fromkeys(" ".join(map(redact_url_credentials, other)) for _, other in translations if other)
+    ):
         kept: Final[list[str]] = list(
-            dict.fromkeys(" ".join(translated) for translated, _ in translations if translated)
+            dict.fromkeys(
+                " ".join(map(redact_url_credentials, translated)) for translated, _ in translations if translated
+            )
         )
         _LOGGER.warning(
             "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
             hazard,
             venv_metadata.backend,
             environment,
-            redact_url_credentials(" ".join(dropped)),
-            f"; translated for {backend}: {redact_url_credentials(' '.join(kept))}" if kept else "",
+            " ".join(dropped),
+            f"; translated for {backend}: {' '.join(kept)}" if kept else "",
         )
     return [translated for translated, _ in translations]
 
@@ -1085,8 +1081,6 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
     messages: list[OutputMessage],
 ) -> Venv:
     try:
@@ -1103,8 +1097,8 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
         verbose=verbose,
-        backend=backend,
-        env_backend=env_backend,
+        # the rebuild deletes the recorded backend; resolving it again could switch installer and index
+        backend=venv.backend_name,
         messages=messages,
     )
     build.run(venv)
@@ -1136,8 +1130,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: str,
     messages: list[OutputMessage],
 ) -> Venv:
     interpreter: Final[str] = _supported_python(
@@ -1147,7 +1140,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         messages=messages,
     )
     rmdir(venv_dir)
-    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend, env_backend=env_backend)
+    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend)
 
 
 __all__ = [
