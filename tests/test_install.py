@@ -1076,6 +1076,26 @@ def test_install_local_extra(capsys: pytest.CaptureFixture[str], local_extras_pr
     assert f"- {Path('man6/pycowsay.6')}\n" in captured.out
 
 
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param(
+            "uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_bare_local_wheel_extra(
+    local_extras_wheel: Path, monkeypatch: pytest.MonkeyPatch, backend: str
+) -> None:
+    monkeypatch.chdir(local_extras_wheel.parent)
+
+    assert not run_pipx_cli(["install", "--backend", backend, f"{local_extras_wheel.name}[cow]", "--include-deps"])
+
+    assert Venv(paths.ctx.venvs / "repeatme").has_package("pycowsay")
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_path_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
