@@ -10,7 +10,7 @@ import pytest
 from packaging.specifiers import SpecifierSet
 
 from helpers import run_pipx_cli
-from pipx import paths
+from pipx import paths, standalone_python
 from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError
 from pipx.pipx_metadata_file import PipxMetadata
@@ -327,3 +327,32 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
     assert run_pipx_cli(["install", "--force", str(project)])
 
     assert (marker.exists(), (venv_dir / "pipx_metadata.json").read_text()) == (True, recorded)
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param("uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv not on PATH")),
+    ],
+)
+@pytest.mark.usefixtures("older_python", "mocked_github_api", "capsys")
+def test_interpreter_upgrade_keeps_the_standalone_python_the_package_rules_out(
+    make_needs_project: Callable[[str], Path],
+    standalone_python_index: Callable[[str], dict[str, object]],
+    monkeypatch: pytest.MonkeyPatch,
+    backend: str,
+) -> None:
+    this_minor: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
+    project: Final[Path] = make_needs_project(f">={MINIMUM_PYTHON_VERSION}")
+    install = ["install", "--backend", backend, "--python", this_minor, "--fetch-python=always", str(project)]
+    assert not run_pipx_cli(install)
+    standalone: Final[Path | None] = PipxMetadata(paths.ctx.venvs / "needs-older").source_interpreter
+    pyproject: Final[Path] = project / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text().replace(f">={MINIMUM_PYTHON_VERSION}", f"<{this_minor}"))
+    newer_index: Final[dict[str, object]] = standalone_python_index(f"{this_minor}.{sys.version_info.micro + 1}")
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+
+    exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade"])
+
+    assert (exit_code, PipxMetadata(paths.ctx.venvs / "needs-older").source_interpreter) == (1, standalone)
