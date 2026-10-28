@@ -56,6 +56,8 @@ def discover_self_managed_environment(
         isinstance(source_interpreter, dict)
         and source_interpreter.get("__type__") == "Path"
         and isinstance(source_path := source_interpreter.get("__Path__"), str)
+        # a record pointing at a since-removed bootstrap venv must not outlive it or adopt whatever appears there later
+        and Path(source_path).resolve() == (venv / "bin" / "python").resolve()
     ):
         environment["PIPX_DEFAULT_PYTHON"] = source_path
     return environment

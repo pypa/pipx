@@ -81,7 +81,9 @@ virtual environment when those variables are unset, and ``PIPX_BIN_DIR`` when pi
 link, so later shells stay attached to the same installation. A pipx installed with ``--global`` lives in the global
 home (``PIPX_GLOBAL_HOME``, ``/opt/pipx`` by default) and recovers only ``PIPX_DEFAULT_PYTHON``: without ``--global``
 it uses the per-user defaults, with ``--global`` the global ones. A custom ``PIPX_GLOBAL_HOME`` must be set for every
-user who runs that pipx; otherwise it treats the global home as their own ``PIPX_HOME``.
+user who runs that pipx; otherwise it treats the global home as their own ``PIPX_HOME``. ``PIPX_DEFAULT_PYTHON`` is
+recovered only while the recorded interpreter still resolves to the one pipx's environment runs on; a record left
+pointing into a removed bootstrap environment is ignored, and pipx falls back to its own interpreter.
 
 *******************************
  Derived (read-only) values
