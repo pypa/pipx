@@ -203,14 +203,6 @@ def _read_url(url: str) -> str:
         raise PipxError(msg) from error
 
 
-def reject_url_credentials(url: str) -> None:
-    # urllib keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never authenticate
-    # the download, and a failed host:port split puts the password into the error message
-    if urllib.parse.urlsplit(url).username is not None:
-        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
-        raise PipxError(msg)
-
-
 def _normalize_requires_python(value: str | list[str] | None) -> str | None:
     if value is None:
         return None
@@ -286,6 +278,14 @@ def _digest(data: bytes) -> str:
     import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
 
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+
+
+def reject_url_credentials(url: str) -> None:
+    # urllib keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never authenticate
+    # the download, and a failed host:port split puts the password into the error message
+    if urllib.parse.urlsplit(url).username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
 
 
 __all__ = [
