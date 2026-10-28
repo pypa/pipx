@@ -240,6 +240,7 @@ class PipBackend(Backend):
         capture_stdout: bool = True,
         capture_stderr: bool = True,
         verbose: bool = False,
+        in_working_dir: bool = False,
     ) -> CompletedProcess[str]:
         cmd = [str(venv_python), "-m", "pip", *args]
         if not verbose:
@@ -250,7 +251,7 @@ class PipBackend(Backend):
                 cmd,
                 capture_stdout=capture_stdout,
                 capture_stderr=capture_stderr,
-                run_dir=str(venv_root),
+                run_dir=None if in_working_dir else str(venv_root),
                 # uncaptured, it talks to the user's terminal, as under `pipx runpip`
                 interactive=not (capture_stdout or capture_stderr),
             ),
