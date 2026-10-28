@@ -24,6 +24,7 @@ import datetime as dt
 import hashlib
 import json
 import logging
+import os
 import urllib.parse
 from contextlib import contextmanager
 from pathlib import Path
@@ -581,9 +582,13 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     *,
     cooldown_days: int | None,
 ) -> Path:
+    # the installer also reads its index, find-links and similar settings from the environment
+    installer_env: Final = sorted(
+        (name, value) for name, value in os.environ.items() if name.startswith("UV_" if backend == UV else "PIP_")
+    )
     # Preserve list and field boundaries so different invocations cannot reuse the same digest input.
     digest: Final = hashlib.sha256(
-        json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days]).encode()
+        json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
     )
     return Path(paths.ctx.venv_cache) / digest.hexdigest()[:15]
 

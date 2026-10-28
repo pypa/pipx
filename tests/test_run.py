@@ -849,6 +849,41 @@ def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_run_rebuilds_after_installer_env_changes(
+    tmp_path: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, publish_demodep: Callable[[str, str], Path]
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    out: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
+        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
+    )
+    monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("old", "1.0")))
+    run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
+    monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("new", "2.0")))
+
+    run_pipx_cli_exit(["run", "--backend", "pip", str(script)])
+
+    assert out.read_text() == "2.0"
+
+
+@pytest.fixture
+def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
+    def publish(links_name: str, version: str) -> Path:
+        (links := tmp_path / links_name).mkdir(exist_ok=True)
+        info: Final[str] = f"demodep-{version}.dist-info"
+        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
+            archive.writestr("demodep.py", "")
+            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
+            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+            archive.writestr(f"{info}/RECORD", "")
+        return links
+
+    return publish
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
     script = tmp_path / "test.py"
