@@ -298,41 +298,34 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
     )
 
 
+@pytest.fixture
+def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Path() collapses the URL's // so each file sits at the relative path one of the URLs below spells
+    monkeypatch.chdir(tmp_path)
+    for wheel in ("https:/files.example", "acme-tool @ https:/files.example"):
+        (directory := tmp_path / wheel).mkdir(parents=True)
+        with zipfile.ZipFile(directory / "acme_tool-1.0-py3-none-any.whl", "w") as archive:
+            archive.writestr("x-0.dist-info/METADATA", "Name: other-app\n")
+    (project := tmp_path / "git+https:/git.example/acme-tool.git").mkdir(parents=True)
+    (project / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n[project]\nname = "other-app"\n',
+        encoding="utf-8",
+    )
+
+
 @skip_if_windows
 @pytest.mark.parametrize(
-    ("package_spec", "planted"),
+    "package_spec",
     [
-        pytest.param(
-            "https://files.example/acme_tool-1.0-py3-none-any.whl",
-            "https:/files.example/acme_tool-1.0-py3-none-any.whl",
-            id="wheel-url",
-        ),
-        pytest.param(
-            "acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl",
-            "acme-tool @ https:/files.example/acme_tool-1.0-py3-none-any.whl",
-            id="pep508-wheel-url",
-        ),
-        pytest.param(
-            "git+https://git.example/acme-tool.git",
-            "git+https:/git.example/acme-tool.git/pyproject.toml",
-            id="vcs-url",
-        ),
+        pytest.param("https://files.example/acme_tool-1.0-py3-none-any.whl", id="wheel-url"),
+        pytest.param("acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl", id="pep508-wheel-url"),
+        pytest.param("git+https://git.example/acme-tool.git", id="vcs-url"),
     ],
 )
+@pytest.mark.usefixtures("lookalikes_below_cwd")
 def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, package_spec: str, planted: str
+    mocker: MockerFixture, package_spec: str
 ) -> None:
-    monkeypatch.chdir(tmp_path)
-    (lookalike := tmp_path / planted).parent.mkdir(parents=True)
-    if lookalike.suffix == ".whl":
-        with zipfile.ZipFile(lookalike, "w") as archive:
-            archive.writestr("x-0.dist-info/METADATA", "Name: other-app\n")
-    else:
-        lookalike.write_text(
-            '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n'
-            '[project]\nname = "other-app"\n',
-            encoding="utf-8",
-        )
     venv = mocker.patch.object(common, "Venv", autospec=True)
     venv.return_value.install_package_no_deps.return_value = "acme-tool"
 
