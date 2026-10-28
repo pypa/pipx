@@ -222,7 +222,7 @@ def _updated_main_package_pip_args(
 ) -> list[str]:
     pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
     # the new spec was resolved on the indexes this command named, so upgrade and reinstall must ask the same ones;
-    # runpip ran in the caller's directory but recorded paths resolve against the venv, so pin them to the cwd now
+    # pip read relative paths from the caller's directory, while a recorded relative path is read against the venv
     if index_args := extract_index_options(runpip_args):
         pip_args = replace_index_options(pip_args, absolute_path_pip_args(index_args, Path.cwd()))
     if editable:
