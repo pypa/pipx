@@ -48,8 +48,9 @@ Install from a PEP 723 script or a lock file:
     pipx install ./script.py
     pipx install --lock pylock.toml .
 
-For a local script, the filename without its extension supplies the command name. Pass ``--app`` to choose a different
-name:
+For a local script, the filename without its extension supplies the command name. A script without the ``.py``
+extension needs a path such as ``./script``; a bare ``script`` names the package on the index. Pass ``--app`` to choose
+a different name:
 
 .. code-block:: bash
 
@@ -170,6 +171,7 @@ pip                             uv
 (always picks the best match)   ``--index-strategy unsafe-best-match``
 =============================== ======================================================
 
+A pip option recorded as an abbreviation pip accepts, such as ``--index-u``, is translated like its full spelling.
 When a recorded index option has no equivalent, such as a uv ``--index-strategy`` other than ``unsafe-best-match``, an
 ``--allow-insecure-host`` URL, or pip's ``--keyring-provider import``, pipx refuses to install that environment rather
 than fall back to PyPI. pip searches every index for the best version, while uv stops at the first index that has the

@@ -73,6 +73,10 @@ Otherwise you can run ``.py`` files hosted anywhere:
 
     $ pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 
+A script read from a URL or a named pipe has no directory of its own, so pipx starts it with ``python -P``: it cannot
+import modules from the directory you run ``pipx run`` in. The same holds for apps declared as ``pipx.run`` entry points
+and for apps run with ``--python-args``.
+
 .. _run-pep-723:
 
 *****************************************

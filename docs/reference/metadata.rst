@@ -39,7 +39,8 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``source_interpreter``
       - Path to the interpreter used to create the environment, or ``null``.
     - - ``venv_args``
-      - Extra arguments passed when the venv was created (for example ``--system-site-packages``).
+      - Extra arguments passed when the venv was created. pipx records only ``--system-site-packages``; any other
+        value is dropped with a warning when the file is read.
     - - ``backend``
       - Backend that manages the environment, ``pip`` or ``uv``. An unknown value is read back as ``pip`` with a
         warning.
