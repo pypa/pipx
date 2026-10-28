@@ -78,7 +78,9 @@ only after every resolution succeeds. Entries without ``lock`` stay unlocked.
 
 ``sync`` installs, upgrades, or downgrades each declared tool. The backend resolves unlocked specs on each run; locked
 entries install from the artifacts in their named PEP 751 files. pipx restores an existing environment and its exposed
-resources when a tool fails to install or lacks a required app.
+resources when a tool fails to install or lacks a required app. For an environment that already exists, ``sync`` keeps
+the installer and venv options recorded when it was installed, such as ``--index-url`` or ``--system-site-packages``,
+the same way ``pipx reinstall`` does.
 
 Pass ``--prune`` to uninstall environments absent from the manifest. pipx skips pruning when any declared tool fails
 to sync:

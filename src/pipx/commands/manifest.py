@@ -68,7 +68,8 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
         venv_dir = venv_container.get_venv_dir(tool.environment)
         with venv_container.venv_lock(venv_dir) as venv_lock:
             existed = venv_dir.is_dir()
-            was_exposed = existed and PipxMetadata(venv_dir).exposure_enabled
+            recorded = PipxMetadata(venv_dir)
+            was_exposed = existed and recorded.exposure_enabled
             if was_exposed:
                 unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             try:
@@ -79,8 +80,8 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                     local_bin_dir,
                     local_man_dir,
                     python,
-                    [],
-                    [],
+                    recorded.main_package.pip_args,
+                    recorded.venv_args,
                     verbose=verbose,
                     force=existed,
                     reinstall=False,
