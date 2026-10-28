@@ -97,13 +97,14 @@ class UvBackend(Backend):
         requirements: list[str],
         pip_args: list[str],
         no_deps: bool = False,
-        upgrade: bool = False,
+        upgrade_package: str | None = None,
         log_pip_errors: bool = True,
         verbose: bool = False,
     ) -> CompletedProcess[str]:
         cmd = self._uv_pip_command("install", venv_python, verbose=verbose)
-        if upgrade:
-            cmd.append("--upgrade")
+        # uv's --upgrade re-resolves every dependency, pip's only-if-needed default upgrades only the named package
+        if upgrade_package is not None:
+            cmd += ["--upgrade-package", upgrade_package]
         if no_deps:
             cmd.append("--no-deps")
         cmd += [*_strip_pip_quiet_flags(pip_args), *requirements]

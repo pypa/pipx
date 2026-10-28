@@ -785,7 +785,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 venv_python=self.python_path,
                 requirements=[package_name],
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
-                upgrade=True,
+                upgrade_package=package_name,
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
@@ -816,7 +816,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 venv_python=self.python_path,
                 requirements=[install_spec],
                 pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
-                upgrade=True,
+                upgrade_package=package_name,
                 log_pip_errors=False,
                 verbose=self.verbose,
             )
