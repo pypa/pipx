@@ -22,6 +22,12 @@ flags the same way:
 
     $ pipx install my-package --pip-args="--index-url https://my-index.example.com/simple/ --trusted-host my-index.example.com"
 
+pipx records these options and passes them again on ``pipx upgrade`` and ``pipx reinstall``. A ``pipx runpip <venv>
+install`` that reinstalls the main package with index options (``--index-url``, ``--extra-index-url``, ``--find-links``,
+``--trusted-host``, ``--no-index``, or uv's ``--default-index``, ``--index``, ``--index-strategy``,
+``--allow-insecure-host``, ``--keyring-provider``) replaces the recorded ones with them; without index options the
+record stays.
+
 *************************
  Set it for every command
 *************************

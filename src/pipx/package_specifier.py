@@ -33,12 +33,18 @@ _LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
 _SHORT_OPTION_LEN: Final[int] = 2
+# pip's and uv's spellings, since a uv environment records options as uv pip install accepts them
 _PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
     "-f",
     "-i",
+    "--allow-insecure-host",
+    "--default-index",
     "--extra-index-url",
     "--find-links",
+    "--index",
+    "--index-strategy",
     "--index-url",
+    "--keyring-provider",
     "--trusted-host",
 })
 
@@ -293,6 +299,15 @@ def valid_pypi_name(package_spec: str) -> str | None:
     return canonicalize_name(package_req.name)
 
 
+def local_project_name(package_spec: str) -> str | None:
+    """Return the name a local project directory or wheel declares statically, or ``None`` for a URL or index spec."""
+    # Path() reads a URL as a relative path (http://host/x is http:/host/x), so files below the working directory could
+    # otherwise name the environment for a remote spec
+    if (local_path := _parse_specifier(package_spec).valid_local_path) is None:
+        return None
+    return static_project_name(local_path) or wheel_project_name(local_path)
+
+
 def static_project_name(package_spec: str) -> str | None:
     """Return the name a local project directory declares statically in its pyproject.toml, if any."""
     try:
@@ -402,7 +417,16 @@ def package_spec_satisfied(
 
 
 def extract_index_options(pip_args: list[str]) -> list[str]:
+    return _split_index_options(pip_args)[0]
+
+
+def replace_index_options(pip_args: list[str], index_args: list[str]) -> list[str]:
+    return [*_split_index_options(pip_args)[1], *index_args]
+
+
+def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
     index_args: list[str] = []
+    other_args: list[str] = []
     iterator = iter(pip_args)
     for argument in iterator:
         if argument == "--no-index":
@@ -417,7 +441,9 @@ def extract_index_options(pip_args: list[str]) -> list[str]:
                 raise PipxError(msg) from error
         elif len(argument) > _SHORT_OPTION_LEN and argument[:2] in {"-f", "-i"}:
             index_args.append(argument)
-    return index_args
+        else:
+            other_args.append(argument)
+    return index_args, other_args
 
 
 def fix_package_name(package_or_url: str, package_name: str) -> str:
@@ -447,10 +473,12 @@ __all__ = [
     "extract_index_options",
     "fix_package_name",
     "get_extras",
+    "local_project_name",
     "package_spec_satisfied",
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
+    "replace_index_options",
     "static_project_name",
     "valid_pypi_name",
     "wheel_project_name",

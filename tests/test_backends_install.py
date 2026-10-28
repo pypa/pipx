@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import shutil
 import sys
+from typing import TYPE_CHECKING
 
 import pytest
 
 from helpers import run_pipx_cli
 from pipx import paths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_install_pip_with_uv_backend_errors(capsys: pytest.CaptureFixture[str]) -> None:
@@ -45,3 +49,32 @@ def test_uv_backend_force_install_existing() -> None:
     command = ["install", "pycowsay", "--backend", "uv"]
     assert run_pipx_cli(command) == 0
     assert run_pipx_cli([*command, "--force"]) == 0
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_install_ignores_uv_toml_above_venv() -> None:
+    # uv fails on a malformed config file it discovers, so success proves it never read the one above its cwd
+    paths.ctx.venvs.mkdir(parents=True, exist_ok=True)
+    (paths.ctx.venvs / "uv.toml").write_text("index-url = [\n")
+
+    assert run_pipx_cli(["install", "pycowsay", "--backend", "uv"]) == 0
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_install_reads_user_uv_toml(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # uv fails on a malformed config file it reads, so the failure proves it still loads the user's own config
+    user_config = tmp_path / "xdg" / "uv" / "uv.toml"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text("index-url = [\n")
+    # uv's user config directory is XDG_CONFIG_HOME on Unix and APPDATA on Windows
+    for variable in ("XDG_CONFIG_HOME", "APPDATA"):
+        monkeypatch.setenv(variable, str(user_config.parent.parent))
+
+    assert (run_pipx_cli(["install", "pycowsay", "--backend", "uv"]), str(user_config) in capsys.readouterr().err) == (
+        1,
+        True,
+    )

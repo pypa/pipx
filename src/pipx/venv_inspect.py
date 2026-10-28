@@ -33,7 +33,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.requires_python import unsatisfied_constraint
-from pipx.util import PipxError, run_subprocess
+from pipx.util import PipxError, is_file_name, run_subprocess
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
@@ -143,7 +143,7 @@ def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> s
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
     for ep in dist.entry_points:
-        if ep.group not in sections:
+        if ep.group not in sections or not is_file_name(ep.name):
             continue
         if (bin_path / ep.name).exists():
             app_names.add(ep.name)
@@ -164,7 +164,7 @@ def get_resources_from_dist_files(
     for path in dist.files or []:
         # vast speedup by ignoring all paths not above distribution root dir
         #   (venv/bin or venv/Scripts is above distribution root)
-        if Path(path).parts[0] != "..":
+        if Path(path).parts[0] != ".." or not is_file_name(path.name):
             continue
 
         dist_file_path = Path(str(dist.locate_file(path)))
