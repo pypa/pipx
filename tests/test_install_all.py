@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
 from package_info import PKG
@@ -501,6 +502,18 @@ def test_install_all_prints_progress_in_spec_order(
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
     assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_refuses_an_environment_name_outside_the_store(spec_file: Path, tmp_path: Path) -> None:
+    spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+    spec["venvs"] = {"pycowsay": spec["venvs"]["pycowsay"]}
+    spec["venvs"]["pycowsay"]["metadata"]["main_package"]["package"] = str(tmp_path / "outside")
+    spec_file.write_text(json.dumps(spec), encoding="utf-8")
+    # the name is canonicalized before it becomes a directory
+    outside: Final[Path] = Path(canonicalize_name(str(tmp_path / "outside")))
+
+    assert (run_pipx_cli(["install-all", str(spec_file)]), outside.exists()) == (1, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
