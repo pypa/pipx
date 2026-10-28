@@ -91,6 +91,18 @@ class VenvProblems:
 
 
 _SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
+# None is a user's --force, which replaces whatever holds a name
+_REPLACEABLE_RESOURCES: Final[ContextVar[frozenset[Path] | None]] = ContextVar("replaceable_resources", default=None)
+
+
+@contextmanager
+def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
+    # a rebuild forces only so its own exposed files are refreshed, not to take names install left with their owner
+    token = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
+    try:
+        yield
+    finally:
+        _REPLACEABLE_RESOURCES.reset(token)
 
 
 @contextmanager
@@ -245,7 +257,7 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
     if dest.exists():
         if filecmp.cmp(dest, src, shallow=False):
             return None
-        if not force:
+        if not force or not _force_replaces(dest):
             _LOGGER.warning("%s  File exists at %s and does not match %s. Not modifying.", hazard, dest, src)
             return dest
         _LOGGER.warning("%s  Overwriting file %s with %s", hazard, dest, src)
@@ -253,6 +265,10 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
     if src.exists():
         shutil.copy(src, dest)
     return None
+
+
+def _force_replaces(path: Path) -> bool:
+    return (replaceable := _REPLACEABLE_RESOURCES.get()) is None or path in replaceable
 
 
 def _symlink_package_resource(
@@ -269,7 +285,7 @@ def _symlink_package_resource(
     if not symlink_path.parent.is_dir():
         mkdir(symlink_path.parent)
 
-    if force and (symlink_path.is_symlink() or not symlink_path.is_dir()):
+    if force and _force_replaces(symlink_path) and (symlink_path.is_symlink() or not symlink_path.is_dir()):
         _LOGGER.info("Force is true. Removing %s.", symlink_path)
         with suppress(FileNotFoundError, RuntimeError):
             symlink_path.unlink()
@@ -948,6 +964,7 @@ __all__ = [
     "expose_resources_globally",
     "expose_shared_resources_in_order",
     "exposed_app_names",
+    "force_replaces_only",
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
