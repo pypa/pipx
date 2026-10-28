@@ -43,7 +43,7 @@ from pipx.commands.common import (
     validate_suffix,
 )
 from pipx.commands.inject import inject
-from pipx.commands.transaction import VenvBackup, preserve_venv
+from pipx.commands.transaction import VenvBackup, marked_unfinished, preserve_venv
 from pipx.constants import (
     EXIT_CODE_OK,
     ExitCode,
@@ -1059,23 +1059,25 @@ class _EnvironmentBuild:
         venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
         venv.pipx_metadata.exposure_enabled = self.exposure_enabled
         venv.pipx_metadata.environment = venv.root.name
-        for dependency in self.preinstall_packages or []:
-            venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
-        return venv.install_package(
-            package_name=self.package_name,
-            package_or_url=self.package_spec,
-            pip_args=self.pip_args,
-            install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
-            include_dependencies=self.include_dependencies,
-            include_resources_from=self.include_resources_from,
-            include_apps=True,
-            is_main_package=True,
-            suffix=self.suffix,
-            expected_apps=self.expected_apps,
-            lock_file=self.lock_file,
-            cooldown_days=self.cooldown_days,
-            pinned=self.pinned,
-        )
+        # the record is written last, so a kill before it must not leave what looks like a pre-0.15 environment
+        with marked_unfinished(venv.root):
+            for dependency in self.preinstall_packages or []:
+                venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
+            return venv.install_package(
+                package_name=self.package_name,
+                package_or_url=self.package_spec,
+                pip_args=self.pip_args,
+                install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
+                include_dependencies=self.include_dependencies,
+                include_resources_from=self.include_resources_from,
+                include_apps=True,
+                is_main_package=True,
+                suffix=self.suffix,
+                expected_apps=self.expected_apps,
+                lock_file=self.lock_file,
+                cooldown_days=self.cooldown_days,
+                pinned=self.pinned,
+            )
 
 
 def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context around the interpreter retry

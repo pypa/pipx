@@ -9,6 +9,7 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.install",
+    "pipx.commands.transaction",
     "pipx.commands.uninstall",
     "pipx.fanout",
     "pipx.pipx_metadata_file",
@@ -35,6 +36,7 @@ from pipx import paths
 from pipx.commands.common import add_suffix, drop_copies_claimed_elsewhere, expose_shared_resources_in_order
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
+from pipx.commands.transaction import is_unfinished
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -46,7 +48,7 @@ from pipx.constants import (
 )
 from pipx.emojis import error, sleep, stars
 from pipx.fanout import fan_out, locked_in_order
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -157,6 +159,20 @@ def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
     return injected_package.package_or_url
 
 
+def _unrecorded_package_spec(venv: Venv) -> str:
+    # only pipx before 0.15.0.0 wrote no record, and it named the environment after the package inside; a killed install
+    # or an unreadable record hides a spec, index and suffix the directory name cannot recover
+    if not (venv.root / PIPX_INFO_FILENAME).exists() and not is_unfinished(venv.root):
+        with contextlib.suppress(OSError):
+            if venv.has_package(venv.main_package_name):
+                return venv.main_package_name
+    msg = (
+        f"Not reinstalling {venv.name}. It has missing internal pipx metadata, so pipx cannot tell what it was "
+        f"installed from. Please uninstall and install this package to fix."
+    )
+    raise PipxError(msg)
+
+
 def _resolve_self_reinstall_imports(venv_dir: Path) -> None:
     if Path(sys.prefix).resolve() != venv_dir.resolve() or not hasattr(types, "LazyImportType"):
         return
@@ -217,7 +233,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
     if venv.pipx_metadata.main_package.package_or_url is not None:
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
-        package_or_url = venv.main_package_name
+        package_or_url = _unrecorded_package_spec(venv)
 
     if venv.pipx_metadata.main_package.pinned:
         msg = f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first."

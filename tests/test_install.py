@@ -2168,6 +2168,24 @@ def test_install_error_removes_environment(mocker: MockerFixture) -> None:
     assert not (paths.ctx.venvs / "pycowsay").exists()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_killed_before_recording_leaves_environment_unfinished(mocker: MockerFixture) -> None:
+    # no handler rolls a kill back, which SystemExit stands in for
+    mocker.patch.object(Venv, "install_package", autospec=True, side_effect=SystemExit(1))
+
+    with pytest.raises(SystemExit):
+        run_pipx_cli(["install", "pycowsay"])
+
+    assert (paths.ctx.venvs / "pycowsay" / "pipx_unfinished").is_file()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_leaves_recorded_environment_finished() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    assert not (paths.ctx.venvs / "pycowsay" / "pipx_unfinished").exists()
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_install_skip_maintenance_without_index(capsys: pytest.CaptureFixture[str], root: Path, tmp_path: Path) -> None:
     wheelhouse = tmp_path / "wheelhouse"

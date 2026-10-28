@@ -126,6 +126,16 @@ def rmdir(path: Path, *, safe_rm: bool = True) -> None:
             _LOGGER.warning("Failed to delete %s. You may need to delete it manually.", path)
 
 
+def rmdir_via_trash(path: Path) -> None:
+    # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
+    try:
+        path.rename(trash := _get_trash_file(path))
+    except OSError:
+        rmdir(path)
+    else:
+        rmdir(trash)
+
+
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
@@ -800,6 +810,7 @@ __all__ = [
     "redact_url_credentials",
     "reject_empty_index",
     "rmdir",
+    "rmdir_via_trash",
     "run_pypackage_bin",
     "run_subprocess",
     "safe_unlink",
