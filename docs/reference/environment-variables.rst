@@ -35,9 +35,9 @@ environment`` to print each variable as set in your environment, followed by the
     - - ``PIPX_SHARED_LIBS``
       - Override the shared libraries directory. Ignored with ``--global``. Default: ``$PIPX_HOME/shared``.
     - - ``PIPX_DEFAULT_PYTHON``
-      - Python interpreter used when ``--python`` is not passed. Default: the interpreter running pipx
-        (``sys.executable``); on Windows, unless pipx runs inside a venv, the ``py`` launcher's default Python or
-        ``python`` on ``PATH``.
+      - Python interpreter used when ``--python`` is not passed: a path, or a command name (``python3.12``) or version
+        (``3.12``) looked up on ``PATH``. Default: the interpreter running pipx (``sys.executable``); on Windows,
+        unless pipx runs inside a venv, the ``py`` launcher's default Python or ``python`` on ``PATH``.
     - - ``PIPX_DEFAULT_BACKEND``
       - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv 0.9.17 or newer is available, else ``pip``.
     - - ``PIPX_COOLDOWN``

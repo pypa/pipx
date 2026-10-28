@@ -868,7 +868,7 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
     dropped: Final[list[str]] = []
     arguments: Final[Iterator[str]] = iter(pip_args)
     for argument in arguments:
-        flag, value = _split_option(argument, arguments)
+        flag, value = _split_option(argument if to_pip else _expand_pip_abbreviation(argument), arguments)
         spelling = _VALUE_OPTION_SPELLINGS.get(flag, (flag, flag))
         match spelling[0]:
             case "--no-index":
@@ -904,6 +904,25 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
             case _:
                 dropped.append(argument)
     return translated, dropped
+
+
+def _expand_pip_abbreviation(argument: str) -> str:
+    # pip accepts any unambiguous prefix of a long option, so a pip recording can hold --index-u for --index-url
+    long_options: Final[tuple[str, ...]] = (
+        "--index-url",
+        "--extra-index-url",
+        "--find-links",
+        "--no-index",
+        "--pre",
+        "--trusted-host",
+        "--constraint",
+        "--keyring-provider",
+    )
+    flag, separator, value = argument.partition("=")
+    if not flag.startswith("--") or flag in long_options:
+        return argument
+    matches: Final[list[str]] = [option for option in long_options if option.startswith(flag)]
+    return f"{matches[0]}{separator}{value}" if len(matches) == 1 else argument
 
 
 def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:

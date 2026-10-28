@@ -202,10 +202,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
             self._existing = False
+        # a directory without a readable record (an install that failed before writing it) has no backend to keep
+        recorded = self._existing and self.pipx_metadata.read_metadata_version is not None
         self._backend_name, self._backend_source = _resolve_backend_for_venv(
             root=self.root,
-            existing=self._existing,
-            metadata_backend=self.pipx_metadata.backend if self._existing else None,
+            existing=recorded,
+            metadata_backend=self.pipx_metadata.backend if recorded else None,
             cli_backend=backend,
             env_backend=env_backend,
         )
