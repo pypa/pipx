@@ -123,6 +123,40 @@ def test_sync_manifest_hides_resources(
     ) == (False, False)
 
 
+@pytest.mark.parametrize(
+    "setup",
+    [
+        pytest.param([], id="exposed"),
+        pytest.param([["unexpose", "pycowsay"]], id="unexposed"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_sync_manifest_keeps_injected_apps(write_manifest: Callable[[str], Path], setup: list[list[str]]) -> None:
+    for command in [["install", "pycowsay"], ["inject", "--include-apps", "pycowsay", "isort"], *setup]:
+        assert not run_pipx_cli(command)
+    manifest: Final[Path] = write_manifest(_manifest("pycowsay", "pycowsay"))
+
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
+
+    assert [(paths.ctx.bin_dir / app_name(app)).is_file() for app in ("pycowsay", "isort")] == [True, True]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_sync_manifest_reexposes_environment_after_interrupt(
+    write_manifest: Callable[[str], Path], mocker: MockerFixture
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    manifest: Final[Path] = write_manifest(_manifest("pycowsay", "pycowsay"))
+    mocker.patch("pipx.venv.Venv.install_package", autospec=True, side_effect=KeyboardInterrupt)
+
+    assert run_pipx_cli(["manifest", "sync", str(manifest)])
+
+    assert (
+        PipxMetadata(paths.ctx.venvs / "pycowsay").exposure_enabled,
+        (paths.ctx.bin_dir / app_name("pycowsay")).is_file(),
+    ) == (True, True)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_restores_environment_after_missing_app(
     write_manifest: Callable[[str], Path],

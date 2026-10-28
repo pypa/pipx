@@ -74,9 +74,9 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
             existed = venv_dir.is_dir()
             recorded = PipxMetadata(venv_dir)
             was_exposed = existed and recorded.exposure_enabled
-            if was_exposed:
-                unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             try:
+                if was_exposed:
+                    unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
                 # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
                 with force_replaces_only(()):
                     outcome = install(
@@ -109,6 +109,11 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                 error_message = outcome.errors[0].message if outcome.errors else None
             except PipxError as error:
                 error_message = str(error)
+            except (Exception, KeyboardInterrupt):
+                # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
+                if was_exposed:
+                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                raise
             # install returns a failed result rather than raising when it does not render, so check both
             if error_message is not None:
                 failures.append(_FailedTool(tool.environment, error_message))
@@ -117,6 +122,9 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                     expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             else:
                 synced.append(tool.environment)
+                # install links the main package alone, while unexpose also dropped the links of injected packages
+                if existed and tool.expose:
+                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
 
     if prune and not failures:
         messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose=verbose))

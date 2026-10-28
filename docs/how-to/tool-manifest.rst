@@ -81,9 +81,10 @@ still reads locks kept elsewhere.
 ``sync`` installs, upgrades, or downgrades each declared tool. The backend resolves unlocked specs on each run; locked
 entries install from the artifacts in their named PEP 751 files. Under the pip backend, a locked entry needs pip 26.1
 or newer; run ``pipx upgrade-shared`` when pipx reports an older one. pipx restores an existing environment and its
-exposed resources when a tool fails to install or lacks a required app. For an environment that already exists,
-``sync`` keeps the installer and venv options recorded when it was installed, such as ``--index-url`` or
-``--system-site-packages``, the same way ``pipx reinstall`` does.
+exposed resources when a tool fails to install, lacks a required app, or the sync is interrupted. For an environment
+that already exists, ``sync`` keeps the installer and venv options recorded when it was installed, such as
+``--index-url`` or ``--system-site-packages``, the same way ``pipx reinstall`` does, and keeps the apps, manual pages,
+and completions of its injected packages exposed.
 
 Pass ``--prune`` to uninstall environments absent from the manifest. pipx skips pruning when any declared tool fails
 to sync:
