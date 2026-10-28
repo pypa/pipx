@@ -616,3 +616,18 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
     assert not run_pipx_cli(["list"])
 
     assert cast("Path", paths.ctx.log_file).parent == paths.ctx.logs
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["install", "--preinstall=-rrequirements.txt", "pycowsay"], id="install-preinstall"),
+        pytest.param(["run", "--with=--find-links=elsewhere", "script.py"], id="run-with"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_option_shaped_package_is_refused(capsys: pytest.CaptureFixture[str], argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        run_pipx_cli(argv)
+
+    assert "is an installer option, not a package; pass it with --pip-args" in capsys.readouterr().err
