@@ -15,6 +15,8 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, 
 from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pytest_mock import MockerFixture
 
 TEST_PACKAGE1 = PackageInfo(
@@ -254,7 +256,7 @@ def test_write_preserves_existing_metadata_after_os_error(
     metadata_path.write_text(previous_metadata, encoding="utf-8")
     metadata = PipxMetadata(venv_dir, read=False)
     metadata.main_package = TEST_PACKAGE1
-    mocker.patch.object(pipx_metadata_file.json, "dump", side_effect=OSError("disk full"))
+    mocker.patch.object(pipx_metadata_file.Path, "replace", side_effect=OSError("disk full"))
 
     metadata.write()
 
@@ -263,6 +265,29 @@ def test_write_preserves_existing_metadata_after_os_error(
         sorted(path.name for path in venv_dir.iterdir()),
         f"Unable to write {PIPX_INFO_FILENAME}" in caplog.text,
     ) == (previous_metadata, [PIPX_INFO_FILENAME], True)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        pytest.param(lambda path: path.write_bytes(b'{"a": 1}'), id="replaced"),
+        pytest.param(Path.unlink, id="removed"),
+    ],
+)
+def test_preserved_restores_the_record(tmp_path: Path, change: Callable[[Path], int | None]) -> None:
+    (metadata_path := tmp_path / PIPX_INFO_FILENAME).write_bytes(b"{}")
+
+    with PipxMetadata(tmp_path, read=False).preserved():
+        change(metadata_path)
+
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == {PIPX_INFO_FILENAME: b"{}"}
+
+
+def test_preserved_removes_a_record_the_block_created(tmp_path: Path) -> None:
+    with PipxMetadata(tmp_path, read=False).preserved():
+        (tmp_path / PIPX_INFO_FILENAME).write_bytes(b"{}")
+
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["contextlib", "pathlib", "pipx.backends._base", "pipx.util", "tempfile"]
+__lazy_modules__ = ["pathlib", "pipx.backends._base", "pipx.util", "tempfile"]
 
 import json
 import logging
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Final, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap, redact_url_credentials
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -341,24 +344,22 @@ class PipxMetadata:
 
     def write(self) -> None:
         self._validate_before_write()
+        self._replace_file(
+            json.dumps(self.to_dict(), indent=4, sort_keys=True, cls=JsonEncoderHandlesPath).encode("utf-8")
+        )
+
+    def _replace_file(self, content: bytes) -> None:
+        # replace instead of writing through: uv hard-links installed files to its cache
         temporary_path: Path | None = None
         try:
             with NamedTemporaryFile(
-                "w",
-                encoding="utf-8",
                 dir=self.venv_dir,
                 prefix=f".{PIPX_INFO_FILENAME}.",
                 suffix=".tmp",
                 delete=False,
             ) as pipx_metadata_fh:
                 temporary_path = Path(pipx_metadata_fh.name)
-                json.dump(
-                    self.to_dict(),
-                    pipx_metadata_fh,
-                    indent=4,
-                    sort_keys=True,
-                    cls=JsonEncoderHandlesPath,
-                )
+                pipx_metadata_fh.write(content)
             temporary_path.replace(self.venv_dir / PIPX_INFO_FILENAME)
         except OSError:
             _LOGGER.warning(
@@ -376,6 +377,25 @@ class PipxMetadata:
             if temporary_path is not None:
                 with suppress(OSError):
                     temporary_path.unlink()
+
+    @contextmanager
+    def preserved(self) -> Generator[None, None, None]:
+        # installers unpack a wheel's data files into the venv root, so any package can ship a file of this name
+        before: Final[bytes | None] = self._file_content()
+        try:
+            yield
+        finally:
+            if self._file_content() != before:
+                if before is None:
+                    (self.venv_dir / PIPX_INFO_FILENAME).unlink(missing_ok=True)
+                else:
+                    self._replace_file(before)
+
+    def _file_content(self) -> bytes | None:
+        try:
+            return (self.venv_dir / PIPX_INFO_FILENAME).read_bytes()
+        except OSError:
+            return None
 
     def read(self, *, verbose: bool = False) -> None:
         try:
