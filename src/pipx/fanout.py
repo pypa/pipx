@@ -281,14 +281,9 @@ def stop_process_group(process: _Child) -> None:
 
 
 class _Turn(Condition):
-    """A condition whose ``with`` block a signal cannot leave locked.
-
-    ``Condition.__enter__`` and ``__exit__`` are Python code wrapping the lock's own methods. A signal handled right
-    after the lock was taken, or right before it is released, raises KeyboardInterrupt from that frame, so the main
-    thread keeps the lock and every task waiting for its turn waits forever. Handing ``with`` the lock's C methods
-    leaves the interpreter no point to raise in between.
-    """
-
+    # Condition.__enter__ and __exit__ are Python frames around the lock's own methods: a signal handled right after the
+    # lock was taken, or right before it is released, raises KeyboardInterrupt from that frame, so the main thread keeps
+    # the lock and every task waiting for its turn waits forever. The lock's C methods leave no point to raise between.
     __enter__ = property(lambda self: self._lock.__enter__)
     __exit__ = property(lambda self: self._lock.__exit__)
 
