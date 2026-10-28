@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import zipfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -25,7 +26,6 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
@@ -97,6 +97,31 @@ def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     assert app_path.read_bytes() == shebang + flag + separator
 
 
+@skip_if_windows
+@pytest.mark.parametrize(
+    "link", [pytest.param(Path.hardlink_to, id="hard-link"), pytest.param(Path.symlink_to, id="symlink")]
+)
+def test_expose_app_scripts_leave_installer_cache_intact(tmp_path: Path, link: Callable[[Path, Path], None]) -> None:
+    (cached_path := tmp_path / "cache" / "demo").parent.mkdir()
+    cached_path.write_bytes(b"#!/usr/bin/python3\n")
+    (app_path := tmp_path / "venv_bin" / "demo").parent.mkdir()
+    link(app_path, cached_path)
+
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
+
+    assert (cached_path.read_bytes(), app_path.read_bytes()) == (b"#!/usr/bin/python3\n", b"#!/usr/bin/python3 -E\n")
+
+
+@skip_if_windows
+def test_expose_app_scripts_keep_mode_on_shebang_rewrite(tmp_path: Path) -> None:
+    (app_path := tmp_path / "demo").write_bytes(b"#!/usr/bin/python3\n")
+    app_path.chmod(0o750)
+
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
+
+    assert app_path.stat().st_mode & 0o777 == 0o750
+
+
 @pytest.mark.parametrize(
     ("resource_type", "resource", "suffix"),
     [
@@ -133,6 +158,61 @@ def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
     collisions = expose_resources_globally("app", tmp_path / "bin", [app_path], force=True)
 
     assert (collisions, kept.exists()) == ([kept.parent], True)
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    ("resource_type", "resource", "exposed"),
+    [
+        pytest.param("app", "bin/tool", "tool", id="app"),
+        pytest.param("man", "share/man/man1/tool.1", "man1/tool.1", id="man"),
+        pytest.param(
+            "completion", "share/bash-completion/completions/tool", "bash-completion/completions/tool", id="completion"
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_keeps_link_to_resource_another_venv_is_replacing(
+    tmp_path: Path, resource_type: str, resource: str, exposed: str
+) -> None:
+    (paths.ctx.venvs / "holder").mkdir(parents=True)
+    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(held := paths.ctx.venvs / "holder" / resource)
+
+    assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([link], held)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_force_replaces_link_to_resource_another_venv_is_replacing(tmp_path: Path) -> None:
+    (paths.ctx.venvs / "holder").mkdir(parents=True)
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
+
+    assert (expose_resources_globally("app", tmp_path, [path], force=True), link.readlink()) == ([], path)
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param("venvs/removed/bin/tool", id="removed-venv"),
+        pytest.param("venvs/other/bin/renamed", id="own-venv"),
+        pytest.param("venvs/removed", id="venv-dir"),
+        pytest.param("trash/tool", id="outside-venvs"),
+        pytest.param("../../tool", id="loop"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_replaces_left_over_link(tmp_path: Path, target: str) -> None:
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs.parent / target)
+
+    assert (expose_resources_globally("app", tmp_path, [path], force=False), link.readlink()) == ([], path)
 
 
 @skip_if_windows
@@ -369,6 +449,22 @@ def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
     venv.return_value.install_package_no_deps.return_value = "acme-tool"
 
     assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
+
+
+def test_package_name_from_spec_creates_probe_venv_with_pip_args(mocker: MockerFixture) -> None:
+    venv = mocker.patch.object(common, "Venv", autospec=True)
+    venv.return_value.install_package_no_deps.return_value = "acme-tool"
+
+    package_name_from_spec(
+        "https://files.example/acme_tool-1.0-py3-none-any.whl",
+        sys.executable,
+        pip_args=["--index-url", "https://mirror.example/simple"],
+        verbose=False,
+    )
+
+    venv.return_value.create_venv.assert_called_once_with(
+        venv_args=[], pip_args=["--index-url", "https://mirror.example/simple"]
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

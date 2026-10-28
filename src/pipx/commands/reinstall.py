@@ -38,10 +38,11 @@ from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
     drop_links_taken_over,
     expose_shared_resources_in_order,
+    force_replaces_only,
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.transaction import is_unfinished
+from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -72,7 +73,7 @@ def _create_reinstall_backup(venv_dir: Path) -> Path:
     # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
     # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
     paths.ctx.trash.mkdir(parents=True, exist_ok=True)
-    backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix="-pipx-reinstall", dir=paths.ctx.trash))
+    backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=paths.ctx.trash))
     backup_dir.rmdir()
     _rename_once_released(venv_dir, backup_dir)
     return backup_dir
@@ -254,60 +255,61 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
-        # install main package first
-        installed = install(
-            venv_dir,
-            [venv.main_package_name],
-            [package_or_url],
-            local_bin_dir,
-            local_man_dir,
-            python,
-            venv.pipx_metadata.main_package.pip_args,
-            venv.pipx_metadata.venv_args,
-            verbose=verbose,
-            force=True,
-            reinstall=True,
-            include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-            include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
-            preinstall_packages=[],
-            expected_apps=venv.pipx_metadata.main_package.expected_apps,
-            lock_file=venv.pipx_metadata.main_package.lock_file,
-            cooldown_days=venv.pipx_metadata.main_package.cooldown_days,
-            suffix=venv.pipx_metadata.main_package.suffix,
-            python_flag_passed=python_flag_passed,
-            backend=backend or venv.pipx_metadata.backend,
-            env_backend=env_backend,
-            exposure_enabled=venv.pipx_metadata.exposure_enabled,
-            venv_lock=venv_lock,
-            emit_output=False,
-        )
-        # install does not raise when it does not render, so restore the backup on a failed result too
-        _raise_first_error(installed.errors)
-        messages.extend(installed.messages)
-
-        # now install injected packages
-        for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-            injected = inject_dep(
+        with force_replaces_only(old_resource_paths):
+            # install main package first
+            installed = install(
                 venv_dir,
-                injected_name,
-                _require_injected_url(injected_package, venv.name),
-                injected_package.pip_args,
+                [venv.main_package_name],
+                [package_or_url],
+                local_bin_dir,
+                local_man_dir,
+                python,
+                venv.pipx_metadata.main_package.pip_args,
+                venv.pipx_metadata.venv_args,
                 verbose=verbose,
-                include_apps=injected_package.include_apps,
-                include_dependencies=injected_package.include_dependencies,
-                include_resources_from=injected_package.include_resources_from,
                 force=True,
-                # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name from
-                # the injected package's index when the injected package depends on it
-                force_reinstall=False,
-                suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                reinstall=True,
+                include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+                include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
+                preinstall_packages=[],
+                expected_apps=venv.pipx_metadata.main_package.expected_apps,
+                lock_file=venv.pipx_metadata.main_package.lock_file,
+                cooldown_days=venv.pipx_metadata.main_package.cooldown_days,
+                suffix=venv.pipx_metadata.main_package.suffix,
+                python_flag_passed=python_flag_passed,
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
-                cooldown_days=injected_package.cooldown_days,
-                pinned=injected_package.pinned,
+                exposure_enabled=venv.pipx_metadata.exposure_enabled,
+                venv_lock=venv_lock,
                 emit_output=False,
             )
-            messages.extend(injected.messages)
+            # install does not raise when it does not render, so restore the backup on a failed result too
+            _raise_first_error(installed.errors)
+            messages.extend(installed.messages)
+
+            # now install injected packages
+            for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
+                injected = inject_dep(
+                    venv_dir,
+                    injected_name,
+                    _require_injected_url(injected_package, venv.name),
+                    injected_package.pip_args,
+                    verbose=verbose,
+                    include_apps=injected_package.include_apps,
+                    include_dependencies=injected_package.include_dependencies,
+                    include_resources_from=injected_package.include_resources_from,
+                    force=True,
+                    # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name from
+                    # the injected package's index when the injected package depends on it
+                    force_reinstall=False,
+                    suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                    backend=backend or venv.pipx_metadata.backend,
+                    env_backend=env_backend,
+                    cooldown_days=injected_package.cooldown_days,
+                    pinned=injected_package.pinned,
+                    emit_output=False,
+                )
+                messages.extend(injected.messages)
 
         new_resource_paths = _get_expected_reinstall_resource_paths(
             Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir

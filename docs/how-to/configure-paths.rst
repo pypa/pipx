@@ -104,17 +104,22 @@ Use ``--global`` **after** the subcommand to operate on the system-wide installa
     $ sudo pipx install --global pycowsay
     $ pipx list --global
 
-Commands that write to the global locations need root. ``pipx list --global`` and ``pipx environment --global`` only
-read them, so any user can run those.
+Commands that write to the global locations need root. ``pipx environment --global`` only reads them, so any user can
+run it. ``pipx list --global`` needs to read each environment's ``pipx_metadata.json``, which pipx keeps readable by its
+owner only because it can hold index credentials; other users see each environment reported as unreadable, so run it
+with ``sudo`` to list them.
 
 Putting ``--global`` before the subcommand, as in ``sudo pipx --global install pycowsay``, raises
-``unrecognized arguments: --global``.
+``unrecognized arguments: --global``. For ``manifest``, ``interpreter`` and ``cache`` it goes after their own
+subcommand, as in ``sudo pipx manifest sync --global ./pipx.toml``.
 
 Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, ``/usr/local/share``
 for shell completions, and ``/opt/pipx`` for environments. Override them with ``PIPX_GLOBAL_BIN_DIR``,
 ``PIPX_GLOBAL_MAN_DIR``, ``PIPX_GLOBAL_COMPLETION_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
 global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
-``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS.
+``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS. pipx refuses to replace a file there that holds
+anything besides the entry an earlier ``ensurepath --global`` wrote; add the directory yourself, or pass ``--force`` to
+replace the file.
 
 When pipx itself is installed with ``--global`` and ``PIPX_GLOBAL_HOME`` is overridden, set the override for every user
 (for example in ``/etc/environment``), so that pipx recognizes its own environment as the global one; see

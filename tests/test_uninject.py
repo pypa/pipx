@@ -338,6 +338,25 @@ def test_uninject_removes_selected_dependency_resources(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_keeps_resources_the_main_package_exposes(local_extras_wheel: Path) -> None:
+    assert not run_pipx_cli(["install", "pycowsay==0.0.0.2"])
+    assert not run_pipx_cli([
+        "inject",
+        "pycowsay",
+        f"{local_extras_wheel}[cow]",
+        "--include-resources-from",
+        "pycowsay",
+    ])
+
+    assert not run_pipx_cli(["uninject", "pycowsay", "repeatme"])
+
+    assert all(
+        file_or_symlink(path)
+        for path in (paths.ctx.bin_dir / app_name("pycowsay"), paths.ctx.man_dir / "man6" / "pycowsay.6")
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_leave_deps(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,

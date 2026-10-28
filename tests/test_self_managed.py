@@ -85,6 +85,40 @@ def test_self_managed_direct_venv_script_does_not_set_bin_dir(
 
 
 @_SKIP_ON_WINDOWS
+def test_self_managed_venv_script_through_parent_directory_does_not_set_bin_dir(
+    self_managed_installation: _SelfManagedInstallation,
+) -> None:
+    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
+        prefix=self_managed_installation.venv,
+        executable=str(self_managed_installation.bin_dir / ".." / "venvs" / "pipx" / "bin" / "pipx"),
+    )
+
+
+@_SKIP_ON_WINDOWS
+def test_self_managed_venv_script_through_linked_directory_does_not_set_bin_dir(
+    self_managed_installation: _SelfManagedInstallation,
+    tmp_path: Path,
+) -> None:
+    (linked_home := tmp_path / "home-link").symlink_to(self_managed_installation.home)
+    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
+        prefix=self_managed_installation.venv,
+        executable=str(linked_home / "venvs" / "pipx" / "bin" / "pipx"),
+    )
+
+
+@_SKIP_ON_WINDOWS
+def test_self_managed_linked_home_sets_bin_dir(
+    self_managed_installation: _SelfManagedInstallation,
+    tmp_path: Path,
+) -> None:
+    (linked_home := tmp_path / "home-link").symlink_to(self_managed_installation.home)
+    assert discover_self_managed_environment(
+        prefix=linked_home / "venvs" / "pipx",
+        executable=str(self_managed_installation.executable),
+    )["PIPX_BIN_DIR"] == str(self_managed_installation.bin_dir)
+
+
+@_SKIP_ON_WINDOWS
 def test_self_managed_executable_on_path_sets_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
     monkeypatch: pytest.MonkeyPatch,

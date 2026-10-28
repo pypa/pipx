@@ -109,6 +109,7 @@ class Backend(ABC):
         capture_stdout: bool = True,
         capture_stderr: bool = True,
         verbose: bool = False,
+        in_working_dir: bool = False,
     ) -> CompletedProcess[str]: ...
 
     @abstractmethod

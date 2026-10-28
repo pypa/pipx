@@ -76,6 +76,55 @@ def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: 
     assert main.prog_name() == expected
 
 
+@pytest.mark.parametrize(
+    ("start", "holds_pipx", "expected"),
+    [
+        pytest.param(["launcher"], False, (0, ""), id="console-script"),
+        pytest.param(["-m", "pipx"], False, (0, ""), id="module"),
+        pytest.param(["-m", "pipx"], True, (1, "shadowed"), id="module-found-in-working-directory"),
+    ],
+)
+def test_startup_drops_search_path_entry_python_adds(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    start: list[str],
+    *,
+    holds_pipx: bool,
+    expected: tuple[int, str],
+) -> None:
+    monkeypatch.delenv("PYTHONSAFEPATH", raising=False)
+    (tmp_path / "launcher").write_text("import sys\nfrom pipx.__main__ import cli\nsys.exit(cli())\n")
+    (tmp_path / "platformdirs.py").write_text("raise SystemExit('shadowed')\n")
+    if holds_pipx:
+        shutil.copytree(Path(main.__file__).parent, tmp_path / "pipx")
+
+    result = subprocess.run(
+        [sys.executable, *start, "environment", "--value", "PIPX_BIN_DIR"],
+        check=False,
+        capture_output=True,
+        cwd=tmp_path,
+        text=True,
+    )
+
+    assert (result.returncode, result.stderr.strip()) == expected
+
+
+@skip_if_windows
+def test_module_starts_in_removed_working_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PYTHONSAFEPATH", raising=False)
+    start: Final[str] = "os.execv(sys.executable, [sys.executable, '-m', 'pipx', '--version'])"
+
+    result = subprocess.run(
+        [sys.executable, "-c", f"import os, sys; os.rmdir(os.getcwd()); {start}"],
+        check=False,
+        capture_output=True,
+        cwd=tmp_path,
+        text=True,
+    )
+
+    assert (result.returncode, result.stdout.strip()) == (0, main.__version__)
+
+
 def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(sys, "argv", ["sphinx-build"])
     parser: Final[argparse.ArgumentParser] = main.build_parser()
@@ -616,3 +665,18 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
     assert not run_pipx_cli(["list"])
 
     assert cast("Path", paths.ctx.log_file).parent == paths.ctx.logs
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["install", "--preinstall=-rrequirements.txt", "pycowsay"], id="install-preinstall"),
+        pytest.param(["run", "--with=--find-links=elsewhere", "script.py"], id="run-with"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_option_shaped_package_is_refused(capsys: pytest.CaptureFixture[str], argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        run_pipx_cli(argv)
+
+    assert "is an installer option, not a package; pass it with --pip-args" in capsys.readouterr().err
