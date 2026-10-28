@@ -28,6 +28,10 @@ install`` that reinstalls the main package with index options (``--index-url``, 
 ``--allow-insecure-host``, ``--keyring-provider``) replaces the recorded ones with them; without index options the
 record stays.
 
+Under the uv backend, pipx passes ``--index-url`` (``-i``) to uv as ``--default-index``, so it replaces a default index
+set through ``UV_DEFAULT_INDEX`` or a ``default = true`` ``[[index]]`` entry. uv still searches indexes added through
+``UV_INDEX`` or other ``[[index]]`` entries before it, as it does for its own ``--default-index``.
+
 pipx refuses an empty or whitespace-only index URL before it creates an environment, whether it comes from
 ``--index-url`` (``-i``) or from ``--index-url``, ``-i``, ``--extra-index-url``, ``--default-index`` or ``--index``
 inside ``--pip-args``. An empty value usually means an unset variable, as in ``--index-url "$INDEX_URL"``, and uv reads
@@ -73,8 +77,9 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
     Under the uv backend, ``pipx run`` translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
     ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
     ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. Any other flag raises an error rather than being
-    silently dropped. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged, so uv decides which flags it
-    accepts. Use ``--backend pip`` when you need a pip-only flag. See :doc:`use-uv-backend`.
+    silently dropped. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
+    (``-i``), so uv decides which flags it accepts. Use ``--backend pip`` when you need a pip-only flag. See
+    :doc:`use-uv-backend`.
 
 **********
  Verify it

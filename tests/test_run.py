@@ -93,6 +93,18 @@ def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture)
     assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_uv_index_url_beats_uv_default_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, pipx_local_pypiserver: str
+) -> None:
+    monkeypatch.setenv("UV_DEFAULT_INDEX", tmp_path.as_uri())
+    # uv's app launcher calls realpath and dirname, which the sandboxed PATH drops
+    monkeypatch.setenv("PATH", f"{os.environ['PATH']}{os.pathsep}{os.defpath}")
+
+    run_pipx_cli_exit(["run", "--backend", "uv", "--index-url", pipx_local_pypiserver, "pycowsay", "hi"], assert_exit=0)
+
+
 @pytest.mark.parametrize(
     "spec_args",
     [

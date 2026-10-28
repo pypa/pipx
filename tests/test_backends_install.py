@@ -22,6 +22,16 @@ def test_install_pip_with_uv_backend_errors(capsys: pytest.CaptureFixture[str]) 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_install_index_url_beats_uv_default_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, pipx_local_pypiserver: str
+) -> None:
+    monkeypatch.setenv("UV_DEFAULT_INDEX", tmp_path.as_uri())
+
+    assert run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--index-url", pipx_local_pypiserver]) == 0
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uv_backend_install_uninstall_smoke(capsys: pytest.CaptureFixture[str]) -> None:
     # Asserts that a uv-built venv records ``backend="uv"``, exposes apps the
     # same way pip venvs do, and uninstalls without re-invoking uv.
