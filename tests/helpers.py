@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 import sysconfig
-import time
 import zipfile
 from dataclasses import replace
 from pathlib import Path
@@ -17,7 +16,7 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, paths, pipx_metadata_file, shared_libs, util
+from pipx import constants, main, paths, pipx_metadata_file, util
 from pipx.venv import Venv
 
 WIN = sys.platform.startswith("win")
@@ -277,14 +276,6 @@ def remove_venv_interpreter(venv_name: str) -> None:
     assert venv_python_path.is_file()
     venv_python_path.unlink()
     assert not venv_python_path.is_file()
-
-
-def set_shared_pip_age(age_sec: float) -> float:
-    last_upgrade: Final[float] = time.time() - age_sec
-    os.utime(shared_libs.shared_libs.pip_path, (last_upgrade, last_upgrade))
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    # filesystems round timestamps, so return the stored value for exact comparison
-    return shared_libs.shared_libs.pip_path.stat().st_mtime
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
