@@ -44,7 +44,7 @@ from pipx.commands.inject import inject_dep
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import hazard
-from pipx.package_specifier import resolve_local_path, resolve_pip_path_args
+from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
 from pipx.util import (
@@ -189,6 +189,7 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
     # same environment, which means fewer environments need to be
     # managed. The requirements are normalised so that irrelevant differences
     # in whitespace, and similar, don't prevent environment sharing.
+    pip_args = absolute_path_pip_args(pip_args, Path.cwd())
     venv_dir = _get_temporary_venv_path(
         requirements,
         python,
@@ -301,7 +302,7 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
             for spec in (package_or_url, *dependencies)
         ],
         python,
-        resolve_pip_path_args(pip_args),
+        absolute_path_pip_args(pip_args, Path.cwd()),
         venv_args,
         resolved_backend or "pip",
         cooldown_days=cooldown_days,

@@ -222,10 +222,10 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
         )
         pip_args.remove("--editable")
 
-    return package_or_url, resolve_pip_path_args(pip_args)
+    return package_or_url, absolute_path_pip_args(pip_args, Path.cwd())
 
 
-def resolve_pip_path_args(pip_args: list[str]) -> list[str]:
+def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
     pip_args = pip_args.copy()
     for index in range(len(pip_args)):
         option = pip_args[index]
@@ -236,7 +236,7 @@ def resolve_pip_path_args(pip_args: list[str]) -> list[str]:
         ):
             value = option[2:]
             if not urllib.parse.urlsplit(value).scheme:
-                pip_args[index] = f"{option_name}{Path(value).expanduser().resolve()}"
+                pip_args[index] = f"{option_name}{(base / Path(value).expanduser()).resolve()}"
             continue
 
         option_name, separator, value = option.partition("=")
@@ -245,12 +245,12 @@ def resolve_pip_path_args(pip_args: list[str]) -> list[str]:
 
         if separator:
             if not urllib.parse.urlsplit(value).scheme:
-                pip_args[index] = f"{option_name}={Path(value).expanduser().resolve()}"
+                pip_args[index] = f"{option_name}={(base / Path(value).expanduser()).resolve()}"
             continue
 
         argument_index = index + 1
         if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
-            pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
+            pip_args[argument_index] = str((base / Path(pip_args[argument_index]).expanduser()).resolve())
 
     return pip_args
 
@@ -502,6 +502,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 
 
 __all__ = [
+    "absolute_path_pip_args",
     "add_extras",
     "extract_index_options",
     "fix_package_name",
@@ -513,7 +514,6 @@ __all__ = [
     "parse_specifier_for_upgrade",
     "replace_index_options",
     "resolve_local_path",
-    "resolve_pip_path_args",
     "source_without_extras",
     "static_project_name",
     "valid_pypi_name",

@@ -41,6 +41,22 @@ def test_reinstall() -> None:
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_resolves_recorded_relative_find_links_in_venv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
+    metadata.write()
+    monkeypatch.chdir(tmp_path)
+
+    assert not run_pipx_cli(["reinstall", "pycowsay"])
+
+    assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
+
+
 @pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_self_resolves_lazy_imports(monkeypatch: pytest.MonkeyPatch) -> None:
