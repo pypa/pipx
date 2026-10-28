@@ -209,6 +209,15 @@ def test_install_moves_to_a_python_the_package_supports(
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_keeps_the_default_python_for_the_other_packages(project_excluding_this_python: Path) -> None:
+    # a URL carries no name, so pipx meets the constraint while it resolves the names, before it builds any environment
+    assert not run_pipx_cli(["install", "--backend", "pip", project_excluding_this_python.as_uri(), "pycowsay"])
+
+    recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "pycowsay").python_version or ""
+    assert recorded == f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.parametrize(
     ("recorded", "other", "backend_args"),

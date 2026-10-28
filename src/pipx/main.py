@@ -84,6 +84,7 @@ from pipx.util import (
     open_owner_only,
     pipx_wrap,
     redact_url_credentials,
+    reject_empty_index,
     rmdir,
     stream_subprocess_stdout_to_stderr,
 )
@@ -255,11 +256,8 @@ class InstalledVenvsCompleter:
 
 def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
     pip_args: list[str] = []
-    # an omitted option is None; an empty one usually comes from an unset variable, as in --index-url "$INDEX_URL"
+    # keep an empty value so reject_empty_index refuses it rather than the backend falling back to its default index
     if (index_url := parsed_args.get("index_url")) is not None:
-        if not index_url.strip():
-            msg = "--index-url is empty; pass the index URL or leave the option out"
-            raise PipxError(msg)
         pip_args += ["--index-url", index_url]
 
     if value := parsed_args.get("pip_args"):
@@ -269,6 +267,7 @@ def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
     #   package specification
     if parsed_args.get("editable"):
         pip_args += ["--editable"]
+    reject_empty_index(pip_args)
     return pip_args
 
 

@@ -82,12 +82,12 @@ class PipBackend(Backend):
         requirements: list[str],
         pip_args: list[str],
         no_deps: bool = False,
-        upgrade: bool = False,
+        upgrade_package: str | None = None,
         log_pip_errors: bool = True,
         verbose: bool = False,
     ) -> CompletedProcess[str]:
         cmd: list[str] = [str(venv_python), "-m", "pip", "--no-input", "install"]
-        if upgrade:
+        if upgrade_package is not None:
             cmd.append("--upgrade")
         if no_deps:
             cmd.append("--no-dependencies")

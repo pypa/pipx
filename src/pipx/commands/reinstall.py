@@ -276,6 +276,9 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 include_dependencies=injected_package.include_dependencies,
                 include_resources_from=injected_package.include_resources_from,
                 force=True,
+                # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name from
+                # the injected package's index when the injected package depends on it
+                force_reinstall=False,
                 suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
