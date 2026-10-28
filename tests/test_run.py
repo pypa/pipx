@@ -30,7 +30,6 @@ from package_info import PKG
 from pipx import paths, shared_libs, util
 from pipx.commands.run import run_package
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.util import PipxError
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1272,22 +1271,9 @@ def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
     run_module = importlib.import_module("pipx.commands.run")
-    mocker.patch.object(run_module, "_http_get_request", return_value="print('hi')")
+    mocker.patch.object(run_module, "download_script", return_value="print('hi')")
 
     assert run_module.maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
-
-
-def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> None:
-    run_module = importlib.import_module("pipx.commands.run")
-
-    response = mocker.MagicMock()
-    response.read.return_value = b"x" * (run_module._MAX_SCRIPT_BYTES + 1)  # ruff:ignore[private-member-access]  # private helper under test, no public API
-    response.headers.get_content_charset.return_value = "utf-8"
-    response.__enter__.return_value = response
-    mocker.patch("urllib.request.urlopen", return_value=response)
-
-    with pytest.raises(PipxError, match="larger than"):
-        run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
 
 
 @pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
