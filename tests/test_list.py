@@ -51,6 +51,35 @@ def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert "nothing has been installed with pipx" in captured.err
 
 
+@skip_if_windows
+@pytest.mark.skipif(not constants.WINDOWS and os.geteuid() == 0, reason="root reads files whatever their mode")
+@pytest.mark.parametrize(
+    ("flags", "listed"),
+    [
+        pytest.param([], "package black", id="text"),
+        pytest.param(["--short"], "black ", id="short"),
+        pytest.param(["--json"], '"black"', id="json"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_reports_unreadable_metadata_per_environment(
+    capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture, flags: list[str], listed: str
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", PKG["black"]["spec"]])
+    (paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
+    capsys.readouterr()
+    caplog.clear()
+
+    exit_code = run_pipx_cli(["list", *flags])
+
+    assert (
+        exit_code,
+        listed in capsys.readouterr().out,
+        "package pycowsay has pipx metadata this user cannot read" in caplog.text,
+        "missing internal pipx metadata" in caplog.text,
+    ) == (constants.EXIT_CODE_LIST_PROBLEM, True, True, False)
+
+
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
     venv_dir = tmp_path / "venvs" / "example"
     venv_dir.mkdir(parents=True)
