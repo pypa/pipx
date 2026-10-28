@@ -931,3 +931,55 @@ def test_venv_without_record_resolves_like_a_fresh_one(
     venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
 
     assert (venv.backend_name, venv.backend_source) == expected
+
+
+@pytest.mark.parametrize(
+    ("version_output", "reported"),
+    [
+        pytest.param("pip 24.0 from /site-packages/pip (python 3.11)\n", "pip 24.0", id="before-lock-support"),
+        pytest.param("", "pip of an unknown version", id="unknown"),
+    ],
+)
+def test_pip_backend_install_lock_refuses_pip_without_lock_support(
+    version_output: str, reported: str, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    run = mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=version_output, stderr=""),
+    )
+
+    with pytest.raises(PipxError) as error:
+        PipBackend().install_lock(
+            venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+        )
+
+    assert (
+        f"needs pip>=26.1, but this environment runs {reported}." in " ".join(str(error.value).split()),
+        run.call_count,
+    ) == (
+        True,
+        1,
+    )
+
+
+def test_pip_backend_install_lock_passes_lock_to_pip_with_lock_support(tmp_path: Path, mocker: MockerFixture) -> None:
+    run = mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="pip 26.1 from /pip\n", stderr=""),
+    )
+
+    PipBackend().install_lock(
+        venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+    )
+
+    assert run.call_args.args[0] == [
+        str(tmp_path / "bin" / "python"),
+        "-m",
+        "pip",
+        "--no-input",
+        "install",
+        "--requirement",
+        str(tmp_path / "pylock.toml"),
+    ]

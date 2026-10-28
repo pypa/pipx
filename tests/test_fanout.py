@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import logging
 import os
 import signal
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
     from types import FrameType
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -100,6 +103,40 @@ def test_fan_out_raises_first_failure_in_task_order() -> None:
 
     with pytest.raises(ValueError, match=r"^first$"):
         fan_out([first, second], sequential=False)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(BrokenPipeError(), id="reader-gone"),
+        pytest.param(ValueError("I/O operation on closed file."), id="closed"),
+    ],
+)
+def test_fan_out_waits_for_tasks_when_held_output_cannot_be_written(
+    mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, second_done: threading.Event, error: Exception
+) -> None:
+    unwritable: Final = mocker.create_autospec(io.TextIOWrapper, instance=True, **{"write.side_effect": error})
+    monkeypatch.setattr(sys, "stdout", unwritable)
+
+    def second() -> str:
+        print("held")  # ruff:ignore[print]  # the output under test
+        second_done.set()
+        return "second"
+
+    assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, "second"]
+
+
+def test_fan_out_leaves_stream_closed_at_startup_alone(
+    monkeypatch: pytest.MonkeyPatch, second_done: threading.Event
+) -> None:
+    monkeypatch.setattr(sys, "stdout", None)
+
+    def second() -> str:
+        print("dropped")  # ruff:ignore[print]  # the output under test
+        second_done.set()
+        return "second"
+
+    assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, "second"]
 
 
 def test_output_is_held_only_for_task_waiting_its_turn(second_done: threading.Event) -> None:

@@ -36,7 +36,7 @@ from pipx import paths
 from pipx.commands.common import add_suffix, drop_copies_claimed_elsewhere, expose_shared_resources_in_order
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.transaction import is_unfinished
+from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -67,7 +67,7 @@ def _create_reinstall_backup(venv_dir: Path) -> Path:
     # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
     # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
     paths.ctx.trash.mkdir(parents=True, exist_ok=True)
-    backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix="-pipx-reinstall", dir=paths.ctx.trash))
+    backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=paths.ctx.trash))
     backup_dir.rmdir()
     _rename_once_released(venv_dir, backup_dir)
     return backup_dir

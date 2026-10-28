@@ -1355,7 +1355,7 @@ def test_pip_args_with_wrong_constraint_fail(
     assert run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", "pycowsay"])
 
     # pip phrases this as "requirements file" (<26) or "constraint file" (>=26), so match the common part
-    assert f"[Errno 2] No such file or directory: '{constraint_file_name}'" in capsys.readouterr().err
+    assert f"[Errno 2] No such file or directory: {str(tmp_path / constraint_file_name)!r}" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

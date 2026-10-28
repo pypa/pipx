@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "collections",
+    "contextlib",
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
@@ -19,6 +20,7 @@ __lazy_modules__ = [
 import subprocess
 import tomllib
 from collections import Counter
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -428,10 +430,13 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                 locked.append(str(lock_file))
         except OSError:
             for lock_file, backup in reversed(applied):
-                if backup is not None:
-                    backup.replace(lock_file)
-                else:
-                    lock_file.unlink(missing_ok=True)
+                # what broke a swap-in (a directory at the lock path) can break its undo too, and the backups go away
+                # with the temporary directory, so one failed undo must not keep the earlier locks from being restored
+                with suppress(OSError):
+                    if backup is not None:
+                        backup.replace(lock_file)
+                    else:
+                        lock_file.unlink(missing_ok=True)
             raise
     return locked
 
