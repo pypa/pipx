@@ -339,9 +339,12 @@ class _Slot:
 
     def go_live(self) -> None:
         with self.turn:
-            for stream, text in self.chunks:
-                self.children.write(stream, text, self)
-                stream.flush()
+            # a reader that went away must keep neither the task from its turn nor the fan-out from waiting for its
+            # tasks; what the task writes next fails in the task, which rolls back as it does running alone
+            with suppress(OSError, ValueError):
+                for stream, text in self.chunks:
+                    self.children.write(stream, text, self)
+                    stream.flush()
             self.chunks.clear()
             self.live = True
             self.turn.notify_all()
@@ -376,7 +379,8 @@ def _routed_output(children: _Children) -> Generator[None, None, None]:
         for handler in logging.getLogger("pipx").handlers
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler)
     ]
-    sys.stdout, sys.stderr = _routed(stdout, children), _routed(stderr, children)
+    # Python sets a stream closed at startup to None, which print skips, so a held task must not buffer output for it
+    sys.stdout, sys.stderr = (None if stream is None else _routed(stream, children) for stream in (stdout, stderr))
     for handler, stream in handlers:
         handler.setStream(_routed(stream, children))
     try:
