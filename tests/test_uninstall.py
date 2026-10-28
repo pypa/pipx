@@ -41,6 +41,13 @@ def test_uninstall() -> None:
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_empty_name_keeps_every_environment() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    assert (run_pipx_cli(["uninstall", ""]), (paths.ctx.venvs / "pycowsay").is_dir()) == (1, True)
+
+
 def test_uninstall_json(
     uninstall_command: tuple[str, list[str]],
     capsys: pytest.CaptureFixture[str],

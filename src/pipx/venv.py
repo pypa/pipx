@@ -152,7 +152,12 @@ class VenvContainer:
 
     def get_venv_dir(self, package_name: str) -> Path:
         """Return the expected venv path for given `package_name`."""
-        return self._root.joinpath(canonicalize_name(package_name))
+        venv_dir: Final[Path] = self._root.joinpath(canonicalize_name(package_name))
+        # an empty name is the store itself, a separator reaches into another venv and an absolute path leaves the store
+        if venv_dir.parent != self._root:
+            msg = f"Invalid environment name {package_name!r}. Expected the name of a package, not a path."
+            raise PipxError(msg)
+        return venv_dir
 
     def iter_locked_venv_dirs(
         self, venv_dirs: Iterable[Path], *, allow_permission_error: bool = False
