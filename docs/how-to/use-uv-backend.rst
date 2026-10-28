@@ -67,7 +67,8 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
   dropping them silently.
 - ``pipx run`` execs ``uv tool run``; its cache lives in uv's cache directory. Pass ``--no-cache`` to skip it or
   ``--refresh`` to rebuild the cached environment.
-- ``pipx run script.py`` execs ``uv run --script script.py`` for PEP 723 inline scripts.
+- ``pipx run script.py`` execs ``uv run --active --script script.py`` for PEP 723 inline scripts, with ``VIRTUAL_ENV``
+  pointing at an environment in pipx's cache.
 - ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. See :doc:`Dependency cooldown
   <dependency-cooldown>`.
 - uv reads your user config (``~/.config/uv/uv.toml``, ``%APPDATA%\uv\uv.toml`` on Windows), the system config
@@ -105,8 +106,9 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
  Cache layout
 *************
 
-Under the uv backend, ``pipx run`` caches in ``UV_CACHE_DIR`` instead of ``PIPX_VENV_CACHEDIR``. Switching the default
-backend on a host that already used ``pipx run`` leaves the old pipx cache behind. Find it with ``pipx cache dir`` and
+Under the uv backend, ``pipx run APP`` caches in ``UV_CACHE_DIR`` instead of ``PIPX_VENV_CACHEDIR``, while
+``pipx run script.py`` keeps the script's environment in ``PIPX_VENV_CACHEDIR``. Switching the default backend on a host
+that already used ``pipx run`` leaves the old pipx cache behind. Find it with ``pipx cache dir`` and
 remove its environments with ``pipx cache purge``. The 14-day expiry sweep pipx applies to its own cache does not extend
 to uv's cache, which uv manages on its own schedule (``uv cache clean``).
 

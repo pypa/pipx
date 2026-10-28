@@ -788,7 +788,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 main_package.cooldown_days,
                 modifies_existing=False,
             )
-            install(
+            installed = install(
                 venv_dir,
                 None,
                 [generate_package_spec(main_package)],
@@ -816,7 +816,10 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 cooldown_days=package_cooldown,
                 pinned=main_package.pinned,
             )
-            for inject_package, inject_pip_args in zip(packages[1:], package_pip_args[1:], strict=True):
+            # install left an existing environment alone, so its injected packages must not change it either
+            for inject_package, inject_pip_args in (
+                () if installed.data.skipped else zip(packages[1:], package_pip_args[1:], strict=True)
+            ):
                 inject(
                     venv_dir=venv_dir,
                     package_specs=[generate_package_spec(inject_package)],

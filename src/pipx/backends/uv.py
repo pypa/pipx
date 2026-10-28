@@ -193,6 +193,7 @@ class UvBackend(Backend):
         capture_stdout: bool = True,
         capture_stderr: bool = True,
         verbose: bool = False,
+        in_working_dir: bool = False,
     ) -> CompletedProcess[str]:
         # Mirror pip-backend ``pipx runpip TOOL`` (no args -> pip's help).
         cmd: list[str | Path] = [self._binary, "pip", args[0] if args else "--help"]
@@ -206,7 +207,7 @@ class UvBackend(Backend):
             cmd += _strip_pip_quiet_flags(args[1:])
         return run_subprocess(
             cmd,
-            run_dir=str(venv_root),
+            run_dir=None if in_working_dir else str(venv_root),
             capture_stdout=capture_stdout,
             capture_stderr=capture_stderr,
             env_overrides=_uv_env_overrides(),

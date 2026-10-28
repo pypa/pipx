@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 from filelock import AcquireReturnProxy, FileLock, Timeout
+from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -251,16 +252,14 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_isolates_cache_by_dependency(mocker: MockerFixture) -> None:
-    inject: Final = mocker.patch.object(importlib.import_module("pipx.commands.run"), "inject_dep")
-
+def test_run_with_isolates_cache_by_dependency() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
     plain_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
 
-    run_pipx_cli_exit(["run", "--with", "packaging", "pycowsay", "cowsay", "hi"])
+    run_pipx_cli_exit(["run", "--with", "six", "pycowsay", "cowsay", "hi"])
     with_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()} - plain_dirs
 
-    assert (len(with_dirs), inject.call_count, inject.call_args.kwargs["package_spec"]) == (1, 1, "packaging")
+    assert [bool(list(path.rglob("six-*.dist-info"))) for path in (*plain_dirs, *with_dirs)] == [False, True]
 
 
 @pytest.fixture
@@ -801,6 +800,89 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
     assert out.read_text() == "ran"
 
 
+@pytest.mark.parametrize(
+    ("second_links", "second_flags"),
+    [
+        pytest.param("new", [], id="changed-find-links"),
+        pytest.param("old", ["--refresh"], id="refresh"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_uv_rebuilds_for_new_request(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    second_links: str,
+    second_flags: list[str],
+    publish_demodep: Callable[[str, str], Path],
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    out: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
+        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
+    )
+    run_pipx_cli_exit(
+        ["run", "--backend", "uv", f"--pip-args=--find-links={publish_demodep('old', '1.0')}", str(script)],
+        assert_exit=0,
+    )
+    links: Final[Path] = publish_demodep(second_links, "2.0")
+
+    run_pipx_cli_exit(["run", "--backend", "uv", *second_flags, f"--pip-args=--find-links={links}", str(script)])
+
+    assert out.read_text() == "2.0"
+
+
+@pytest.fixture
+def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
+    def publish(links_name: str, version: str) -> Path:
+        (links := tmp_path / links_name).mkdir(exist_ok=True)
+        info: Final[str] = f"demodep-{version}.dist-info"
+        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
+            archive.writestr("demodep.py", "")
+            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
+            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+            archive.writestr(f"{info}/RECORD", "")
+        return links
+
+    return publish
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_rebuilds_after_installer_env_changes(
+    tmp_path: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, publish_demodep: Callable[[str, str], Path]
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    out: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
+        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
+    )
+    monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("old", "1.0")))
+    run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
+    monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("new", "2.0")))
+
+    run_pipx_cli_exit(["run", "--backend", "pip", str(script)])
+
+    assert out.read_text() == "2.0"
+
+
+@pytest.fixture
+def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
+    def publish(links_name: str, version: str) -> Path:
+        (links := tmp_path / links_name).mkdir(exist_ok=True)
+        info: Final[str] = f"demodep-{version}.dist-info"
+        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
+            archive.writestr("demodep.py", "")
+            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
+            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+            archive.writestr(f"{info}/RECORD", "")
+        return links
+
+    return publish
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
@@ -1022,6 +1104,26 @@ def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_pa
     assert return_code != 0
     assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
     assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_interrupted_venv_creation_expires_cache(
+    inline_script: Path,
+    mocker: MockerFixture,
+    capfd: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+) -> None:
+    def interrupt() -> None:
+        raise KeyboardInterrupt
+
+    before_venv_subprocess(paths.ctx.venv_cache, interrupt)
+    assert run_pipx_cli(["run", "--backend", "pip", str(inline_script)]) == 1
+    mocker.stopall()
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+
+    run_pipx_cli_exit(["run", "--backend", "pip", str(inline_script)], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines()[-1] == "installed"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1304,10 +1406,17 @@ def test_run_relative_spec_keys_cache_per_directory(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with(capsys: pytest.CaptureFixture[str]) -> None:
+def test_run_uv_dash_app_is_not_a_uv_option() -> None:
+    # uv rejects the operand as a usage error instead of reading -n as --no-cache and running pycowsay
+    run_pipx_cli_exit(["run", "--backend", "uv", "--", "-n", "pycowsay", "hi"], assert_exit=2)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with() -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
-    captured = capsys.readouterr()
-    assert "injected package black into venv pycowsay" in captured.out
+
+    assert list(paths.ctx.venv_cache.rglob("black-*.dist-info"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1315,7 +1424,6 @@ def test_run_with_cooldown(
     root: Path,
     empty_project_wheel: Path,
     mocker: MockerFixture,
-    capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
@@ -1338,9 +1446,40 @@ def test_run_with_cooldown(
     )
 
     assert (
-        "injected package empty-project into venv" in capsys.readouterr().out,
+        bool(list(paths.ctx.venv_cache.rglob("empty_project-*.dist-info"))),
         "--uploaded-prior-to P7D" in caplog.text,
     ) == (True, True)
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_with_pins_app_dependency(
+    make_project_with_dependency: Callable[[str], Path], tmp_path: Path, mocker: MockerFixture, backend: str
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
+    app_wheel: Final[Path] = make_wheel_in(make_project_with_dependency("black") / "pyproject.toml", tmp_path).file
+
+    run_pipx_cli_exit([
+        "run",
+        "--backend",
+        backend,
+        "--spec",
+        str(app_wheel),
+        "--with",
+        "black==22.8.0",
+        "empty-project",
+    ])
+
+    assert [path.name for path in paths.ctx.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_with_app_extra_exposes_nothing(local_extras_wheel: Path, mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
+
+    run_pipx_cli_exit(["run", "--spec", str(local_extras_wheel), "--with", f"{local_extras_wheel}[cow]", "repeatme"])
+
+    assert list(paths.ctx.bin_dir.iterdir()) == []
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
