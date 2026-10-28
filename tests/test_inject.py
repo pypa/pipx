@@ -338,6 +338,17 @@ def test_inject_main_package_extra_keeps_recorded_source(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_main_package_extra_by_recorded_url(local_extras_wheel: Path) -> None:
+    assert not run_pipx_cli(["install", local_extras_wheel.as_uri()])
+
+    assert not run_pipx_cli(["inject", "repeatme", f"repeatme[cow] @ {local_extras_wheel.as_uri()}"])
+
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == (
+        f"repeatme[cow] @ {local_extras_wheel.as_uri()}"
+    )
+
+
 @pytest.mark.parametrize(
     "injected",
     [pytest.param("repeatme[cow]==0.1", id="version"), pytest.param("repeatme[cow] @ {uri}", id="other-source")],

@@ -245,7 +245,9 @@ def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
             f"Pass '--force' to install {redact_url_credentials(package_spec)!r} in its place."
         )
         raise PipxError(msg) from error
-    if source_without_extras(package_spec) not in {canonicalize_name(venv.main_package_name), recorded_source}:
+    name: Final[str] = canonicalize_name(venv.main_package_name)
+    # NAME[extra] @ URL names the same source as a bare recorded URL
+    if source_without_extras(package_spec) not in {name, recorded_source, f"{name} @ {recorded_source}"}:
         return None
     return add_extras(recorded, venv.main_package_name, extras)
 
