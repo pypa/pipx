@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import email.message
 import hashlib
@@ -16,11 +17,11 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
 
@@ -127,6 +128,95 @@ def test_early_python_310_rejects_unsafe_archive(
 
     with pytest.raises(standalone_python.PipxError, match="outside"):
         standalone_python.download_python_build_standalone("3.99")
+
+
+_DEEP_DIR: Final[str] = f"python/{'/'.join(['d'] * 12)}"
+_CLIMB_TO_FILESYSTEM_ROOT: Final[str] = "/".join([".."] * 12)
+_SHORTCUTS: Final[str] = "abcdefghijklmnop"
+_UNFOLLOWABLE_LINK: Final[str] = f"{'/'.join(_SHORTCUTS)}/{'q' * 254}"
+
+
+def _links_too_long_to_follow() -> list[tuple[str, bytes, str]]:
+    # one-letter links keep the names short enough for the kernel, but resolved they exceed PATH_MAX, so a lenient
+    # realpath cannot stat the last two links and takes them for plain directories
+    links: list[tuple[str, bytes, str]] = []
+    for depth, shortcut in enumerate(_SHORTCUTS):
+        parent = f"{'d' * 247}/" * depth
+        links += [(f"{parent}{'d' * 247}", tarfile.DIRTYPE, ""), (f"{parent}{shortcut}", tarfile.SYMTYPE, "d" * 247)]
+    return [
+        *links,
+        (_UNFOLLOWABLE_LINK, tarfile.SYMTYPE, "/".join([".."] * len(_SHORTCUTS))),
+        (f"{_UNFOLLOWABLE_LINK}/out", tarfile.SYMTYPE, _CLIMB_TO_FILESYSTEM_ROOT),
+    ]
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    ("links", "way_out"),
+    [
+        pytest.param([], f"{_DEEP_DIR}/up/{_CLIMB_TO_FILESYSTEM_ROOT}", id="name-through-link"),
+        pytest.param(
+            [("python/out", tarfile.SYMTYPE, f"{'d/' * 12}up/{_CLIMB_TO_FILESYSTEM_ROOT}")],
+            "python/out",
+            id="link-through-link",
+        ),
+        pytest.param([("python/out", tarfile.LNKTYPE, f"{_DEEP_DIR}/up")], "python/out", id="hard-link-moves-link"),
+        pytest.param(_links_too_long_to_follow(), f"{_UNFOLLOWABLE_LINK}/out", id="links-too-long-to-follow"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_early_python_311_stays_inside_through_archive_links(
+    monkeypatch: pytest.MonkeyPatch,
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    tmp_path: Path,
+    links: list[tuple[str, bytes, str]],
+    way_out: str,
+) -> None:
+    # Python 3.11.0-3.11.3 lack tarfile's data filter too; its stand-in must follow the links unpacked before a member
+    monkeypatch.delattr(tarfile, "data_filter")
+    victim = tmp_path / "victim"
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        python_tar.addfile(tarfile.TarInfo("python/bin/python3"), io.BytesIO())
+        # on its own this link is fine, it points at the download directory
+        for name, kind, linkname in ((f"{_DEEP_DIR}/up", tarfile.SYMTYPE, "/".join([".."] * 13)), *links):
+            member = tarfile.TarInfo(name)
+            member.type, member.linkname = kind, linkname
+            python_tar.addfile(member)
+        python_tar.addfile(tarfile.TarInfo(f"{way_out}{victim}"), io.BytesIO())
+    published_darwin_release[1](archive.getvalue())
+
+    with contextlib.suppress(standalone_python.PipxError):
+        standalone_python.download_python_build_standalone("3.99")
+
+    assert not victim.exists()
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_early_python_311_keeps_links_inside_archive(
+    monkeypatch: pytest.MonkeyPatch,
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+) -> None:
+    monkeypatch.delattr(tarfile, "data_filter")
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        python_tar.addfile(tarfile.TarInfo("python/bin/python3.99"), io.BytesIO())
+        for name, kind, linkname in (
+            ("python/bin/python3", tarfile.SYMTYPE, "python3.99"),
+            ("python/bin/python", tarfile.SYMTYPE, "../bin/python3"),
+            ("python/lib/python3.99", tarfile.LNKTYPE, "python/bin/python3.99"),
+        ):
+            member = tarfile.TarInfo(name)
+            member.type, member.linkname = kind, linkname
+            python_tar.addfile(member)
+    published_darwin_release[1](archive.getvalue())
+
+    python_path = Path(standalone_python.download_python_build_standalone("3.99"))
+
+    assert (python_path.is_symlink(), python_path.resolve().name) == (True, "python3.99")
+    assert (python_path.parent / "python").resolve() == python_path.resolve()
+    assert (python_path.parents[1] / "lib" / "python3.99").stat().st_nlink == 2
 
 
 def _python_archive_bytes() -> bytes:
