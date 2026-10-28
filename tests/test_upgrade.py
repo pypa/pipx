@@ -334,19 +334,6 @@ def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     assert "upgraded package black" in captured.out
 
 
-def _publish_wheel(directory: Path, project: str, version: str, requires: tuple[str, ...] = ()) -> None:
-    dist_info: Final[str] = f"{project}-{version}.dist-info"
-    requires_dist: Final[str] = "".join(f"Requires-Dist: {requirement}\n" for requirement in requires)
-    with zipfile.ZipFile(directory / f"{project}-{version}-py3-none-any.whl", "w") as wheel:
-        wheel.writestr(f"{project}.py", "def main() -> None:\n    pass\n")
-        wheel.writestr(
-            f"{dist_info}/METADATA", f"Metadata-Version: 2.1\nName: {project}\nVersion: {version}\n{requires_dist}"
-        )
-        wheel.writestr(f"{dist_info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-        wheel.writestr(f"{dist_info}/entry_points.txt", f"[console_scripts]\n{project}-app = {project}:main\n")
-        wheel.writestr(f"{dist_info}/RECORD", "")
-
-
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_uv_keeps_pinned_injected_dependency(tmp_path: Path) -> None:
@@ -365,6 +352,19 @@ def test_upgrade_uv_keeps_pinned_injected_dependency(tmp_path: Path) -> None:
     assert not run_pipx_cli(["upgrade", "tool"])
 
     assert sorted(path.name for path in (paths.ctx.venvs / "tool").rglob("plug-*.dist-info")) == ["plug-1.5.dist-info"]
+
+
+def _publish_wheel(directory: Path, project: str, version: str, requires: tuple[str, ...] = ()) -> None:
+    dist_info: Final[str] = f"{project}-{version}.dist-info"
+    requires_dist: Final[str] = "".join(f"Requires-Dist: {requirement}\n" for requirement in requires)
+    with zipfile.ZipFile(directory / f"{project}-{version}-py3-none-any.whl", "w") as wheel:
+        wheel.writestr(f"{project}.py", "def main() -> None:\n    pass\n")
+        wheel.writestr(
+            f"{dist_info}/METADATA", f"Metadata-Version: 2.1\nName: {project}\nVersion: {version}\n{requires_dist}"
+        )
+        wheel.writestr(f"{dist_info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+        wheel.writestr(f"{dist_info}/entry_points.txt", f"[console_scripts]\n{project}-app = {project}:main\n")
+        wheel.writestr(f"{dist_info}/RECORD", "")
 
 
 @pytest.mark.parametrize(
