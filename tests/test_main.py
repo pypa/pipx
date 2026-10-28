@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import run_pipx_cli
+from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import constants, main, paths
 from pipx.util import PipxError
@@ -521,3 +522,38 @@ def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> 
     assert run_pipx_cli([]) == 1
 
     assert capsys.readouterr().out.startswith("usage: pipx")
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_dir_is_created_owner_only() -> None:
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_dir_left_world_readable_is_tightened() -> None:
+    paths.ctx.logs.mkdir(mode=0o755, parents=True)
+
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_file_is_owner_only() -> None:
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(cast("Path", paths.ctx.log_file).stat().st_mode) == 0o600
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> None:
+    mocker.patch.object(Path, "chmod", autospec=True, side_effect=PermissionError)
+
+    assert not run_pipx_cli(["list"])
+
+    assert cast("Path", paths.ctx.log_file).parent == paths.ctx.logs
