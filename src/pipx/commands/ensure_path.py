@@ -28,7 +28,7 @@ def get_pipx_user_bin_path() -> Path | None:
     # NOTE: using this method to detect pip user-installed pipx will return
     #   None if pipx was installed as editable using `pip install --user -e`
 
-    # https://docs.python.org/3/install/index.html#inst-alt-install-user
+    # https://docs.python.org/3/library/sysconfig.html#user-scheme
     #   Linux + Mac:
     #       scripts in <userbase>/bin
     #   Windows:
