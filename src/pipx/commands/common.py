@@ -233,7 +233,11 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
     if len(first_line) + len(separator) + len(_IGNORE_ENVIRONMENT_FLAG) > _MAX_SHEBANG_LENGTH:
         return
 
-    path.write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
+    # uv hard-links or symlinks installed files to its cache, which other environments share; a new inode keeps them
+    with TemporaryDirectory(dir=path.parent) as directory:
+        (rewritten := Path(directory) / path.name).write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
+        shutil.copymode(path, rewritten)
+        rewritten.replace(path)
 
 
 def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> Path | None:
