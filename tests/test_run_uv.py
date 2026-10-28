@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
+from pipx import paths
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.util import PipxError
 
@@ -175,6 +176,8 @@ def test_run_script_via_uv_run_uses_uv_run_script(
         str(fake_uv),
         "run",
         "--script",
+        "--project",
+        str(paths.ctx.home),
         "--python",
         "python3.12",
         *cooldown_args,

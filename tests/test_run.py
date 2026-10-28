@@ -9,7 +9,7 @@ import subprocess
 import sys
 import textwrap
 from functools import partial
-from http.server import SimpleHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
 from threading import Thread
@@ -447,6 +447,40 @@ def test_run_script_from_url(served_script: str) -> None:
     run_pipx_cli_exit(["run", served_script], assert_exit=0)
 
 
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_from_url_ignores_working_directory_modules(
+    served_script: str, tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "imports-json.py").write_text("import json\n\nprint(json.dumps('ok'))\n", encoding="utf-8")
+
+    run_pipx_cli_exit(["run", served_script.replace("pipx-demo.py", "imports-json.py")], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines() == ['"ok"']
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_entry_point_ignores_working_directory_modules(
+    empty_project: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (empty_project / "empty_project" / "main.py").write_text(
+        "import json\n\n\ndef cli() -> None:\n    print(json.dumps('ok'))\n", encoding="utf-8"
+    )
+
+    run_pipx_cli_exit(["run", "--spec", str(empty_project), "empty-project"], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines() == ['"ok"']
+
+
+@pytest.fixture
+def planted_json_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cwd: Final[Path] = tmp_path / "cwd"
+    cwd.mkdir()
+    (cwd / "json.py").write_text("raise SystemExit('imported json.py from the working directory')\n", encoding="utf-8")
+    monkeypatch.chdir(cwd)
+
+
 @pytest.fixture
 def served_script(tmp_path: Path) -> Iterator[str]:
     """Serves the script over loopback rather than fetching a third-party gist.
@@ -751,6 +785,24 @@ def test_run_with_requirements(script_text: str, expected_output: str, tmp_path:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> None:
+    # uv fails on a malformed config file it discovers, so success proves it never read the one beside the script; a
+    # sibling of PIPX_HOME, since a uv.toml above PIPX_HOME would still apply
+    (script_dir := tmp_path / "scripts").mkdir()
+    (script_dir / "uv.toml").write_text("index-url = [\n")
+    script: Final[Path] = script_dir / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
+    script.write_text(
+        f"# /// script\n# dependencies = []\n# ///\nfrom pathlib import Path\nPath({str(out)!r}).write_text('ran')\n"
+    )
+
+    run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
+
+    assert out.read_text() == "ran"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
@@ -934,6 +986,15 @@ def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_pa
     assert return_code != 0
     assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
     assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_package_install_failure_expires_cache() -> None:
+    command = ["run", "--backend", "pip", "--pip-args=--no-index", "--spec", "pipx-missing-package", "missing-app"]
+
+    assert run_pipx_cli(command) == 1
+
+    assert len(list(paths.ctx.venv_cache.glob("*/pipx_expired_venv"))) == 1
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
@@ -1239,6 +1300,44 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
 
     with pytest.raises(PipxError, match="larger than"):
         run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
+
+
+@pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_script_url_cut_short_is_rejected(
+    truncated_script_url: str, capsys: pytest.CaptureFixture[str], command: str
+) -> None:
+    assert run_pipx_cli([command, truncated_script_url]) == 1
+
+    assert f"Script {truncated_script_url} ended 80 bytes short of its Content-Length." in " ".join(
+        capsys.readouterr().err.split()
+    )
+
+
+@pytest.fixture
+def truncated_script_url() -> Iterator[str]:
+    server = ThreadingTCPServer(("127.0.0.1", 0), _TruncatingHandler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}/tool.py"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+class _TruncatingHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Length", "100")
+        self.end_headers()
+        self.wfile.write(b"print('first half')\n")
+        self.close_connection = True
+
+    def log_message(self, format: str, *args: object) -> None:  # ruff:ignore[builtin-argument-shadowing]  # overrides the stdlib signature
+        pass
 
 
 @pytest.mark.parametrize(

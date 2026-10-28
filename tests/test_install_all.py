@@ -235,6 +235,27 @@ def test_install_all_restores_recorded_args(
     ) == (["--system-site-packages"], expected_pip_args, expected_pip_args)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_leaves_directory_named_in_recorded_venv_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    other_dir: Final[Path] = tmp_path / "documents"
+    other_dir.mkdir()
+    (other_dir / "notes.txt").write_text("keep", encoding="utf-8")
+    spec = json.loads(capsys.readouterr().out)
+    spec["venvs"]["pycowsay"]["metadata"]["venv_args"] = ["--clear", str(other_dir)]
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(json.dumps(spec), encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    assert sorted(path.name for path in other_dir.iterdir()) == ["notes.txt"]
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all_drops_recorded_pip_args_for_another_backend(
@@ -300,7 +321,7 @@ def test_install_all_warning_redacts_index_credentials(
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
-    redacted: Final[str] = credentialed_index_url.replace("s3cret", "****")
+    redacted: Final[str] = credentialed_index_url.replace("user:s3cret", "****:****")
     assert (
         "Ignoring pip args recorded for the pip backend of pycowsay: --progress-bar off; translated for uv: "
         f"--default-index {redacted}\n"
@@ -314,6 +335,14 @@ def test_install_all_warning_redacts_index_credentials(
         pytest.param("pip", "--index-url {url}", "--default-index {url}", id="pip-index-url"),
         pytest.param("pip", "--index-url={url}", "--default-index {url}", id="pip-joined-value"),
         pytest.param("pip", "-i{url}", "--default-index {url}", id="pip-short-joined-value"),
+        pytest.param("pip", "--index-u {url}", "--default-index {url}", id="pip-abbreviated-index-url"),
+        pytest.param("pip", "--index={url}", "--default-index {url}", id="pip-index-abbreviates-index-url"),
+        pytest.param(
+            "pip",
+            "--extra-i {url} --find-l {links} --no-ind --tr localhost",
+            "--index {url} --find-links {links} --no-index --allow-insecure-host localhost",
+            id="pip-abbreviated-options",
+        ),
         pytest.param(
             "pip",
             "--extra-index-url {url} --find-links {links} --no-index",
@@ -380,6 +409,7 @@ def test_install_all_translates_recorded_pip_args_for_another_backend(  # ruff:i
             id="uv-insecure-host-url",
         ),
         pytest.param("pip", "--keyring-provider import", "--keyring-provider import", id="pip-keyring-provider"),
+        pytest.param("pip", "--keyring-p import", "--keyring-provider import", id="pip-abbreviated-keyring-provider"),
     ],
 )
 def test_install_all_refuses_untranslatable_index_args(

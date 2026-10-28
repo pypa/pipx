@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final, TypedDict
 
 import pytest
 
-from pipx import backends, pipx_metadata_file
+from pipx import backends, paths, pipx_metadata_file
 from pipx.backends import (
     KNOWN_BACKENDS,
     PIP,
@@ -418,7 +418,11 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture)
 
     UvBackend().install(venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[])
 
-    assert run_subprocess.call_args.kwargs["env_overrides"] == {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
+    assert run_subprocess.call_args.kwargs["env_overrides"] == {
+        "VIRTUAL_ENV": None,
+        "UV_NO_PROGRESS": "1",
+        "UV_PROJECT": str(paths.ctx.home),
+    }
 
 
 @pytest.mark.parametrize(
@@ -877,3 +881,22 @@ def test_backend_override_warning_dedups_per_venv(
 
     warnings = [rec for rec in caplog.records if "Ignoring --backend=uv" in rec.message]
     assert len(warnings) == 1
+
+
+@pytest.mark.parametrize(
+    ("backend", "env_backend", "expected"),
+    [
+        pytest.param("uv", None, (UV, "cli"), id="cli"),
+        pytest.param(None, "uv", (UV, "env"), id="env"),
+    ],
+)
+def test_venv_without_record_resolves_like_a_fresh_one(
+    tmp_path: Path, backend: str | None, env_backend: str | None, expected: tuple[str, str]
+) -> None:
+    venv_dir = tmp_path / "demo"
+    venv_dir.mkdir()
+    (venv_dir / "pyvenv.cfg").touch()
+
+    venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+
+    assert (venv.backend_name, venv.backend_source) == expected
