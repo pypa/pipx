@@ -132,8 +132,9 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
 def test_venv_without_pyvenv_cfg_refuses_installer(
     operation: Callable[[Venv], object], tmp_path: Path, mocker: MockerFixture
 ) -> None:
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
     venv: Final[Venv] = Venv(tmp_path / "demo")
-    backend: Final[MagicMock] = mocker.patch.object(venv, "_backend", mocker.create_autospec(Backend, instance=True))
 
     with pytest.raises(PipxError, match=r"has no pyvenv\.cfg, so it is no longer a virtual environment"):
         operation(venv)
