@@ -1998,6 +1998,34 @@ def test_global_flag_before_subcommand_rejected(capsys: pytest.CaptureFixture[st
     assert "unrecognized arguments: --global" in captured.err
 
 
+@pytest.mark.parametrize(
+    "flag",
+    [
+        pytest.param("--global", marks=skip_if_windows, id="global"),
+        pytest.param("--skip-maintenance", id="skip-maintenance"),
+        pytest.param("--verbose", id="verbose"),
+        pytest.param("--quiet", id="quiet"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("group", "subcommand"),
+    [
+        pytest.param("manifest", ["sync", "pipx.toml"], id="manifest"),
+        pytest.param("interpreter", ["prune"], id="interpreter"),
+        pytest.param("cache", ["purge"], id="cache"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_shared_flag_before_nested_subcommand_rejected(
+    capsys: pytest.CaptureFixture[str], group: str, subcommand: list[str], flag: str
+) -> None:
+    # the subcommand's namespace used to overwrite the flag parsed by the group parser, silently dropping it
+    with pytest.raises(SystemExit) as exc_info:
+        run_pipx_cli([group, flag, *subcommand])
+
+    assert (exc_info.value.code, f"unrecognized arguments: {flag}" in capsys.readouterr().err) == (2, True)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_quiet_flag(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--quiet", "--quiet", "pycowsay"])
