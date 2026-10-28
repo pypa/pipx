@@ -561,6 +561,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             f"determining package name from {redact_url_credentials(package_or_url)!r}", do_animation=self.do_animation
         ):
             old_package_set = self.list_installed_packages()
+            old_dist_info_dirs = self._dist_info_dirs()
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
@@ -595,7 +596,22 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 """
             raise PipxError(msg)
 
+        # a wheel's data files are unpacked after the installer validated its METADATA and can rewrite the listed name,
+        # but the .dist-info directory keeps the name the installer accepted
+        if any(
+            _distribution_name(path) != canonicalize_name(package_name)
+            for path in self._dist_info_dirs() - old_dist_info_dirs
+        ):
+            msg = f"""
+                The package installed from spec {redact_url_credentials(package_or_url)!r} declares the name
+                {package_name!r}, which is not the name the installer installed it under.
+                """
+            raise PipxError(msg)
+
         return package_name
+
+    def _dist_info_dirs(self) -> set[Path]:
+        return {path for directory in self.site_packages for path in directory.glob("*.dist-info")}
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
         from pipx.venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
