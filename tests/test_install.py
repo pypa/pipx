@@ -952,6 +952,13 @@ def test_install_upgrade_strategy_requires_upgrade(capsys: pytest.CaptureFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_rejects_empty_index_url(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "--index-url", "", "pycowsay"])
+    assert "--index-url is empty" in capsys.readouterr().err
+    assert not (paths.ctx.venvs / "pycowsay").exists()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFixture) -> None:
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.shared_libs, "has_been_updated_this_run", False)
