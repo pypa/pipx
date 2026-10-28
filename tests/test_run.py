@@ -924,6 +924,15 @@ def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_pa
     assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_package_install_failure_expires_cache() -> None:
+    command = ["run", "--backend", "pip", "--pip-args=--no-index", "--spec", "pipx-missing-package", "missing-app"]
+
+    assert run_pipx_cli(command) == 1
+
+    assert len(list(paths.ctx.venv_cache.glob("*/pipx_expired_venv"))) == 1
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_pip_args_forwarded_to_shared_libs(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
