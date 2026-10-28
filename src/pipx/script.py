@@ -281,9 +281,10 @@ def _digest(data: bytes) -> str:
 
 
 def reject_url_credentials(url: str) -> None:
-    # urllib keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never authenticate
-    # the download, and a failed host:port split puts the password into the error message
-    if urllib.parse.urlsplit(url).username is not None:
+    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
+    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
+    # does log in with them
+    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
         msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
         raise PipxError(msg)
 

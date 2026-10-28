@@ -65,9 +65,9 @@ Use ``--spec`` when the executable name differs from the package name or when in
  Run from a URL
 ***************
 
-pipx downloads a script with Python's ``urllib``, which cannot send credentials embedded in a URL, so ``pipx run`` and
-``pipx install`` refuse a script URL with a ``user@`` or ``user:password@`` part. Otherwise you can run ``.py`` files
-hosted anywhere:
+pipx downloads a script with Python's ``urllib``, which cannot send credentials embedded in an HTTP URL. ``pipx run``
+and ``pipx install`` therefore refuse an ``http`` or ``https`` script URL with a ``user@`` or ``user:password@`` part.
+Otherwise you can run ``.py`` files hosted anywhere:
 
 .. code-block:: console
 

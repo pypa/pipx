@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
+from urllib.error import URLError
 
 import pytest
 
@@ -202,3 +203,12 @@ def test_install_script_url_with_invalid_port_reports_url(capsys: pytest.Capture
     assert run_pipx_cli(["install", "https://localhost:port/tool.py"]) == 1
 
     assert "Unable to read script https://localhost:port/tool.py: nonnumeric port: 'port'" in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_ftp_script_url_passes_credentials_to_urllib(mocker: MockerFixture) -> None:
+    urlopen = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"))
+
+    assert run_pipx_cli(["run", "ftp://alice:s3cr3t@localhost/tool.py"]) == 1
+
+    assert urlopen.call_args.args[0] == "ftp://alice:s3cr3t@localhost/tool.py"
