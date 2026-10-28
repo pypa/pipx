@@ -291,3 +291,30 @@ def test_install_refuses_a_named_python_the_package_rules_out(
     run_pipx_cli(["install", "--backend", backend, "--python", sys.executable, str(project_excluding_this_python)])
 
     assert "The Python you named does not satisfy" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("working", "broken"),
+    [
+        pytest.param('version = "0.1"\n', 'version = "0.2"\ndependencies = ["unobtainable-package"]\n', id="build"),
+        pytest.param('scripts.needs-older = "needs_older.main:main"\n', "", id="post-install"),
+    ],
+)
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_force_failing_on_a_supported_python_keeps_the_environment(
+    make_needs_project: Callable[[str], Path], working: str, broken: str
+) -> None:
+    project: Final[Path] = make_needs_project(f">={MINIMUM_PYTHON_VERSION}")
+    assert not run_pipx_cli(["install", "--backend", "pip", str(project)])
+    venv_dir: Final[Path] = paths.ctx.venvs / "needs-older"
+    recorded: Final[str] = (venv_dir / "pipx_metadata.json").read_text()
+    (marker := venv_dir / "marker").touch()
+    pyproject: Final[Path] = project / "pyproject.toml"
+    text: Final[str] = pyproject.read_text().replace(
+        f">={MINIMUM_PYTHON_VERSION}", f"<{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pyproject.write_text(text.replace(working, broken))
+
+    assert run_pipx_cli(["install", "--force", str(project)])
+
+    assert (marker.exists(), (venv_dir / "pipx_metadata.json").read_text()) == (True, recorded)

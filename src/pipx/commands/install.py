@@ -43,7 +43,7 @@ from pipx.commands.common import (
     validate_suffix,
 )
 from pipx.commands.inject import inject
-from pipx.commands.transaction import preserve_venv
+from pipx.commands.transaction import VenvBackup, preserve_venv
 from pipx.constants import (
     EXIT_CODE_OK,
     ExitCode,
@@ -256,7 +256,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
             )
             try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
-                with preserve_venv(venv_dir, enabled=preserve_existing_venv):
+                with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
                         rmdir(venv_dir)
@@ -282,6 +282,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         venv,
                         build,
                         venv_dir=venv_dir,
+                        venv_backup=venv_backup,
                         fetch_python=fetch_python,
                         python_flag_passed=python_flag_passed,
                         verbose=verbose,
@@ -300,7 +301,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         )
                     )
             except (Exception, KeyboardInterrupt) as error:
-                if not preserve_existing_venv:
+                if not exists:
                     venv.remove_venv()
                 if not isinstance(error, PipxError):
                     raise
@@ -1072,6 +1073,7 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     build: _EnvironmentBuild,
     *,
     venv_dir: Path,
+    venv_backup: VenvBackup,
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
@@ -1087,6 +1089,7 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
 
     venv = _rebuild_on_supported_python(
         venv_dir=venv_dir,
+        venv_backup=venv_backup,
         constraint=constraint,
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
@@ -1120,6 +1123,7 @@ def _supported_python(
 def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context to a fresh venv
     *,
     venv_dir: Path,
+    venv_backup: VenvBackup,
     constraint: SpecifierSet,
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
@@ -1133,7 +1137,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         python_flag_passed=python_flag_passed,
         messages=messages,
     )
-    rmdir(venv_dir)
+    venv_backup.remove_venv()
     return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend)
 
 
