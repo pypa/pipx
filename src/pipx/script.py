@@ -140,8 +140,16 @@ def is_script_spec(package_spec: str) -> bool:
 
 
 def local_script(package_spec: str) -> Path | None:
+    parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    if parsed.scheme and parsed.netloc:
+        return None
     path: Final[Path] = Path(package_spec).expanduser()
-    if path.is_file() and (path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))):
+    if not path.is_file():
+        return None
+    if path.suffix.lower() == ".py":
+        return path.resolve()
+    # a bare name is a package on the index, as pip reads it, so a file in the working directory must not shadow it
+    if not path.suffix and package_spec != path.name and _has_inline_script_metadata(path):
         return path.resolve()
     return None
 

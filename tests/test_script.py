@@ -4,11 +4,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
+from helpers import skip_if_windows
 from pipx.script import (
     _MAX_SCRIPT_BYTES,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     ScriptMetadata,
     _read_url,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     installable_script,
+    local_script,
     read_script_metadata,
     script_name_from_spec,
 )
@@ -147,6 +149,40 @@ def test_script_name_from_spec_binary_without_suffix(tmp_path: Path) -> None:
     binary.write_bytes(b"\xff\xfe")
 
     assert script_name_from_spec(str(binary), ()) is None
+
+
+@pytest.mark.parametrize(
+    ("spec", "name"),
+    [
+        pytest.param("my_app", None, id="bare-name"),
+        pytest.param("./my_app", "my-app", id="relative-path"),
+    ],
+)
+def test_script_name_from_spec_without_suffix_needs_a_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, spec: str, name: str | None
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "my_app").write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8")
+
+    assert script_name_from_spec(spec, ()) == name
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "url",
+    [
+        pytest.param("https://example.invalid/app.py", id="py-suffix"),
+        pytest.param("https://example.invalid/app", id="no-suffix"),
+    ],
+)
+def test_local_script_ignores_file_below_cwd_named_like_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, url: str
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (lookalike := tmp_path / url.replace("//", "/")).parent.mkdir(parents=True)
+    lookalike.write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8")
+
+    assert local_script(url) is None
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
