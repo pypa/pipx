@@ -471,6 +471,8 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:
+    (tmp_path / "fake_venv").mkdir()
+    (tmp_path / "fake_venv" / "pyvenv.cfg").touch()
     fake_venv = venv.Venv(tmp_path / "fake_venv")
     pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
     shared_python = shared_libs.shared_libs.python_path

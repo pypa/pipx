@@ -9,11 +9,13 @@ import pytest
 
 from helpers import run_pipx_cli
 from pipx import paths
+from pipx.backends import Backend
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError, redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
     from unittest.mock import MagicMock
 
@@ -82,6 +84,8 @@ _CREDENTIALED_REQUIREMENT: Final[str] = "helper @ http://u:s3cr3ttok@127.0.0.1:9
 
 @pytest.fixture
 def venv_failing_install(tmp_path: Path, mocker: MockerFixture) -> Venv:
+    (tmp_path / "demo").mkdir()
+    (tmp_path / "demo" / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(tmp_path / "demo")
     mocker.patch.object(venv.backend, "install", autospec=True, return_value=subprocess.CompletedProcess([], 1, "", ""))
     return venv
@@ -103,3 +107,48 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
         venv_failing_install.install_unmanaged_packages([_CREDENTIALED_REQUIREMENT], [])
 
     assert f"Installing {redact_url_credentials(_CREDENTIALED_REQUIREMENT)}" in caplog.messages
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        pytest.param(lambda venv: venv.list_installed_packages(), id="list"),
+        pytest.param(lambda venv: venv.uninstall_packages("demo"), id="uninstall"),
+        pytest.param(lambda venv: venv.run_pip_get_exit_code(["install", "demo"]), id="runpip"),
+        pytest.param(
+            lambda venv: venv.upgrade_package(
+                "demo",
+                "demo",
+                [],
+                include_dependencies=False,
+                include_resources_from=[],
+                include_apps=True,
+                is_main_package=True,
+            ),
+            id="upgrade",
+        ),
+    ],
+)
+def test_venv_without_pyvenv_cfg_refuses_installer(
+    operation: Callable[[Venv], object], tmp_path: Path, mocker: MockerFixture
+) -> None:
+    venv: Final[Venv] = Venv(tmp_path / "demo")
+    backend: Final[MagicMock] = mocker.patch.object(venv, "_backend", mocker.create_autospec(Backend, instance=True))
+
+    with pytest.raises(PipxError, match=r"has no pyvenv\.cfg, so it is no longer a virtual environment"):
+        operation(venv)
+
+    assert backend.method_calls == []
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_runpip_refuses_venv_without_pyvenv_cfg(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    # a wheel's data file can own pyvenv.cfg, and upgrading to a release without it deletes the file
+    (paths.ctx.venvs / "pycowsay" / "pyvenv.cfg").unlink()
+    capsys.readouterr()
+
+    assert (run_pipx_cli(["runpip", "pycowsay", "list"]), "pipx reinstall pycowsay" in capsys.readouterr().err) == (
+        1,
+        True,
+    )

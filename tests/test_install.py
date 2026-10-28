@@ -1220,8 +1220,9 @@ def test_pip_args_forwarded_to_package_name_determination(capsys: pytest.Capture
     assert "Cannot determine package name from spec" not in captured.err
 
 
-def test_package_name_determination_preserves_install_error(mocker: MockerFixture) -> None:
-    venv: Final[Venv] = Venv(Path("requires-newer-python-venv"))
+def test_package_name_determination_preserves_install_error(mocker: MockerFixture, tmp_path: Path) -> None:
+    (tmp_path / "pyvenv.cfg").touch()
+    venv: Final[Venv] = Venv(tmp_path)
     backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
     backend.cooldown_args.return_value = []
     backend.install.return_value = subprocess.CompletedProcess(
@@ -1289,7 +1290,9 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
             (site_packages / dist_info_dir).mkdir()
         return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
 
-    venv: Final[Venv] = Venv(Path("probe-venv"))
+    (root := site_packages / "probe-venv").mkdir()
+    (root / "pyvenv.cfg").touch()
+    venv: Final[Venv] = Venv(root)
     backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
     # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
     backend.install.side_effect = install
