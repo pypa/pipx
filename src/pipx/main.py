@@ -12,6 +12,7 @@ __lazy_modules__ = [
     "pathlib",
     "pipx.backends",
     "pipx.commands.environment",
+    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.package_specifier",
     "pipx.result",
@@ -49,6 +50,7 @@ from pipx.animate import hide_cursor, show_cursor
 from pipx.backends import KNOWN_BACKENDS, UV, env_default_backend, get_backend, resolve_backend_name
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
+from pipx.commands.transaction import empty_trash
 from pipx.constants import (
     _COOLDOWN,
     _COOLDOWN_INVALID,
@@ -85,7 +87,6 @@ from pipx.util import (
     pipx_wrap,
     redact_url_credentials,
     reject_empty_index,
-    rmdir,
     stream_subprocess_stdout_to_stderr,
 )
 from pipx.venv import VenvContainer
@@ -2188,7 +2189,7 @@ def setup(args: argparse.Namespace) -> None:
     if args.command not in {"environment", "list"}:
         _create_directories(is_global=is_global)
 
-    rmdir(paths.ctx.trash, safe_rm=False)
+    empty_trash()
 
     old_pipx_venv_location: Final[Path] = paths.ctx.venvs / "pipx-app"
     if old_pipx_venv_location.exists():
