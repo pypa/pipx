@@ -12,6 +12,7 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.run_uv",
+    "pipx.package_specifier",
     "pipx.requires_python",
     "pipx.script",
     "pipx.util",
