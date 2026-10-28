@@ -36,7 +36,7 @@ _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     r"""
     ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
-    (?P<content> (^\#(|\ .*)$ \s)+? )
+    (?P<content> (^\#(|\ .*)$ \s)+ )
     ^\#\ ///$
     """,
     re.VERBOSE | re.MULTILINE,

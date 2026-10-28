@@ -39,6 +39,22 @@ def test_read_script_metadata_path(tmp_path: Path) -> None:
     assert read_script_metadata(script) == ScriptMetadata((), None)
 
 
+@pytest.mark.parametrize(
+    ("quote", "line"),
+    [
+        pytest.param('"""', "# ///", id="basic-string-closing"),
+        pytest.param("'''", "# ///", id="literal-string-closing"),
+        pytest.param('"""', "# /// other", id="basic-string-header"),
+    ],
+)
+def test_read_script_metadata_delimiter_in_multiline_string(quote: str, line: str) -> None:
+    content: Final[str] = (
+        f'# /// script\n# dependencies = ["demo"]\n# [tool.demo]\n# text = {quote}\n{line}\n# {quote}\n# ///\n'
+    )
+
+    assert read_script_metadata(content) == ScriptMetadata(("demo",), None)
+
+
 def test_read_script_metadata_missing() -> None:
     assert read_script_metadata("print('hello')\n") is None
 
@@ -72,12 +88,25 @@ def test_read_script_metadata_missing() -> None:
             ValueError,
         ),
         (
-            "# /// script\n# dependencies = []\n# ///\n# /// script\n# dependencies = []\n# ///\n",
+            "# /// script\n# dependencies = []\n# ///\n\n# /// script\n# dependencies = []\n# ///\n",
             "Multiple",
             ValueError,
         ),
+        (
+            "# /// script\n# dependencies = []\n# ///\n# /// script\n# dependencies = []\n# ///\n",
+            "Invalid statement",
+            ValueError,
+        ),
     ],
-    ids=("dependencies", "requirement", "requires-python-type", "requires-python-value", "obsolete", "multiple"),
+    ids=(
+        "dependencies",
+        "requirement",
+        "requires-python-type",
+        "requires-python-value",
+        "obsolete",
+        "multiple",
+        "adjacent",
+    ),
 )
 def test_read_script_metadata_invalid(content: str, message: str, error_type: type[Exception]) -> None:
     with pytest.raises(error_type, match=message):
