@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["json", "pipx.shared_libs", "pipx.util"]
+__lazy_modules__ = ["json", "packaging.version", "pipx.shared_libs", "pipx.util"]
 
 import json
 import logging
 from typing import TYPE_CHECKING, Final
+
+from packaging.version import InvalidVersion, Version
 
 from pipx.animate import animate
 from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
@@ -108,6 +110,37 @@ class PipBackend(Backend):
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process, streamed=verbose)
         return process
+
+    def install_lock(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        lock_file: Path,
+        pip_args: list[str],
+        verbose: bool = False,
+    ) -> CompletedProcess[str]:
+        process = shared_libs.run_repairing_pip(
+            lambda: run_subprocess([str(venv_python), "-m", "pip", "--version"], run_dir=str(venv_root)),
+            pip_args=pip_args,
+            verbose=verbose,
+        )
+        try:
+            version: Version | None = Version(process.stdout.split()[1])
+        except (IndexError, InvalidVersion):
+            version = None
+        # older pip reads ``--requirement pylock.toml`` as a requirements file, applying its lines as options
+        min_version: Final[str] = "26.1"
+        if version is None or version < Version(min_version):
+            msg = (
+                f"Installing from {lock_file.name} needs pip>={min_version}, but this environment runs "
+                f"pip {version or 'of an unknown version'}.\n"
+                "Upgrade it with `pipx upgrade-shared`, or run with `--backend uv`."
+            )
+            raise PipxError(msg)
+        return super().install_lock(
+            venv_root=venv_root, venv_python=venv_python, lock_file=lock_file, pip_args=pip_args, verbose=verbose
+        )
 
     @staticmethod
     def cooldown_args(cooldown_days: int | None) -> list[str]:
