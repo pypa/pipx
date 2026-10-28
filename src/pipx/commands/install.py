@@ -259,14 +259,8 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 with preserve_venv(venv_dir, enabled=preserve_existing_venv):
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
-                        recorded_backend = venv.pipx_metadata.backend
                         rmdir(venv_dir)
-                        venv = Venv(
-                            venv_dir,
-                            python=venv.python,
-                            verbose=verbose,
-                            backend=install_backend or recorded_backend,
-                        )
+                        venv = Venv(venv_dir, python=venv.python, verbose=verbose, backend=venv.backend_name)
                     build = _EnvironmentBuild(
                         venv_args=venv_args,
                         pip_args=pip_args,
