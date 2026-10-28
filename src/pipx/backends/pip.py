@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING, Final
 
 from pipx.animate import animate
 from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
-from pipx.constants import PIPX_SHARED_PTH
+from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
     get_site_packages,
     get_venv_paths,
     run_subprocess,
+    safe_unlink,
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
@@ -33,7 +34,7 @@ class PipBackend(Backend):
     def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         return True
 
-    def upgrade_packaging_libraries(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+    def upgrade_packaging_libraries(  # Backend interface method, must dispatch polymorphically
         self,
         venv_python: Path,
         pip_args: list[str],
@@ -43,11 +44,25 @@ class PipBackend(Backend):
         del verbose  # pip's upgrade output is not gated on verbosity here
         # Reached only for ``pipx install pip``-style venvs that ship pip
         # in-tree; shared-libs venvs upgrade through ``shared_libs.upgrade``.
+        self._drop_site_config(venv_python.parent.parent)
         process = run_subprocess(
             [str(venv_python), "-m", "pip", "--no-input", "install", "--upgrade", *pip_args, "pip"],
             run_dir=str(venv_python.parent.parent),
         )
         subprocess_post_check(process)
+
+    @staticmethod
+    def _drop_site_config(venv_root: Path) -> None:
+        # pip reads <sys.prefix>/pip.conf over the user's own configuration, and any installed wheel can unpack a data
+        # file there; pip has no switch that skips only this file (--isolated still reads it, PIP_CONFIG_FILE=os.devnull
+        # drops every file), so a ``target`` in it would make the next upgrade install outside the venv
+        if (site_config := venv_root / ("pip.ini" if WINDOWS else "pip.conf")).is_file() or site_config.is_symlink():
+            _LOGGER.warning(
+                "Removing %s: pip would read it as configuration, and installed packages can write it. "
+                "Use PIP_* variables, --pip-args or your user-level pip configuration file instead.",
+                site_config,
+            )
+            safe_unlink(site_config)
 
     def create_venv(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mirroring venv-creation inputs
         self,
@@ -74,7 +89,7 @@ class PipBackend(Backend):
             purelib.mkdir(parents=True, exist_ok=True)
             (purelib / PIPX_SHARED_PTH).write_text("".join(f"{path}\n" for path in shared_libs.site_packages))
 
-    def install(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mapping flags to pip options
+    def install(  # ruff:ignore[too-many-arguments]  # Backend interface method mapping flags to pip options
         self,
         *,
         venv_root: Path,
@@ -94,6 +109,7 @@ class PipBackend(Backend):
         if verbose:
             cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
+        self._drop_site_config(venv_root)
         process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 cmd,
@@ -113,7 +129,7 @@ class PipBackend(Backend):
     def cooldown_args(cooldown_days: int | None) -> list[str]:
         return [] if not cooldown_days else ["--uploaded-prior-to", f"P{cooldown_days}D"]
 
-    def uninstall(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+    def uninstall(  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -124,25 +140,26 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages]
         if not verbose:
             cmd.append("-q")
+        self._drop_site_config(venv_root)
         process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(cmd, run_dir=str(venv_root)), pip_args=[], verbose=verbose
         )
         subprocess_post_check(process)
         return process
 
-    def list_installed(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+    def list_installed(  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
         venv_python: Path,
         not_required: bool = False,
     ) -> set[str]:
-        del venv_root
         if not_required:
             from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
             return list_not_required_packages(venv_python)
         cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
+        self._drop_site_config(venv_root)
         process = shared_libs.run_repairing_pip(lambda: run_subprocess(cmd), pip_args=[], verbose=False)
         if process.returncode != 0:
             msg = (
@@ -153,7 +170,7 @@ class PipBackend(Backend):
             raise PipxError(msg)
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
 
-    def list_outdated(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+    def list_outdated(  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -161,6 +178,7 @@ class PipBackend(Backend):
         index_args: list[str],
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
+        self._drop_site_config(venv_root)
         process = shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 [
@@ -180,7 +198,7 @@ class PipBackend(Backend):
         )
         return outdated_packages_from_process(process)
 
-    def run_raw_pip(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method passing raw pip controls through
+    def run_raw_pip(  # ruff:ignore[too-many-arguments]  # Backend interface method passing raw pip controls through
         self,
         *,
         venv_root: Path,
@@ -193,6 +211,7 @@ class PipBackend(Backend):
         cmd = [str(venv_python), "-m", "pip", *args]
         if not verbose:
             cmd.append("-q")
+        self._drop_site_config(venv_root)
         return shared_libs.run_repairing_pip(
             lambda: run_subprocess(
                 cmd,
