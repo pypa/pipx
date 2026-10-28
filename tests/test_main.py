@@ -366,6 +366,19 @@ def test_get_pip_args_rejects_unclosed_quote() -> None:
         main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
 
 
+def test_get_pip_args_forwards_index_url() -> None:
+    assert main.get_pip_args({"index_url": "https://example.com/simple"}) == [
+        "--index-url",
+        "https://example.com/simple",
+    ]
+
+
+@pytest.mark.parametrize("index_url", [pytest.param("", id="empty"), pytest.param("  ", id="whitespace")])
+def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
+    with pytest.raises(PipxError, match="--index-url is empty"):
+        main.get_pip_args({"index_url": index_url})
+
+
 _LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
 _GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
