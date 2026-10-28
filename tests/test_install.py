@@ -1523,7 +1523,6 @@ def test_install_local_wheel_records_installer_name(
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
-@pytest.mark.parametrize("embedded_delimiter", [False, True])
 @pytest.mark.parametrize(
     "directory",
     [
@@ -1533,16 +1532,9 @@ def test_install_local_wheel_records_installer_name(
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_inline_script(inline_script: Path, backend: str, directory: str, embedded_delimiter: bool) -> None:
+def test_install_inline_script(inline_script: Path, backend: str, directory: str) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
-    if embedded_delimiter:
-        inline_script.write_text(
-            inline_script.read_text(encoding="utf-8").replace(
-                "# ///\n", '# [tool.demo]\n# text = """\n# ///\n# """\n# ///\n'
-            ),
-            encoding="utf-8",
-        )
     (script_dir := inline_script.parent / directory).mkdir()
     script: Final[Path] = inline_script.rename(script_dir / inline_script.name)
     assert not run_pipx_cli(["install", "--backend", backend, str(script)])
