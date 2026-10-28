@@ -35,7 +35,7 @@ from pipx.commands.common import (
 from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import hazard, stars
-from pipx.package_specifier import get_extras
+from pipx.package_specifier import add_extras, get_extras, source_without_extras
 from pipx.result import (
     OperationData,
     OperationError,
@@ -127,7 +127,11 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     assert_not_pip_under_uv(canonicalize_name(package_name), venv.backend_name)
 
     is_main_package = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
-    if not force and venv.has_package(package_name) and (not is_main_package or not get_extras(package_spec)):
+    already_installed: Final[bool] = not force and venv.has_package(package_name)
+    main_spec: Final[str | None] = (
+        _main_spec_with_extras(venv, package_spec) if already_installed and is_main_package else None
+    )
+    if already_installed and main_spec is None:
         _LOGGER.info("Package %s is already installed", package_name)
         return _finish_inject(
             OperationResult(
@@ -151,6 +155,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             emit_output=emit_output,
         )
 
+    package_spec = main_spec or package_spec
     if is_main_package:
         main_package = venv.pipx_metadata.main_package
         pip_args = pip_args or main_package.pip_args
@@ -234,6 +239,25 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         ),
         emit_output=emit_output,
     )
+
+
+def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
+    # without --force only extras may change, so naming the package cannot swap the recorded path or URL for the index's
+    if not (extras := get_extras(package_spec)) or (recorded := venv.pipx_metadata.main_package.package_or_url) is None:
+        return None
+    try:
+        recorded_source: Final[str] = source_without_extras(recorded)
+    except PipxError as error:
+        msg = (
+            f"The recorded source {redact_url_credentials(recorded)} of {venv.name!r} no longer exists. "
+            f"Pass '--force' to install {redact_url_credentials(package_spec)!r} in its place."
+        )
+        raise PipxError(msg) from error
+    name: Final[str] = canonicalize_name(venv.main_package_name)
+    # NAME[extra] @ URL names the same source as a bare recorded URL
+    if source_without_extras(package_spec) not in {name, recorded_source, f"{name} @ {recorded_source}"}:
+        return None
+    return add_extras(recorded, venv.main_package_name, extras)
 
 
 def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:

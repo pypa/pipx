@@ -18,8 +18,9 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _UV_VALUE_FLAG_MAP: Final[dict[str, str]] = {
-    "--index-url": "--index-url",
-    "-i": "-i",
+    # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
+    "--index-url": "--default-index",
+    "-i": "--default-index",
     "--extra-index-url": "--extra-index-url",
     "--find-links": "--find-links",
     "-f": "-f",

@@ -16,7 +16,7 @@ import tomllib
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
@@ -291,6 +291,29 @@ def get_extras(package_spec: str) -> set[str]:
     return set()
 
 
+def source_without_extras(package_spec: str) -> str:
+    """Return what package_spec installs from, without its extras: a normalized requirement, a URL or a local path."""
+    parsed_package: Final[ParsedPackage] = _parse_specifier(package_spec)
+    if parsed_package.valid_pep508 is not None:
+        parsed_package.valid_pep508.extras = set()
+        return package_or_url_from_pep508(parsed_package.valid_pep508)
+    if parsed_package.valid_url is not None:
+        return parsed_package.valid_url
+    return _split_path_extras(cast("str", parsed_package.valid_local_path))[0]
+
+
+def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
+    """Return package_or_url with extras merged into the ones it already requests."""
+    parsed_package: Final[ParsedPackage] = _parse_specifier(package_or_url)
+    if parsed_package.valid_pep508 is not None:
+        parsed_package.valid_pep508.extras |= extras
+        return str(parsed_package.valid_pep508)
+    merged: Final[str] = ",".join(sorted(get_extras(package_or_url) | extras))
+    if parsed_package.valid_url is not None:
+        return f"{package_name}[{merged}] @ {parsed_package.valid_url}"
+    return f"{_split_path_extras(cast('str', parsed_package.valid_local_path))[0]}[{merged}]"
+
+
 def valid_pypi_name(package_spec: str) -> str | None:
     if (package_req := _requirement(package_spec)) is None:
         return None
@@ -476,6 +499,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 
 __all__ = [
     "absolute_path_pip_args",
+    "add_extras",
     "extract_index_options",
     "fix_package_name",
     "get_extras",
@@ -485,6 +509,7 @@ __all__ = [
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
     "replace_index_options",
+    "source_without_extras",
     "static_project_name",
     "valid_pypi_name",
     "wheel_project_name",

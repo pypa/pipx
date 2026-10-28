@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from pipx.package_specifier import (
+    add_extras,
     extract_index_options,
     fix_package_name,
     get_extras,
@@ -15,6 +16,7 @@ from pipx.package_specifier import (
     parse_specifier_for_metadata,
     parse_specifier_for_upgrade,
     replace_index_options,
+    source_without_extras,
     static_project_name,
     valid_pypi_name,
     wheel_project_name,
@@ -96,6 +98,39 @@ def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None
 def test_extract_index_options_missing_value(option: str) -> None:
     with pytest.raises(PipxError, match=re.escape(f"Missing value for {option!r} in --pip-args.")):
         extract_index_options(["--no-cache-dir", option])
+
+
+@pytest.mark.parametrize(
+    ("package_spec", "expected"),
+    [
+        pytest.param("Black[d]==22.8.0", "black==22.8.0", id="requirement"),
+        pytest.param(
+            "black[d] @ https://files.example/black.whl", "black @ https://files.example/black.whl", id="pep508"
+        ),
+        pytest.param("https://files.example/black.whl", "https://files.example/black.whl", id="url"),
+    ],
+)
+def test_source_without_extras(package_spec: str, expected: str) -> None:
+    assert source_without_extras(package_spec) == expected
+
+
+def test_source_without_extras_local_path(tmp_path: Path) -> None:
+    assert source_without_extras(f"{tmp_path}[d]") == str(tmp_path.resolve())
+
+
+@pytest.mark.parametrize(
+    ("package_or_url", "expected"),
+    [
+        pytest.param("black[jupyter]==22.8.0", "black[d,jupyter]==22.8.0", id="requirement"),
+        pytest.param("https://files.example/black.whl", "black[d] @ https://files.example/black.whl", id="url"),
+    ],
+)
+def test_add_extras(package_or_url: str, expected: str) -> None:
+    assert add_extras(package_or_url, "black", {"d"}) == expected
+
+
+def test_add_extras_local_path(tmp_path: Path) -> None:
+    assert add_extras(f"{tmp_path}[jupyter]", "black", {"d"}) == f"{tmp_path.resolve()}[d,jupyter]"
 
 
 @pytest.mark.parametrize(

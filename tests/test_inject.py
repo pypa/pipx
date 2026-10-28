@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import textwrap
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -27,7 +28,6 @@ from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from _pytest.capture import CaptureResult
 
@@ -316,6 +316,72 @@ def test_inject_main_package_extra(
         "injected in venv" in list_output,
         environment,
     ) == (True, False, venv_dir.name)
+
+
+@pytest.mark.parametrize(
+    ("installed_extras", "injected", "recorded_extras"),
+    [
+        pytest.param("", "repeatme[cow]", "[cow]", id="by-name"),
+        pytest.param("", "RepeatMe[cow]", "[cow]", id="by-unnormalized-name"),
+        pytest.param("[tools]", "repeatme[cow]", "[cow,tools]", id="merges-recorded-extras"),
+        pytest.param("[tools]", "{wheel}[cow]", "[cow,tools]", id="by-recorded-path"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_main_package_extra_keeps_recorded_source(
+    local_extras_wheel: Path, installed_extras: str, injected: str, recorded_extras: str
+) -> None:
+    assert not run_pipx_cli(["install", f"{local_extras_wheel}{installed_extras}"])
+
+    assert not run_pipx_cli(["inject", "repeatme", injected.format(wheel=local_extras_wheel)])
+
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == (
+        f"{local_extras_wheel}{recorded_extras}"
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_main_package_extra_by_recorded_url(local_extras_wheel: Path) -> None:
+    assert not run_pipx_cli(["install", local_extras_wheel.as_uri()])
+
+    assert not run_pipx_cli(["inject", "repeatme", f"repeatme[cow] @ {local_extras_wheel.as_uri()}"])
+
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == (
+        f"repeatme[cow] @ {local_extras_wheel.as_uri()}"
+    )
+
+
+@pytest.mark.parametrize(
+    "injected",
+    [pytest.param("repeatme[cow]==0.1", id="version"), pytest.param("repeatme[cow] @ {uri}", id="other-source")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_main_package_extra_with_other_source_needs_force(
+    local_extras_wheel: Path, capsys: pytest.CaptureFixture[str], injected: str
+) -> None:
+    assert not run_pipx_cli(["install", str(local_extras_wheel)])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["inject", "repeatme", injected.format(uri=local_extras_wheel.as_uri())])
+
+    assert (
+        "Pass '--force' to force installation." in " ".join(capsys.readouterr().out.split()),
+        PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url,
+    ) == (True, str(local_extras_wheel))
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_main_package_extra_missing_recorded_source(
+    local_extras_wheel: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    wheel: Final[Path] = Path(shutil.copy(local_extras_wheel, tmp_path))
+    assert not run_pipx_cli(["install", str(wheel)])
+    wheel.unlink()
+    capsys.readouterr()
+
+    assert run_pipx_cli(["inject", "repeatme", "repeatme[cow]"])
+
+    assert f"Therecordedsource{wheel}of'repeatme'nolongerexists." in "".join(capsys.readouterr().err.split())
 
 
 @skip_if_windows

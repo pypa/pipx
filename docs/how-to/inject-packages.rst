@@ -29,6 +29,21 @@ Scripts can request the versioned result envelope from either command:
     $ pipx inject ipython matplotlib --output json
     $ pipx uninject ipython matplotlib --output json
 
+****************************************
+ Add an extra to the environment's app
+****************************************
+
+Name the main package with the extra to add it. pipx installs the extra from the source the app was installed from, so
+an app installed from a wheel, a directory or a URL keeps that source, and the extras it already had:
+
+.. code-block:: console
+
+    $ pipx install ./mytool-1.0-py3-none-any.whl
+    $ pipx inject mytool 'mytool[feature]'
+
+A spec that changes anything besides the extras, such as a version or a different path or URL, replaces the app and
+needs ``--force``.
+
 *********************
  Expose injected apps
 *********************
