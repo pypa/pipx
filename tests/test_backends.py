@@ -818,3 +818,22 @@ def test_backend_override_warning_dedups_per_venv(
 
     warnings = [rec for rec in caplog.records if "Ignoring --backend=uv" in rec.message]
     assert len(warnings) == 1
+
+
+@pytest.mark.parametrize(
+    ("backend", "env_backend", "expected"),
+    [
+        pytest.param("uv", None, (UV, "cli"), id="cli"),
+        pytest.param(None, "uv", (UV, "env"), id="env"),
+    ],
+)
+def test_venv_without_record_resolves_like_a_fresh_one(
+    tmp_path: Path, backend: str | None, env_backend: str | None, expected: tuple[str, str]
+) -> None:
+    venv_dir = tmp_path / "demo"
+    venv_dir.mkdir()
+    (venv_dir / "pyvenv.cfg").touch()
+
+    venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+
+    assert (venv.backend_name, venv.backend_source) == expected

@@ -201,7 +201,8 @@ def _get_sys_executable() -> str:
 
 
 def _resolve_python(python: str) -> str:
-    if (path := Path(python)).is_file():
+    # a bare name goes to PATH only; testing it as a file first would pick up one sitting in the working directory
+    if (os.sep in python or "/" in python) and (path := Path(python)).is_file():
         return str(path.resolve())
     if found := shutil.which(python):
         return found

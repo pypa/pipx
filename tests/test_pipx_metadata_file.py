@@ -194,6 +194,31 @@ def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) 
     assert PipxMetadata(venv_dir).main_package.cooldown_days is None
 
 
+def _write_metadata_with_venv_args(venv_dir: Path, venv_args: list[str]) -> None:
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["venv_args"] = venv_args
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath), encoding="utf-8")
+
+
+def test_pipx_metadata_file_keeps_only_recordable_venv_args(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    _write_metadata_with_venv_args(venv_dir, ["--clear", str(tmp_path / "other"), "--system-site-packages"])
+
+    assert PipxMetadata(venv_dir).venv_args == ["--system-site-packages"]
+
+
+def test_pipx_metadata_file_warns_about_ignored_venv_args(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    _write_metadata_with_venv_args(venv_dir, ["--clear", "other"])
+
+    PipxMetadata(venv_dir)
+
+    assert "venv: ignoring recorded venv arguments --clear other" in caplog.text
+
+
 @pytest.mark.parametrize(
     "test_package",
     [

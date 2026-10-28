@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import stat
 import subprocess
 import sys
 import threading
@@ -540,6 +541,16 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
     lines: Final[list[str]] = (tmp_path / "cmd_pip_errors.log").read_text(encoding="utf-8").splitlines()
     blocks: Final[list[str]] = [tag for tag, _ in groupby(line[0] for line in lines if line[:1] in set(tags))]
     assert sorted(blocks) == sorted(tags)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("permissive_umask")
+def test_pip_error_log_is_owner_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+
+    subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, "out", "err"))
+
+    assert stat.S_IMODE((tmp_path / "cmd_pip_errors.log").stat().st_mode) == 0o600
 
 
 @pytest.mark.parametrize(

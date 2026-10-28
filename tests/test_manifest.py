@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final, Literal, cast
 
 import pytest
 
-from helpers import app_name, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli
 from pipx import paths
 from pipx.commands import manifest as manifest_module
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
@@ -169,6 +169,28 @@ def test_sync_manifest_clears_app_and_lock_state(
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
     assert (metadata.expected_apps, metadata.lock_file, marker.exists()) == ([], None, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_sync_manifest_replays_recorded_install_options(
+    write_manifest: Callable[[str], Path],
+    root: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
+    pip_args: Final[list[str]] = ["--no-index", f"--find-links={find_links}"]
+    assert not run_pipx_cli(["install", f"--pip-args={' '.join(pip_args)}", "--system-site-packages", "pycowsay"])
+    manifest: Final[Path] = write_manifest(_manifest("pycowsay", "pycowsay"))
+    caplog.clear()
+
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (
+        f"--force-reinstall {' '.join(pip_args)} pycowsay" in caplog.text,
+        metadata.main_package.pip_args,
+        metadata.venv_args,
+    ) == (True, pip_args, ["--system-site-packages"])
 
 
 @pytest.mark.parametrize(
@@ -555,6 +577,39 @@ offline = false
         (tmp_path / "pylock.black.toml").read_text(encoding="utf-8"),
         (tmp_path / "pylock.pycowsay.toml").read_text(encoding="utf-8"),
     ) == (True, "old-black\n", "old-pycowsay\n")
+
+
+@pytest.mark.parametrize(
+    "lock",
+    [
+        pytest.param("../outside/pylock.toml", id="parent"),
+        pytest.param("{outside}/pylock.toml", id="absolute"),
+        pytest.param("link/pylock.toml", id="symlink"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_lock_manifest_refuses_lock_outside_manifest_directory(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    lock: str,
+) -> None:
+    (manifest_dir := tmp_path / "manifest").mkdir()
+    (outside := tmp_path / "outside").mkdir()
+    (outside_lock := outside / "pylock.toml").write_text("old\n", encoding="utf-8")
+    (manifest_dir / "link").symlink_to(outside, target_is_directory=True)
+    manifest = manifest_dir / "pipx.toml"
+    manifest.write_text(_manifest(tool=f'lock = "{lock.format(outside=outside.as_posix())}"\n'), encoding="utf-8")
+    mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
+    run = mocker.patch.object(manifest_module.subprocess, "run", autospec=True)
+
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
+
+    assert (
+        "must be inside the manifest directory" in capsys.readouterr().err,
+        run.called,
+        outside_lock.read_text(encoding="utf-8"),
+    ) == (True, False, "old\n")
 
 
 @pytest.mark.parametrize(

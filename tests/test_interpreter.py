@@ -25,6 +25,8 @@ from pipx.interpreter import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pytest_mock import MockerFixture
 
 original_which = shutil.which
@@ -237,6 +239,34 @@ def test_resolve_python_relative_path_resolves_to_absolute(tmp_path: Path) -> No
     fake_python.touch(mode=0o755)
     result = _resolve_python(str(fake_python))
     assert Path(result).is_absolute()
+
+
+@pytest.mark.skipif(WINDOWS, reason="Windows searches the working directory for a bare command name by design")
+@pytest.mark.usefixtures("uncached_default_python")
+def test_get_default_python_ignores_bare_name_in_working_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "python3").touch(mode=0o755)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", "python3")
+
+    assert pipx.interpreter.get_default_python() == shutil.which("python3")
+
+
+@pytest.mark.usefixtures("uncached_default_python")
+def test_get_default_python_resolves_relative_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "mypython").touch(mode=0o755)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", f".{os.sep}mypython")
+
+    assert pipx.interpreter.get_default_python() == str((tmp_path / "mypython").resolve())
+
+
+@pytest.fixture
+def uncached_default_python() -> Iterator[None]:
+    pipx.interpreter.get_default_python.cache_clear()
+    yield
+    pipx.interpreter.get_default_python.cache_clear()
 
 
 def test_resolve_python_invalid_raises() -> None:
