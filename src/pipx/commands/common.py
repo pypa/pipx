@@ -274,9 +274,9 @@ def _symlink_package_resource(
     if not symlink_path.parent.is_dir():
         mkdir(symlink_path.parent)
 
-    if force:
+    if force and (symlink_path.is_symlink() or not symlink_path.is_dir()):
         _LOGGER.info("Force is true. Removing %s.", symlink_path)
-        with suppress(FileNotFoundError, IsADirectoryError, RuntimeError):
+        with suppress(FileNotFoundError, RuntimeError):
             symlink_path.unlink()
 
     exists = symlink_path.exists()
