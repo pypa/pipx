@@ -2,7 +2,6 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "configparser",
-    "importlib.metadata",
     "packaging.version",
     "pathlib",
     "pipx",
@@ -20,7 +19,6 @@ from configparser import ConfigParser
 from configparser import Error as ConfigParserError
 from contextlib import contextmanager
 from contextvars import ContextVar
-from importlib.metadata import distributions
 from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Final
@@ -272,6 +270,8 @@ class _SharedLibs:
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def _pip_below_floor(self) -> bool:
+        from importlib.metadata import distributions  # ruff:ignore[import-outside-top-level]  # slows startup
+
         return any(
             Version(dist.version) < Version(_PIP_FLOOR)
             for dist in distributions(name="pip", path=[str(path) for path in self.site_packages])
