@@ -103,32 +103,47 @@ def test_fix_package_name(package_spec_in: str, package_name: str, package_spec_
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
-@pytest.mark.parametrize("filename", ["repeatme-0.1-py3-none-any.whl", "repeatme-0.1.tar.gz", "repeatme-0.1.zip"])
-@pytest.mark.parametrize(
-    ("extras", "expected_suffix", "expected_extras"),
-    [("", "", set()), ("[cow]", "[cow]", {"cow"}), ("[tools,cow]", "[cow,tools]", {"cow", "tools"})],
-)
-def test_parse_bare_local_archive_extras(
-    *,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    filename: str,
-    extras: str,
-    expected_suffix: str,
-    expected_extras: set[str],
-) -> None:
-    archive = tmp_path / filename
-    archive.touch()
+@pytest.fixture
+def bare_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    (archive := tmp_path / "repeatme-0.1-py3-none-any.whl").touch()
     monkeypatch.chdir(tmp_path)
-    package_spec = filename + extras
-    expected = str(archive) + expected_suffix
+    return archive
 
-    assert (
-        parse_specifier_for_install(package_spec, []),
-        parse_specifier_for_metadata(package_spec),
-        parse_specifier_for_upgrade(package_spec),
-        get_extras(package_spec),
-    ) == ((expected, []), expected, expected, expected_extras)
+
+@pytest.mark.parametrize(
+    "extras",
+    [
+        pytest.param("", id="none"),
+        pytest.param("[cow]", id="single"),
+        pytest.param("[tools,cow]", id="unsorted"),
+        pytest.param(" [tools, cow]", id="spaced"),
+    ],
+)
+def test_parse_specifier_bare_archive_matches_explicit_path(bare_archive: Path, extras: str) -> None:
+    assert parse_specifier_for_metadata(f"{bare_archive.name}{extras}") == parse_specifier_for_metadata(
+        f"./{bare_archive.name}{extras.lstrip()}"
+    )
+
+
+def test_parse_specifier_bare_archive_extras_before_trailing_space(bare_archive: Path) -> None:
+    assert parse_specifier_for_metadata(f"{bare_archive.name}[cow] ") == f"{bare_archive}[cow]"
+
+
+def test_get_extras_bare_archive(bare_archive: Path) -> None:
+    assert get_extras(f"{bare_archive.name}[tools,cow]") == {"cow", "tools"}
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        pytest.param("==0.1", id="specifier"),
+        pytest.param("; python_version > '3'", id="marker"),
+        pytest.param(" @ https://example.com/repeatme-0.1-py3-none-any.whl", id="url"),
+    ],
+)
+def test_parse_specifier_bare_archive_rejects_non_extras(bare_archive: Path, suffix: str) -> None:
+    with pytest.raises(PipxError, match=r"^Only extras can follow the local archive"):
+        parse_specifier_for_metadata(f"{bare_archive.name}[cow]{suffix}")
 
 
 _ROOT = Path(__file__).parents[1]

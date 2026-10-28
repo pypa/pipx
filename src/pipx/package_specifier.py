@@ -89,9 +89,11 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         (package_path, package_path_exists) = _check_package_path(valid_pep508.name)
 
         if package_path_exists:
-            valid_local_path = str(package_path.resolve())
-            if valid_pep508.extras:
-                valid_local_path += f"[{','.join(sorted(valid_pep508.extras))}]"
+            if valid_pep508.specifier or valid_pep508.url or valid_pep508.marker:
+                msg = f"Only extras can follow the local archive {package_path}"
+                raise PipxError(msg)
+            # keep the extras as typed so the bare and ./ spellings store the same spec
+            valid_local_path = f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}"
         else:
             msg = f"{package_path} does not exist"
             raise PipxError(msg)
