@@ -692,3 +692,26 @@ def permissive_umask() -> Iterator[None]:
     previous = os.umask(0o022)
     yield
     os.umask(previous)
+
+
+@pytest.fixture
+def age_shared_pip() -> Iterator[Callable[[float], float]]:
+    """Backdate the shared pip's last upgrade, returning the stored time, and put the original time back afterwards.
+
+    The pip lives in the session's shared libs, so a test that left it stale would make the next pipx install on that
+    worker upgrade it, with whatever pip arguments that test passes.
+    """
+    originals: Final[dict[Path, int]] = {}
+
+    def age(age_sec: float) -> float:
+        pip_path: Final[Path] = shared_libs.shared_libs.pip_path
+        originals.setdefault(pip_path, pip_path.stat().st_mtime_ns)
+        last_upgrade: Final[float] = time.time() - age_sec
+        os.utime(pip_path, (last_upgrade, last_upgrade))
+        shared_libs.shared_libs.has_been_updated_this_run = False
+        # filesystems round timestamps, so return the stored value for exact comparison
+        return pip_path.stat().st_mtime
+
+    yield age
+    for pip_path, mtime_ns in originals.items():
+        os.utime(pip_path, ns=(mtime_ns, mtime_ns))

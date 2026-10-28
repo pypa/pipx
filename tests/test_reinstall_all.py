@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, set_shared_pip_age
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
 from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
@@ -84,9 +84,11 @@ def test_reinstall_all_suffix_legacy_venv(metadata_version: str) -> None:
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_all_refreshes_shared_pip_only_when_stale(age_sec: float, refreshed: bool) -> None:
+def test_reinstall_all_refreshes_shared_pip_only_when_stale(
+    age_shared_pip: Callable[[float], float], age_sec: float, refreshed: bool
+) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    last_upgrade: Final[float] = set_shared_pip_age(age_sec)
+    last_upgrade: Final[float] = age_shared_pip(age_sec)
 
     assert not run_pipx_cli(["reinstall-all"])
 
@@ -166,10 +168,10 @@ def test_reinstall_all_reinstalls_the_rest_after_a_failure(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_refreshes_stale_shared_pip_once(
-    capsys: pytest.CaptureFixture[str], venv_names: list[str]
+    capsys: pytest.CaptureFixture[str], age_shared_pip: Callable[[float], float], venv_names: list[str]
 ) -> None:
     del venv_names
-    set_shared_pip_age(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60)
+    age_shared_pip(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60)
 
     assert not run_pipx_cli(["reinstall-all"])
 

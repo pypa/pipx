@@ -22,7 +22,6 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
-    set_shared_pip_age,
     skip_if_windows,
     unwrap_log_text,
 )
@@ -77,12 +76,17 @@ def test_upgrade_failure_prints_installer_error_once(capsys: pytest.CaptureFixtu
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_refreshes_shared_pip_only_when_due(
-    monkeypatch: pytest.MonkeyPatch, age_sec: float, disable_auto_upgrade: str, upgrade_args: list[str], refreshed: bool
+def test_upgrade_refreshes_shared_pip_only_when_due(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
+    monkeypatch: pytest.MonkeyPatch,
+    age_shared_pip: Callable[[float], float],
+    age_sec: float,
+    disable_auto_upgrade: str,
+    upgrade_args: list[str],
+    refreshed: bool,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, disable_auto_upgrade)
-    last_upgrade: Final[float] = set_shared_pip_age(age_sec)
+    last_upgrade: Final[float] = age_shared_pip(age_sec)
 
     assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
 
