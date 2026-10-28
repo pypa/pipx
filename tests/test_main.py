@@ -542,7 +542,7 @@ def test_log_masks_command_line_password_with_space() -> None:
     run_pipx_cli(["upgrade", "--index-url", "https://alice:correct horse@host/simple", "nosuchpackage"])
 
     log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
-    assert "upgrade --index-url https://alice:****@host/simple nosuchpackage" in log
+    assert "upgrade --index-url https://****:****@host/simple nosuchpackage" in log
 
 
 @skip_if_windows

@@ -1407,7 +1407,7 @@ def test_install_verbose_masks_index_credentials(
     assert run_pipx_cli(["install", "--verbose", "--backend", "uv", f"--pip-args={index_args}", str(project)])
 
     output: Final[str] = capsys.readouterr().err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
-    assert "alice:****@127.0.0.1" in output
+    assert "****:****@127.0.0.1" in output
     assert "s3cr3t" not in output
 
 
