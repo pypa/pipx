@@ -17,10 +17,11 @@
 ``~/.local/share/pipx/venvs/black``) and installs the package into it. Under the pip backend pipx creates the venv
 without pip, then creates or reuses a shared environment that holds an up-to-date ``pip`` and links it into the venv
 through a `.pth file <https://docs.python.org/3/library/site.html>`_, so every venv borrows one pip rather than
-installing its own. pipx refreshes that shared pip once it is more than 30 days old; ``pipx upgrade-shared`` refreshes
-it immediately. When pip's files are missing from the shared environment, pipx rebuilds it before running pip; when a
-pip command fails because pip no longer imports, pipx rebuilds it and retries the command once. Under the uv backend
-there is no shared environment: ``uv venv`` builds the venv (without pip) and ``uv pip`` installs into it.
+installing its own. pipx refreshes that shared pip once it is more than 30 days old, or right away when it is older than
+pip 26.2.2; ``pipx upgrade-shared`` refreshes it immediately. When pip's files are missing from the shared environment,
+pipx rebuilds it before running pip; when a pip command fails because pip no longer imports, pipx rebuilds it and
+retries the command once. Under the uv backend there is no shared environment: ``uv venv`` builds the venv (without pip)
+and ``uv pip`` installs into it.
 
 Once the package is installed, pipx exposes the application's resources so you can reach them from anywhere. It handles
 three kinds:

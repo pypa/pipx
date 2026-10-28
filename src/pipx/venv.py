@@ -346,7 +346,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             )
 
     def upgrade_packaging_libraries(self, pip_args: list[str]) -> None:
-        # check_upgrade_shared_libs owns the shared pip, refreshing it at most every 30 days unless disabled
+        # check_upgrade_shared_libs owns the shared pip, refreshing it when stale or below its floor unless disabled
         if self.uses_shared_libs:
             return
         # Short-circuit before instantiating UvBackend so ``upgrade-all`` over

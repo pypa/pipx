@@ -65,10 +65,10 @@ def test_upgrade_shared_pin_pip(shared_libs: _SharedLibs) -> None:
         ret = subprocess.run([shared_libs.python_path, "-c", cmd], check=True, capture_output=True, text=True)
         return ret.stdout.strip()
 
-    # Pin to a version testdata/tests_packages/primary_packages.txt seeds explicitly: it clears the `pip >= 26.1`
+    # Pin to a version testdata/tests_packages/primary_packages.txt seeds explicitly: it clears the `pip >= 26.2.2`
     # floor upgrade-shared appends yet stays behind the latest, so a bare `pip` entry alone would drop it once pip
     # moves on. The assertion then proves --pip-args placed it rather than matching the default upgrade.
-    pinned = "26.1.2"
+    pinned = "26.2.2"
 
     assert shared_libs.has_been_updated_this_run is False
     assert shared_libs.is_valid is False
