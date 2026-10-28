@@ -210,6 +210,15 @@ def download_script(url: str) -> str:
         raise PipxError(msg) from error
 
 
+def _reject_url_credentials(url: str) -> None:
+    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
+    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
+    # does log in with them
+    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
+
+
 def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
     if len(data) > _MAX_SCRIPT_BYTES:
         msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
@@ -296,15 +305,6 @@ def _digest(data: bytes) -> str:
     import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
 
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
-
-
-def _reject_url_credentials(url: str) -> None:
-    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
-    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
-    # does log in with them
-    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
-        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
-        raise PipxError(msg)
 
 
 __all__ = [
