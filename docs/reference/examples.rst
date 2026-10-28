@@ -48,8 +48,9 @@ Install from a PEP 723 script or a lock file:
     pipx install ./script.py
     pipx install --lock pylock.toml .
 
-For a local script, the filename without its extension supplies the command name. Pass ``--app`` to choose a different
-name:
+For a local script, the filename without its extension supplies the command name. A script without the ``.py``
+extension needs a path such as ``./script``; a bare ``script`` names the package on the index. Pass ``--app`` to choose
+a different name:
 
 .. code-block:: bash
 
