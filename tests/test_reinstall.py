@@ -267,12 +267,12 @@ def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, moc
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
     exposed: Final[Path] = paths.ctx.bin_dir / app_name("tool3.12")
-    fresh: Final[bytes] = exposed.read_bytes()
-    exposed.write_bytes(fresh + b"# stale\n")
+    exposed.write_bytes(exposed.read_bytes() + b"# stale\n")
 
     assert not run_pipx_cli(["reinstall", "foo-bar-x"])
 
-    assert exposed.read_bytes() == fresh
+    # Windows launchers embed their build time, so compare with the launcher this reinstall wrote
+    assert exposed.read_bytes() == (util.get_venv_paths(paths.ctx.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
