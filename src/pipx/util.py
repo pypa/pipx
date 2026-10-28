@@ -359,15 +359,16 @@ def _without_terminal_escapes(output: str | None) -> str | None:
 
 
 def _command_line(cmd: Sequence[str | Path]) -> str:
-    return redact_url_credentials(" ".join(str(c) for c in cmd))
+    return " ".join(redact_url_credentials(str(c)) for c in cmd)
 
 
 def redact_url_credentials(text: str) -> str:
     # index and package URLs can carry credentials, which must not reach the log file or the verbose output; masked the
     # way pip masks them in its own messages, which also hides a bare user such as git@ since it may be a token. The
-    # authority ends at the first /, ? or #, and its userinfo runs to the last @ before that.
+    # authority ends at the first /, ? or #, and its userinfo runs to the last @ before that. A password may hold a
+    # space, so callers mask each argument before joining a command line.
     return re.sub(
-        r"(?<=://)([^\s/?#]*)@",
+        r"(?<=://)([^/?#]*)@",
         lambda match: f"{userinfo[0]}:****@" if (userinfo := match[1].partition(":"))[1] else "****@",
         text,
     )

@@ -2163,7 +2163,7 @@ def setup(args: argparse.Namespace) -> None:
     paths.ctx.log_warnings()
 
     _LOGGER.debug("%s", time.strftime("%Y-%m-%d %H:%M:%S"))
-    _LOGGER.debug("%s", redact_url_credentials(" ".join(sys.argv)))
+    _LOGGER.debug("%s", " ".join(map(redact_url_credentials, sys.argv)))
     _LOGGER.info("pipx version is %s", __version__)
     _LOGGER.info("Default python interpreter is '%s'", get_default_python())
 

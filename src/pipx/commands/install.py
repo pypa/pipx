@@ -842,17 +842,21 @@ def _translate_recorded_pip_args(
     translations: Final[list[tuple[list[str], list[str]]]] = [
         _translate_pip_args(package.pip_args, backend, environment) for package in packages
     ]
-    if dropped := list(dict.fromkeys(" ".join(other) for _, other in translations if other)):
+    if dropped := list(
+        dict.fromkeys(" ".join(map(redact_url_credentials, other)) for _, other in translations if other)
+    ):
         kept: Final[list[str]] = list(
-            dict.fromkeys(" ".join(translated) for translated, _ in translations if translated)
+            dict.fromkeys(
+                " ".join(map(redact_url_credentials, translated)) for translated, _ in translations if translated
+            )
         )
         _LOGGER.warning(
             "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
             hazard,
             venv_metadata.backend,
             environment,
-            redact_url_credentials(" ".join(dropped)),
-            f"; translated for {backend}: {redact_url_credentials(' '.join(kept))}" if kept else "",
+            " ".join(dropped),
+            f"; translated for {backend}: {' '.join(kept)}" if kept else "",
         )
     return [translated for translated, _ in translations]
 

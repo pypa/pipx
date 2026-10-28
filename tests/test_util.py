@@ -556,6 +556,12 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
         pytest.param("https://u:p@w@host/x", "https://u:****@host/x", id="unescaped-at-in-password"),
         pytest.param("git+ssh://git@github.com/a/b", "git+ssh://****@github.com/a/b", id="bare-user"),
         pytest.param(
+            "https://alice:correct horse@host/simple", "https://alice:****@host/simple", id="space-in-password"
+        ),
+        pytest.param(
+            "https://alice:correct\thorse@host/simple", "https://alice:****@host/simple", id="tab-in-password"
+        ),
+        pytest.param(
             "--index-url https://a:b@one/s --extra-index-url https://c@two/s",
             "--index-url https://a:****@one/s --extra-index-url https://****@two/s",
             id="two-urls",
@@ -566,10 +572,30 @@ def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None
     assert redact_url_credentials(text) == expected
 
 
-def test_subprocess_post_check_logs_failed_command_without_credentials(caplog: pytest.LogCaptureFixture) -> None:
-    process: Final = subprocess.CompletedProcess(["pip", "--index-url", "https://alice:s3cr3t@host/simple"], 1, "", "")
-
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        pytest.param(
+            ["pip", "--index-url", "https://alice:s3cr3t@host/simple"],
+            "'pip --index-url https://alice:****@host/simple' failed",
+            id="password",
+        ),
+        pytest.param(
+            ["pip", "--index-url", "https://alice:correct horse@host/simple"],
+            "'pip --index-url https://alice:****@host/simple' failed",
+            id="space-in-password",
+        ),
+        pytest.param(
+            ["pip", "--index-url", "https://host", "tool @ https://host/tool.whl"],
+            "'pip --index-url https://host tool @ https://host/tool.whl' failed",
+            id="no-credentials-across-arguments",
+        ),
+    ],
+)
+def test_subprocess_post_check_logs_failed_command_without_credentials(
+    caplog: pytest.LogCaptureFixture, args: list[str], expected: str
+) -> None:
     with caplog.at_level(logging.INFO, logger="pipx.util"):
-        subprocess_post_check(process, raise_error=False)
+        subprocess_post_check(subprocess.CompletedProcess(args, 1, "", ""), raise_error=False)
 
-    assert caplog.messages == ["'pip --index-url https://alice:****@host/simple' failed"]
+    assert caplog.messages == [expected]
