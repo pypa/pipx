@@ -371,6 +371,22 @@ def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
     assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
 
 
+def test_package_name_from_spec_creates_probe_venv_with_pip_args(mocker: MockerFixture) -> None:
+    venv = mocker.patch.object(common, "Venv", autospec=True)
+    venv.return_value.install_package_no_deps.return_value = "acme-tool"
+
+    package_name_from_spec(
+        "https://files.example/acme_tool-1.0-py3-none-any.whl",
+        sys.executable,
+        pip_args=["--index-url", "https://mirror.example/simple"],
+        verbose=False,
+    )
+
+    venv.return_value.create_venv.assert_called_once_with(
+        venv_args=[], pip_args=["--index-url", "https://mirror.example/simple"]
+    )
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_name_from_spec_builds_setup_py_project(local_extras_project: Path) -> None:
     assert package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False) == (
