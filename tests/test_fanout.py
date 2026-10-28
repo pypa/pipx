@@ -186,6 +186,7 @@ def test_in_turn_outside_fan_out_runs_immediately() -> None:
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     rolled_back: Final[list[str]] = []
     main_thread: Final[int] = threading.get_ident()
@@ -196,7 +197,7 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
             time.sleep(0.2)
         rolled_back.append("first")
 
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
         fan_out([rolling_back, int], sequential=False)
 
     assert rolled_back == ["first"]
@@ -363,10 +364,10 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
         with finished_on_interrupt():
             return "started"
 
-    assert fan_out([finishing, not_started], sequential=False, interrupted=lambda index: f"interrupted {index}") == [
-        "finished",
-        "interrupted 1",
-    ]
+    with stopping_children_on_signals():
+        assert fan_out(
+            [finishing, not_started], sequential=False, interrupted=lambda index: f"interrupted {index}"
+        ) == ["finished", "interrupted 1"]
 
 
 @skip_if_windows
@@ -382,7 +383,10 @@ def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptur
             run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
         return "finished"
 
-    assert fan_out([finishing], sequential=False, interrupted=lambda index: f"interrupted {index}") == ["interrupted 0"]
+    with stopping_children_on_signals():
+        assert fan_out([finishing], sequential=False, interrupted=lambda index: f"interrupted {index}") == [
+            "interrupted 0"
+        ]
 
 
 def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
@@ -403,6 +407,7 @@ def test_fan_out_runs_off_the_main_thread() -> None:
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_ends_unfinished_line_before_held_output(
     capsys: pytest.CaptureFixture[str], second_done: threading.Event
 ) -> None:
@@ -418,7 +423,7 @@ def test_fan_out_interrupted_ends_unfinished_line_before_held_output(
         sys.stderr.write("installing second\n")
         second_done.set()
 
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
         fan_out([interrupted, held], sequential=False)
 
     assert capsys.readouterr().err == "building first -\ninstalling second\n"
