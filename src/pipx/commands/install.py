@@ -259,14 +259,8 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
-                        recorded_backend = venv.pipx_metadata.backend
                         rmdir(venv_dir)
-                        venv = Venv(
-                            venv_dir,
-                            python=venv.python,
-                            verbose=verbose,
-                            backend=install_backend or recorded_backend,
-                        )
+                        venv = Venv(venv_dir, python=venv.python, verbose=verbose, backend=venv.backend_name)
                     build = _EnvironmentBuild(
                         venv_args=venv_args,
                         pip_args=pip_args,
@@ -292,8 +286,6 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         fetch_python=fetch_python,
                         python_flag_passed=python_flag_passed,
                         verbose=verbose,
-                        backend=install_backend,
-                        env_backend=env_backend,
                         messages=messages,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
@@ -843,17 +835,21 @@ def _translate_recorded_pip_args(
     translations: Final[list[tuple[list[str], list[str]]]] = [
         _translate_pip_args(package.pip_args, backend, environment) for package in packages
     ]
-    if dropped := list(dict.fromkeys(" ".join(other) for _, other in translations if other)):
+    if dropped := list(
+        dict.fromkeys(" ".join(map(redact_url_credentials, other)) for _, other in translations if other)
+    ):
         kept: Final[list[str]] = list(
-            dict.fromkeys(" ".join(translated) for translated, _ in translations if translated)
+            dict.fromkeys(
+                " ".join(map(redact_url_credentials, translated)) for translated, _ in translations if translated
+            )
         )
         _LOGGER.warning(
             "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
             hazard,
             venv_metadata.backend,
             environment,
-            redact_url_credentials(" ".join(dropped)),
-            f"; translated for {backend}: {redact_url_credentials(' '.join(kept))}" if kept else "",
+            " ".join(dropped),
+            f"; translated for {backend}: {' '.join(kept)}" if kept else "",
         )
     return [translated for translated, _ in translations]
 
@@ -865,7 +861,7 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
     dropped: Final[list[str]] = []
     arguments: Final[Iterator[str]] = iter(pip_args)
     for argument in arguments:
-        flag, value = _split_option(argument, arguments)
+        flag, value = _split_option(argument if to_pip else _expand_pip_abbreviation(argument), arguments)
         spelling = _VALUE_OPTION_SPELLINGS.get(flag, (flag, flag))
         match spelling[0]:
             case "--no-index":
@@ -901,6 +897,25 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
             case _:
                 dropped.append(argument)
     return translated, dropped
+
+
+def _expand_pip_abbreviation(argument: str) -> str:
+    # pip accepts any unambiguous prefix of a long option, so a pip recording can hold --index-u for --index-url
+    long_options: Final[tuple[str, ...]] = (
+        "--index-url",
+        "--extra-index-url",
+        "--find-links",
+        "--no-index",
+        "--pre",
+        "--trusted-host",
+        "--constraint",
+        "--keyring-provider",
+    )
+    flag, separator, value = argument.partition("=")
+    if not flag.startswith("--") or flag in long_options:
+        return argument
+    matches: Final[list[str]] = [option for option in long_options if option.startswith(flag)]
+    return f"{matches[0]}{separator}{value}" if len(matches) == 1 else argument
 
 
 def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
@@ -1062,8 +1077,6 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
     messages: list[OutputMessage],
 ) -> Venv:
     try:
@@ -1081,8 +1094,8 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
         verbose=verbose,
-        backend=backend,
-        env_backend=env_backend,
+        # the rebuild deletes the recorded backend; resolving it again could switch installer and index
+        backend=venv.backend_name,
         messages=messages,
     )
     build.run(venv)
@@ -1115,8 +1128,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: str,
     messages: list[OutputMessage],
 ) -> Venv:
     interpreter: Final[str] = _supported_python(
@@ -1126,7 +1138,7 @@ def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
         messages=messages,
     )
     venv_backup.remove_venv()
-    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend, env_backend=env_backend)
+    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend)
 
 
 __all__ = [

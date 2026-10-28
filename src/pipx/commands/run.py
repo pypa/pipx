@@ -238,7 +238,7 @@ def _exec_script(
     if isinstance(content, Path):
         exec_app([python_path, *python_args, content, *app_args])
     else:
-        exec_app([python_path, *python_args, "-c", content, *app_args])
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
 def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` options; a struct would only relocate them
@@ -313,36 +313,42 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
             _LOGGER.info("venv location is %s", venv_dir)
-            venv, app, app_filename = _prepare_venv(
-                Path(venv_dir),
-                package_or_url,
-                app,
-                app_filename,
-                python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                infer_app_name=infer_app_name,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-            )
-            for dependency in dependencies:
-                inject_dep(
-                    venv_dir=venv_dir,
-                    package_name=None,
-                    package_spec=dependency,
+            try:
+                venv, app, app_filename = _prepare_venv(
+                    Path(venv_dir),
+                    package_or_url,
+                    app,
+                    app_filename,
+                    python,
                     pip_args=pip_args,
+                    venv_args=venv_args,
+                    use_cache=use_cache,
                     verbose=verbose,
-                    include_apps=False,
-                    include_dependencies=False,
-                    include_resources_from=(),
-                    force=False,
+                    infer_app_name=infer_app_name,
                     backend=backend,
                     env_backend=env_backend,
                     cooldown_days=cooldown_days,
                 )
+                for dependency in dependencies:
+                    inject_dep(
+                        venv_dir=venv_dir,
+                        package_name=None,
+                        package_spec=dependency,
+                        pip_args=pip_args,
+                        verbose=verbose,
+                        include_apps=False,
+                        include_dependencies=False,
+                        include_resources_from=(),
+                        force=False,
+                        backend=backend,
+                        env_backend=env_backend,
+                        cooldown_days=cooldown_days,
+                    )
+            except (OSError, PipxError, KeyboardInterrupt):
+                # a half-built venv has no record of its backend, so the next run must start from scratch
+                if venv_dir.is_dir():
+                    (venv_dir / _VENV_EXPIRED_FILENAME).touch()
+                raise
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 

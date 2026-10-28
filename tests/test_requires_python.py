@@ -175,7 +175,7 @@ def older_python(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch) -> str:
 def make_needs_project(tmp_path: Path) -> Callable[[str], Path]:
     def create(requires_python: str) -> Path:
         project: Final[Path] = tmp_path / "needs-older"
-        (project / "needs_older").mkdir(parents=True)
+        (project / "needs_older").mkdir(parents=True, exist_ok=True)
         (project / "needs_older" / "__init__.py").touch()
         (project / "needs_older" / "main.py").write_text("def main() -> None:\n    print('needs-older')\n")
         (project / "pyproject.toml").write_text(
@@ -207,6 +207,34 @@ def test_install_moves_to_a_python_the_package_supports(
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.parametrize(
+    ("recorded", "other", "backend_args"),
+    [
+        pytest.param("pip", "uv", [], id="pip-default-backend"),
+        pytest.param("pip", "uv", ["--backend", "uv"], id="pip-ignored-flag"),
+        pytest.param("uv", "pip", [], id="uv-default-backend"),
+        pytest.param("uv", "pip", ["--backend", "pip"], id="uv-ignored-flag"),
+    ],
+)
+@pytest.mark.usefixtures("older_python", "capsys")
+def test_install_force_moving_to_a_supported_python_keeps_the_recorded_backend(
+    make_needs_project: Callable[[str], Path],
+    monkeypatch: pytest.MonkeyPatch,
+    recorded: str,
+    other: str,
+    backend_args: list[str],
+) -> None:
+    this_python: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
+    assert not run_pipx_cli(["install", "--backend", recorded, str(make_needs_project(f">={this_python}"))])
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", other)
+
+    assert not run_pipx_cli(["install", "--force", *backend_args, str(make_needs_project(f"<{this_python}"))])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "needs-older")
+    assert (metadata.backend, (metadata.python_version or "").startswith(f"Python {this_python}.")) == (recorded, False)
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")

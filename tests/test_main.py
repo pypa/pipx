@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import run_pipx_cli
+from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import constants, main, paths
 from pipx.util import PipxError
@@ -365,6 +366,19 @@ def test_get_pip_args_rejects_unclosed_quote() -> None:
         main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
 
 
+def test_get_pip_args_forwards_index_url() -> None:
+    assert main.get_pip_args({"index_url": "https://example.com/simple"}) == [
+        "--index-url",
+        "https://example.com/simple",
+    ]
+
+
+@pytest.mark.parametrize("index_url", [pytest.param("", id="empty"), pytest.param("  ", id="whitespace")])
+def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
+    with pytest.raises(PipxError, match="--index-url is empty"):
+        main.get_pip_args({"index_url": index_url})
+
+
 _LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
 _GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
@@ -521,3 +535,46 @@ def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> 
     assert run_pipx_cli([]) == 1
 
     assert capsys.readouterr().out.startswith("usage: pipx")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_log_masks_command_line_password_with_space() -> None:
+    run_pipx_cli(["upgrade", "--index-url", "https://alice:correct horse@host/simple", "nosuchpackage"])
+
+    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert "upgrade --index-url https://alice:****@host/simple nosuchpackage" in log
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_dir_is_created_owner_only() -> None:
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_dir_left_world_readable_is_tightened() -> None:
+    paths.ctx.logs.mkdir(mode=0o755, parents=True)
+
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
+def test_log_file_is_owner_only() -> None:
+    assert not run_pipx_cli(["list"])
+
+    assert stat.S_IMODE(cast("Path", paths.ctx.log_file).stat().st_mode) == 0o600
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> None:
+    mocker.patch.object(Path, "chmod", autospec=True, side_effect=PermissionError)
+
+    assert not run_pipx_cli(["list"])
+
+    assert cast("Path", paths.ctx.log_file).parent == paths.ctx.logs
