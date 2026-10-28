@@ -175,6 +175,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
         str(fake_uv),
         "run",
         "--script",
+        "--no-config",
         "--python",
         "python3.12",
         *cooldown_args,

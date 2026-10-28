@@ -418,7 +418,11 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture)
 
     UvBackend().install(venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[])
 
-    assert run_subprocess.call_args.kwargs["env_overrides"] == {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
+    assert run_subprocess.call_args.kwargs["env_overrides"] == {
+        "VIRTUAL_ENV": None,
+        "UV_NO_PROGRESS": "1",
+        "UV_NO_CONFIG": "1",
+    }
 
 
 @pytest.mark.parametrize(

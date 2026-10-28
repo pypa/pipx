@@ -45,3 +45,13 @@ def test_uv_backend_force_install_existing() -> None:
     command = ["install", "pycowsay", "--backend", "uv"]
     assert run_pipx_cli(command) == 0
     assert run_pipx_cli([*command, "--force"]) == 0
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_install_ignores_uv_toml_above_venv() -> None:
+    # uv fails on a malformed config file it discovers, so success proves it never read the one above its cwd
+    paths.ctx.venvs.mkdir(parents=True, exist_ok=True)
+    (paths.ctx.venvs / "uv.toml").write_text("index-url = [\n")
+
+    assert run_pipx_cli(["install", "pycowsay", "--backend", "uv"]) == 0

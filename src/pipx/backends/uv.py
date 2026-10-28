@@ -329,8 +329,9 @@ def _run_uv_version(binary: Path) -> subprocess.CompletedProcess[str]:
 
 def _uv_env_overrides() -> dict[str, str | None]:
     # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed. pipx shows
-    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway.
-    return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
+    # its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway. uv would otherwise apply a
+    # uv.toml or pyproject.toml from its working directory or any parent, such as a shared /tmp.
+    return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_NO_CONFIG": "1"}
 
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:

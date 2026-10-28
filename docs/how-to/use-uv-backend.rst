@@ -70,6 +70,10 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
 - ``pipx run script.py`` execs ``uv run --script script.py`` for PEP 723 inline scripts.
 - ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. See :doc:`Dependency cooldown
   <dependency-cooldown>`.
+- pipx runs uv with ``UV_NO_CONFIG=1`` and ``uv run --script`` with ``--no-config``, so uv reads no ``uv.toml`` or
+  ``[tool.uv]`` table from the directory it runs in, the script's directory, their parents, or your user and system
+  config directories. Configure uv through its ``UV_*`` environment variables, or point ``UV_CONFIG_FILE`` at a config
+  file to apply it. ``pipx run APP`` execs ``uv tool run``, which keeps reading your user and system config.
 
 ************
  Limitations

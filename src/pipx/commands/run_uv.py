@@ -97,7 +97,8 @@ def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `
     cooldown_days: int | None = None,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
-    cmd: list[str] = [str(resolve_uv_binary()), "run", "--script"]
+    # without --no-config uv applies a uv.toml or pyproject.toml found in the script's directory or any parent
+    cmd: list[str] = [str(resolve_uv_binary()), "run", "--script", "--no-config"]
     if python:
         cmd += ["--python", python]
     if not use_cache:

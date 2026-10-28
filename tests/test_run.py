@@ -739,6 +739,22 @@ def test_run_with_requirements(script_text: str, expected_output: str, tmp_path:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> None:
+    # uv fails on a malformed config file it discovers, so success proves it never read the one beside the script
+    (tmp_path / "uv.toml").write_text("index-url = [\n")
+    script: Final[Path] = tmp_path / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
+    script.write_text(
+        f"# /// script\n# dependencies = []\n# ///\nfrom pathlib import Path\nPath({str(out)!r}).write_text('ran')\n"
+    )
+
+    run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
+
+    assert out.read_text() == "ran"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
