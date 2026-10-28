@@ -81,6 +81,10 @@ To rebuild healthy environments too (for example after an old pipx release), use
         $ pipx uninstall <mypackage>
         $ pipx install <mypackage>
 
+    Do the same for an environment whose record is missing because its install was killed, or unreadable because a newer
+    pipx wrote it: ``pipx reinstall``, ``pipx reinstall-all`` and ``pipx repair`` refuse it rather than guess its
+    source.
+
 ********************************
  Start over from a fresh install
 ********************************

@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -158,6 +159,62 @@ def test_reinstall_legacy_venv_inspects_once_for_resources(mocker: MockerFixture
 
     assert executable_path.exists()
     assert run_subprocess.call_count == 2
+
+
+def _record_from_newer_pipx(venv_dir: Path) -> None:
+    record: Final[Path] = venv_dir / "pipx_metadata.json"
+    record.write_text(
+        json.dumps(json.loads(record.read_text(encoding="utf-8")) | {"pipx_metadata_version": "99.0"}), encoding="utf-8"
+    )
+
+
+def _killed_before_recording(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").unlink()
+    (venv_dir / "pipx_unfinished").touch()
+
+
+def _killed_before_installing(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").unlink()
+    for dist_info in venv_dir.rglob("pycowsay-*.dist-info"):
+        shutil.rmtree(dist_info)
+
+
+def _killed_while_creating(venv_dir: Path) -> None:
+    shutil.rmtree(venv_dir)
+    venv_dir.mkdir()
+    (venv_dir / "pyvenv.cfg").touch()
+
+
+@pytest.mark.parametrize(
+    "lose_record",
+    [
+        pytest.param(_record_from_newer_pipx, id="record-from-newer-pipx"),
+        pytest.param(_killed_before_recording, id="killed-before-recording"),
+        pytest.param(_killed_before_installing, id="killed-before-installing"),
+        pytest.param(_killed_while_creating, id="killed-while-creating"),
+    ],
+)
+@pytest.mark.parametrize(
+    "command",
+    [pytest.param(["reinstall", "pycowsay"], id="reinstall"), pytest.param(["reinstall-all"], id="reinstall-all")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+    lose_record: Callable[[Path], None],
+    command: list[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    lose_record(paths.ctx.venvs / "pycowsay")
+    install = mocker.patch("pipx.commands.reinstall.install", autospec=True)
+    capsys.readouterr()
+
+    assert run_pipx_cli(command)
+
+    assert "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err
+    install.assert_not_called()
+    assert (paths.ctx.venvs / "pycowsay").is_dir()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
