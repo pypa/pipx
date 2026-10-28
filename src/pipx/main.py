@@ -301,6 +301,14 @@ def _non_negative_int(value: str) -> int:
     return result
 
 
+def _package_spec(value: str) -> str:
+    # pip and uv would read a dash-leading value as one of their own options rather than a package
+    if value.startswith("-"):
+        msg = f"{redact_url_credentials(value)!r} is an installer option, not a package; pass it with --pip-args"
+        raise argparse.ArgumentTypeError(msg)
+    return value
+
+
 def get_runpip_args(pip_args: list[str]) -> list[str]:
     if len(pip_args) != 1:
         return pip_args
@@ -669,6 +677,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     parser.add_argument(
         "--preinstall",
         action="append",
+        type=_package_spec,
         help=(
             "Optional package to be installed into the Virtual Environment before "
             "installing the main package. Use this flag multiple times if you want to preinstall multiple packages."
@@ -1694,6 +1703,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         "--with",
         dest="with_",
         action="append",
+        type=_package_spec,
         default=[],
         help="Extra dependencies to add to the temporary environment",
     )
