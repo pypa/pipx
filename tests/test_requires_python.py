@@ -7,6 +7,7 @@ import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
+from flit_core.wheel import make_wheel_in
 from packaging.specifiers import SpecifierSet
 
 from helpers import run_pipx_cli
@@ -194,16 +195,20 @@ def project_excluding_this_python(make_needs_project: Callable[[str], Path]) -> 
     return make_needs_project(f"<{sys.version_info.major}.{sys.version_info.minor}")
 
 
+@pytest.fixture
+def wheel_excluding_this_python(project_excluding_this_python: Path, tmp_path: Path) -> Path:
+    # installing the source tree builds it in an isolated environment on each Python pipx tries, which takes long enough
+    # on the free-threaded CI runner to hit the timeout
+    return make_wheel_in(project_excluding_this_python / "pyproject.toml", tmp_path).file
+
+
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.usefixtures("pipx_temp_env", "older_python", "capsys")
-def test_install_moves_to_a_python_the_package_supports(
-    project_excluding_this_python: Path,
-    backend: str,
-) -> None:
+def test_install_moves_to_a_python_the_package_supports(wheel_excluding_this_python: Path, backend: str) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv binary not on PATH")
 
-    assert not run_pipx_cli(["install", "--backend", backend, str(project_excluding_this_python)])
+    assert not run_pipx_cli(["install", "--backend", backend, str(wheel_excluding_this_python)])
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
