@@ -33,12 +33,18 @@ _LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
 _SHORT_OPTION_LEN: Final[int] = 2
+# pip's and uv's spellings, since a uv environment records options as uv pip install accepts them
 _PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
     "-f",
     "-i",
+    "--allow-insecure-host",
+    "--default-index",
     "--extra-index-url",
     "--find-links",
+    "--index",
+    "--index-strategy",
     "--index-url",
+    "--keyring-provider",
     "--trusted-host",
 })
 
