@@ -47,7 +47,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import error, sleep, stars
-from pipx.fanout import fan_out, locked_in_order
+from pipx.fanout import fan_out, locked_in_order, uninterrupted
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
@@ -87,8 +87,10 @@ def _rename_once_released(source: Path, target: Path) -> None:
 
 
 def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir: Path) -> None:
-    rmdir(venv_dir)
-    backup_dir.rename(restore_venv_dir)
+    # a signal between the two steps would leave the venv deleted and its only copy in the trash
+    with uninterrupted():
+        rmdir(venv_dir)
+        backup_dir.rename(restore_venv_dir)
 
 
 def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
