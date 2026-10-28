@@ -43,6 +43,10 @@ Ordinary pipx commands do not search the current directory or its parents for co
 PATH`` applies the desired application state from the manifest at ``PATH``; pipx does not infer that path. The manifest
 accepts tool state instead of arbitrary command defaults.
 
+The `security policy <https://github.com/pypa/pipx/security/policy>`_ builds on these boundaries: a pipx command that
+picks up a file the user did not name, from the current directory, its parents, or a location another local account can
+write, has a security bug.
+
 pipx can record an environment's resolved dependencies as a lock file in the PyPA ``pylock.toml`` format, so the
 environment rebuilds identically; ``pipx manifest lock`` writes these locks and ``pipx install --lock`` reads one back.
 pipx does not use ``requirements.txt`` as a state or lock format.
