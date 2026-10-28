@@ -1353,6 +1353,43 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
     assert "Reusing cached venv" in caplog.text
 
 
+@pytest.mark.parametrize(
+    "source_args",
+    [
+        pytest.param(["--spec", "./dist/tool-1.0-py3-none-any.whl"], id="dot-slash"),
+        pytest.param(["--spec", "dist/tool-1.0-py3-none-any.whl"], id="bare"),
+        pytest.param(["--pip-args=--find-links=dist"], id="find-links"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_relative_path_keys_cache_per_directory(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+    source_args: list[str],
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    for checkout in ("first", "second"):
+        (dist := tmp_path / checkout / "dist").mkdir(parents=True)
+        with zipfile.ZipFile(dist / "tool-1.0-py3-none-any.whl", "w") as archive:
+            archive.writestr("tool.py", f"def main():\n    print('built in {checkout}')\n")
+            archive.writestr("tool-1.0.dist-info/METADATA", "Metadata-Version: 2.1\nName: tool\nVersion: 1.0\n")
+            archive.writestr(
+                "tool-1.0.dist-info/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
+            )
+            archive.writestr("tool-1.0.dist-info/entry_points.txt", "[console_scripts]\ntool = tool:main\n")
+            archive.writestr("tool-1.0.dist-info/RECORD", "")
+    monkeypatch.chdir(tmp_path / "first")
+    run_pipx_cli_exit(["run", *source_args, "tool"], assert_exit=0)
+    monkeypatch.chdir(tmp_path / "second")
+    capfd.readouterr()
+
+    run_pipx_cli_exit(["run", *source_args, "tool"], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines()[-1] == "built in second"
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_uv_dash_app_is_not_a_uv_option() -> None:

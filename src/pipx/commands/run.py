@@ -43,9 +43,9 @@ from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import hazard
-from pipx.package_specifier import absolute_path_pip_args
+from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
-from pipx.script import ScriptMetadata, download_script, read_script_metadata
+from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
 from pipx.util import (
     PipxError,
     exec_app,
@@ -309,10 +309,14 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
 
     # ``--with`` packages are installed in this venv, so they are part of its identity: leaving them out of the key let
     # ``pipx run foo`` and ``pipx run --with bar foo`` collide on one cache dir and cross-contaminate each other.
+    # the installer resolves local paths against the working directory, so the key must too
     venv_dir = _get_temporary_venv_path(
-        [package_or_url, *dependencies],
+        [
+            str(script) if (script := local_script(spec)) is not None else resolve_local_path(spec)
+            for spec in (package_or_url, *dependencies)
+        ],
         python,
-        pip_args,
+        absolute_path_pip_args(pip_args, Path.cwd()),
         venv_args,
         resolved_backend or "pip",
         cooldown_days=cooldown_days,

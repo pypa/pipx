@@ -255,6 +255,10 @@ def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
     return pip_args
 
 
+def resolve_local_path(package_spec: str) -> str:
+    return _parse_specifier(package_spec).valid_local_path or package_spec
+
+
 def parse_specifier_for_metadata(package_spec: str) -> str:
     """Return package_or_url suitable for pipx metadata
 
@@ -509,6 +513,7 @@ __all__ = [
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
     "replace_index_options",
+    "resolve_local_path",
     "source_without_extras",
     "static_project_name",
     "valid_pypi_name",
