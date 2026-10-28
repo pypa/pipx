@@ -738,7 +738,8 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend, env_backend=env_backend)
-        venv.create_venv(venv_args=[], pip_args=[])
+        # under pip this can be the call that builds the shared libraries, so their pip must come from the user's index
+        venv.create_venv(venv_args=[], pip_args=pip_args)
         package_name = venv.install_package_no_deps(
             package_or_url=package_spec,
             pip_args=pip_args,
