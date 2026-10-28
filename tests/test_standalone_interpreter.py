@@ -16,7 +16,7 @@ import warnings
 from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -129,10 +129,10 @@ def test_early_python_310_rejects_unsafe_archive(
         standalone_python.download_python_build_standalone("3.99")
 
 
-_DEEP_DIR = "python/" + "/".join(["d"] * 12)
-_CLIMB_TO_FILESYSTEM_ROOT = "/".join([".."] * 12)
-_SHORTCUTS = "abcdefghijklmnop"
-_UNFOLLOWABLE_LINK = "/".join(_SHORTCUTS) + "/" + "q" * 254
+_DEEP_DIR: Final[str] = f"python/{'/'.join(['d'] * 12)}"
+_CLIMB_TO_FILESYSTEM_ROOT: Final[str] = "/".join([".."] * 12)
+_SHORTCUTS: Final[str] = "abcdefghijklmnop"
+_UNFOLLOWABLE_LINK: Final[str] = f"{'/'.join(_SHORTCUTS)}/{'q' * 254}"
 
 
 def _links_too_long_to_follow() -> list[tuple[str, bytes, str]]:
