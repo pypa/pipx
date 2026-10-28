@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 import sysconfig
 import time
+import zipfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Final, Protocol
@@ -16,6 +18,7 @@ from packaging.utils import canonicalize_name
 
 from package_info import PKG
 from pipx import constants, main, paths, pipx_metadata_file, shared_libs, util
+from pipx.venv import Venv
 
 WIN = sys.platform.startswith("win")
 
@@ -285,3 +288,29 @@ def set_shared_pip_age(age_sec: float) -> float:
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
+
+
+def write_wheel(directory: Path, name: str, version: str, requires: tuple[str, ...] = ()) -> Path:
+    dist_info: Final[str] = f"{name}-{version}.dist-info"
+    members: Final[dict[str, str]] = {
+        f"{name}.py": f"VERSION = {version!r}\n",
+        f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
+        + "".join(f"Requires-Dist: {requirement}\n" for requirement in requires),
+        f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {name}:VERSION\n",
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(wheel := directory / f"{name}-{version}-py3-none-any.whl", "w") as archive:
+        for member, content in members.items():
+            archive.writestr(member, content)
+        archive.writestr(
+            f"{dist_info}/RECORD", "".join(f"{member},,\n" for member in [*members, f"{dist_info}/RECORD"])
+        )
+    return wheel
+
+
+def module_version(venv_name: str) -> str:
+    return subprocess.check_output(
+        [Venv(paths.ctx.venvs / venv_name).python_path, "-c", f"import {venv_name}; print({venv_name}.VERSION)"],
+        text=True,
+    ).strip()

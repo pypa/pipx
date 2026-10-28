@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.backends import assert_not_pip_under_uv
+from pipx.backends import UV, assert_not_pip_under_uv
 from pipx.colors import bold
 from pipx.commands.common import (
     get_expected_venv_resource_paths,
@@ -166,6 +166,13 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
+    # pip's --force-reinstall covers the whole resolution, so it also refetches the main package by name from this
+    # package's index when this package depends on it; uv can limit the reinstall to this package
+    reinstall_args: Final[list[str] | None] = (
+        (["--reinstall-package", package_name] if venv.backend_name == UV else ["--force-reinstall"])
+        if force and force_reinstall and venv.has_package(package_name)
+        else None
+    )
     messages: Final[list[OutputMessage]] = []
     # like install, a package without the apps --include-apps asked for leaves the venv as it was
     with (
@@ -177,7 +184,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                 venv.install_package,
                 package_or_url=package_spec,
                 pip_args=pip_args,
-                install_only_pip_args=["--force-reinstall"] if force and force_reinstall else None,
+                install_only_pip_args=reinstall_args,
                 include_dependencies=include_dependencies,
                 include_resources_from=include_resources_from,
                 include_apps=include_apps,

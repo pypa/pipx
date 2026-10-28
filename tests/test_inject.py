@@ -16,8 +16,10 @@ from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     mock_legacy_venv,
+    module_version,
     run_pipx_cli,
     skip_if_windows,
+    write_wheel,
 )
 from package_info import PKG
 from pipx import paths
@@ -558,6 +560,27 @@ def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCapture
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert metadata.injected_packages["black"].pip_args == ["--no-cache-dir"]
+
+
+@pytest.mark.parametrize(
+    ("backend", "injected_before"),
+    [pytest.param("pip", False, id="pip-first-inject"), pytest.param("uv", True, id="uv-reinject")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_inject_keeps_main_package_a_plugin_depends_on(
+    tmp_path: Path, backend: str, *, injected_before: bool
+) -> None:
+    plugin_index: Final[Path] = tmp_path / "plugin-index"
+    write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
+    write_wheel(plugin_index, "tool", "99.0")
+    assert not run_pipx_cli(["install", "--backend", backend, str(write_wheel(tmp_path / "local", "tool", "1.0"))])
+    inject: Final[list[str]] = ["inject", "tool", "plugin", f"--pip-args=--no-index --find-links={plugin_index}"]
+    if injected_before:
+        assert not run_pipx_cli(inject)
+
+    assert not run_pipx_cli([*inject, "--force"])
+
+    assert module_version("tool") == "1.0"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

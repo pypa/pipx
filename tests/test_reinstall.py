@@ -6,7 +6,6 @@ import os
 import signal
 import subprocess
 import sys
-import zipfile
 from dataclasses import replace
 from typing import TYPE_CHECKING, Final
 
@@ -17,13 +16,14 @@ from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     mock_legacy_venv,
+    module_version,
     run_pipx_cli,
     skip_if_windows,
+    write_wheel,
 )
 from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -411,42 +411,18 @@ def test_reinstall_records_injected_local_project_under_its_new_name(
     assert list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages) == ["renamed"]
 
 
-def _write_wheel(directory: Path, name: str, version: str, requires: tuple[str, ...] = ()) -> Path:
-    dist_info: Final[str] = f"{name}-{version}.dist-info"
-    members: Final[dict[str, str]] = {
-        f"{name}.py": f"VERSION = {version!r}\n",
-        f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
-        + "".join(f"Requires-Dist: {requirement}\n" for requirement in requires),
-        f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
-        f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {name}:VERSION\n",
-    }
-    directory.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(wheel := directory / f"{name}-{version}-py3-none-any.whl", "w") as archive:
-        for member, content in members.items():
-            archive.writestr(member, content)
-        archive.writestr(
-            f"{dist_info}/RECORD", "".join(f"{member},,\n" for member in [*members, f"{dist_info}/RECORD"])
-        )
-    return wheel
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_keeps_main_package_a_plugin_depends_on(tmp_path: Path) -> None:
     plugin_index: Final[Path] = tmp_path / "plugin-index"
-    _write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
-    _write_wheel(plugin_index, "tool", "99.0")
-    local_tool: Final[Path] = _write_wheel(tmp_path / "local", "tool", "1.0")
+    write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
+    write_wheel(plugin_index, "tool", "99.0")
+    local_tool: Final[Path] = write_wheel(tmp_path / "local", "tool", "1.0")
     assert not run_pipx_cli(["install", "--backend", "pip", str(local_tool)])
     assert not run_pipx_cli(["inject", "tool", "plugin", f"--pip-args=--no-index --find-links={plugin_index}"])
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "tool"])
 
-    assert (
-        subprocess.check_output(
-            [Venv(paths.ctx.venvs / "tool").python_path, "-c", "import tool; print(tool.VERSION)"], text=True
-        ).strip()
-        == "1.0"
-    )
+    assert module_version("tool") == "1.0"
 
 
 @skip_if_windows
