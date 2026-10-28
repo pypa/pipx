@@ -868,21 +868,6 @@ def test_run_rebuilds_after_installer_env_changes(
     assert out.read_text() == "2.0"
 
 
-@pytest.fixture
-def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
-    def publish(links_name: str, version: str) -> Path:
-        (links := tmp_path / links_name).mkdir(exist_ok=True)
-        info: Final[str] = f"demodep-{version}.dist-info"
-        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
-            archive.writestr("demodep.py", "")
-            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
-            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-            archive.writestr(f"{info}/RECORD", "")
-        return links
-
-    return publish
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
