@@ -139,6 +139,13 @@ def test_inspect_venv_skips_editable_man_page_symlinked_out_of_the_project(edita
     assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
 
 
+@skip_if_windows
+def test_inspect_venv_skips_editable_man_page_in_a_symlink_loop(editable_project: Path) -> None:
+    (loop := editable_project / "man" / "loop.1").symlink_to(loop)
+
+    assert _inspect_editable_man_pages(editable_project, "man/loop.1") == []
+
+
 @pytest.fixture
 def editable_project(tmp_path: Path, mocker: MockerFixture) -> Path:
     project = tmp_path / "project"
