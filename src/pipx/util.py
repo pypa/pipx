@@ -363,17 +363,15 @@ def _command_line(cmd: Sequence[str | Path]) -> str:
 
 
 def redact_url_credentials(text: str) -> str:
-    # index and package URLs can carry credentials, which must not reach the log file or the verbose output; masked the
-    # way pip masks them in its own messages, which also hides a bare user such as git@ since it may be a token. The
-    # authority ends at the first /, ? or #, and its userinfo runs to the last @ before that. A password may hold a
-    # space, so callers mask each argument before joining a command line; a line break still ends it, as installer
-    # output holds a URL per line. Across a space the match can start at a bare token and end at a later word's @, so
-    # a user part holding an @ is masked whole.
+    # index and package URLs can carry credentials, which must not reach the log file or the verbose output. A bare user
+    # such as git@ may be a token, and so may the user before an empty or placeholder password (TOKEN:@), so with a
+    # colon both parts are masked. The authority ends at the first /, ? or #, and its userinfo runs to the last @ before
+    # that. A password may hold a space, so callers mask each argument before joining a command line; a line break
+    # still ends it, as installer output holds a URL per line. Across a space the match can start at a bare token and
+    # end at a later word's @, so a user part holding an @ is masked as a bare user.
     return re.sub(
         r"(?<=://)([^/?#\r\n]*)@",
-        lambda match: (
-            f"{userinfo[0]}:****@" if (userinfo := match[1].partition(":"))[1] and "@" not in userinfo[0] else "****@"
-        ),
+        lambda match: "****:****@" if (userinfo := match[1].partition(":"))[1] and "@" not in userinfo[0] else "****@",
         text,
     )
 
@@ -759,6 +757,11 @@ def is_paths_relative(path: Path, parent: Path) -> bool:
     return path.is_relative_to(parent)
 
 
+def is_file_name(name: str) -> bool:
+    # joined to a directory, ".." names its parent and a separator or a drive leads anywhere
+    return name not in {"", ".."} and Path(name).name == name
+
+
 def reject_empty_index(pip_args: Sequence[str]) -> None:
     # an empty value usually comes from an unset variable, as in --index-url "$INDEX_URL", and uv reads it as the
     # default index
@@ -784,6 +787,7 @@ __all__ = [
     "get_pypackage_bin_path",
     "get_site_packages",
     "get_venv_paths",
+    "is_file_name",
     "is_paths_relative",
     "mkdir",
     "open_owner_only",
