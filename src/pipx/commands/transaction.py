@@ -88,7 +88,7 @@ class VenvBackup:
 
 
 def rename_once_released(source: Path, target: Path) -> None:
-    # Windows refuses to rename a directory while a handle inside it is open, and reinstall-all rebuilding another venv
+    # Windows refuses to rename a directory while a handle inside it is open, and a concurrent rebuild of another venv
     # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
     for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
         try:

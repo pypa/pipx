@@ -106,11 +106,17 @@ def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
     signal.raise_signal(signal.SIGINT)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(mocker: MockerFixture) -> None:
+@pytest.fixture
+def venv_dir(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
+) -> Path:
     venv_dir: Final[Path] = paths.ctx.venvs / "demo"
     venv_dir.mkdir(parents=True)
     (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    return venv_dir
+
+
+def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path, mocker: MockerFixture) -> None:
     mocker.patch.object(time, "sleep", autospec=True)
     mocker.patch.object(Path, "rename", autospec=True, side_effect=PermissionError(32, "in use"))
 
@@ -123,11 +129,7 @@ def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(mocker: Mocker
     assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(mocker: MockerFixture) -> None:
-    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: Path, mocker: MockerFixture) -> None:
     mocker.patch.object(time, "sleep", autospec=True)
     real_rename: Final = Path.rename
     attempts: Final[list[Path]] = []
@@ -147,11 +149,8 @@ def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(mocker: Mo
     assert (venv_dir.exists(), moved, attempts) == (False, ["v1"], [venv_dir, venv_dir])
 
 
-@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
-def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(mocker: MockerFixture) -> None:
-    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+@pytest.mark.usefixtures("signal_handlers")
+def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(venv_dir: Path, mocker: MockerFixture) -> None:
     real_rename: Final = Path.rename
 
     def rename_then_interrupt(source: Path, target: Path) -> Path:
