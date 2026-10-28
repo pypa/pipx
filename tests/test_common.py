@@ -171,20 +171,21 @@ def test_expose_refuses_app_named_like_stdlib_module(
 
 
 @pytest.mark.parametrize(
-    ("resource_type", "resource", "exposed"),
+    ("resource_type", "resource", "source", "exposed"),
     [
-        pytest.param("app", "bin/enum", "enum", id="app-without-module-suffix"),
-        pytest.param("app", "bin/enum_tool.py", "enum_tool.py", id="app-not-a-stdlib-module"),
-        pytest.param("man", "share/man/man1/re.py", "man1/re.py", id="man-page"),
+        pytest.param("app", "bin/enum", "bin/enum", "enum", id="app-without-module-suffix"),
+        pytest.param("app", "bin/enum_tool.py", "bin/enum_tool.py", "enum_tool.py", id="app-not-a-stdlib-module"),
+        pytest.param("app", "bin/tools/__init__.py", "bin/tools", "tools", id="directory-not-a-stdlib-module"),
+        pytest.param("man", "share/man/man1/re.py", "share/man/man1/re.py", "man1/re.py", id="man-page"),
     ],
 )
 def test_expose_keeps_names_that_shadow_no_stdlib_module(
-    tmp_path: Path, resource_type: str, resource: str, exposed: str
+    tmp_path: Path, resource_type: str, resource: str, source: str, exposed: str
 ) -> None:
     (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
     resource_path.write_text("")
 
-    expose_resources_globally(resource_type, tmp_path / "local", [resource_path], force=False)
+    expose_resources_globally(resource_type, tmp_path / "local", [tmp_path / "venv" / source], force=False)
 
     assert (tmp_path / "local" / exposed).exists()
 
