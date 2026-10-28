@@ -176,7 +176,7 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     content: Final[str] = (
         script.read_text(encoding="utf-8")
         if (script := local_script(package_or_url)) is not None
-        else _read_url(package_or_url)
+        else download_script(package_or_url)
     ).removeprefix("\ufeff")
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
@@ -195,19 +195,29 @@ _URL_TIMEOUT: Final[int] = 30
 _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 
-def _read_url(url: str) -> str:
+def download_script(url: str) -> str:
     from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
-    reject_url_credentials(url)
+    _reject_url_credentials(url)
     try:
-        with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
+        with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             _reject_incomplete_script(url, response, data)
             return data.decode(response.headers.get_content_charset() or "utf-8")
-    except (OSError, HTTPException) as error:
+    # a body in another encoding than declared or an unknown charset name fails the decode, not the download
+    except (OSError, HTTPException, UnicodeDecodeError, LookupError) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
         raise PipxError(msg) from error
+
+
+def _reject_url_credentials(url: str) -> None:
+    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
+    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
+    # does log in with them
+    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
 
 
 def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
@@ -298,21 +308,12 @@ def _digest(data: bytes) -> str:
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
 
 
-def reject_url_credentials(url: str) -> None:
-    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
-    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
-    # does log in with them
-    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
-        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
-        raise PipxError(msg)
-
-
 __all__ = [
     "ScriptMetadata",
+    "download_script",
     "installable_script",
     "is_script_spec",
     "local_script",
     "read_script_metadata",
-    "reject_url_credentials",
     "script_name_from_spec",
 ]
