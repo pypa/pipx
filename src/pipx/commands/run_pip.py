@@ -111,6 +111,64 @@ _OPTIONS_WITH_VALUE: Final[frozenset[str]] = frozenset({
     "-t",
 })
 
+# pip expands an unambiguous prefix of a long option; knowing its flags (and uv's flags that prefix a listed option)
+# keeps a prefix shared with a flag, or a complete uv flag, from being read as taking a value
+_LONG_FLAGS: Final[frozenset[str]] = frozenset({
+    "--break-system-packages",
+    "--check-build-dependencies",
+    "--compile",
+    "--debug",
+    "--disable-pip-version-check",
+    "--dry-run",
+    "--force-reinstall",
+    "--help",
+    "--ignore-installed",
+    "--ignore-requires-python",
+    "--isolated",
+    "--no-build",
+    "--no-build-isolation",
+    "--no-cache-dir",
+    "--no-clean",
+    "--no-color",
+    "--no-compile",
+    "--no-dependencies",
+    "--no-deps",
+    "--no-editable",
+    "--no-index",
+    "--no-input",
+    "--no-proxy-env",
+    "--no-python-version-warning",
+    "--no-require-hashes",
+    "--no-sources",
+    "--no-user",
+    "--no-warn-conflicts",
+    "--no-warn-script-location",
+    "--only-dependencies",
+    "--only-deps",
+    "--pre",
+    "--prefer-binary",
+    "--quiet",
+    "--refresh",
+    "--reinstall",
+    "--require-hashes",
+    "--require-venv",
+    "--require-virtualenv",
+    "--upgrade",
+    "--use-pep517",
+    "--user",
+    "--verbose",
+    "--version",
+})
+
+
+def _takes_value(arg: str) -> bool:
+    if arg in _OPTIONS_WITH_VALUE:
+        return True
+    if not arg.startswith("--") or "=" in arg or arg in _LONG_FLAGS:
+        return False
+    candidates = {option for option in _OPTIONS_WITH_VALUE | _LONG_FLAGS if option.startswith(arg)}
+    return bool(candidates) and candidates <= _OPTIONS_WITH_VALUE
+
 
 def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     if not pip_args or pip_args[0] != "install":
@@ -130,7 +188,7 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
             specs.append((arg.split("=", 1)[1], True))
             index += 1
             continue
-        if arg in _OPTIONS_WITH_VALUE:
+        if _takes_value(arg):
             index += 2
             continue
         if arg.startswith("-"):

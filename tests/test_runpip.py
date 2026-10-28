@@ -38,7 +38,12 @@ def test_runpip_global() -> None:
         pytest.param("pip", ("--only-binary", "empty-project"), id="pip-only-binary"),
         pytest.param("pip", ("--no-binary", "empty-project"), id="pip-no-binary"),
         pytest.param("pip", ("--proxy", "empty-project"), id="pip-proxy"),
+        pytest.param("pip", ("--only-bin", "empty-project"), id="pip-only-binary-abbreviated"),
+        pytest.param("pip", ("--pre",), id="pip-pre-flag-prefixes-prefix"),
+        pytest.param("pip", ("--no-build-iso",), id="pip-no-build-isolation-abbreviated"),
         pytest.param("uv", ("-P", "empty-project"), id="uv-upgrade-package"),
+        pytest.param("uv", ("--refresh",), id="uv-refresh-flag-prefixes-refresh-package"),
+        pytest.param("uv", ("--no-sources",), id="uv-no-sources-flag-prefixes-no-sources-package"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
