@@ -209,7 +209,9 @@ def extras_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
         (resource_path := tmp_path / "share" / resource).parent.mkdir(parents=True)
         resource_path.touch()
     (site_packages / "second-app-1.0.dist-info" / "RECORD").write_text(
-        "../share/man/man1/second-app.1,,\n../share/bash-completion/completions/second-app,,\n", encoding="utf-8"
+        "second-app-1.0.dist-info/entry_points.txt,,\n../share/man/man1/second-app.1,,\n"
+        "../share/bash-completion/completions/second-app,,\n",
+        encoding="utf-8",
     )
     mocker.patch.object(
         venv_inspect,
@@ -272,6 +274,37 @@ def test_inspect_venv_reads_installed_files_only_without_record(
         (site_packages / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "other").touch()
+    mocker.patch.object(
+        venv_inspect,
+        "fetch_info_in_venv",
+        autospec=True,
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    )
+
+    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+
+    assert result.apps == expected
+
+
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        pytest.param(None, ["planted"], id="legacy-without-record"),
+        pytest.param("root-package-1.0.dist-info/entry_points.txt,,\n", ["planted"], id="record-lists-entry-points"),
+        pytest.param("root_package/__init__.py,,\n", [], id="record-without-entry-points"),
+    ],
+)
+def test_inspect_venv_reads_entry_points_only_when_record_lists_them(
+    tmp_path: Path, mocker: MockerFixture, record: str | None, expected: list[str]
+) -> None:
+    site_packages = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    dist_info = site_packages / "root-package-1.0.dist-info"
+    (dist_info / "entry_points.txt").write_text("[console_scripts]\nplanted = helper:main\n", encoding="utf-8")
+    if record is not None:
+        (dist_info / "RECORD").write_text(record, encoding="utf-8")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "planted").touch()
     mocker.patch.object(
         venv_inspect,
         "fetch_info_in_venv",
