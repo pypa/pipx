@@ -81,11 +81,12 @@ def _distribution_name(dist: metadata.Distribution) -> str | None:
 
 def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
     metadata.MetadataPathFinder().invalidate_caches()
-    return {
-        canonicalize_name(name): dist
-        for dist in metadata.distributions(path=paths)
-        if (name := _distribution_name(dist))
-    }
+    distributions: dict[str, metadata.Distribution] = {}
+    for dist in metadata.distributions(path=paths):
+        if name := _distribution_name(dist):
+            # the interpreter resolves a name to its first record on sys.path, so a later one must not shadow it
+            distributions.setdefault(canonicalize_name(name), dist)
+    return distributions
 
 
 def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
