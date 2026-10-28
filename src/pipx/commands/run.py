@@ -203,11 +203,11 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
         else:
             venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-            venv.create_venv(venv_args, pip_args)
             try:
+                venv.create_venv(venv_args, pip_args)
                 venv.install_unmanaged_packages(requirements, pip_args, cooldown_days=cooldown_days)
             except (OSError, PipxError, KeyboardInterrupt):
-                # Package installation failed, so mark the cache as expired.
+                # Venv creation or package installation failed, so mark the cache as expired.
                 # This ensures an attempt is made to re-install requirements
                 # when `pipx run` is next executed, rather than just failing.
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()

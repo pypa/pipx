@@ -988,6 +988,26 @@ def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_pa
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_interrupted_venv_creation_expires_cache(
+    inline_script: Path,
+    mocker: MockerFixture,
+    capfd: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+) -> None:
+    def interrupt() -> None:
+        raise KeyboardInterrupt
+
+    before_venv_subprocess(paths.ctx.venv_cache, interrupt)
+    assert run_pipx_cli(["run", "--backend", "pip", str(inline_script)]) == 1
+    mocker.stopall()
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+
+    run_pipx_cli_exit(["run", "--backend", "pip", str(inline_script)], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines()[-1] == "installed"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_run_package_install_failure_expires_cache() -> None:
     command = ["run", "--backend", "pip", "--pip-args=--no-index", "--spec", "pipx-missing-package", "missing-app"]
 
