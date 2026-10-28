@@ -416,6 +416,39 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
     assert find_python_interpreter("3.13", fetch_python=FetchPythonOptions.NEVER) == "/fake/python3.13"
 
 
+@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        pytest.param("3.14.8", id="micro"),
+        pytest.param("python3.14.8", id="python-prefix-micro"),
+        pytest.param("3.13t", id="free-threaded"),
+    ],
+)
+def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
+    mocker: MockerFixture, python_version: str
+) -> None:
+    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    launcher = mocker.patch.object(subprocess, "run", autospec=True)
+
+    with pytest.raises(InterpreterResolutionError, match="found in PATH"):
+        find_python_interpreter(python_version)
+    launcher.assert_not_called()
+
+
+@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+def test_find_python_interpreter_asks_unix_py_launcher_for_minor_version(mocker: MockerFixture) -> None:
+    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    mocker.patch.object(
+        subprocess,
+        "run",
+        autospec=True,
+        return_value=subprocess.CompletedProcess([], 0, stdout="/opt/python3.99/bin/python3.99\n"),
+    )
+
+    assert find_python_interpreter("3.99") == "/opt/python3.99/bin/python3.99"
+
+
 @pytest.mark.parametrize(
     ("subcommand", "command"),
     [
