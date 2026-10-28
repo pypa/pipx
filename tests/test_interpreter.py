@@ -267,6 +267,12 @@ def test_find_python_interpreter_by_version() -> None:
     assert result.stdout.strip() == f"{major}.{minor}"
 
 
+def test_find_python_interpreter_by_name_returns_path_lookup_result() -> None:
+    name = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+    assert find_python_interpreter(name) == shutil.which(name)
+
+
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
     interpreter_path = sys.executable + "99"
     with pytest.raises(InterpreterResolutionError) as e:  # ruff:ignore[pytest-raises-with-multiple-statements]  # trailing assert is dead code today; hoisting it would change behavior
