@@ -3,7 +3,7 @@
 #####################
 
 This tutorial covers the core pipx workflow: install an application, run it, upgrade it, and remove it. Work through it
-top to bottom with one small package, and you will know every command you need day to day.
+top to bottom with one small package, and you will know the commands you need day to day.
 
 .. note::
 
@@ -13,10 +13,11 @@ top to bottom with one small package, and you will know every command you need d
  Packages and apps
 *******************
 
-pipx installs **packages** and exposes their **apps**. A package is what you download from PyPI, such as ``pycowsay`` or
-``httpie``. An app is a command that package puts on your ``PATH`` through a `console script entry point
-<https://packaging.python.org/en/latest/specifications/entry-points/>`_. One package can expose several apps: ``httpie``
-gives you ``http``, ``httpie``, and ``https``. For the full picture, see :doc:`How pipx works <../explanation/how-pipx-works>`.
+pipx installs **packages** and exposes their **apps**. A package is what you download from `PyPI <https://pypi.org>`_,
+such as ``pycowsay`` or ``httpie``. An app is a command that package puts on your ``PATH`` through a `console script
+entry point <https://packaging.python.org/en/latest/specifications/entry-points/>`_. One package can expose several
+apps: ``httpie`` gives you ``http``, ``httpie``, and ``https``. For the full picture, see :doc:`How pipx works
+<../explanation/how-pipx-works>`.
 
 ***************
  The lifecycle
@@ -49,13 +50,13 @@ Pick a small package to try. ``pycowsay`` works well:
         - man6/pycowsay.6
     done! ✨ 🌟 ✨
 
-pipx creates an isolated virtual environment for ``pycowsay``, installs it there, and links the ``pycowsay`` command into
-a directory on your ``PATH``. No ``sudo`` required.
+pipx creates an isolated virtual environment for ``pycowsay``, installs it there, and links the ``pycowsay`` command
+into a directory on your ``PATH``, without ``sudo``.
 
 Confirm it worked
 =================
 
-Run the app from anywhere:
+Run the app from any directory:
 
 .. code-block:: console
 

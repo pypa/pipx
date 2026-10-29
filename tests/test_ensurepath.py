@@ -6,86 +6,79 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
+import userpath
 
 from helpers import run_pipx_cli
+from pipx import paths
 from pipx.commands import ensure_path as ensure_path_module
 from pipx.constants import EXIT_CODE_OK, WINDOWS
 
 if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
     from pytest_mock import MockerFixture
 
 _SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide ensurepath is unavailable on Windows")
 
 
-class FakeUserpath:
-    """Minimal stand-in for the ``userpath`` module used by ensure_path.
-
-    Records append/prepend calls so tests can assert that a dry run never
-    mutates PATH or any shell configuration file.
-    """
-
-    def __init__(self) -> None:
-        self.append_calls: list[str] = []
-        self.prepend_calls: list[str] = []
-        self.in_path = False
-        self.restart = False
-
-    def need_shell_restart(self, _location: str) -> bool:
-        return self.restart
-
-    def in_current_path(self, _location: str) -> bool:
-        return self.in_path
-
-    def append(self, location: str, _app: str, all_shells: bool = False) -> bool:  # ruff:ignore[unused-method-argument]  # all_shells is passed by keyword at the call site
-        self.append_calls.append(location)
-        return True
-
-    def prepend(self, location: str, _app: str, all_shells: bool = False) -> bool:  # ruff:ignore[unused-method-argument]  # all_shells is passed by keyword at the call site
-        self.prepend_calls.append(location)
-        return True
-
-
 @pytest.fixture
-def mock_userpath(monkeypatch: pytest.MonkeyPatch) -> FakeUserpath:
-    fake = FakeUserpath()
-    monkeypatch.setattr(ensure_path_module, "userpath", fake)
-    return fake
+def mock_userpath(mocker: MockerFixture) -> MagicMock:
+    mocked: Final = mocker.create_autospec(
+        userpath,
+        **{
+            "need_shell_restart.return_value": False,
+            "in_current_path.return_value": False,
+            "append.return_value": True,
+            "prepend.return_value": True,
+        },
+    )
+    mocker.patch.object(ensure_path_module, "userpath", mocked)
+    return mocked
 
 
-def test_ensure_path_dry_run_does_not_append(mock_userpath: FakeUserpath, capsys: pytest.CaptureFixture[str]) -> None:
-    location = Path("/some/bin")
-    path_added, _ = ensure_path_module.ensure_path(location, force=True, dry_run=True)
+def test_ensure_path_dry_run_does_not_append(mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+    location: Final[Path] = Path("/some/bin")
+    path_added, _ = ensure_path_module.ensure_path(location, force=True, prepend=False, all_shells=False, dry_run=True)
 
-    assert path_added is False
-    assert mock_userpath.append_calls == []
-    assert mock_userpath.prepend_calls == []
-    assert "Would append" in capsys.readouterr().out
-
-
-def test_ensure_path_dry_run_reports_prepend(mock_userpath: FakeUserpath, capsys: pytest.CaptureFixture[str]) -> None:
-    location = Path("/some/bin")
-    ensure_path_module.ensure_path(location, force=True, prepend=True, dry_run=True)
-
-    assert mock_userpath.prepend_calls == []
-    assert "Would prepend" in capsys.readouterr().out
+    assert (path_added, mock_userpath.append.called, mock_userpath.prepend.called, capsys.readouterr().out) == (
+        False,
+        False,
+        False,
+        f"Would append {location} to the PATH environment variable.\n",
+    )
 
 
-def test_ensure_path_non_dry_run_still_appends(mock_userpath: FakeUserpath, capsys: pytest.CaptureFixture[str]) -> None:
-    location = Path("/some/bin")
-    ensure_path_module.ensure_path(location, force=True)
+def test_ensure_path_dry_run_reports_prepend(mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+    ensure_path_module.ensure_path(Path("/some/bin"), force=True, prepend=True, all_shells=False, dry_run=True)
 
-    assert mock_userpath.append_calls == [str(location)]
-    assert "Success!" in capsys.readouterr().out
+    assert (mock_userpath.prepend.called, "Would prepend" in capsys.readouterr().out) == (False, True)
 
 
-def test_ensure_pipx_paths_dry_run_footer(mock_userpath: FakeUserpath, capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = ensure_path_module.ensure_pipx_paths(force=True, dry_run=True)
+def test_ensure_path_non_dry_run_still_appends(
+    mock_userpath: MagicMock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    location: Final[Path] = Path("/some/bin")
 
-    assert exit_code == EXIT_CODE_OK
-    assert mock_userpath.append_calls == []
-    out = capsys.readouterr().out.lower()
-    assert "dry run" in out
-    assert "no changes were made" in out
+    ensure_path_module.ensure_path(location, force=True, prepend=False, all_shells=False, dry_run=False)
+
+    assert (mock_userpath.append.call_args_list, "Success!" in capsys.readouterr().out) == (
+        [mocker.call(str(location), "pipx", all_shells=False)],
+        True,
+    )
+
+
+def test_ensure_pipx_paths_dry_run_footer(mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code: Final = ensure_path_module.ensure_pipx_paths(
+        force=True, prepend=False, all_shells=False, dry_run=True, is_global=False
+    )
+
+    out: Final[str] = capsys.readouterr().out.lower()
+    assert (exit_code, mock_userpath.append.called, "dry run" in out, "no changes were made" in out) == (
+        EXIT_CODE_OK,
+        False,
+        True,
+        True,
+    )
 
 
 @pytest.mark.parametrize(
@@ -110,14 +103,12 @@ def test_ensure_pipx_paths_dry_run_footer(mock_userpath: FakeUserpath, capsys: p
 def test_ensure_pipx_paths_global_updates_system_profile(
     mocker: MockerFixture, tmp_path: Path, macos: bool, prepend: bool, expected: str
 ) -> None:
-    location = Path("/opt/pipx/bin")
-    config_file = tmp_path / "etc/profile.d/pipx.sh"
-    config_file.parent.mkdir(parents=True)
-    mocker.patch.object(type(ensure_path_module.paths.ctx), "bin_dir", mocker.PropertyMock(return_value=location))
+    (config_file := tmp_path / "etc/profile.d/pipx.sh").parent.mkdir(parents=True)
+    mocker.patch.object(type(paths.CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/opt/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 
-    ensure_path_module.ensure_pipx_paths(force=False, prepend=prepend, is_global=True)
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=prepend, all_shells=False, dry_run=False, is_global=True)
 
     assert config_file.read_text() == expected
 
@@ -177,7 +168,7 @@ def test_ensurepath_cli_global_keeps_undecodable_file(
 def test_ensurepath_cli_global_force_replaces_undecodable_file(undecodable_config_file: Path) -> None:
     assert (
         run_pipx_cli(["ensurepath", "--global", "--force"]),
-        str(ensure_path_module.paths.ctx.bin_dir) in undecodable_config_file.read_text(encoding="utf-8"),
+        str(paths.CTX.bin_dir) in undecodable_config_file.read_text(encoding="utf-8"),
     ) == (EXIT_CODE_OK, True)
 
 
@@ -190,7 +181,7 @@ def test_ensurepath_cli_global_force_replaces_foreign_file(mocker: MockerFixture
 
     assert (run_pipx_cli(["ensurepath", "--global", "--force"]), config_file.read_text(encoding="utf-8")) == (
         EXIT_CODE_OK,
-        f"{ensure_path_module.paths.ctx.bin_dir}\n",
+        f"{paths.CTX.bin_dir}\n",
     )
 
 
@@ -212,49 +203,52 @@ def test_ensure_pipx_paths_global_replaces_own_entry(
     mocker: MockerFixture, tmp_path: Path, *, macos: bool, prepend: bool, existing: str, expected: str
 ) -> None:
     (config_file := tmp_path / "pipx.sh").write_text(existing, encoding="utf-8")
-    mocker.patch.object(
-        type(ensure_path_module.paths.ctx), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin"))
-    )
+    mocker.patch.object(type(paths.CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 
-    ensure_path_module.ensure_pipx_paths(force=False, prepend=prepend, is_global=True)
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=prepend, all_shells=False, dry_run=False, is_global=True)
 
     assert config_file.read_text(encoding="utf-8") == expected
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
-def test_ensure_pipx_paths_global_skips_userpath(mocker: MockerFixture, tmp_path: Path) -> None:
-    config_file = tmp_path / "pipx.sh"
+def test_ensure_pipx_paths_global_skips_userpath(
+    mock_userpath: MagicMock, mocker: MockerFixture, tmp_path: Path
+) -> None:
+    config_file: Final[Path] = tmp_path / "pipx.sh"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
-    append = mocker.patch.object(ensure_path_module.userpath, "append", autospec=True)
 
-    ensure_path_module.ensure_pipx_paths(force=False, is_global=True)
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=False, all_shells=False, dry_run=False, is_global=True)
 
-    append.assert_not_called()
+    assert (mock_userpath.append.called, config_file.is_file()) == (False, True)
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_dry_run_does_not_write(
     mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    config_file = tmp_path / "pipx.sh"
+    config_file: Final[Path] = tmp_path / "pipx.sh"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
 
-    ensure_path_module.ensure_pipx_paths(force=False, dry_run=True, is_global=True)
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=False, all_shells=False, dry_run=True, is_global=True)
 
-    assert not config_file.exists()
     # pipx wraps the message, so a long temp path moves the line break into the phrase
-    assert "no changes were made to the system PATH" in " ".join(capsys.readouterr().out.split())
+    assert (
+        config_file.exists(),
+        "no changes were made to the system PATH" in " ".join(capsys.readouterr().out.split()),
+    ) == (False, True)
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_configuration_is_world_readable(mocker: MockerFixture, tmp_path: Path) -> None:
-    config_file = tmp_path / "pipx"
+    config_file: Final[Path] = tmp_path / "pipx"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
-    previous_umask = os.umask(0o077)
+    previous_umask: Final[int] = os.umask(0o077)
     try:
-        ensure_path_module.ensure_pipx_paths(force=False, is_global=True)
+        ensure_path_module.ensure_pipx_paths(
+            force=False, prepend=False, all_shells=False, dry_run=False, is_global=True
+        )
     finally:
         os.umask(previous_umask)
 
@@ -265,13 +259,11 @@ def test_ensure_pipx_paths_global_configuration_is_world_readable(mocker: Mocker
 def test_ensure_pipx_paths_global_reports_existing_configuration(
     mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    location = ensure_path_module.paths.ctx.bin_dir
-    config_file = tmp_path / "pipx.sh"
-    config_file.write_text(f"{location}\n")
+    (config_file := tmp_path / "pipx.sh").write_text(f"{paths.CTX.bin_dir}\n")
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", True)
 
-    ensure_path_module.ensure_pipx_paths(force=False, is_global=True)
+    ensure_path_module.ensure_pipx_paths(force=False, prepend=False, all_shells=False, dry_run=False, is_global=True)
 
     # pipx wraps the message, so a long temp path moves the line break into the phrase
     assert "already in the system PATH" in " ".join(capsys.readouterr().out.split())
@@ -280,10 +272,7 @@ def test_ensure_pipx_paths_global_reports_existing_configuration(
 @_SKIP_GLOBAL_ON_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_ensurepath_cli_global_writes_system_configuration(mocker: MockerFixture, tmp_path: Path) -> None:
-    config_file = tmp_path / "pipx"
+    config_file: Final[Path] = tmp_path / "pipx"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
 
-    exit_code = run_pipx_cli(["ensurepath", "--global"])
-
-    assert exit_code == EXIT_CODE_OK
-    assert config_file.exists()
+    assert (run_pipx_cli(["ensurepath", "--global"]), config_file.exists()) == (EXIT_CODE_OK, True)

@@ -12,18 +12,19 @@ from argparse import (
     _SubParsersAction,  # ruff:ignore[import-private-name]  # argparse exposes no public subparser type
 )
 from pathlib import Path
+from typing import Final
 
 
 def main() -> None:
-    documented_python = os.environ.get("PIPX__DOC_DEFAULT_PYTHON")
+    documented_python: Final = os.environ.get("PIPX__DOC_DEFAULT_PYTHON")
     os.environ["PIPX__DOC_DEFAULT_PYTHON"] = "python3"
-    original_program = sys.argv[0]
+    original_program: Final[str] = sys.argv[0]
     sys.argv[0] = "pipx"
     try:
         # pipx reads the documentation environment on import.
         from pipx.main import get_command_parser  # ruff:ignore[import-outside-top-level]
 
-        parser, _ = get_command_parser()
+        parser = get_command_parser()
     finally:
         sys.argv[0] = original_program
         if documented_python is None:
@@ -31,15 +32,15 @@ def main() -> None:
         else:
             os.environ["PIPX__DOC_DEFAULT_PYTHON"] = documented_python
 
-    output = Path(sys.argv[1] if len(sys.argv) > 1 else "docs/man/pipx.1.rst")
+    output: Final[Path] = Path(sys.argv[1] if len(sys.argv) > 1 else "docs/man/pipx.1.rst")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(_generate_manpage_rst(parser), encoding="utf-8")
 
 
 def _generate_manpage_rst(parser: ArgumentParser) -> str:
-    commands = _get_subcommands(parser)
-    synopsis_commands = " | ".join(f"**{name}**" for name, _ in commands)
-    lines = [
+    commands: Final[list[tuple[str, str]]] = _get_subcommands(parser)
+    synopsis_commands: Final[str] = " | ".join(f"**{name}**" for name, _ in commands)
+    lines: Final[list[str]] = [
         ":orphan:",
         "",
         "====",
@@ -68,7 +69,7 @@ def _generate_manpage_rst(parser: ArgumentParser) -> str:
     lines.extend(_commands_section(commands))
     lines.extend(_global_options_section(parser))
     lines.extend(_static_sections())
-    return "\n".join(lines) + "\n"
+    return "".join(f"{line}\n" for line in lines)
 
 
 def _get_subcommands(parser: ArgumentParser) -> list[tuple[str, str]]:
@@ -81,7 +82,7 @@ def _get_subcommands(parser: ArgumentParser) -> list[tuple[str, str]]:
 
 
 def _commands_section(commands: list[tuple[str, str]]) -> list[str]:
-    lines = ["COMMANDS", "--------", ""]
+    lines: Final[list[str]] = ["COMMANDS", "--------", ""]
     for name, help_text in commands:
         lines.append(f"**{name}**")
         lines.extend(f"    {line}" for line in textwrap.wrap(help_text.replace("`", "``"), width=116))
@@ -91,8 +92,8 @@ def _commands_section(commands: list[tuple[str, str]]) -> list[str]:
 
 
 def _global_options_section(parser: ArgumentParser) -> list[str]:
-    lines = ["GLOBAL OPTIONS", "--------------", ""]
-    seen: set[int] = set()
+    lines: Final[list[str]] = ["GLOBAL OPTIONS", "--------------", ""]
+    seen: Final[set[int]] = set()
     for action in parser._actions:  # ruff:ignore[private-member-access]  # argparse exposes no public action list API
         if id(action) in seen or action.help == SUPPRESS or isinstance(action, _SubParsersAction):
             continue
@@ -107,8 +108,7 @@ def _format_option(action: Action) -> str:
         return ""
     option = ", ".join(f"**{value}**" for value in action.option_strings)
     if action.metavar:
-        metavar = action.metavar if isinstance(action.metavar, str) else action.metavar[0]
-        option += f" *{metavar}*"
+        option += f" *{action.metavar if isinstance(action.metavar, str) else action.metavar[0]}*"
     return option
 
 

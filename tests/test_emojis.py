@@ -31,66 +31,73 @@ def test_import_without_stderr_encoding(stderr_expression: str) -> None:
     assert process.returncode == 0, process.stderr
 
 
-def test_use_emojis_without_stderr(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    ("environment", "expected"),
+    [
+        pytest.param({}, False, id="no-override"),
+        pytest.param({"USE_EMOJI": "1"}, True, id="legacy-override"),
+    ],
+)
+def test_use_emojis_without_stderr(
+    no_emoji_override: pytest.MonkeyPatch, mocker: MockerFixture, environment: dict[str, str], expected: bool
+) -> None:
     mocker.patch.object(sys, "stderr", None)
+    for name, value in environment.items():
+        no_emoji_override.setenv(name, value)
+
+    assert use_emojis() is expected
+
+
+@pytest.fixture
+def no_emoji_override(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
     monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
     monkeypatch.delenv("USE_EMOJI", raising=False)
-
-    assert use_emojis() is False
-
-
-def test_use_emojis_legacy_override_without_stderr(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
-    mocker.patch.object(sys, "stderr", None)
-    monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
-    monkeypatch.setenv("USE_EMOJI", "1")
-
-    assert use_emojis() is True
+    return monkeypatch
 
 
 @pytest.mark.parametrize(
-    ("env_value", "encoding", "expected"),
+    ("encoding", "expected"),
     [
-        # utf-8
-        (None, "utf-8", True),
-        ("", "utf-8", False),
-        ("0", "utf-8", False),
-        ("1", "utf-8", True),
-        ("true", "utf-8", True),
-        ("tru", "utf-8", False),  # codespell:ignore tru
-        ("True", "utf-8", True),
-        ("false", "utf-8", False),
-        # latin_1 (alias: iso-8859-1)
-        (None, "latin_1", False),
-        ("", "latin_1", False),
-        ("0", "latin_1", False),
-        ("1", "latin_1", True),
-        ("true", "latin_1", True),
-        ("tru", "latin_1", False),  # codespell:ignore tru
-        ("True", "latin_1", True),
-        ("false", "latin_1", False),
-        # cp1252
-        (None, "cp1252", False),
-        ("", "cp1252", False),
-        ("0", "cp1252", False),
-        ("1", "cp1252", True),
-        ("true", "cp1252", True),
-        ("tru", "cp1252", False),  # codespell:ignore tru
-        ("True", "cp1252", True),
-        ("false", "cp1252", False),
+        pytest.param("utf-8", True, id="utf-8"),
+        pytest.param("latin_1", False, id="latin-1"),
+        pytest.param("cp1252", False, id="cp1252"),
     ],
 )
-def test_use_emojis(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.usefixtures("no_emoji_override")
+def test_use_emojis_follows_stderr_encoding(mocker: MockerFixture, encoding: str, expected: bool) -> None:
+    mocker.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding))
+
+    assert use_emojis() is expected
+
+
+@pytest.mark.parametrize(
+    "encoding",
+    [
+        pytest.param("utf-8", id="utf-8"),
+        pytest.param("latin_1", id="latin-1"),
+        pytest.param("cp1252", id="cp1252"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("env_value", "expected"),
+    [
+        pytest.param("", False, id="empty"),
+        pytest.param("0", False, id="zero"),
+        pytest.param("1", True, id="one"),
+        pytest.param("true", True, id="true"),
+        pytest.param("tru", False, id="misspelled"),  # codespell:ignore tru
+        pytest.param("True", True, id="capitalized"),
+        pytest.param("false", False, id="false"),
+    ],
+)
+def test_use_emojis_override_ignores_stderr_encoding(
+    no_emoji_override: pytest.MonkeyPatch,
     mocker: MockerFixture,
-    env_value: str | None,
     encoding: str,
+    env_value: str,
     expected: bool,
 ) -> None:
     mocker.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding))
-    monkeypatch.delenv("USE_EMOJI", raising=False)
-    if env_value is None:
-        monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
-    else:
-        monkeypatch.setenv("PIPX_USE_EMOJI", env_value)
+    no_emoji_override.setenv("PIPX_USE_EMOJI", env_value)
 
     assert use_emojis() is expected

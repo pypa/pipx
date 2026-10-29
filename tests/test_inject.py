@@ -14,11 +14,11 @@ from packaging.utils import canonicalize_name
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
+    SKIP_IF_WINDOWS,
     app_name,
     mock_legacy_venv,
     module_version,
     run_pipx_cli,
-    skip_if_windows,
     write_wheel,
 )
 from package_info import PKG
@@ -44,7 +44,7 @@ def test_inject_json(capsys: pytest.CaptureFixture[str]) -> None:
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "location": str(paths.CTX.venvs / "pycowsay"),
                         "package": "black",
                         "status": "injected",
                         "version": "22.8.0",
@@ -149,7 +149,7 @@ def test_inject_json_reports_partial_failure(
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "location": str(paths.CTX.venvs / "pycowsay"),
                         "package": "empty-project",
                         "status": "injected",
                         "version": "0.1.0",
@@ -220,41 +220,32 @@ def test_inject_warns_system_site_packages_is_ignored(caplog: pytest.LogCaptureF
     )
 
 
-@pytest.fixture
-def installed_pycowsay(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while pycowsay is installed
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_rejects_pylock(
     make_pylock: Callable[[str, str], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
     capsys.readouterr()
 
     assert run_pipx_cli(["inject", "pycowsay", "black"])
 
-    error = " ".join(capsys.readouterr().err.split())
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
         "Cannot inject into locked environment pycowsay" in error and "`pipx reinstall pycowsay`" in error,
-        PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages,
+        PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages,
     ) == (True, {})
 
 
-# Note that this also checks that packages used in other tests can be injected individually
+# also checks that the packages other tests inject install on their own
 @pytest.mark.parametrize(
     "pkg_spec",
     [
-        PKG["black"]["spec"],
-        PKG["nox"]["spec"],
-        PKG["pylint"]["spec"],
-        "jaraco.clipboard==2.0.1",  # tricky character
+        pytest.param(PKG["black"]["spec"], id="black"),
+        pytest.param(PKG["nox"]["spec"], id="nox"),
+        pytest.param(PKG["pylint"]["spec"], id="pylint"),
+        pytest.param("jaraco.clipboard==2.0.1", id="dotted-name"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -264,16 +255,13 @@ def test_inject_single_package(
     pkg_spec: str,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
+
     assert not run_pipx_cli(["inject", "pycowsay", pkg_spec])
 
-    # Check arguments have been parsed correctly
-    assert f"Injecting packages: {[pkg_spec]!r}" in caplog.text
-
-    # Check it's actually being installed and into correct venv
-    captured = capsys.readouterr()
-    injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
-    pkg_name = pkg_spec.split("=", 1)[0].replace(".", "-")  # assuming spec is always of the form <name>==<version>
-    assert set(injected) == {pkg_name}
+    assert (
+        f"Injecting packages: {[pkg_spec]!r}" in caplog.text,
+        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+    ) == (True, {pkg_spec.split("=", 1)[0].replace(".", "-")})
 
 
 @pytest.mark.parametrize(
@@ -296,21 +284,21 @@ def test_inject_main_package_extra(
     suffix: str,
 ) -> None:
     assert not run_pipx_cli(["install", str(local_extras_wheel), "--backend", backend, f"--suffix={suffix}"])
-    venv_dir = paths.ctx.venvs / canonicalize_name(f"repeatme{suffix}")
-    environment = PipxMetadata(venv_dir).environment
+    venv_dir: Final[Path] = paths.CTX.venvs / canonicalize_name(f"repeatme{suffix}")
+    environment: Final[str | None] = PipxMetadata(venv_dir).environment
     assert environment is not None
     assert not run_pipx_cli(["inject", environment, f"{local_extras_wheel}[cow]", "--backend", backend])
     assert not run_pipx_cli(["reinstall", environment])
 
-    output = subprocess.run(
-        [paths.ctx.bin_dir / app_name(f"repeatme{suffix}"), "hello"],
+    output: Final[str] = subprocess.run(
+        [paths.CTX.bin_dir / app_name(f"repeatme{suffix}"), "hello"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--include-injected"])
-    list_output = capsys.readouterr().out
+    list_output: Final[str] = capsys.readouterr().out
     assert (
         "In cow, you said:" in output,
         "injected in venv" in list_output,
@@ -337,7 +325,7 @@ def test_inject_main_package_extra_keeps_recorded_source(
 
     assert not run_pipx_cli(["inject", "repeatme", injected.format_map(sources)])
 
-    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == recorded.format_map(sources)
+    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.package_or_url == recorded.format_map(sources)
 
 
 @pytest.mark.parametrize(
@@ -355,7 +343,7 @@ def test_inject_main_package_extra_with_other_source_needs_force(
 
     assert (
         "Pass '--force' to force installation." in " ".join(capsys.readouterr().out.split()),
-        PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url,
+        PipxMetadata(paths.CTX.venvs / "repeatme").main_package.package_or_url,
     ) == (True, str(local_extras_wheel))
 
 
@@ -373,46 +361,49 @@ def test_inject_main_package_extra_missing_recorded_source(
     assert f"Therecordedsource{wheel}of'repeatme'nolongerexists." in "".join(capsys.readouterr().err.split())
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "capsys")
 def test_inject_simple_global() -> None:
     assert not run_pipx_cli(["install", "--global", "pycowsay"])
     assert not run_pipx_cli(["inject", "--global", "pycowsay", PKG["pbr"]["spec"]])
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
+@pytest.mark.parametrize(
+    "metadata_version", [version for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None]
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_inject_simple_legacy_venv(
-    capsys: pytest.CaptureFixture[str],
-    metadata_version: str | None,
-) -> None:
+def test_inject_simple_legacy_venv(metadata_version: str) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    if metadata_version is not None:
-        assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
-    else:
-        # no metadata in venv should result in PipxError with message
-        assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
-        assert "Please uninstall and install" in capsys.readouterr().err
+
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
 
 
-@pytest.mark.parametrize("with_suffix", [False, True])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_inject_legacy_venv_without_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay", metadata_version=None)
+
+    assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+
+    assert "Please uninstall and install" in capsys.readouterr().err
+
+
 @pytest.mark.usefixtures("pipx_temp_env", "capsys")
-def test_inject_include_apps(with_suffix: bool) -> None:
-    install_args = []
-    suffix = ""
+def test_inject_include_apps() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
 
-    if with_suffix:
-        suffix = "_x"
-        install_args = [f"--suffix={suffix}"]
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
 
-    assert not run_pipx_cli(["install", "pycowsay", *install_args])
-    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
 
-    if suffix:
-        assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
+@pytest.mark.usefixtures("pipx_temp_env", "capsys")
+def test_inject_include_apps_with_suffix() -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
+    assert not run_pipx_cli(["inject", "pycowsay_x", PKG["black"]["spec"], "--include-deps"])
 
-    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
+    assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
+    assert not run_pipx_cli(["inject", "pycowsay_x", PKG["black"]["spec"], "--include-deps"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -424,8 +415,8 @@ def test_inject_local_project_uses_built_name_when_backend_ignores_project_table
     assert not run_pipx_cli(["inject", "--include-apps", "empty-project", str(project_ignoring_project_table)])
 
     assert (
-        list(PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages),
-        (paths.ctx.bin_dir / app_name("realapp")).exists(),
+        list(PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages),
+        (paths.CTX.bin_dir / app_name("realapp")).exists(),
     ) == (["real-pkg"], True)
 
 
@@ -434,18 +425,23 @@ def test_inject_include_resources_from_dependency(
     local_extras_wheel: Path,
     empty_project_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", str(empty_project_wheel)])
 
-    assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "PyCowsay"])
+    assert not run_pipx_cli([
+        "inject",
+        "empty-project",
+        f"{local_extras_wheel}[tools]",
+        "--include-resources-from",
+        "PyCowsay",
+    ])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages["repeatme"]
+    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
         metadata.include_apps,
         metadata.include_resources_from,
-        (paths.ctx.bin_dir / app_name("repeatme")).exists(),
-        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
-        (paths.ctx.bin_dir / app_name("black")).exists(),
+        (paths.CTX.bin_dir / app_name("repeatme")).exists(),
+        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (paths.CTX.bin_dir / app_name("black")).exists(),
     ) == (True, ["pycowsay"], True, True, False)
 
 
@@ -453,13 +449,11 @@ def test_inject_include_resources_from_dependency(
 def test_inject_main_package_preserves_included_dependency(
     local_extras_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_wheel}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
+    assert not run_pipx_cli(["install", f"{local_extras_wheel}[tools]", "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
-    assert metadata.include_resources_from == ["pycowsay"]
+    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.include_resources_from == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -473,12 +467,12 @@ def test_inject_force_replaces_included_dependency_resources(
 
     assert not run_pipx_cli(["inject", "empty-project", package, "--force", "--include-resources-from", "black"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages["repeatme"]
+    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
         metadata.include_resources_from,
-        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
-        (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
-        (paths.ctx.bin_dir / app_name("black")).exists(),
+        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (paths.CTX.bin_dir / app_name("black")).exists(),
     ) == (["black"], False, False, True)
 
 
@@ -490,17 +484,16 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
 ) -> None:
     assert not run_pipx_cli(["install", str(empty_project_wheel)])
     capsys.readouterr()
-    package: Final[str] = f"{local_extras_wheel}[cow]"
 
-    assert run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "black"])
+    assert run_pipx_cli(["inject", "empty-project", f"{local_extras_wheel}[cow]", "--include-resources-from", "black"])
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
         "Cannot expose resources from black for package repeatme. "
-        "Dependencies with apps, manual pages, or shell completions: pycowsay." in error
-    )
-    assert run_pipx_cli(["runpip", "empty-project", "show", "repeatme"])
-    assert PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages == {}
+        "Dependencies with apps, manual pages, or shell completions: pycowsay." in error,
+        bool(run_pipx_cli(["runpip", "empty-project", "show", "repeatme"])),
+        PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages,
+    ) == (True, True, {})
 
 
 @pytest.mark.parametrize(
@@ -526,16 +519,16 @@ def test_inject_include_apps_without_apps_rolls_back(
 
     assert (
         run_pipx_cli(["runpip", "empty-project", "show", "foo-bar-x"]),
-        PipxMetadata(paths.ctx.venvs / "empty-project").injected_packages,
+        PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages,
     ) == (1, {})
 
 
 @pytest.mark.parametrize(
     "with_packages",
     [
-        (),  # no extra packages
-        ("black",),  # duplicate from requirements file
-        ("pbr",),  # additional package
+        pytest.param((), id="no-extra-packages"),
+        pytest.param(("black",), id="duplicate-from-requirements-file"),
+        pytest.param(("pbr",), id="additional-package"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -547,7 +540,7 @@ def test_inject_with_req_file(
 ) -> None:
     caplog.set_level(logging.INFO)
 
-    req_file = tmp_path / "inject-requirements.txt"
+    req_file: Final[Path] = tmp_path / "inject-requirements.txt"
     req_file.write_text(
         textwrap.dedent(
             f"""
@@ -569,21 +562,13 @@ def test_inject_with_req_file(
         str(req_file),
     ])
 
-    packages = [
-        ("black", PKG["black"]["spec"]),
-        ("nox", PKG["nox"]["spec"]),
-        ("isort", PKG["isort"]["spec"]),
-    ]
-    packages.extend((pkg, PKG[pkg]["spec"]) for pkg in with_packages)
-    packages = sorted(set(packages))
-
-    # Check arguments and files have been parsed correctly
-    assert f"Injecting packages: {[p for _, p in packages]!r}" in caplog.text
-
-    # Check they're actually being installed and into correct venv
-    captured = capsys.readouterr()
-    injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
-    assert set(injected) == {pkg for pkg, _ in packages}
+    packages: Final[list[tuple[str, str]]] = sorted({
+        (pkg, PKG[pkg]["spec"]) for pkg in ("black", "nox", "isort", *with_packages)
+    })
+    assert (
+        f"Injecting packages: {[spec for _, spec in packages]!r}" in caplog.text,
+        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+    ) == (True, {pkg for pkg, _ in packages})
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -593,7 +578,7 @@ def test_force_inject_keeps_injected_pin() -> None:
 
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--force"])
 
-    assert PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages["black"].pinned
+    assert PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -611,10 +596,10 @@ def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCapture
         "--pip-args=--no-cache-dir",
     ])
 
-    assert "--force-reinstall" in caplog.text
-
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    assert metadata.injected_packages["black"].pip_args == ["--no-cache-dir"]
+    assert (
+        "--force-reinstall" in caplog.text,
+        PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pip_args,
+    ) == (True, ["--no-cache-dir"])
 
 
 @pytest.mark.parametrize(
@@ -651,7 +636,7 @@ def test_inject_inherits_cooldown(
 
     assert not run_pipx_cli(["inject", "pycowsay", pip_args, str(empty_project_wheel)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     assert (
         "--uploaded-prior-to P7D" in caplog.text,
         metadata.injected_packages["empty-project"].cooldown_days,

@@ -11,6 +11,8 @@ __lazy_modules__ = [
     "pipx.package_specifier",
     "pipx.util",
     "pipx.venv",
+    "pipx.wrap",
+    "re",
 ]
 
 import logging
@@ -26,7 +28,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.backends import UV, assert_not_pip_under_uv
-from pipx.colors import bold
+from pipx.colors import BOLD
 from pipx.commands.common import (
     get_expected_venv_resource_paths,
     package_name_from_spec,
@@ -34,7 +36,7 @@ from pipx.commands.common import (
 )
 from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
-from pipx.emojis import hazard, stars
+from pipx.emojis import HAZARD, STARS
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
 from pipx.result import (
     OperationData,
@@ -47,21 +49,20 @@ from pipx.result import (
     render_messages,
     render_result,
 )
-from pipx.util import InstalledNameMismatchError, PipxError, pipx_wrap, redact_url_credentials
+from pipx.util import InstalledNameMismatchError, PipxError, redact_url_credentials
 from pipx.venv import Venv
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Sequence
 
     from pipx.pipx_metadata_file import PackageInfo
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-_COMMENT_RE: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
-
-def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject resolves the full package/venv context inline; a struct would just relocate it
+def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject resolves the full package/venv context inline; a struct would only relocate it
     venv_dir: Path,
     package_name: str | None,
     package_spec: str,
@@ -73,12 +74,12 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     include_resources_from: Sequence[str],
     force: bool,
     force_reinstall: bool = True,
-    suffix: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
-    cooldown_days: int | None = None,
-    pinned: bool | None = None,
-    emit_output: bool = True,
+    suffix: bool,
+    backend: str | None,
+    env_backend: str | None,
+    cooldown_days: int | None,
+    pinned: bool | None,
+    emit_output: bool,
 ) -> OperationResult[InjectionData]:
     _LOGGER.debug("Injecting package %s", redact_url_credentials(package_spec))
 
@@ -90,7 +91,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             """
         raise PipxError(msg)
 
-    venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     if not venv.package_metadata:
         msg = f"""
             Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
@@ -109,8 +110,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         cooldown_days = venv.pipx_metadata.main_package.cooldown_days
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
-    # package_spec is anything pip-installable, including package_name, vcs spec,
-    #   zip file, or tar.gz file.
+    # the spec can be anything pip installs, such as a VCS URL or an archive, so only resolving it gives the name
     if package_name is None:
         package_name = package_name_from_spec(
             package_spec,
@@ -122,11 +122,10 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             cooldown_days=cooldown_days,
         )
 
-    # Mirrors the install-side guard: dropping pip into a uv venv works for
-    # ``pipx run`` but breaks anyone reaching for the venv's missing pip.
+    # as at install: pip in a uv venv works for `pipx run` but breaks anyone reaching for the venv's missing pip
     assert_not_pip_under_uv(canonicalize_name(package_name), venv.backend_name)
 
-    is_main_package = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
+    is_main_package: Final[bool] = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
     already_installed: Final[bool] = not force and venv.has_package(package_name)
     main_spec: Final[str | None] = (
         _main_spec_with_extras(venv, package_spec) if already_installed and is_main_package else None
@@ -138,13 +137,13 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                 command=("inject",),
                 data=InjectionData(
                     packages=(),
-                    skipped=(InjectionSkip(venv.name, package_name, "already-installed"),),
+                    skipped=(_InjectionSkip(environment=venv.name, package=package_name, reason="already-installed"),),
                 ),
                 messages=(
                     OutputMessage(
-                        pipx_wrap(
+                        text=pipx_wrap(
                             f"""
-                            {hazard} {package_name} already seems to be installed in {venv.name!r}.
+                            {HAZARD} {package_name} already seems to be installed in {venv.name!r}.
                             Not modifying existing installation in '{venv_dir}'.
                             Pass '--force' to force installation.
                             """
@@ -157,7 +156,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
 
     package_spec = main_spec or package_spec
     if is_main_package:
-        main_package = venv.pipx_metadata.main_package
+        main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
         pip_args = pip_args or trusted_recorded_pip_args(main_package.pip_args, venv_dir)
         include_dependencies = main_package.include_dependencies
         include_resources_from = main_package.include_resources_from
@@ -168,15 +167,15 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
         venv_suffix = venv.package_metadata[venv.main_package_name].suffix
     else:
         venv_suffix = ""
-    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
-        venv, paths.ctx.bin_dir, paths.ctx.man_dir
-    )
     # pip's --force-reinstall covers the whole resolution, so it also refetches the main package by name from this
     # package's index when this package depends on it; uv can limit the reinstall to this package
     reinstall_args: Final[list[str] | None] = (
         (["--reinstall-package", package_name] if venv.backend_name == UV else ["--force-reinstall"])
         if force and force_reinstall and venv.has_package(package_name)
         else None
+    )
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
+        venv, paths.CTX.bin_dir, paths.CTX.man_dir
     )
     messages: Final[list[OutputMessage]] = []
     # like install, a package without the apps --include-apps asked for leaves the venv as it was
@@ -205,20 +204,19 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                 run_post_install_actions(
                     venv,
                     package_name,
-                    paths.ctx.bin_dir,
-                    paths.ctx.man_dir,
+                    paths.CTX.bin_dir,
+                    paths.CTX.man_dir,
                     venv_dir,
                     force=force,
                     previous_resource_paths=previous_resource_paths,
                 ),
             )
 
-    status: Final[InjectionStatus] = InjectionStatus.UPDATED if is_main_package else InjectionStatus.INJECTED
     if is_main_package:
-        messages.append(OutputMessage(f"  updated package {bold(package_name)} in venv {bold(venv.name)}"))
+        messages.append(OutputMessage(text=f"  updated package {BOLD(package_name)} in venv {BOLD(venv.name)}"))
     else:
-        messages.append(OutputMessage(f"  injected package {bold(package_name)} into venv {bold(venv.name)}"))
-    messages.append(OutputMessage(f"done! {stars}", stream=OutputStream.STDERR))
+        messages.append(OutputMessage(text=f"  injected package {BOLD(package_name)} into venv {BOLD(venv.name)}"))
+    messages.append(OutputMessage(text=f"done! {STARS}", stream=OutputStream.STDERR))
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _finish_inject(
         OperationResult(
@@ -229,7 +227,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                         environment=venv.name,
                         package=f"{package.package}{package.suffix}",
                         version=package.package_version,
-                        status=status,
+                        status=InjectionStatus.UPDATED if is_main_package else InjectionStatus.INJECTED,
                         location=str(venv.root),
                     ),
                 ),
@@ -260,6 +258,23 @@ def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
     return add_extras(recorded, venv.main_package_name, extras)
 
 
+def _finish_inject(
+    result: OperationResult[InjectionData],
+    *,
+    emit_output: bool,
+) -> OperationResult[InjectionData]:
+    if not emit_output:
+        return result
+    if result.errors:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(result.errors[0].message)
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
+
+
 def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:
     try:
         install(package_name)
@@ -281,30 +296,36 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
     include_dependencies: bool,
     include_resources_from: Sequence[str],
     force: bool,
-    suffix: bool = False,
+    suffix: bool,
     backend: str | None = None,
     env_backend: str | None = None,
-    cooldown_days: int | None = None,
+    cooldown_days: int | None,
     pinned: bool | None = None,
     emit_output: bool = True,
 ) -> OperationResult[InjectionData]:
     package_set: Final[set[str]] = set(package_specs)
     for filename in requirement_files:
-        package_set.update(parse_requirements(filename))
+        package_set.update(_parse_requirements(filename))
     packages: Final[list[str]] = sorted(package_set)
 
     if not packages:
+        error: Final[str] = "No packages have been specified."
         return _finish_inject(
-            _inject_failure(venv_dir.name, None, "No packages have been specified."),
+            OperationResult(
+                command=("inject",),
+                data=InjectionData(packages=(), skipped=()),
+                messages=(OutputMessage(text=error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+                exit_code=EXIT_CODE_INJECT_ERROR,
+                errors=(OperationError(code="package_inject_failed", message=error, environment=venv_dir.name),),
+            ),
             emit_output=emit_output,
         )
     _LOGGER.info("Injecting packages: %r", [redact_url_credentials(package) for package in packages])
 
-    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_resources_from)
     changed: Final[list[InjectionPackage]] = []
-    failures: Final[list[InjectionFailure]] = []
+    errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
-    skipped: Final[list[InjectionSkip]] = []
+    skipped: Final[list[_InjectionSkip]] = []
     for dependency in packages:
         try:
             result: OperationResult[InjectionData] = inject_dep(
@@ -313,7 +334,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 package_spec=dependency,
                 pip_args=pip_args,
                 verbose=verbose,
-                include_apps=expose_apps,
+                include_apps=include_apps or include_dependencies or bool(include_resources_from),
                 include_dependencies=include_dependencies,
                 include_resources_from=include_resources_from,
                 force=force,
@@ -325,8 +346,15 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 emit_output=False,
             )
         except PipxError as error:
-            failures.append(InjectionFailure(venv_dir.name, redact_url_credentials(dependency), error.raw_message))
-            messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+            errors.append(
+                OperationError(
+                    code="package_inject_failed",
+                    message=error.raw_message,
+                    environment=venv_dir.name,
+                    package=redact_url_credentials(dependency),
+                )
+            )
+            messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
             break
         changed.extend(result.data.packages)
         skipped.extend(result.data.skipped)
@@ -337,58 +365,21 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
             command=("inject",),
             data=InjectionData(packages=tuple(changed), skipped=tuple(skipped)),
             messages=tuple(messages),
-            exit_code=EXIT_CODE_INJECT_ERROR if failures else EXIT_CODE_OK,
-            errors=tuple(
-                OperationError(
-                    code="package_inject_failed", message=f.error, environment=f.environment, package=f.package
-                )
-                for f in failures
-            ),
+            exit_code=EXIT_CODE_INJECT_ERROR if errors else EXIT_CODE_OK,
+            errors=tuple(errors),
             succeeded=bool(changed or skipped),
         ),
         emit_output=emit_output,
     )
 
 
-def _inject_failure(environment: str, package: str | None, error: str) -> OperationResult[InjectionData]:
-    return OperationResult(
-        command=("inject",),
-        data=InjectionData(packages=(), skipped=()),
-        messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-        exit_code=EXIT_CODE_INJECT_ERROR,
-        errors=(OperationError(code="package_inject_failed", message=error, environment=environment, package=package),),
-    )
-
-
-def _finish_inject(
-    result: OperationResult[InjectionData],
-    *,
-    emit_output: bool,
-) -> OperationResult[InjectionData]:
-    if not emit_output:
-        return result
-    if result.errors:
-        render_messages(
-            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
-            quiet=0,
-        )
-        raise PipxError(result.errors[0].message)
-    render_result(result, output=OutputFormat.HUMAN, quiet=0)
-    return result
-
-
-def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None]:
-    """
-    Extract package specifications from requirements file.
-
-    Return all of the non-empty lines with comments removed.
-    """
-    # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    with Path(filename).open(encoding="utf-8") as f:
-        for line in f:
-            # Strip comments and filter empty lines
-            if pkgspec := _COMMENT_RE.sub("", line).strip():
-                yield pkgspec
+def _parse_requirements(filename: str) -> Iterator[str]:
+    # strips comments the way pip does: https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
+    comment: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
+    with Path(filename).open(encoding="utf-8") as requirements:
+        for line in requirements:
+            if spec := comment.sub("", line).strip():
+                yield spec
 
 
 class InjectionStatus(StrEnum):
@@ -397,7 +388,7 @@ class InjectionStatus(StrEnum):
     UPDATED = "updated"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionPackage:
     environment: str
     package: str
@@ -406,33 +397,23 @@ class InjectionPackage:
     location: str
 
 
-@dataclass(frozen=True)
-class InjectionSkip:
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InjectionSkip:
     environment: str
     package: str
     reason: str
 
 
-@dataclass(frozen=True)
-class InjectionFailure:
-    environment: str
-    package: str | None
-    error: str
-
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionData(OperationData):
     packages: tuple[InjectionPackage, ...]
-    skipped: tuple[InjectionSkip, ...]
+    skipped: tuple[_InjectionSkip, ...]
 
 
 __all__ = [
     "InjectionData",
-    "InjectionFailure",
     "InjectionPackage",
-    "InjectionSkip",
     "InjectionStatus",
     "inject",
     "inject_dep",
-    "parse_requirements",
 ]

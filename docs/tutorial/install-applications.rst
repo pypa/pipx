@@ -26,8 +26,7 @@ Install `HTTPie <https://httpie.io/>`_, a command-line HTTP client:
     done! ✨ 🌟 ✨
 
 pipx creates a virtual environment, installs the ``httpie`` package into it, and exposes the apps it declares on your
-``PATH``. Note that the package is ``httpie`` but the commands are ``http``, ``httpie``, and ``https``: one package, three
-apps.
+``PATH``. The package is ``httpie``, but it exposes three apps: ``http``, ``httpie``, and ``https``.
 
 .. tip::
 
@@ -71,7 +70,7 @@ terminal, then see :doc:`Troubleshoot <../how-to/troubleshoot>`.)
  Hold back fresh releases
 *************************
 
-A brand-new release is the one most likely to be broken or compromised. Install the next tool a week behind the index:
+The newest release is the one most likely to ship a bug or a compromise. Install the next tool a week behind the index:
 
 .. code-block:: console
 
@@ -89,14 +88,15 @@ Set ``PIPX_COOLDOWN=7`` in your shell profile to get the same lag for every tool
  Learn more
 ************
 
-``pipx install`` has more to offer once you outgrow the basics:
+More on ``pipx install``:
 
 - :doc:`Expose apps <../how-to/expose-apps>`: hide or reveal commands with ``expose`` / ``unexpose``, and pull apps out
   of dependencies with ``--include-deps``.
-- :doc:`Tool manifests <../how-to/tool-manifest>`: manage a set of tools with a ``pipx.toml`` manifest and PEP 751 lock
-  files.
-- :doc:`Run scripts <../how-to/run-scripts>`: install a local PEP 723 script as a managed app.
-- :doc:`Use the uv backend <../how-to/use-uv-backend>`: swap pip for uv to resolve and install faster.
+- :doc:`Tool manifests <../how-to/tool-manifest>`: manage a set of tools with a ``pipx.toml`` manifest and :pep:`751`
+  lock files.
+- :doc:`Run scripts <../how-to/run-scripts>`: install a local :pep:`723` script as a managed app.
+- :doc:`Use the uv backend <../how-to/use-uv-backend>`: swap `pip <https://pip.pypa.io>`_ for `uv
+  <https://docs.astral.sh/uv/>`_ to resolve and install faster.
 - :doc:`Standalone Python <../how-to/standalone-python>`: install against a specific Python version, downloading one if
   needed.
 - :doc:`Dependency cooldown <../how-to/dependency-cooldown>`: set the release-age lag once with ``PIPX_COOLDOWN``.

@@ -90,9 +90,9 @@ Package authors can remove this requirement by declaring a :doc:`pipx.run entry 
  Run cache
 ***********
 
-pipx caches each ``pipx run`` environment for 14 days so repeated runs start instantly. After the cache expires, the
-next run fetches the latest version. Under the uv backend pipx hands the run to ``uv tool run``, so uv's own cache
-applies instead.
+pipx caches each ``pipx run`` environment for 14 days so repeated runs skip the install. After the cache expires, the
+next run fetches the latest version. Under the uv backend pipx hands the run to ``uv tool run``, so `uv
+<https://docs.astral.sh/uv/>`_'s own cache applies instead.
 
 .. mermaid::
 
@@ -133,5 +133,5 @@ For how pipx decides what to cache and when, see :doc:`How pipx works <../explan
  Learn more
 ************
 
-- :doc:`Use the uv backend <../how-to/use-uv-backend>`: run with uv, which keeps its own ephemeral cache.
+- :doc:`Use the uv backend <../how-to/use-uv-backend>`: run with ``uv``, which keeps its own ephemeral cache.
 - :doc:`../reference/cli`: every ``pipx run`` flag, including ``--python-args`` and ``--with``.

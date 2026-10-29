@@ -50,7 +50,7 @@ def test_execute_runs_recorded_app(
 
     command: Final[list[str | Path]] = boundary.call_args.args[0]
     environment: Final[dict[str, str]] = boundary.call_args.kwargs["env"]
-    venv_dir: Final[Path] = paths.ctx.venvs / environment_name
+    venv_dir: Final[Path] = paths.CTX.venvs / environment_name
     bin_dir: Final[Path] = get_venv_paths(venv_dir)[0]
     assert (
         Path(command[0]),
@@ -88,8 +88,7 @@ def test_execute_rejects_missing_recorded_app(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
-    app_path: Final[Path] = get_venv_paths(venv_dir)[0] / app_name("pycowsay")
+    app_path: Final[Path] = get_venv_paths(paths.CTX.venvs / "pycowsay")[0] / app_name("pycowsay")
     app_path.unlink()
     capsys.readouterr()
 

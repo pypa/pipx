@@ -49,12 +49,13 @@ Verify:
     $ pipx upgrade-all
 
 Use ``--skip PKG ...`` to leave named environments untouched, and ``--include-injected`` to include injected packages.
-Pinned environments are skipped; see :doc:`pin-packages`.
+pipx skips pinned environments; see :doc:`pin-packages`.
 
 pipx upgrades up to eight environments at once and prints their output in environment order, as a one-at-a-time run
 would. An app, manual page, or completion that several environments expose ends up with the same environment as in a
-one-at-a-time run. A failed environment does not stop the others. pip and uv cannot prompt for input, such as index
-credentials, during any pipx command other than ``pipx runpip``. Pass ``--verbose`` to upgrade them one at a time.
+one-at-a-time run. A failed environment does not stop the others. `pip <https://pip.pypa.io/>`__ and `uv
+<https://github.com/astral-sh/uv>`__ cannot prompt for input, such as index credentials, during any pipx command other
+than ``pipx runpip``. Pass ``--verbose`` to upgrade them one at a time.
 
 Ctrl-C, ``SIGTERM`` or ``SIGHUP`` stops pipx from starting more upgrades, and pipx finishes the ones already in progress
 before it exits, since an upgrade cut short leaves an environment with a mix of old and new files. Press Ctrl-C again to
@@ -128,14 +129,13 @@ Verify:
 
     $ pipx reinstall-all
 
-Common after installing a new Python version so every app moves to it. Use ``--python`` to target a specific
+Run it after installing a new Python version so every app moves to it. Use ``--python`` to target a specific
 interpreter and ``--skip PKG ...`` to exclude environments.
 
 pipx rebuilds up to eight environments at once (fewer on machines with fewer CPUs) and holds back the output of each
-until the ones before it finish, so it reads the same as a one-at-a-time run. An app, manual page, or completion that
-several environments expose ends up with the same environment as in a one-at-a-time run. A failed environment does
-not stop the others. pip and uv cannot prompt for input, such as index credentials, during any pipx command other than
-``pipx runpip``. Pass ``--verbose`` to rebuild them one at a time and watch the pip or uv output as it happens.
+until the ones before it finish, so it reads the same as a one-at-a-time run. Resources that several environments
+expose, failed environments and credential prompts work as described for ``upgrade-all`` above. Pass ``--verbose`` to
+rebuild them one at a time and watch the pip or uv output as it happens.
 
 Ctrl-C, ``SIGTERM`` or ``SIGHUP`` stops the rebuilds in progress and restores each of those environments from its
 backup; the environments already rebuilt keep their new build.

@@ -1,14 +1,15 @@
-# Valid package specifiers for pipx:
-#   PEP508-compliant
-#   git+<URL>
-#   <URL>
-#   <pypi_package_name>
-#   <pypi_package_name><version_specifier>
-#   <local_path>
-
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "packaging.utils", "pathlib", "pipx.util", "re", "tomllib", "urllib.parse"]
+__lazy_modules__ = [
+    "packaging.specifiers",
+    "packaging.utils",
+    "pathlib",
+    "pipx.util",
+    "pipx.wrap",
+    "re",
+    "tomllib",
+    "urllib.parse",
+]
 
 import logging
 import os
@@ -24,69 +25,17 @@ from typing import TYPE_CHECKING, Final, cast
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
-from pipx.emojis import hazard
-from pipx.util import PipxError, pipx_wrap, redact_url_credentials
+from pipx.emojis import HAZARD
+from pipx.util import PipxError, redact_url_credentials
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
 
     from packaging.requirements import Requirement
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-_LOCAL_FILE_SCHEMES: Final[frozenset[str]] = frozenset({"file", "git+file", "hg+file"})
-# pip install's long options, from pip's cli/cmdoptions.py and commands/install.py
-_PIP_LONG_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
-    "--abi",
-    "--all-releases",
-    "--build-constraint",
-    "--cache-dir",
-    "--cert",
-    "--client-cert",
-    "--config-settings",
-    "--constraint",
-    "--default-timeout",
-    "--editable",
-    "--exists-action",
-    "--extra-index-url",
-    "--find-links",
-    "--group",
-    "--implementation",
-    "--index-url",
-    "--keyring-provider",
-    "--local-log",
-    "--log",
-    "--log-file",
-    "--no-binary",
-    "--only-binary",
-    "--only-final",
-    "--platform",
-    "--prefix",
-    "--progress-bar",
-    "--proxy",
-    "--pypi-url",
-    "--python",
-    "--python-version",
-    "--refresh-package",
-    "--report",
-    "--requirement",
-    "--requirements-from-script",
-    "--resume-retries",
-    "--retries",
-    "--root",
-    "--root-user-action",
-    "--source",
-    "--source-dir",
-    "--source-directory",
-    "--src",
-    "--target",
-    "--timeout",
-    "--trusted-host",
-    "--upgrade-strategy",
-    "--uploaded-prior-to",
-    "--use-deprecated",
-    "--use-feature",
-})
 _PIP_LONG_FLAGS: Final[frozenset[str]] = frozenset({
     "--break-system-packages",
     "--check-build-dependencies",
@@ -196,108 +145,54 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--overrides",
     "--project",
 })
-# pip writes --report - to stdout
-_PIP_STDOUT_VALUE: Final[str] = "-"
 
 
-@dataclass(frozen=True)
-class ParsedPackage:
-    valid_pep508: Requirement | None
-    valid_url: str | None
-    valid_local_path: str | None
+def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
+    pip_args = pip_args.copy()
+    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
+    package_or_url: Final[str] = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
+    if "--editable" in pip_args and not parsed_package.valid_local_path:
+        _LOGGER.warning(
+            pipx_wrap(
+                f"""
+                {HAZARD}  Ignoring --editable install option. pipx disallows it
+                for anything but a local path, to avoid having to create a new
+                src/ directory.
+                """,
+                subsequent_indent=" " * 4,
+            )
+        )
+        pip_args.remove("--editable")
+
+    return package_or_url, absolute_path_pip_args(pip_args, Path.cwd())
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _PipArgument:
-    name: str
-    value: str | None = None
-    # "=" or "" when the value shares the option's token, None when the value is a token of its own
-    separator: str | None = None
-
-    @property
-    def tokens(self) -> list[str]:
-        if self.value is None:
-            return [self.name]
-        if self.separator is None:
-            return [self.name, self.value]
-        return [f"{self.name}{self.separator}{self.value}"]
-
-
-def _split_path_extras(package_spec: str) -> tuple[str, str]:
-    """Returns (path, extras_string)"""
-    # a bracket can be part of a directory name, so only a trailing group on a path that does not exist is extras
-    if Path(package_spec).expanduser().exists():
-        return (package_spec, "")
-    package_spec_extras_re = re.search(
-        r"""
-        (.+)           # the path
-        (\[[^\[\]]+\])  # one trailing [extras] group
-        $
-        """,
-        package_spec,
-        re.VERBOSE,
-    )
-    if package_spec_extras_re:
-        return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
-    return (package_spec, "")
-
-
-def _check_package_path(package_path: str) -> tuple[Path, bool]:
-    pkg_path: Final[Path] = Path(package_path).expanduser()
-    pkg_path_exists = pkg_path.exists()
-
-    return (pkg_path, pkg_path_exists)
-
-
-def _parse_specifier(package_spec: str) -> ParsedPackage:
-    """Parse package_spec as would be given to pipx"""
-    # Match pip's PyPI precedence by checking local paths only for names that PyPI rejects.
-    valid_pep508 = _requirement(package_spec)
-    valid_url = None
-    valid_local_path = None
-
-    if valid_pep508 and _is_archive_name(valid_pep508.name):
-        # It might be a local archive
-        (package_path, package_path_exists) = _check_package_path(valid_pep508.name)
-
-        if package_path_exists:
-            if valid_pep508.specifier or valid_pep508.url or valid_pep508.marker:
-                msg = f"Only extras can follow the local archive {package_path}"
-                raise PipxError(msg)
-            # keep the extras as typed so the bare and ./ spellings store the same spec
-            valid_local_path = f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}"
-        else:
+def _parse_specifier(package_spec: str) -> _ParsedPackage:
+    # match pip's PyPI precedence by checking local paths only for names that PyPI rejects
+    if (valid_pep508 := _requirement(package_spec)) is not None:
+        if not _is_archive_name(valid_pep508.name):
+            return _ParsedPackage(valid_pep508=valid_pep508)
+        if not (package_path := Path(valid_pep508.name).expanduser()).exists():
             msg = f"{package_path} does not exist"
             raise PipxError(msg)
+        if valid_pep508.specifier or valid_pep508.url or valid_pep508.marker:
+            msg = f"Only extras can follow the local archive {package_path}"
+            raise PipxError(msg)
+        # keep the extras as typed so the bare and ./ spellings store the same spec
+        return _ParsedPackage(valid_local_path=f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}")
 
-    # If this looks like a URL, treat it as such.
-    if not valid_pep508:
-        parsed_url = urllib.parse.urlsplit(package_spec)
-        if parsed_url.scheme and (
-            parsed_url.netloc or (parsed_url.scheme in _LOCAL_FILE_SCHEMES and parsed_url.path.startswith("/"))
-        ):
-            valid_url = package_spec
+    parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    if parsed_url.scheme and (
+        parsed_url.netloc or (parsed_url.scheme in {"file", "git+file", "hg+file"} and parsed_url.path.startswith("/"))
+    ):
+        return _ParsedPackage(valid_url=package_spec)
 
-    if not valid_pep508 and not valid_url:
-        (package_path_str, package_extras_str) = _split_path_extras(package_spec)
-        (package_path, package_path_exists) = _check_package_path(package_path_str)
-        if package_path_exists:
-            valid_local_path = str(package_path.resolve()) + package_extras_str
+    package_path_str, package_extras_str = _split_path_extras(package_spec)
+    if (package_path := Path(package_path_str).expanduser()).exists():
+        return _ParsedPackage(valid_local_path=f"{package_path.resolve()}{package_extras_str}")
 
-    if not valid_pep508 and not valid_url and not valid_local_path:
-        msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
-        raise PipxError(msg)
-
-    if valid_pep508 and valid_local_path:
-        # It is a valid local path without "./"
-        # Use valid_local_path
-        valid_pep508 = None
-
-    return ParsedPackage(
-        valid_pep508=valid_pep508,
-        valid_url=valid_url,
-        valid_local_path=valid_local_path,
-    )
+    msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
+    raise PipxError(msg)
 
 
 def _requirement(package_spec: str) -> Requirement | None:
@@ -330,21 +225,37 @@ def _is_archive_name(name: str) -> bool:
     ))
 
 
-def package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
-    requirement.marker = None
-    requirement.name = canonicalize_name(requirement.name)
-    if remove_version_specifiers:
-        requirement.specifier = SpecifierSet("")
-    return str(requirement)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ParsedPackage:
+    valid_pep508: Requirement | None = None
+    valid_url: str | None = None
+    valid_local_path: str | None = None
 
 
-def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_version_specifiers: bool) -> str:
+def _split_path_extras(package_spec: str) -> tuple[str, str]:
+    # a bracket can be part of a directory name, so only a trailing group on a path that does not exist is extras
+    if Path(package_spec).expanduser().exists():
+        return package_spec, ""
+    if extras_match := re.search(
+        r"""
+        (.+)           # the path
+        (\[[^\[\]]+\])  # one trailing [extras] group
+        $
+        """,
+        package_spec,
+        re.VERBOSE,
+    ):
+        return extras_match.group(1), extras_match.group(2)
+    return package_spec, ""
+
+
+def _parsed_package_to_package_or_url(parsed_package: _ParsedPackage, *, remove_version_specifiers: bool) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
-            logger.warning(
+            _LOGGER.warning(
                 pipx_wrap(
                     f"""
-                    {hazard}  Ignoring environment markers
+                    {HAZARD}  Ignoring environment markers
                     ({parsed_package.valid_pep508.marker}) in package
                     specification. Use pipx options to specify this type of
                     information.
@@ -352,7 +263,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_v
                     subsequent_indent=" " * 4,
                 )
             )
-        package_or_url = package_or_url_from_pep508(
+        package_or_url = _package_or_url_from_pep508(
             parsed_package.valid_pep508,
             remove_version_specifiers=remove_version_specifiers,
         )
@@ -361,35 +272,16 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_v
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logger.info("cleaned package spec: %s", redact_url_credentials(package_or_url))
+    _LOGGER.info("cleaned package spec: %s", redact_url_credentials(package_or_url))
     return package_or_url
 
 
-def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
-    """Return package_or_url and pip_args suitable for pip install
-
-    Specifically:
-    * Strip any markers (e.g. python_version > "3.4")
-    * Ensure --editable is removed for any package_spec not a local path
-    * Convert local paths to absolute paths
-    """
-    pip_args = pip_args.copy()
-    parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
-    if "--editable" in pip_args and not parsed_package.valid_local_path:
-        logger.warning(
-            pipx_wrap(
-                f"""
-                {hazard}  Ignoring --editable install option. pipx disallows it
-                for anything but a local path, to avoid having to create a new
-                src/ directory.
-                """,
-                subsequent_indent=" " * 4,
-            )
-        )
-        pip_args.remove("--editable")
-
-    return package_or_url, absolute_path_pip_args(pip_args, Path.cwd())
+def _package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
+    requirement.marker = None
+    requirement.name = canonicalize_name(requirement.name)
+    if remove_version_specifiers:
+        requirement.specifier = SpecifierSet("")
+    return str(requirement)
 
 
 def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
@@ -413,7 +305,8 @@ def _absolute_paths(arguments: list[_PipArgument], base: Path) -> list[_PipArgum
 
 
 def _absolute_path_value(value: str, base: Path) -> str:
-    if value == _PIP_STDOUT_VALUE or urllib.parse.urlsplit(value).scheme:
+    # pip writes --report - to stdout
+    if value == "-" or urllib.parse.urlsplit(value).scheme:
         return value
     return str((base / Path(value).expanduser()).resolve())
 
@@ -489,7 +382,59 @@ def _long_option_name(spelled: str) -> str | None:
 
 
 def pip_long_option_name(spelled: str) -> str | None:
-    if spelled in (pip_options := _PIP_LONG_VALUE_OPTIONS | _PIP_LONG_FLAGS):
+    # pip install's long options taking a value, from pip's cli/cmdoptions.py and commands/install.py
+    value_options: Final[frozenset[str]] = frozenset({
+        "--abi",
+        "--all-releases",
+        "--build-constraint",
+        "--cache-dir",
+        "--cert",
+        "--client-cert",
+        "--config-settings",
+        "--constraint",
+        "--default-timeout",
+        "--editable",
+        "--exists-action",
+        "--extra-index-url",
+        "--find-links",
+        "--group",
+        "--implementation",
+        "--index-url",
+        "--keyring-provider",
+        "--local-log",
+        "--log",
+        "--log-file",
+        "--no-binary",
+        "--only-binary",
+        "--only-final",
+        "--platform",
+        "--prefix",
+        "--progress-bar",
+        "--proxy",
+        "--pypi-url",
+        "--python",
+        "--python-version",
+        "--refresh-package",
+        "--report",
+        "--requirement",
+        "--requirements-from-script",
+        "--resume-retries",
+        "--retries",
+        "--root",
+        "--root-user-action",
+        "--source",
+        "--source-dir",
+        "--source-directory",
+        "--src",
+        "--target",
+        "--timeout",
+        "--trusted-host",
+        "--upgrade-strategy",
+        "--uploaded-prior-to",
+        "--use-deprecated",
+        "--use-feature",
+    })
+    if spelled in (pip_options := value_options | _PIP_LONG_FLAGS):
         return spelled
     # pip, through optparse, takes any unambiguous prefix of its own long options
     match [option for option in pip_options if option.startswith(spelled)]:
@@ -497,6 +442,22 @@ def pip_long_option_name(spelled: str) -> str | None:
             return option
         case _:
             return None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PipArgument:
+    name: str
+    value: str | None = None
+    # "=" or "" when the value shares the option's token, None when the value is a token of its own
+    separator: str | None = None
+
+    @property
+    def tokens(self) -> list[str]:
+        if self.value is None:
+            return [self.name]
+        if self.separator is None:
+            return [self.name, self.value]
+        return [f"{self.name}{self.separator}{self.value}"]
 
 
 def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument]:
@@ -615,55 +576,36 @@ def resolve_local_path(package_spec: str) -> str:
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
-    """Return package_or_url suitable for pipx metadata
-
-    Specifically:
-    * Strip any markers (e.g. python_version > 3.4)
-    * Convert local paths to absolute paths
-    """
-    parsed_package = _parse_specifier(package_spec)
-    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
+    return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=False)
 
 
 def parse_specifier_for_upgrade(package_spec: str) -> str:
-    """Return package_or_url suitable for pip upgrade
-
-    Specifically:
-    * Strip any version specifiers (e.g. package == 1.5.4)
-    * Strip any markers (e.g. python_version > 3.4)
-    * Convert local paths to absolute paths
-    """
-    parsed_package = _parse_specifier(package_spec)
-    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
+    return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=True)
 
 
 def get_extras(package_spec: str) -> set[str]:
-    parsed_package = _parse_specifier(package_spec)
-    if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
+    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
+    if parsed_package.valid_pep508 is not None:
         return parsed_package.valid_pep508.extras
     if parsed_package.valid_local_path:
         from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
 
-        (_, package_extras_str) = _split_path_extras(parsed_package.valid_local_path)
-        return Requirement("notapackage" + package_extras_str).extras
-
+        return Requirement(f"notapackage{_split_path_extras(parsed_package.valid_local_path)[1]}").extras
     return set()
 
 
 def source_without_extras(package_spec: str) -> str:
-    """Return what package_spec installs from, without its extras: a normalized requirement, a URL or a local path."""
-    parsed_package: Final[ParsedPackage] = _parse_specifier(package_spec)
+    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 is not None:
         parsed_package.valid_pep508.extras = set()
-        return package_or_url_from_pep508(parsed_package.valid_pep508)
+        return _package_or_url_from_pep508(parsed_package.valid_pep508)
     if parsed_package.valid_url is not None:
         return parsed_package.valid_url
     return _split_path_extras(cast("str", parsed_package.valid_local_path))[0]
 
 
 def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
-    """Return package_or_url with extras merged into the ones it already requests."""
-    parsed_package: Final[ParsedPackage] = _parse_specifier(package_or_url)
+    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_or_url)
     if parsed_package.valid_pep508 is not None:
         parsed_package.valid_pep508.extras |= extras
         return str(parsed_package.valid_pep508)
@@ -676,18 +618,14 @@ def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
 def valid_pypi_name(package_spec: str) -> str | None:
     if (package_req := _requirement(package_spec)) is None:
         return None
-
+    # a URL spec can name a package other than the one it points at, and an archive-like name can be a local file;
+    # either way the name has to come from the package itself
     if package_req.url or _is_archive_name(package_req.name):
-        # package name supplied by user might not match package found in URL,
-        # also if package name ends with archive extension, it might be a local archive file,
-        #   so force package name determination the long way
         return None
-
     return canonicalize_name(package_req.name)
 
 
 def local_project_name(package_spec: str) -> str | None:
-    """Return the name a local project directory or wheel declares statically, or ``None`` for a URL or index spec."""
     # Path() reads a URL as a relative path (http://host/x is http:/host/x), so files below the working directory could
     # otherwise name the environment for a remote spec
     if (local_path := _parse_specifier(package_spec).valid_local_path) is None:
@@ -696,10 +634,9 @@ def local_project_name(package_spec: str) -> str | None:
 
 
 def static_project_name(package_spec: str) -> str | None:
-    """Return the name a local project directory declares statically in its pyproject.toml, if any."""
     try:
         with (Path(_split_path_extras(package_spec)[0]) / "pyproject.toml").open("rb") as file:
-            pyproject = tomllib.load(file)
+            pyproject: Final = tomllib.load(file)
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
         return None
     if not (
@@ -756,8 +693,15 @@ def _newest_allowed_reaches(specifier: SpecifierSet, minimum: str) -> bool:
     return False
 
 
+def _valid_name(name: str) -> str | None:
+    try:
+        canonicalize_name(name, validate=True)
+    except InvalidName:
+        return None
+    return name
+
+
 def wheel_project_name(package_spec: str) -> str | None:
-    """Return the name a local wheel declares in its metadata, if it has exactly one top-level ``.dist-info``."""
     if (wheel := Path(_split_path_extras(package_spec)[0])).suffix != ".whl":
         return None
     import zipfile  # ruff:ignore[import-outside-top-level]  # slows startup
@@ -767,7 +711,7 @@ def wheel_project_name(package_spec: str) -> str | None:
         with zipfile.ZipFile(wheel) as archive:
             match [entry for entry in archive.namelist() if re.fullmatch(r"[^/]+\.dist-info/METADATA", entry)]:
                 case [metadata]:
-                    name = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
+                    name: Final = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
                 case _:
                     return None
     except (OSError, zipfile.BadZipFile):
@@ -776,21 +720,7 @@ def wheel_project_name(package_spec: str) -> str | None:
     return _valid_name(name) if isinstance(name, str) else None
 
 
-def _valid_name(name: str) -> str | None:
-    try:
-        canonicalize_name(name, validate=True)
-    except InvalidName:
-        return None
-    return name
-
-
-def package_spec_satisfied(
-    package_spec: str,
-    package_name: str,
-    installed_version: str,
-    installed_spec: str,
-) -> bool:
-    """Return whether an installed package satisfies a named requirement."""
+def package_spec_satisfied(package_spec: str, package_name: str, installed_version: str, installed_spec: str) -> bool:
     if (requirement := _requirement(package_spec)) is None or (
         installed_requirement := _requirement(installed_spec)
     ) is None:
@@ -805,10 +735,6 @@ def package_spec_satisfied(
 
 def extract_index_options(pip_args: list[str]) -> list[str]:
     return _split_index_options(pip_args)[0]
-
-
-def replace_index_options(pip_args: list[str], index_args: list[str]) -> list[str]:
-    return [*_split_index_options(pip_args)[1], *index_args]
 
 
 def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
@@ -827,8 +753,8 @@ def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
         "--pypi-url",
         "--trusted-host",
     })
-    index_args: list[str] = []
-    other_args: list[str] = []
+    index_args: Final[list[str]] = []
+    other_args: Final[list[str]] = []
     for argument in _parse_pip_args(pip_args):
         if argument.name in value_options and argument.value is None:
             msg = f"Missing value for {argument.name!r} in --pip-args."
@@ -836,6 +762,10 @@ def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
         is_index: bool = argument.name in value_options or argument.name == "--no-index"
         (index_args if is_index else other_args).extend(argument.tokens)
     return index_args, other_args
+
+
+def replace_index_options(pip_args: list[str], index_args: list[str]) -> list[str]:
+    return [*_split_index_options(pip_args)[1], *index_args]
 
 
 def fix_package_name(package_or_url: str, package_name: str) -> str:
@@ -846,10 +776,10 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
         return str(package_req)
 
     if canonicalize_name(package_req.name) != canonicalize_name(package_name):
-        logger.warning(
+        _LOGGER.warning(
             pipx_wrap(
                 f"""
-                {hazard}  Name supplied in package specifier was
+                {HAZARD}  Name supplied in package specifier was
                 {package_req.name!r} but package found has name {package_name!r}.
                 Using {package_name!r}.
                 """,

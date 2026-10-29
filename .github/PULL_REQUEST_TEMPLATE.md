@@ -1,4 +1,4 @@
-### Thanks for contributing, make sure you address all the checklists (for details on how see [development documentation](https://pipx.pypa.io/latest/contributing.html))
+### Thanks for contributing! Work through this checklist before review (the [development documentation](https://pipx.pypa.io/latest/contributing.html) explains how)
 
 - [ ] ran the repository checks (`prek run --all-files`)
 

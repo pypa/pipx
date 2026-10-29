@@ -201,13 +201,14 @@ lint.per-file-ignores."tests/**/*.py" = [
   "assert",                               # asserts allowed in tests
   "D",                                    # don't care about documentation in tests
   "FBT",                                  # don't care about booleans as positional arguments in tests
-  "implicit-namespace-package",           # no implicit namespace
-  "magic-value-comparison",               # magic value used in comparison
+  "implicit-namespace-package",           # tests/ holds plain modules imported by name, not a package
+  "magic-value-comparison",               # tests compare results against literal expected values
   "pytest-fixture-autouse",               # shared setup fixtures are meant to apply to every test
-  "subprocess-without-shell-equals-true", # subprocess call: check for execution of untrusted input
-  "too-many-arguments",                   # too many arguments to function definition
+  "subprocess-without-shell-equals-true", # tests run only the commands they build themselves
+  "too-many-arguments",                   # pytest injects each fixture as an argument
 ]
 lint.isort = { known-first-party = [
+  "all_packages",
   "helpers",
   "package_info",
   "pipx",
@@ -218,7 +219,7 @@ lint.mccabe.max-complexity = 15
 lint.preview = true
 
 [tool.codespell]
-# case sensitive etc
+# the pattern matches case-sensitively
 ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
 skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"

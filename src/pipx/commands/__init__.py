@@ -34,9 +34,9 @@ if TYPE_CHECKING:
 
 
 def __getattr__(name: str) -> object:
-    # Resolved on first access so that importing one command does not import all of them. Importing a submodule binds
-    # its name on this package, so a function sharing that name (install, run, ...) resolves to the submodule once it
-    # is loaded; code inside pipx imports from the submodule instead.
+    # each name loads its submodule on first access, so importing one command does not import them all. Importing a
+    # submodule binds its name on this package, so a function sharing that name (install, run, ...) resolves to the
+    # submodule once it is loaded; code inside pipx imports from the submodule instead.
     submodules: Final[dict[str, tuple[str, ...]]] = {
         "cache": ("CacheData", "print_cache_dir", "purge_cache"),
         "ensure_path": ("ensure_pipx_paths",),

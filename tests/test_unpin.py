@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -12,6 +12,8 @@ from pipx import paths
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from _pytest.capture import CaptureResult
+
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_unpin(capsys: pytest.CaptureFixture[str]) -> None:
@@ -21,8 +23,7 @@ def test_unpin(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["unpin", "nox"])
     assert not run_pipx_cli(["upgrade", "nox"])
 
-    captured = capsys.readouterr()
-    assert "nox is already at latest version" in captured.out
+    assert "nox is already at latest version" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -33,7 +34,7 @@ def test_unpin_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["unpin", "pycowsay", "--output", "json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["unpin"],
@@ -42,7 +43,7 @@ def test_unpin_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "location": str(paths.CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "status": "unpinned",
                         "version": "0.0.0.2",
@@ -67,7 +68,7 @@ def test_unpin_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["unpin", "pycowsay", "--quiet"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 
@@ -77,13 +78,12 @@ def test_unpin_with_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["pin", "black@1"])
     assert not run_pipx_cli(["unpin", "black@1"])
 
-    captured = capsys.readouterr()
-    assert "pipx unpinned 1 package in venv black@1" in captured.out
-
+    unpin_out: Final[str] = capsys.readouterr().out
     assert not run_pipx_cli(["upgrade", "black@1"])
-
-    captured = capsys.readouterr()
-    assert "upgraded package black@1 from 22.8.0 to 22.10.0" in captured.out
+    assert (
+        "pipx unpinned 1 package in venv black@1" in unpin_out,
+        "upgraded package black@1 from 22.8.0 to 22.10.0" in capsys.readouterr().out,
+    ) == (True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -100,8 +100,7 @@ def test_unpin_warning(caplog: pytest.LogCaptureFixture) -> None:
 def test_unpin_not_installed_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["unpin", "abc"])
 
-    captured = capsys.readouterr()
-    assert "pipx does not manage package abc" in captured.err
+    assert "pipx does not manage package abc" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -111,8 +110,7 @@ def test_unpin_injected_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["pin", "black"])
     assert not run_pipx_cli(["unpin", "black"])
 
-    captured = capsys.readouterr()
-    assert "pipx unpinned 3 packages in venv black" in captured.out
+    assert "pipx unpinned 3 packages in venv black" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -126,7 +124,10 @@ def test_unpin_reports_only_changed_packages(
     capsys.readouterr()
 
     assert not run_pipx_cli(["unpin", "pycowsay"])
-    output = capsys.readouterr().out
-    assert "pipx unpinned 1 package in venv pycowsay" in output
-    assert "  - empty-project" in output
-    assert "  - pycowsay" not in output
+
+    output: Final[str] = capsys.readouterr().out
+    assert (
+        "pipx unpinned 1 package in venv pycowsay" in output,
+        "  - empty-project" in output,
+        "  - pycowsay" in output,
+    ) == (True, True, False)

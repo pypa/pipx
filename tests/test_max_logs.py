@@ -1,5 +1,3 @@
-"""Tests for PIPX_MAX_LOGS environment variable functionality."""
-
 from __future__ import annotations
 
 import errno
@@ -16,43 +14,42 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture
-def log_dir() -> Path:
-    paths.ctx.logs.mkdir(parents=True)
-    return paths.ctx.logs
-
-
 @pytest.mark.parametrize(
-    ("max_logs", "existing", "expected"),
+    ("environment", "existing", "expected"),
     [
-        pytest.param(None, 15, 10, id="default"),
-        pytest.param("5", 15, 5, id="env-var"),
-        pytest.param("100", 5, 6, id="under-limit"),
-        pytest.param("1", 15, 1, id="one"),
-        pytest.param("0", 15, 1, id="zero-keeps-current-run"),
+        pytest.param({}, 15, 10, id="default"),
+        pytest.param({"PIPX_MAX_LOGS": "5"}, 15, 5, id="env-var"),
+        pytest.param({"PIPX_MAX_LOGS": "100"}, 5, 6, id="under-limit"),
+        pytest.param({"PIPX_MAX_LOGS": "1"}, 15, 1, id="one"),
+        pytest.param({"PIPX_MAX_LOGS": "0"}, 15, 1, id="zero-keeps-current-run"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_max_logs_counts_the_new_log(
-    log_dir: Path, monkeypatch: pytest.MonkeyPatch, max_logs: str | None, existing: int, expected: int
+    log_dir: Path, monkeypatch: pytest.MonkeyPatch, environment: dict[str, str], existing: int, expected: int
 ) -> None:
-    if max_logs is None:
-        monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
-    else:
-        monkeypatch.setenv("PIPX_MAX_LOGS", max_logs)
-    for i in range(existing):
-        (log_dir / f"cmd_2024-01-01_00.00.{i:02d}.log").touch()
+    monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
+    for name, value in environment.items():
+        monkeypatch.setenv(name, value)
+    for index in range(existing):
+        (log_dir / f"cmd_2024-01-01_00.00.{index:02d}.log").touch()
 
     assert not run_pipx_cli(["list"])
 
     assert len(list(log_dir.glob("cmd_*[0-9].log"))) == expected
 
 
+@pytest.fixture
+def log_dir() -> Path:
+    paths.CTX.logs.mkdir(parents=True)
+    return paths.CTX.logs
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_max_logs_rotates_every_backend_error_log(log_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIPX_MAX_LOGS", "2")
-    for i, backend in enumerate(["uv", "pip", "uv", "pip"]):
-        (log_dir / f"cmd_2024-01-01_00.00.{i:02d}_{backend}_errors.log").touch()
+    for index, backend in enumerate(["uv", "pip", "uv", "pip"]):
+        (log_dir / f"cmd_2024-01-01_00.00.{index:02d}_{backend}_errors.log").touch()
 
     assert not run_pipx_cli(["list"])
 
@@ -83,38 +80,21 @@ def test_max_logs_keeps_logs_of_running_command(log_dir: Path, monkeypatch: pyte
     assert {log, error_log} <= set(log_dir.iterdir())
 
 
-@pytest.mark.parametrize(
-    ("raw", "expected_logs", "expected_invalid"),
-    [
-        pytest.param(None, 10, False, id="unset"),
-        pytest.param("", 10, False, id="empty"),
-        pytest.param("   ", 10, False, id="whitespace-only"),
-        pytest.param("10", 10, False, id="default"),
-        pytest.param(" 5 ", 5, False, id="whitespace-padded"),
-        pytest.param("0", 0, False, id="zero"),
-        pytest.param("-1", 10, True, id="negative"),
-        pytest.param("garbage", 10, True, id="not-an-integer"),
-    ],
-)
-def test_compute_max_logs(raw: str | None, expected_logs: int, expected_invalid: bool) -> None:
-    assert constants._compute_max_logs(raw) == (expected_logs, expected_invalid)  # ruff:ignore[private-member-access]  # no public API
-
-
 def test_cli_rejects_invalid_env_max_logs(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setattr(main, "_MAX_LOGS_INVALID", True)
-    monkeypatch.setattr(main, "_MAX_LOGS_RAW", "garbage")
+    monkeypatch.setattr(main, "MAX_LOGS_INVALID", True)
+    monkeypatch.setattr(main, "MAX_LOGS_RAW", "garbage")
 
     assert run_pipx_cli(["list"])
 
     assert "PIPX_MAX_LOGS must be unset or a non-negative integer, got 'garbage'." in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("raw", ["", "   "], ids=["empty", "whitespace-only"])
+@pytest.mark.parametrize("raw", [pytest.param("", id="empty"), pytest.param("   ", id="whitespace-only")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_blank_env_max_logs_falls_back_to_default(
     raw: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Blank values pass validation as unset, so log setup must not re-crash on a raw int() parse."""
+    # blank values pass validation as unset, so the log setup must not parse them with int() again
     monkeypatch.setenv("PIPX_MAX_LOGS", raw)
 
     assert not run_pipx_cli(["list"])
@@ -150,11 +130,14 @@ def test_max_logs_rotates_an_unreadable_log(log_dir: Path, monkeypatch: pytest.M
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="creating symlinks needs developer mode on Windows")
-@pytest.mark.parametrize("target", [pytest.param("loop", id="symlink-loop"), pytest.param("dir", id="symlink-to-dir")])
+@pytest.mark.parametrize(
+    "target",
+    [pytest.param("cmd_2024-01-01_00.00.00.log", id="symlink-loop"), pytest.param(".", id="symlink-to-dir")],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_max_logs_rotates_a_log_that_cannot_open(log_dir: Path, monkeypatch: pytest.MonkeyPatch, target: str) -> None:
     monkeypatch.setenv("PIPX_MAX_LOGS", "1")
-    (log := log_dir / "cmd_2024-01-01_00.00.00.log").symlink_to(log if target == "loop" else log_dir)
+    (log_dir / "cmd_2024-01-01_00.00.00.log").symlink_to(target)
 
     assert not run_pipx_cli(["list"])
 

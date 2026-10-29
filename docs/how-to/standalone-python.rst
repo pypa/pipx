@@ -33,8 +33,8 @@ interpreter that satisfies the app's ``requires-python``, and the policy only de
         class USEDEF,USEMATCH use;
         class FAIL fail;
 
-Naming ``--python`` yourself keeps the last word: pipx uses the interpreter you named and reports it, rather than
-overriding you when the package rejects it.
+When you name ``--python`` yourself, pipx uses that interpreter and reports it, rather than overriding you when the
+package rejects it.
 
 ***************
  Set the policy

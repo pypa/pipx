@@ -19,19 +19,19 @@ if TYPE_CHECKING:
 
 
 def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> OperationResult[HealthData]:
-    environments: list[_EnvironmentHealth] = []
-    messages: list[OutputMessage] = []
+    environments: Final[list[_EnvironmentHealth]] = []
+    messages: Final[list[OutputMessage]] = []
     for venv_dir in venv_dirs:
         with venv_container.venv_lock(venv_dir):
-            environment = _check_health(venv_dir)
+            environment: Final[_EnvironmentHealth] = _check_health(venv_dir)
         environments.append(environment)
         if environment.status is _HealthStatus.HEALTHY:
-            messages.append(OutputMessage(f"{environment.environment}: healthy"))
+            messages.append(OutputMessage(text=f"{environment.environment}: healthy"))
             continue
-        location = f" at {environment.interpreter}" if environment.interpreter else ""
-        messages.append(OutputMessage(f"{environment.environment}: {environment.error}{location}"))
+        location: Final[str] = f" at {environment.interpreter}" if environment.interpreter else ""
+        messages.append(OutputMessage(text=f"{environment.environment}: {environment.error}{location}"))
     if not messages:
-        messages.append(OutputMessage("pipx manages no packages."))
+        messages.append(OutputMessage(text="pipx manages no packages."))
     errors: Final[tuple[OperationError, ...]] = tuple(
         OperationError(code="environment_unhealthy", message=environment.error, environment=environment.environment)
         for environment in environments
@@ -47,6 +47,63 @@ def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> Operatio
     )
 
 
+def _check_health(venv_dir: Path) -> _EnvironmentHealth:
+    if not venv_dir.is_dir():
+        return _EnvironmentHealth(
+            environment=venv_dir.name,
+            interpreter="",
+            status=_HealthStatus.MISSING,
+            error="pipx does not manage this environment",
+        )
+
+    _, interpreter, _ = get_venv_paths(venv_dir)
+    if not interpreter.is_file():
+        return _EnvironmentHealth(
+            environment=venv_dir.name,
+            interpreter=str(interpreter),
+            status=_HealthStatus.BROKEN,
+            error="interpreter is missing",
+        )
+    try:
+        process: Final = run_subprocess([interpreter, "--version"], log_stdout=False, log_stderr=False)
+    except OSError as error:
+        return _EnvironmentHealth(
+            environment=venv_dir.name,
+            interpreter=str(interpreter),
+            status=_HealthStatus.BROKEN,
+            error=f"interpreter could not start: {error.strerror or error}",
+        )
+    if process.returncode:
+        return _EnvironmentHealth(
+            environment=venv_dir.name,
+            interpreter=str(interpreter),
+            status=_HealthStatus.BROKEN,
+            error=f"interpreter exited with status {process.returncode}",
+        )
+    return _EnvironmentHealth(
+        environment=venv_dir.name, interpreter=str(interpreter), status=_HealthStatus.HEALTHY, error=None
+    )
+
+
+class _HealthStatus(StrEnum):
+    HEALTHY = "healthy"
+    BROKEN = "broken"
+    MISSING = "missing"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _EnvironmentHealth:
+    environment: str
+    interpreter: str
+    status: _HealthStatus
+    error: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class HealthData(OperationData):
+    environments: tuple[_EnvironmentHealth, ...]
+
+
 def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reinstall context to every broken environment
     venv_container: VenvContainer,
     venv_dirs: Iterable[Path],
@@ -55,53 +112,53 @@ def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reins
     python: str,
     *,
     verbose: bool,
-    python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
+    python_flag_passed: bool,
+    backend: str | None,
+    env_backend: str | None,
 ) -> OperationResult[RepairData]:
-    failures: list[_FailedRepair] = []
-    messages: list[OutputMessage] = []
-    repaired: list[_RepairedEnvironment] = []
-    skipped: list[_SkippedRepair] = []
+    failures: Final[list[_FailedRepair]] = []
+    messages: Final[list[OutputMessage]] = []
+    repaired: Final[list[_RepairedEnvironment]] = []
+    skipped: Final[list[_SkippedRepair]] = []
     for venv_dir in venv_dirs:
         with venv_container.venv_lock(venv_dir) as venv_lock:
             environment = _check_health(venv_dir)
             if environment.status is _HealthStatus.HEALTHY:
-                skipped.append(_SkippedRepair(venv_dir.name, "healthy"))
-                messages.append(OutputMessage(f"{venv_dir.name}: healthy"))
+                skipped.append(_SkippedRepair(environment=venv_dir.name, reason="healthy"))
+                messages.append(OutputMessage(text=f"{venv_dir.name}: healthy"))
                 continue
             if environment.status is _HealthStatus.MISSING:
-                failure = _FailedRepair(venv_dir.name, environment.error or "environment is missing")
-                failures.append(failure)
-                messages.append(_repair_failure_message(failure))
-                continue
-            try:
-                reinstall(
-                    venv_dir=venv_dir,
-                    local_bin_dir=local_bin_dir,
-                    local_man_dir=local_man_dir,
-                    python=python,
-                    verbose=verbose,
-                    python_flag_passed=python_flag_passed,
-                    backend=backend,
-                    env_backend=env_backend,
-                    venv_lock=venv_lock,
-                )
-            except PipxError as error:
-                failure = _FailedRepair(venv_dir.name, str(error))
-                failures.append(failure)
-                messages.append(_repair_failure_message(failure))
-                continue
-            if (environment := _check_health(venv_dir)).status is not _HealthStatus.HEALTHY:
-                failure = _FailedRepair(venv_dir.name, environment.error or "interpreter remains broken")
-                failures.append(failure)
-                messages.append(_repair_failure_message(failure))
-                continue
-            repaired.append(_RepairedEnvironment(venv_dir.name, environment.interpreter))
-            messages.append(OutputMessage(f"{venv_dir.name}: repaired"))
+                error = environment.error or "environment is missing"
+            else:
+                try:
+                    reinstall(
+                        venv_dir=venv_dir,
+                        local_bin_dir=local_bin_dir,
+                        local_man_dir=local_man_dir,
+                        python=python,
+                        verbose=verbose,
+                        python_flag_passed=python_flag_passed,
+                        backend=backend,
+                        env_backend=env_backend,
+                        venv_lock=venv_lock,
+                    )
+                except PipxError as reinstall_error:
+                    error = str(reinstall_error)
+                else:
+                    if (environment := _check_health(venv_dir)).status is _HealthStatus.HEALTHY:
+                        repaired.append(
+                            _RepairedEnvironment(environment=venv_dir.name, interpreter=environment.interpreter)
+                        )
+                        messages.append(OutputMessage(text=f"{venv_dir.name}: repaired"))
+                        continue
+                    error = environment.error or "interpreter remains broken"
+            failures.append(_FailedRepair(environment=venv_dir.name, error=error))
+            messages.append(
+                OutputMessage(text=f"{venv_dir.name}: {error}", stream=OutputStream.STDERR, level=OutputLevel.ERROR)
+            )
 
     if not messages:
-        messages.append(OutputMessage("pipx found no environments to repair."))
+        messages.append(OutputMessage(text="pipx found no environments to repair."))
     return OperationResult(
         command=("repair",),
         data=RepairData(repaired=tuple(repaired), skipped=tuple(skipped)),
@@ -115,78 +172,25 @@ def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reins
     )
 
 
-def _check_health(venv_dir: Path) -> _EnvironmentHealth:
-    if not venv_dir.is_dir():
-        return _EnvironmentHealth(venv_dir.name, "", _HealthStatus.MISSING, "pipx does not manage this environment")
-
-    _, interpreter, _ = get_venv_paths(venv_dir)
-    if not interpreter.is_file():
-        return _EnvironmentHealth(venv_dir.name, str(interpreter), _HealthStatus.BROKEN, "interpreter is missing")
-    try:
-        process = run_subprocess([interpreter, "--version"], log_stdout=False, log_stderr=False)
-    except OSError as error:
-        return _EnvironmentHealth(
-            venv_dir.name,
-            str(interpreter),
-            _HealthStatus.BROKEN,
-            f"interpreter could not start: {error.strerror or error}",
-        )
-    if process.returncode:
-        return _EnvironmentHealth(
-            venv_dir.name,
-            str(interpreter),
-            _HealthStatus.BROKEN,
-            f"interpreter exited with status {process.returncode}",
-        )
-    return _EnvironmentHealth(venv_dir.name, str(interpreter), _HealthStatus.HEALTHY, None)
-
-
-def _repair_failure_message(failure: _FailedRepair) -> OutputMessage:
-    return OutputMessage(
-        f"{failure.environment}: {failure.error}",
-        stream=OutputStream.STDERR,
-        level=OutputLevel.ERROR,
-    )
-
-
-class _HealthStatus(StrEnum):
-    HEALTHY = "healthy"
-    BROKEN = "broken"
-    MISSING = "missing"
-
-
-@dataclass(frozen=True)
-class _EnvironmentHealth:
-    environment: str
-    interpreter: str
-    status: _HealthStatus
-    error: str | None
-
-
-@dataclass(frozen=True)
-class HealthData(OperationData):
-    environments: tuple[_EnvironmentHealth, ...]
-
-
-@dataclass(frozen=True)
-class _RepairedEnvironment:
-    environment: str
-    interpreter: str
-
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _SkippedRepair:
     environment: str
     reason: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _RepairedEnvironment:
+    environment: str
+    interpreter: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _FailedRepair:
     environment: str
     error: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class RepairData(OperationData):
     repaired: tuple[_RepairedEnvironment, ...]
     skipped: tuple[_SkippedRepair, ...]

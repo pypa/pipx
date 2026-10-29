@@ -13,51 +13,51 @@ to keep any of them on your ``PATH``.
     - - Program
       - Description
       - Command
-    - - ansible
+    - - `ansible <https://pypi.org/project/ansible/>`_
       - IT automation
       - ``pipx run ansible``
-    - - asciinema
+    - - `asciinema <https://pypi.org/project/asciinema/>`_
       - Record and share terminal sessions
       - ``pipx run asciinema``
-    - - black
+    - - `black <https://pypi.org/project/black/>`_
       - Uncompromising Python code formatter
       - ``pipx run black``
-    - - pybabel
+    - - `pybabel <https://pypi.org/project/babel/>`_
       - Internationalize and localize Python applications
       - ``pipx run --spec babel pybabel``
-    - - chardetect
+    - - `chardetect <https://pypi.org/project/chardet/>`_
       - Detect file encoding
       - ``pipx run --spec chardet chardetect``
-    - - cookiecutter
+    - - `cookiecutter <https://pypi.org/project/cookiecutter/>`_
       - Create projects from templates
       - ``pipx run cookiecutter``
-    - - flake8
+    - - `flake8 <https://pypi.org/project/flake8/>`_
       - Style guide enforcement
       - ``pipx run flake8``
-    - - gdbgui
+    - - `gdbgui <https://pypi.org/project/gdbgui/>`_
       - Browser-based gdb debugger
       - ``pipx run gdbgui``
-    - - hatch
+    - - `hatch <https://pypi.org/project/hatch/>`_
       - Build and publish packages, manage environments
       - ``pipx run hatch``
-    - - ipython
+    - - `ipython <https://pypi.org/project/ipython/>`_
       - Interactive Python shell
       - ``pipx run ipython``
-    - - jupyter
+    - - `jupyter <https://pypi.org/project/jupyter/>`_
       - Web-based interactive computing notebooks
       - ``pipx run jupyter``
-    - - pipenv
+    - - `pipenv <https://pypi.org/project/pipenv/>`_
       - Python dependency and environment management
       - ``pipx run pipenv``
-    - - poetry
+    - - `poetry <https://pypi.org/project/poetry/>`_
       - Python dependency, environment, and packaging management
       - ``pipx run poetry``
-    - - pylint
+    - - `pylint <https://pypi.org/project/pylint/>`_
       - Source code analyzer
       - ``pipx run pylint``
-    - - pyinstaller
+    - - `pyinstaller <https://pypi.org/project/pyinstaller/>`_
       - Bundle a Python application into a single package
       - ``pipx run pyinstaller``
-    - - ruff
+    - - `ruff <https://pypi.org/project/ruff/>`_
       - Fast Python linter and formatter
       - ``pipx run ruff``

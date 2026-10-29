@@ -19,8 +19,9 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
-ENVIRONMENT_VARIABLES: Final = [
+ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_HOME",
     "PIPX_GLOBAL_HOME",
     "PIPX_BIN_DIR",
@@ -39,7 +40,7 @@ ENVIRONMENT_VARIABLES: Final = [
     "PIPX_USE_EMOJI",
     "PIPX_MAX_LOGS",
 ]
-DERIVED_ENVIRONMENT_VARIABLES: Final = [
+DERIVED_ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_LOCAL_VENVS",
     "PIPX_LOG_DIR",
     "PIPX_TRASH_DIR",
@@ -50,25 +51,48 @@ DERIVED_ENVIRONMENT_VARIABLES: Final = [
     "PIPX_UV_BINARY",
     "UV_CACHE_DIR",
 ]
-ENVIRONMENT_VALUE_CHOICES: Final = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
+ENVIRONMENT_VALUE_CHOICES: Final[list[str]] = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
 
 
-def _get_derived_values() -> dict[str, Callable[[], object]]:
+def environment(value: str | None) -> ExitCode:
+    derived_values: Final[dict[str, Callable[[], Path | str]]] = _get_derived_values()
+    if value is None:
+        print("Environment variables (set by user):")  # ruff:ignore[print]  # user-facing CLI output
+        print()  # ruff:ignore[print]  # user-facing CLI output
+        for env_variable in ENVIRONMENT_VARIABLES:
+            print(f"{env_variable}={os.getenv(env_variable, '')}")  # ruff:ignore[print]  # user-facing CLI output
+        print()  # ruff:ignore[print]  # user-facing CLI output
+        print("Derived values (computed by pipx):")  # ruff:ignore[print]  # user-facing CLI output
+        print()  # ruff:ignore[print]  # user-facing CLI output
+        for env_variable, resolve_derived_value in derived_values.items():
+            print(f"{env_variable}={resolve_derived_value()}")  # ruff:ignore[print]  # user-facing CLI output
+    elif (get_derived_value := derived_values.get(value)) is not None:
+        print(get_derived_value())  # ruff:ignore[print]  # user-facing CLI output
+    elif value in ENVIRONMENT_VARIABLES:
+        print(os.getenv(value, ""))  # ruff:ignore[print]  # user-facing CLI output
+    else:
+        msg: Final[str] = "Variable not found."
+        raise PipxError(msg)
+
+    return EXIT_CODE_OK
+
+
+def _get_derived_values() -> dict[str, Callable[[], Path | str]]:
     @cache
     def resolve_backend() -> tuple[str, str]:
         return resolve_backend_name(env_value=env_default_backend())
 
     return {
-        "PIPX_HOME": lambda: paths.ctx.home,
-        "PIPX_BIN_DIR": lambda: paths.ctx.bin_dir,
-        "PIPX_MAN_DIR": lambda: paths.ctx.man_dir,
-        "PIPX_COMPLETION_DIR": lambda: paths.ctx.completion_dir,
-        "PIPX_SHARED_LIBS": lambda: paths.ctx.shared_libs,
-        "PIPX_LOCAL_VENVS": lambda: paths.ctx.venvs,
-        "PIPX_LOG_DIR": lambda: paths.ctx.logs,
-        "PIPX_TRASH_DIR": lambda: paths.ctx.trash,
-        "PIPX_VENV_CACHEDIR": lambda: paths.ctx.venv_cache,
-        "PIPX_STANDALONE_PYTHON_CACHEDIR": lambda: paths.ctx.standalone_python_cachedir,
+        "PIPX_HOME": lambda: paths.CTX.home,
+        "PIPX_BIN_DIR": lambda: paths.CTX.bin_dir,
+        "PIPX_MAN_DIR": lambda: paths.CTX.man_dir,
+        "PIPX_COMPLETION_DIR": lambda: paths.CTX.completion_dir,
+        "PIPX_SHARED_LIBS": lambda: paths.CTX.shared_libs,
+        "PIPX_LOCAL_VENVS": lambda: paths.CTX.venvs,
+        "PIPX_LOG_DIR": lambda: paths.CTX.logs,
+        "PIPX_TRASH_DIR": lambda: paths.CTX.trash,
+        "PIPX_VENV_CACHEDIR": lambda: paths.CTX.venv_cache,
+        "PIPX_STANDALONE_PYTHON_CACHEDIR": lambda: paths.CTX.standalone_python_cachedir,
         "PIPX_DEFAULT_PYTHON": get_default_python,
         "PIPX_RESOLVED_BACKEND": lambda: resolve_backend()[0],
         "PIPX_BACKEND_SOURCE": lambda: resolve_backend()[1],
@@ -79,31 +103,8 @@ def _get_derived_values() -> dict[str, Callable[[], object]]:
     }
 
 
-def environment(value: str | None) -> ExitCode:
-    """Print a list of environment variables and paths used by pipx"""
-    derived_values = _get_derived_values()
-    if value is None:
-        print("Environment variables (set by user):")  # ruff:ignore[print]  # user-facing CLI output
-        print()  # ruff:ignore[print]
-        for env_variable in ENVIRONMENT_VARIABLES:
-            print(f"{env_variable}={os.getenv(env_variable, '')}")  # ruff:ignore[print]
-        print()  # ruff:ignore[print]
-        print("Derived values (computed by pipx):")  # ruff:ignore[print]
-        print()  # ruff:ignore[print]
-        for env_variable, resolve_derived_value in derived_values.items():
-            print(f"{env_variable}={resolve_derived_value()}")  # ruff:ignore[print]
-    elif (get_derived_value := derived_values.get(value)) is not None:
-        print(get_derived_value())  # ruff:ignore[print]
-    elif value in ENVIRONMENT_VARIABLES:
-        print(os.getenv(value, ""))  # ruff:ignore[print]
-    else:
-        msg = "Variable not found."
-        raise PipxError(msg)
-
-    return EXIT_CODE_OK
-
-
 __all__ = [
+    "DERIVED_ENVIRONMENT_VARIABLES",
     "ENVIRONMENT_VALUE_CHOICES",
     "ENVIRONMENT_VARIABLES",
     "environment",

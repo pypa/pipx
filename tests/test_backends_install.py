@@ -12,16 +12,18 @@ from pipx import paths
 if TYPE_CHECKING:
     from pathlib import Path
 
-_REQUIRES_UV: Final = pytest.mark.skipif(
+_REQUIRES_UV: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke"
 )
 
 
 def test_install_pip_with_uv_backend_errors(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = run_pipx_cli(["install", "pip", "--backend", "uv"])
-    captured = capsys.readouterr()
-    assert exit_code != 0
-    assert "'pip' package cannot be installed or exposed via the uv backend" in captured.err
+    exit_code: Final[int] = run_pipx_cli(["install", "pip", "--backend", "uv"])
+
+    assert (
+        exit_code,
+        "'pip' package cannot be installed or exposed via the uv backend" in capsys.readouterr().err,
+    ) == (1, True)
 
 
 @_REQUIRES_UV
@@ -34,33 +36,38 @@ def test_uv_backend_install_index_url_beats_uv_default_index(
     assert run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--index-url", pipx_local_pypiserver]) == 0
 
 
+@pytest.fixture
+def uv_installed_pycowsay(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    capsys: pytest.CaptureFixture[str],
+) -> Path:
+    exit_code: Final[int] = run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--python", sys.executable])
+    assert exit_code == 0, capsys.readouterr().err
+    return paths.CTX.venvs / "pycowsay" / "pipx_metadata.json"
+
+
 @_REQUIRES_UV
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_uv_backend_install_uninstall_smoke(capsys: pytest.CaptureFixture[str]) -> None:
-    # Asserts that a uv-built venv records ``backend="uv"``, exposes apps the
-    # same way pip venvs do, and uninstalls without re-invoking uv.
-    install_rc = run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--python", sys.executable])
-    captured = capsys.readouterr()
-    assert install_rc == 0, captured.err
+def test_uv_backend_install_records_backend(uv_installed_pycowsay: Path) -> None:
+    assert '"backend": "uv"' in uv_installed_pycowsay.read_text(encoding="utf-8")
 
-    metadata_file = paths.ctx.venvs / "pycowsay" / "pipx_metadata.json"
-    assert metadata_file.is_file()
-    assert '"backend": "uv"' in metadata_file.read_text()
 
-    list_rc = run_pipx_cli(["list", "--short"])
-    list_out = capsys.readouterr().out
-    assert list_rc == 0
-    assert "pycowsay" in list_out
+@_REQUIRES_UV
+@pytest.mark.usefixtures("uv_installed_pycowsay")
+def test_uv_backend_install_lists_package(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code: Final[int] = run_pipx_cli(["list", "--short"])
 
-    uninstall_rc = run_pipx_cli(["uninstall", "pycowsay"])
-    assert uninstall_rc == 0
-    assert not metadata_file.exists()
+    assert (exit_code, "pycowsay" in capsys.readouterr().out) == (0, True)
+
+
+@_REQUIRES_UV
+def test_uv_backend_uninstall_removes_metadata(uv_installed_pycowsay: Path) -> None:
+    assert (run_pipx_cli(["uninstall", "pycowsay"]), uv_installed_pycowsay.exists()) == (0, False)
 
 
 @_REQUIRES_UV
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uv_backend_force_install_existing() -> None:
-    command = ["install", "pycowsay", "--backend", "uv"]
+    command: Final[list[str]] = ["install", "pycowsay", "--backend", "uv"]
     assert run_pipx_cli(command) == 0
     assert run_pipx_cli([*command, "--force"]) == 0
 
@@ -69,8 +76,8 @@ def test_uv_backend_force_install_existing() -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uv_backend_install_ignores_uv_toml_above_venv() -> None:
     # uv fails on a malformed config file it discovers, so success proves it never read the one above its cwd
-    paths.ctx.venvs.mkdir(parents=True, exist_ok=True)
-    (paths.ctx.venvs / "uv.toml").write_text("index-url = [\n")
+    paths.CTX.venvs.mkdir(parents=True, exist_ok=True)
+    (paths.CTX.venvs / "uv.toml").write_text("index-url = [\n")
 
     assert run_pipx_cli(["install", "pycowsay", "--backend", "uv"]) == 0
 

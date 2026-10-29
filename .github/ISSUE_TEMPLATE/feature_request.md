@@ -8,18 +8,18 @@ assignees: ''
 
 **What's the problem this feature will solve?**
 
-<!-- What are you trying to do, that you are unable to achieve with pipx as it currently stands? -->
+<!-- What are you trying to do that pipx cannot do today? -->
 
 **Describe the solution you'd like**
 
-<!-- Clear and concise description of what you want to happen. -->
+<!-- Describe what you want to happen. -->
 
-<!-- Provide examples of real world use cases that this would enable and how it solves the problem described above. -->
+<!-- Give real-world use cases this would enable, and how it solves the problem above. -->
 
 **Alternative Solutions**
 
-<!-- Have you tried to workaround the problem using pipx or other tools? Or a different approach to solving this issue? -->
+<!-- Have you worked around the problem with pipx or another tool, or tried a different approach? -->
 
 **Additional context**
 
-<!-- Add any other context, links, etc. about the feature here. -->
+<!-- Add any other context or links about the feature. -->

@@ -5,12 +5,12 @@ import shutil
 import subprocess
 from contextlib import nullcontext
 from dataclasses import replace
-from typing import TYPE_CHECKING, Final, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, Final, Literal, TypeAlias
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import mock_legacy_venv, remove_venv_interpreter, run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
 from pipx import paths, util
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
@@ -25,14 +25,13 @@ if TYPE_CHECKING:
     from pipx.venv import VenvContainer
 
 _JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
-_OUTDATED_JSON: Final[str] = (
-    '[{"name":"pycowsay","version":"0.0.0.2","latest_version":"1.0","latest_filetype":"wheel"},'
-    '{"name":"packaging","version":"20","latest_version":"26","latest_filetype":"wheel"}]'
-)
 _OUTDATED_PROCESS: Final[subprocess.CompletedProcess[str]] = subprocess.CompletedProcess(
     args=[],
     returncode=0,
-    stdout=_OUTDATED_JSON,
+    stdout=(
+        '[{"name":"pycowsay","version":"0.0.0.2","latest_version":"1.0","latest_filetype":"wheel"},'
+        '{"name":"packaging","version":"20","latest_version":"26","latest_filetype":"wheel"}]'
+    ),
     stderr="",
 )
 
@@ -48,7 +47,7 @@ def test_list_outdated_backend(
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
@@ -60,7 +59,7 @@ def test_list_outdated_selected_package(
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "isort"])
     capsys.readouterr()
-    list_outdated = mocker.patch(
+    list_outdated: Final[MagicMock] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr=""),
@@ -68,7 +67,7 @@ def test_list_outdated_selected_package(
 
     assert not run_pipx_cli(["list", "pycowsay", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, list_outdated.call_count) == ("pipx found no available upgrades.\n", "", 1)
 
 
@@ -80,7 +79,7 @@ def test_list_outdated_skips_removed_environment(
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
-    def remove_environment(_: VenvContainer, venv_dir: Path) -> AbstractContextManager[None]:
+    def remove_environment(_container: VenvContainer, venv_dir: Path) -> AbstractContextManager[None]:
         shutil.rmtree(venv_dir)
         return nullcontext()
 
@@ -113,15 +112,28 @@ def test_list_outdated_text(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (expected, "", 1)
+
+
+@pytest.fixture
+def outdated_environment(
+    request: pytest.FixtureRequest,
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> MagicMock:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    process: Final[subprocess.CompletedProcess[str]] = getattr(request, "param", _OUTDATED_PROCESS)
+    return mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, return_value=process)
 
 
 @pytest.mark.usefixtures("outdated_environment")
 def test_list_outdated_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list", "--outdated", "--output", "json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(
             packages_checked=1,
@@ -140,6 +152,36 @@ def test_list_outdated_json(capsys: pytest.CaptureFixture[str]) -> None:
     )
 
 
+def _outdated_result(
+    *,
+    packages_checked: int = 0,
+    packages: tuple[dict[str, _JsonValue], ...] = (),
+    skipped: tuple[dict[str, _JsonValue], ...] = (),
+    failures: tuple[dict[str, _JsonValue], ...] = (),
+    status: Literal["success", "partial", "error"] = "success",
+) -> dict[str, _JsonValue]:
+    return {
+        "command": ["list"],
+        "data": {
+            "packages_checked": packages_checked,
+            "packages": list(packages),
+            "skipped": list(skipped),
+        },
+        "errors": [
+            {
+                "code": "environment_outdated_check_failed",
+                "environment": failure["environment"],
+                "message": failure["error"],
+                "package": None,
+            }
+            for failure in failures
+        ],
+        "exit_code": 1 if failures else 0,
+        "pipx_result_version": "1",
+        "status": status,
+    }
+
+
 def test_list_outdated_reports_pinned(
     outdated_environment: MagicMock,
     capsys: pytest.CaptureFixture[str],
@@ -149,7 +191,7 @@ def test_list_outdated_reports_pinned(
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "pycowsay [pinned]: 0.0.0.2 -> 1.0\n",
         "",
@@ -194,7 +236,7 @@ def test_list_outdated_filters_injected(
 
     assert not run_pipx_cli(["list", "--outdated", *options])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == (expected, "")
 
 
@@ -238,12 +280,12 @@ def test_list_outdated_excludes_unmanaged_distributions(
 def test_list_outdated_uv_skips_invalid_distribution_names(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--backend", "uv"])
     # pip renames a distribution being replaced to ``~<name>`` and leaves it behind when interrupted
-    next((paths.ctx.venvs / "pycowsay").rglob("pycowsay-*.dist-info")).with_name("~arkdown-3.4.dist-info").mkdir()
+    next((paths.CTX.venvs / "pycowsay").rglob("pycowsay-*.dist-info")).with_name("~arkdown-3.4.dist-info").mkdir()
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
@@ -280,7 +322,7 @@ def test_list_outdated_json_reports_backend_failure(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, outdated_environment.call_count) == (
         _outdated_result(
             packages_checked=1,
@@ -308,7 +350,7 @@ def test_list_outdated_reports_backend_failure(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "",
         "pycowsay: Package backend exited with code 1.\nstderr: index unavailable\n",
@@ -322,12 +364,26 @@ def test_list_outdated_json_reports_non_index_skip(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, non_index_environment.call_count) == (
         _outdated_result(skipped=({"environment": "pycowsay", "package": "pycowsay", "reason": "non-index"},)),
         "",
         0,
     )
+
+
+@pytest.fixture
+def non_index_environment(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> MagicMock:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, package_or_url="git+https://example.com/pycowsay.git")
+    metadata.write()
+    capsys.readouterr()
+    return mocker.patch("pipx.backends.pip.run_subprocess", autospec=True)
 
 
 def test_list_outdated_reports_no_index_packages(
@@ -336,7 +392,7 @@ def test_list_outdated_reports_no_index_packages(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, non_index_environment.call_count) == (
         "pipx found no index packages to check.\n",
         "",
@@ -354,7 +410,7 @@ def test_list_outdated_json_reports_editable_skip(
 
     assert not run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(skipped=({"environment": "empty-project", "package": "empty-project", "reason": "editable"},)),
         "",
@@ -367,7 +423,7 @@ def test_list_outdated_json_reports_corrupt_package(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, corrupt_environment.call_count) == (
         _outdated_result(
             failures=({"environment": "pycowsay", "error": "Package pycowsay has corrupt pipx metadata."},),
@@ -378,13 +434,22 @@ def test_list_outdated_json_reports_corrupt_package(
     )
 
 
+@pytest.fixture
+def corrupt_environment(outdated_environment: MagicMock) -> MagicMock:
+    metadata_path: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata: Final = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata["main_package"]["package_or_url"] = None
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    return outdated_environment
+
+
 def test_list_outdated_reports_corrupt_package(
     corrupt_environment: MagicMock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, corrupt_environment.call_count) == (
         "",
         "pycowsay: Package pycowsay has corrupt pipx metadata.\n",
@@ -398,7 +463,7 @@ def test_list_outdated_json_reports_missing_metadata(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(
             failures=({"environment": "pycowsay", "error": "Missing internal pipx metadata."},),
@@ -408,13 +473,23 @@ def test_list_outdated_json_reports_missing_metadata(
     )
 
 
+@pytest.fixture
+def missing_metadata_environment(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay")
+    capsys.readouterr()
+
+
 @pytest.mark.usefixtures("missing_metadata_environment")
 def test_list_outdated_reports_missing_metadata(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "pycowsay: Missing internal pipx metadata.\n")
 
 
@@ -426,11 +501,11 @@ def test_list_outdated_reports_missing_interpreter(capsys: pytest.CaptureFixture
 
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured = capsys.readouterr()
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err) == (
         "",
         (
-            f"pycowsay: Invalid python interpreter {util.get_venv_paths(paths.ctx.venvs / 'pycowsay')[1]}. "
+            f"pycowsay: Invalid python interpreter {util.get_venv_paths(paths.CTX.venvs / 'pycowsay')[1]}. "
             "To fix, execute: pipx reinstall-all\n"
         ),
     )
@@ -449,16 +524,17 @@ def test_list_outdated_rejects_other_filters(
     option: str,
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", option])
+
     assert capsys.readouterr().err == "--outdated cannot be combined with --short or --pinned.\n"
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_list_outdated_refuses_find_links_others_can_change(
     outdated_environment: MagicMock, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (shared := tmp_path.resolve() / "shared").mkdir()
     shared.chmod(0o777)
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared)])
     metadata.write()
 
@@ -479,80 +555,5 @@ def test_list_outdated_refuses_find_links_others_can_change(
 @pytest.mark.usefixtures("outdated_environment")
 def test_upgrade_all_missing_index_value(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["upgrade-all", "--pip-args=--index-url"]) == 1
+
     assert "Missing value for '--index-url' in --pip-args." in capsys.readouterr().err
-
-
-def _outdated_result(
-    *,
-    packages_checked: int = 0,
-    packages: tuple[dict[str, _JsonValue], ...] = (),
-    skipped: tuple[dict[str, _JsonValue], ...] = (),
-    failures: tuple[dict[str, _JsonValue], ...] = (),
-    status: Literal["success", "partial", "error"] = "success",
-) -> dict[str, _JsonValue]:
-    return {
-        "command": ["list"],
-        "data": {
-            "packages_checked": packages_checked,
-            "packages": list(packages),
-            "skipped": list(skipped),
-        },
-        "errors": [
-            {
-                "code": "environment_outdated_check_failed",
-                "environment": failure["environment"],
-                "message": failure["error"],
-                "package": None,
-            }
-            for failure in failures
-        ],
-        "exit_code": 1 if failures else 0,
-        "pipx_result_version": "1",
-        "status": status,
-    }
-
-
-@pytest.fixture
-def corrupt_environment(outdated_environment: MagicMock) -> MagicMock:
-    metadata_path = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    metadata["main_package"]["package_or_url"] = None
-    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
-    return outdated_environment
-
-
-@pytest.fixture
-def outdated_environment(
-    request: pytest.FixtureRequest,
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
-    capsys: pytest.CaptureFixture[str],
-    mocker: MockerFixture,
-) -> MagicMock:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-    process = cast("subprocess.CompletedProcess[str]", getattr(request, "param", _OUTDATED_PROCESS))
-    return mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, return_value=process)
-
-
-@pytest.fixture
-def non_index_environment(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
-    capsys: pytest.CaptureFixture[str],
-    mocker: MockerFixture,
-) -> MagicMock:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    metadata.main_package = replace(metadata.main_package, package_or_url="git+https://example.com/pycowsay.git")
-    metadata.write()
-    capsys.readouterr()
-    return mocker.patch("pipx.backends.pip.run_subprocess", autospec=True)
-
-
-@pytest.fixture
-def missing_metadata_environment(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    mock_legacy_venv("pycowsay")
-    capsys.readouterr()

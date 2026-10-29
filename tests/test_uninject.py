@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows, write_wheel
+from helpers import SKIP_IF_WINDOWS, app_name, file_or_symlink, mock_legacy_venv, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import paths
 from pipx.commands import common
 from pipx.constants import WINDOWS
-from pipx.util import pipx_wrap, redact_url_credentials
+from pipx.util import redact_url_credentials
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -37,7 +38,7 @@ def test_uninject_json(capsys: pytest.CaptureFixture[str]) -> None:
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "location": str(paths.CTX.venvs / "pycowsay"),
                         "package": "black",
                         "status": "uninjected",
                         "version": "22.8.0",
@@ -179,40 +180,23 @@ def test_uninject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert "Uninjected package" not in capsys.readouterr().out
 
 
-@pytest.fixture
-def installed_pycowsay(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
-    del pipx_temp_env
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-
-
-def file_or_symlink(filepath: Path) -> bool:
-    return filepath.exists() or filepath.is_symlink()
-
-
+@pytest.mark.parametrize(
+    "scope",
+    [
+        pytest.param([], id="user"),
+        pytest.param(["--global"], id="global", marks=SKIP_IF_WINDOWS),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninject_simple(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
-    assert not run_pipx_cli(["uninject", "pycowsay", "black"])
-    captured = capsys.readouterr()
-    assert "Uninjected package black" in captured.out
-    assert not run_pipx_cli(["list", "--include-injected"])
-    captured = capsys.readouterr()
-    assert "black" not in captured.out
+def test_uninject_simple(capsys: pytest.CaptureFixture[str], scope: list[str]) -> None:
+    assert not run_pipx_cli(["install", *scope, "pycowsay"])
+    assert not run_pipx_cli(["inject", *scope, "pycowsay", PKG["black"]["spec"]])
 
+    assert not run_pipx_cli(["uninject", *scope, "pycowsay", "black"])
 
-@skip_if_windows
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_uninject_simple_global(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "--global", "pycowsay"])
-    assert not run_pipx_cli(["inject", "--global", "pycowsay", PKG["black"]["spec"]])
-    assert not run_pipx_cli(["uninject", "--global", "pycowsay", "black"])
-    captured = capsys.readouterr()
-    assert "Uninjected package black" in captured.out
-    assert not run_pipx_cli(["list", "--global", "--include-injected"])
-    captured = capsys.readouterr()
-    assert "black" not in captured.out
+    uninject_output: Final[str] = capsys.readouterr().out
+    assert not run_pipx_cli(["list", *scope, "--include-injected"])
+    assert ("Uninjected package black" in uninject_output, "black" in capsys.readouterr().out) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -228,7 +212,7 @@ def test_uninject_with_include_apps(caplog: pytest.LogCaptureFixture) -> None:
 def test_uninject_running_app() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-apps"])
-    app = paths.ctx.bin_dir / app_name("black")
+    app: Final[Path] = paths.CTX.bin_dir / app_name("black")
 
     # the context manager closes the three pipes; leaking them trips the ResourceWarning that filterwarnings errors on
     with subprocess.Popen(
@@ -267,39 +251,40 @@ def test_uninject_with_suffix_removes_apps(
         "--include-deps",
         "--with-suffix",
     ])
-    app_paths = {paths.ctx.bin_dir / app_name(f"{app}{suffix}") for app in ("pycowsay", "repeatme")}
+    app_paths: Final[set[Path]] = {paths.CTX.bin_dir / app_name(f"{app}{suffix}") for app in ("pycowsay", "repeatme")}
     assert all(file_or_symlink(path) for path in app_paths)
+
     assert not run_pipx_cli(["uninject", f"empty-project{suffix}", f"repeatme{suffix}"])
+
     assert not any(file_or_symlink(path) for path in app_paths)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_man_page() -> None:
-    # Regression: uninject must remove the injected package's man page symlinks,
-    # not only its app symlinks. pycowsay ships man6/pycowsay.6.
-    man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
+    # pycowsay ships man6/pycowsay.6
+    man_page_paths: Final[list[Path]] = [paths.CTX.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
     assert not run_pipx_cli(["inject", "black", "pycowsay", "--include-apps"])
-    for man_page_path in man_page_paths:
-        assert man_page_path.exists()
+    assert all(path.exists() for path in man_page_paths)
+
     assert not run_pipx_cli(["uninject", "black", "pycowsay"])
-    for man_page_path in man_page_paths:
-        assert not file_or_symlink(man_page_path)
+
+    assert not any(file_or_symlink(path) for path in man_page_paths)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_completion_scripts(local_completion_wheel: Path, empty_project_wheel: Path) -> None:
-    # Regression: uninject must remove the injected package's completion
-    # scripts, not only its app and man page symlinks.
-    completion_paths = [
-        paths.ctx.completion_dir / "bash-completion/completions" / "local-completion",
-        paths.ctx.completion_dir / "zsh/site-functions" / "_local-completion",
-        paths.ctx.completion_dir / "fish/vendor_completions.d" / "local-completion.fish",
+    completion_paths: Final[list[Path]] = [
+        paths.CTX.completion_dir / "bash-completion/completions" / "local-completion",
+        paths.CTX.completion_dir / "zsh/site-functions" / "_local-completion",
+        paths.CTX.completion_dir / "fish/vendor_completions.d" / "local-completion.fish",
     ]
     assert not run_pipx_cli(["install", str(empty_project_wheel)])
     assert not run_pipx_cli(["inject", "empty-project", str(local_completion_wheel), "--include-apps"])
     assert all(file_or_symlink(path) for path in completion_paths)
+
     assert not run_pipx_cli(["uninject", "empty-project", "local-completion"])
+
     assert not any(file_or_symlink(path) for path in completion_paths)
 
 
@@ -310,11 +295,11 @@ def test_uninject_removes_dependency_app_symlinks(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0", "--include-deps", "--include-apps"])
-    captured = capsys.readouterr()
-    assert "normalizer" in captured.out
+    assert "normalizer" in capsys.readouterr().out
+
     assert not run_pipx_cli(["uninject", "pycowsay", "requests", "--verbose"])
-    assert "removed file" in caplog.text
-    assert "normalizer" in caplog.text
+
+    assert ("removed file" in caplog.text, "normalizer" in caplog.text) == (True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -326,9 +311,9 @@ def test_uninject_removes_selected_dependency_resources(
     assert not run_pipx_cli(["install", str(empty_project_wheel)])
     assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "pycowsay"])
     exposed_paths: Final[tuple[Path, ...]] = (
-        paths.ctx.bin_dir / app_name("repeatme"),
-        paths.ctx.bin_dir / app_name("pycowsay"),
-        paths.ctx.man_dir / "man6" / "pycowsay.6",
+        paths.CTX.bin_dir / app_name("repeatme"),
+        paths.CTX.bin_dir / app_name("pycowsay"),
+        paths.CTX.man_dir / "man6" / "pycowsay.6",
     )
     assert all(file_or_symlink(path) for path in exposed_paths)
 
@@ -352,7 +337,7 @@ def test_uninject_keeps_resources_the_main_package_exposes(local_extras_wheel: P
 
     assert all(
         file_or_symlink(path)
-        for path in (paths.ctx.bin_dir / app_name("pycowsay"), paths.ctx.man_dir / "man6" / "pycowsay.6")
+        for path in (paths.CTX.bin_dir / app_name("pycowsay"), paths.CTX.man_dir / "man6" / "pycowsay.6")
     )
 
 
@@ -364,9 +349,11 @@ def test_uninject_leave_deps(
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["uninject", "pycowsay", "black", "--leave-deps", "--verbose"])
-    captured = capsys.readouterr()
-    assert "Uninjected package black from venv pycowsay" in captured.out
-    assert "Dependencies of uninstalled package:" not in caplog.text
+
+    assert (
+        "Uninjected package black from venv pycowsay" in capsys.readouterr().out,
+        "Dependencies of uninstalled package:" in caplog.text,
+    ) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -374,12 +361,13 @@ def test_uninject_preserves_shared_deps(capsys: pytest.CaptureFixture[str]) -> N
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"]])
+
     assert not run_pipx_cli(["uninject", "pycowsay", "black"])
+
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--include-injected"])
-    captured = capsys.readouterr()
-    assert "pylint" in captured.out
-    assert "black" not in captured.out
+    listed: Final[str] = capsys.readouterr().out
+    assert ("pylint" in listed, "black" in listed) == (True, False)
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -396,7 +384,7 @@ def test_uninject_editable_removes_its_dependencies(tmp_path: Path) -> None:
 
     assert not run_pipx_cli(["uninject", "pycowsay", "editable-dep"])
 
-    assert not list((paths.ctx.venvs / "pycowsay").rglob("six-*.dist-info"))
+    assert not list((paths.CTX.venvs / "pycowsay").rglob("six-*.dist-info"))
 
 
 @pytest.mark.parametrize(
@@ -411,7 +399,7 @@ def test_uninject_editable_removes_its_dependencies(tmp_path: Path) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_removes_all_orphaned_dependencies(backend: str) -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--backend", backend])
-    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
     installed_before: Final[set[str]] = {path.name for path in venv_dir.rglob("*.dist-info")}
     assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0"])
 
@@ -425,7 +413,7 @@ def test_uninject_reports_failed_dependency_uninstall(capsys: pytest.CaptureFixt
     assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0"])
     capsys.readouterr()
     # pip refuses to uninstall a distribution without a RECORD file
-    next((paths.ctx.venvs / "pycowsay").rglob("urllib3-*.dist-info/RECORD")).unlink()
+    next((paths.CTX.venvs / "pycowsay").rglob("urllib3-*.dist-info/RECORD")).unlink()
 
     assert run_pipx_cli(["uninject", "pycowsay", "requests"])
 
@@ -440,7 +428,7 @@ def test_uninject_removes_copied_app_named_before_last_dot(
     assert not run_pipx_cli(["install", str(empty_project_wheel), "--suffix=@1"])
     assert not run_pipx_cli(["inject", "empty-project@1", str(dotted_app_wheel), "--include-apps", "--with-suffix"])
     # the name pipx 1.17.14 gave the app, with the suffix before the last dot
-    legacy: Final[Path] = (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
+    legacy: Final[Path] = (paths.CTX.bin_dir / "tool.12@1").rename(paths.CTX.bin_dir / "tool@1.12")
 
     assert not run_pipx_cli(["uninject", "empty-project@1", "foo-bar-x@1"])
 
@@ -463,14 +451,14 @@ def test_uninject_unknown_package_hides_url_credentials(capsys: pytest.CaptureFi
     ]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_keeps_an_app_name_taken_over_during_the_uninstall(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None], tmp_path: Path
 ) -> None:
     assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "alpha", "1"))])
     assert not run_pipx_cli(["inject", "alpha", str(write_wheel(tmp_path / "wheels", "beta", "1")), "--include-apps"])
-    beta: Final[Path] = paths.ctx.bin_dir / "beta"
+    beta: Final[Path] = paths.CTX.bin_dir / "beta"
     (other := tmp_path / "other").touch()
 
     def take_over_dangling_name() -> None:
@@ -478,7 +466,7 @@ def test_uninject_keeps_an_app_name_taken_over_during_the_uninstall(
             beta.unlink()
             beta.symlink_to(other)
 
-    before_venv_subprocess(paths.ctx.venvs / "alpha", take_over_dangling_name)
+    before_venv_subprocess(paths.CTX.venvs / "alpha", take_over_dangling_name)
 
     assert not run_pipx_cli(["uninject", "alpha", "beta"])
 

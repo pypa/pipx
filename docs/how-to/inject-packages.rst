@@ -72,9 +72,9 @@ For exposing apps from an already-installed environment, see :doc:`expose-apps`.
 - ``--editable`` / ``-e`` installs the package in editable (development) mode.
 - ``--with-suffix`` gives the injected package's apps the environment's suffix (injecting ``black`` into
   ``ipython_3.11`` exposes ``black_3.11``).
-- ``--pip-args`` passes extra arguments to pip (for example ``--pip-args='--no-cache-dir'``).
+- ``--pip-args`` passes extra arguments to `pip <https://pip.pypa.io/>`__ (for example ``--pip-args='--no-cache-dir'``).
 - ``--index-url`` / ``-i`` sets the package index URL for this inject.
-- ``--system-site-packages`` is ignored with a warning; the environment keeps the setting ``pipx install`` gave it.
+- ``--system-site-packages`` only prints a warning; the environment keeps the setting ``pipx install`` gave it.
 
 **********
  Verify it

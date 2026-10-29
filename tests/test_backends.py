@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, TypedDict
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pipx import backends, paths, pipx_metadata_file
+from helpers import write_dist_info
+from pipx import backends, paths
 from pipx.backends import (
     KNOWN_BACKENDS,
     PIP,
@@ -20,126 +20,59 @@ from pipx.backends import (
 )
 from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, resolve_uv_binary
-from pipx.commands.run_uv import translate_pip_args_for_uv
-from pipx.constants import PIPX_SHARED_PTH, WINDOWS
-from pipx.main import (
-    _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
-)
+from pipx.constants import WINDOWS
 from pipx.util import PipxError
-from pipx.venv import Venv, reset_backend_override_warnings
-from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
-
-
-class _BackendResolveKwargs(TypedDict, total=False):
-    cli_value: str
-    env_value: str
-    metadata_value: str
-    auto: bool
-
-
-class _LegacyPackageInfo(TypedDict):
-    package: str
-    package_or_url: str
-    pip_args: list[str]
-    include_dependencies: bool
-    include_apps: bool
-    apps: list[str]
-    app_paths: list[str]
-    apps_of_dependencies: list[str]
-    app_paths_of_dependencies: dict[str, list[str]]
-    man_pages: list[str]
-    man_paths: list[str]
-    man_pages_of_dependencies: list[str]
-    man_paths_of_dependencies: dict[str, list[str]]
-    package_version: str
-    suffix: str
-    pinned: bool
-
-
-class _LegacyMetadata(TypedDict):
-    main_package: _LegacyPackageInfo
-    python_version: str
-    source_interpreter: None
-    venv_args: list[str]
-    injected_packages: dict[str, _LegacyPackageInfo]
-    pipx_metadata_version: str
-
-
-class _CurrentMetadata(_LegacyMetadata):
-    backend: str
-
-
-def _write_dist_info(
-    site_packages: Path, name: str, requires: list[str] | None = None, provides_extra: list[str] | None = None
-) -> None:
-    dist_info = site_packages / f"{name}-1.0.dist-info"
-    dist_info.mkdir()
-    metadata = [f"Name: {name}", "Version: 1.0"]
-    metadata += [f"Provides-Extra: {extra}" for extra in provides_extra or []]
-    metadata += [f"Requires-Dist: {requirement}" for requirement in requires or []]
-    (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
 
 
 def test_known_backends() -> None:
     assert KNOWN_BACKENDS == ("pip", "uv")
 
 
+def test_env_default_backend_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PIPX_DEFAULT_BACKEND", raising=False)
+    assert env_default_backend() is None
+
+
 @pytest.mark.parametrize(
     ("env", "expected"),
     [
-        pytest.param(None, None, id="unset"),
         pytest.param("", None, id="empty"),
         pytest.param("uv", "uv", id="uv"),
         pytest.param("  pip  ", "pip", id="trims-whitespace"),
     ],
 )
-def test_env_default_backend(monkeypatch: pytest.MonkeyPatch, env: str | None, expected: str | None) -> None:
-    if env is None:
-        monkeypatch.delenv("PIPX_DEFAULT_BACKEND", raising=False)
-    else:
-        monkeypatch.setenv("PIPX_DEFAULT_BACKEND", env)
+def test_env_default_backend(monkeypatch: pytest.MonkeyPatch, env: str, expected: str | None) -> None:
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", env)
     assert env_default_backend() == expected
 
 
 @pytest.mark.parametrize(
-    ("kwargs", "expected_name", "expected_source"),
+    ("cli_value", "env_value", "metadata_value", "expected"),
     [
-        pytest.param({"cli_value": "pip"}, "pip", "cli", id="cli-pip"),
-        pytest.param({"cli_value": "uv"}, "uv", "cli", id="cli-uv"),
-        pytest.param({"env_value": "pip"}, "pip", "env", id="env-pip"),
-        pytest.param({"metadata_value": "uv"}, "uv", "metadata", id="metadata-uv"),
-        pytest.param(
-            {"cli_value": "pip", "env_value": "uv", "metadata_value": "uv"},
-            "pip",
-            "cli",
-            id="cli-wins",
-        ),
-        # The headline bug fix: env must NOT override an existing venv's metadata.
-        pytest.param(
-            {"env_value": "uv", "metadata_value": "pip"},
-            "pip",
-            "metadata",
-            id="metadata-locks-env-out",
-        ),
-        pytest.param({"env_value": "uv"}, "uv", "env", id="env-when-no-metadata"),
+        pytest.param("pip", None, None, ("pip", "cli"), id="cli-pip"),
+        pytest.param("uv", None, None, ("uv", "cli"), id="cli-uv"),
+        pytest.param(None, "pip", None, ("pip", "env"), id="env-pip"),
+        pytest.param(None, None, "uv", ("uv", "metadata"), id="metadata-uv"),
+        pytest.param("pip", "uv", "uv", ("pip", "cli"), id="cli-wins"),
+        pytest.param(None, "uv", "pip", ("pip", "metadata"), id="metadata-locks-env-out"),
+        pytest.param(None, "uv", None, ("uv", "env"), id="env-when-no-metadata"),
     ],
 )
 def test_resolve_backend_name_precedence(
-    kwargs: _BackendResolveKwargs, expected_name: str, expected_source: str
+    cli_value: str | None, env_value: str | None, metadata_value: str | None, expected: tuple[str, str]
 ) -> None:
-    name, source = resolve_backend_name(**kwargs)
-    assert (name, source) == (expected_name, expected_source)
+    assert resolve_backend_name(cli_value=cli_value, env_value=env_value, metadata_value=metadata_value) == expected
 
 
 def test_resolve_backend_name_rejects_unknown() -> None:
     with pytest.raises(PipxError, match="Unknown backend"):
-        resolve_backend_name(cli_value="poetry")
+        resolve_backend_name(cli_value="poetry", env_value=None)
 
 
 @pytest.fixture
@@ -167,7 +100,7 @@ def test_resolve_backend_name_auto_path_uv(
     path_uv_reports: Callable[[str], None], version: str, expected: tuple[str, str]
 ) -> None:
     path_uv_reports(version)
-    assert resolve_backend_name() == expected
+    assert resolve_backend_name(env_value=None) == expected
 
 
 def test_resolve_backend_name_auto_skips_too_old_bundled_uv(
@@ -177,15 +110,15 @@ def test_resolve_backend_name_auto_skips_too_old_bundled_uv(
     (bundled := tmp_path / "uv").write_text("")
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
     mocker.patch("shutil.which", return_value=None)
-    assert resolve_backend_name() == (PIP, "auto-pip")
+    assert resolve_backend_name(env_value=None) == (PIP, "auto-pip")
 
 
 def test_resolve_backend_name_auto_warns_once_about_too_old_uv(
     path_uv_reports: Callable[[str], None], caplog: pytest.LogCaptureFixture
 ) -> None:
     path_uv_reports("0.5.0")
-    resolve_backend_name()
-    resolve_backend_name()
+    resolve_backend_name(env_value=None)
+    resolve_backend_name(env_value=None)
     assert [record.getMessage() for record in caplog.records if record.levelname == "WARNING"] == [
         (
             f"Skipping uv 0.5.0 at {Path('/usr/local/bin/uv')} since pipx needs uv>=0.9.17; using pip. "
@@ -195,69 +128,63 @@ def test_resolve_backend_name_auto_warns_once_about_too_old_uv(
 
 
 @pytest.mark.parametrize(
-    ("kwargs", "expected"),
+    ("cli_value", "env_value", "metadata_value", "expected"),
     [
-        pytest.param({"cli_value": "uv"}, (UV, "cli"), id="cli"),
-        pytest.param({"env_value": "uv"}, (UV, "env"), id="env"),
-        pytest.param({"metadata_value": "uv"}, (UV, "metadata"), id="metadata"),
+        pytest.param("uv", None, None, (UV, "cli"), id="cli"),
+        pytest.param(None, "uv", None, (UV, "env"), id="env"),
+        pytest.param(None, None, "uv", (UV, "metadata"), id="metadata"),
     ],
 )
 def test_resolve_backend_name_keeps_explicit_uv_when_too_old(
-    path_uv_reports: Callable[[str], None], kwargs: _BackendResolveKwargs, expected: tuple[str, str]
+    path_uv_reports: Callable[[str], None],
+    cli_value: str | None,
+    env_value: str | None,
+    metadata_value: str | None,
+    expected: tuple[str, str],
 ) -> None:
     path_uv_reports("0.5.0")
-    assert resolve_backend_name(**kwargs) == expected
+    assert resolve_backend_name(cli_value=cli_value, env_value=env_value, metadata_value=metadata_value) == expected
 
 
 def test_resolve_backend_name_auto_no_uv(mocker: MockerFixture) -> None:
     mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
-    assert resolve_backend_name() == (PIP, "auto-pip")
+    assert resolve_backend_name(env_value=None) == (PIP, "auto-pip")
 
 
 def test_resolve_backend_name_auto_disabled(mocker: MockerFixture) -> None:
     mocker.patch.object(backends, "find_uv_binary", return_value=(Path("/opt/uv"), "path"))
-    assert resolve_backend_name(auto=False) == (PIP, "auto-pip")
+    assert resolve_backend_name(env_value=None, auto=False) == (PIP, "auto-pip")
 
 
 def test_find_uv_binary_prefers_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
-    bundled = tmp_path / "bundled-uv"
-    bundled.write_text("")
+    (bundled := tmp_path / "bundled-uv").write_text("")
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
-    # Stub bundled isn't a real uv, so bypass the launch probe.
+    # the stub bundled file is not a real uv, so bypass the launch probe
     mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
-    binary, source = find_uv_binary()
-    assert binary == bundled
-    assert source == "bundled"
+    assert find_uv_binary() == (bundled, "bundled")
 
 
 def test_find_uv_binary_skips_broken_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
-    bundled = tmp_path / "bundled-uv"
-    bundled.write_text("")
+    (bundled := tmp_path / "bundled-uv").write_text("")
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
     mocker.patch("pipx.backends.uv._binary_runs", side_effect=lambda candidate: candidate != bundled)
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
-    binary, source = find_uv_binary()
-    assert binary == Path("/usr/local/bin/uv")
-    assert source == "path"
+    assert find_uv_binary() == (Path("/usr/local/bin/uv"), "path")
 
 
-def test_find_uv_binary_falls_back_to_path(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    ("runs", "expected"),
+    [
+        pytest.param(True, (Path("/usr/local/bin/uv"), "path"), id="falls-back-to-path"),
+        pytest.param(False, (None, "missing"), id="skips-broken-path"),
+    ],
+)
+def test_find_uv_binary_path_candidate(mocker: MockerFixture, runs: bool, expected: tuple[Path | None, str]) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
+    mocker.patch("pipx.backends.uv._binary_runs", return_value=runs)
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
-    binary, source = find_uv_binary()
-    assert binary == Path("/usr/local/bin/uv")
-    assert source == "path"
-
-
-def test_find_uv_binary_skips_broken_path(mocker: MockerFixture) -> None:
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("pipx.backends.uv._binary_runs", return_value=False)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
-    binary, source = find_uv_binary()
-    assert binary is None
-    assert source == "missing"
+    assert find_uv_binary() == expected
 
 
 def test_find_uv_binary_probe_survives_a_hanging_path_uv(mocker: MockerFixture) -> None:
@@ -267,26 +194,19 @@ def test_find_uv_binary_probe_survives_a_hanging_path_uv(mocker: MockerFixture) 
         "pipx.backends.uv.subprocess.run",
         side_effect=subprocess.TimeoutExpired(cmd=["uv", "--version"], timeout=10),
     )
-    binary, source = find_uv_binary()
-    assert binary is None
-    assert source == "missing"
+    assert find_uv_binary() == (None, "missing")
 
 
 def test_find_uv_binary_missing(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
     mocker.patch("shutil.which", return_value=None)
-    binary, source = find_uv_binary()
-    assert binary is None
-    assert source == "missing"
+    assert find_uv_binary() == (None, "missing")
 
 
 def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
-    # Self-contained cache reset: this test asserts hot-loop performance and
-    # must not rely on the autouse fixture's reset already having run.
-    find_uv_binary.cache_clear()
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
     mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
-    which_mock = mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    which_mock: Final[MagicMock] = mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
     find_uv_binary()
     find_uv_binary()
     find_uv_binary()
@@ -331,8 +251,8 @@ def test_uv_backend_rejects_pre_cooldown_version(mocker: MockerFixture) -> None:
         UvBackend()
 
 
-@pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
-def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Path, mocker: MockerFixture) -> None:
+@pytest.fixture
+def uv_binary(tmp_path: Path, mocker: MockerFixture) -> Path:
     binary: Final[Path] = tmp_path / "uv"
     mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
@@ -340,81 +260,65 @@ def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Pat
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
     )
-    run_subprocess: Final[MagicMock] = mocker.patch(
-        f"pipx.backends.{backend_name}.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
-    venv_python: Final[Path] = tmp_path / "bin" / "python"
-
-    (UvBackend() if backend_name == UV else PipBackend()).install(
-        venv_root=tmp_path,
-        venv_python=venv_python,
-        requirements=["demo"],
-        pip_args=[],
-        verbose=True,
-    )
-
-    expected_command: Final[list[str | Path]] = (
-        [str(venv_python), "-m", "pip", "--no-input", "install", "--progress-bar=on", "demo"]
-        if backend_name == PIP
-        else [binary, "pip", "install", "--python", str(venv_python), "--verbose", "demo"]
-    )
-    assert (run_subprocess.call_args.args[0], run_subprocess.call_args.kwargs["stream_output"]) == (
-        expected_command,
-        True,
-    )
-
-
-@pytest.mark.parametrize(
-    ("backend_name", "flags"),
-    [pytest.param(PIP, [], id="pip"), pytest.param(UV, ["--quiet"], id="uv")],
-)
-def test_backend_install_captures_output_without_verbose(
-    backend_name: str, flags: list[str], tmp_path: Path, mocker: MockerFixture
-) -> None:
-    binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
-    mocker.patch(
-        "pipx.backends.uv.subprocess.run",
-        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
-    )
-    run_subprocess: Final[MagicMock] = mocker.patch(
-        f"pipx.backends.{backend_name}.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
-    venv_python: Final[Path] = tmp_path / "bin" / "python"
-
-    (UvBackend() if backend_name == UV else PipBackend()).install(
-        venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=[]
-    )
-
-    expected_command: Final[list[str | Path]] = (
-        [str(venv_python), "-m", "pip", "--no-input", "install", *flags, "demo"]
-        if backend_name == PIP
-        else [binary, "pip", "install", "--python", str(venv_python), *flags, "demo"]
-    )
-    assert (run_subprocess.call_args.args[0], run_subprocess.call_args.kwargs["stream_output"]) == (
-        expected_command,
-        False,
-    )
+    return binary
 
 
 @pytest.fixture
-def uv_run_subprocess(tmp_path: Path, mocker: MockerFixture) -> MagicMock:
-    binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
-    mocker.patch(
-        "pipx.backends.uv.subprocess.run",
-        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
-    )
+def uv_run_subprocess(
+    uv_binary: Path,  # ruff:ignore[unused-function-argument]  # UvBackend() must find the patched uv
+    mocker: MockerFixture,
+) -> MagicMock:
     return mocker.patch(
         "pipx.backends.uv.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+
+@pytest.fixture
+def pip_run_subprocess(mocker: MockerFixture) -> MagicMock:
+    return mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+
+@pytest.mark.parametrize(
+    ("verbose", "flags"),
+    [pytest.param(True, ["--progress-bar=on"], id="verbose-streams"), pytest.param(False, [], id="quiet-captures")],
+)
+def test_pip_backend_install_streams_output_only_when_verbose(
+    verbose: bool, flags: list[str], tmp_path: Path, pip_run_subprocess: MagicMock
+) -> None:
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    PipBackend().install(
+        venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=[], verbose=verbose
+    )
+
+    assert (pip_run_subprocess.call_args.args[0], pip_run_subprocess.call_args.kwargs["stream_output"]) == (
+        [str(venv_python), "-m", "pip", "--no-input", "install", *flags, "demo"],
+        verbose,
+    )
+
+
+@pytest.mark.parametrize(
+    ("verbose", "flag"),
+    [pytest.param(True, "--verbose", id="verbose-streams"), pytest.param(False, "--quiet", id="quiet-captures")],
+)
+def test_uv_backend_install_streams_output_only_when_verbose(
+    verbose: bool, flag: str, tmp_path: Path, uv_run_subprocess: MagicMock
+) -> None:
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    UvBackend().install(
+        venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=[], verbose=verbose
+    )
+
+    assert (uv_run_subprocess.call_args.args[0], uv_run_subprocess.call_args.kwargs["stream_output"]) == (
+        [tmp_path / "uv", "pip", "install", "--python", str(venv_python), flag, "demo"],
+        verbose,
     )
 
 
@@ -425,6 +329,7 @@ def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subproce
             venv_python=tmp_path / "bin" / "python",
             requirements=["demo"],
             pip_args=["--index-url="],
+            verbose=False,
         )
     uv_run_subprocess.assert_not_called()
 
@@ -438,12 +343,14 @@ def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_su
 
 
 def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
-    UvBackend().install(venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[])
+    UvBackend().install(
+        venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[], verbose=False
+    )
 
     assert uv_run_subprocess.call_args.kwargs["env_overrides"] == {
         "VIRTUAL_ENV": None,
         "UV_NO_PROGRESS": "1",
-        "UV_PROJECT": str(paths.ctx.home),
+        "UV_PROJECT": str(paths.CTX.home),
     }
 
 
@@ -475,7 +382,9 @@ def test_uv_install_passes_index_url_as_default_index(
 ) -> None:
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
-    UvBackend().install(venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=pip_args)
+    UvBackend().install(
+        venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=pip_args, verbose=False
+    )
 
     assert uv_run_subprocess.call_args.args[0] == [
         tmp_path / "uv",
@@ -499,101 +408,20 @@ def test_uv_install_passes_index_url_as_default_index(
     ],
 )
 def test_uv_run_raw_pip_verbosity(
-    verbose: bool,
-    args: list[str],
-    flags: list[str],
-    tmp_path: Path,
-    mocker: MockerFixture,
+    verbose: bool, args: list[str], flags: list[str], tmp_path: Path, uv_run_subprocess: MagicMock
 ) -> None:
-    binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
-    mocker.patch(
-        "pipx.backends.uv.subprocess.run",
-        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
-    )
-    run_subprocess: Final[MagicMock] = mocker.patch(
-        "pipx.backends.uv.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
     UvBackend().run_raw_pip(venv_root=tmp_path, venv_python=venv_python, args=args, verbose=verbose)
 
-    assert run_subprocess.call_args.args[0] == [binary, "pip", args[0], "--python", str(venv_python), *flags]
-
-
-@pytest.mark.parametrize(
-    ("pip_args", "expected"),
-    [
-        pytest.param([], [], id="empty"),
-        pytest.param(["-q"], [], id="strip-quiet-short"),
-        pytest.param(["--quiet"], [], id="strip-quiet-long"),
-        pytest.param(
-            ["--index-url", "https://example.com/simple"],
-            ["--default-index", "https://example.com/simple"],
-            id="index-url",
-        ),
-        pytest.param(
-            ["-i", "https://example.com/simple"],
-            ["--default-index", "https://example.com/simple"],
-            id="index-url-short",
-        ),
-        pytest.param(
-            ["--extra-index-url", "https://other.example/simple"],
-            ["--extra-index-url", "https://other.example/simple"],
-            id="extra-index",
-        ),
-        pytest.param(["--pre"], ["--prerelease=allow"], id="pre-to-prerelease"),
-        pytest.param(["--index-url=https://example.com"], ["--default-index=https://example.com"], id="equals-form"),
-        pytest.param(["--no-binary", ":all:"], ["--no-binary"], id="no-binary-all"),
-        pytest.param(
-            ["--no-binary", "one,two"],
-            ["--no-binary-package", "one", "--no-binary-package", "two"],
-            id="no-binary-packages",
-        ),
-        pytest.param(["--no-binary=:none:"], [], id="no-binary-none"),
-        pytest.param(["--only-binary", ":all:"], ["--no-build"], id="only-binary-all"),
-        pytest.param(
-            ["--only-binary=one,two"],
-            ["--no-build-package", "one", "--no-build-package", "two"],
-            id="only-binary-packages",
-        ),
-        pytest.param(
-            ["--trusted-host", "packages.example"],
-            ["--allow-insecure-host", "packages.example"],
-            id="trusted-host",
-        ),
-        pytest.param(
-            ["--trusted-host=packages.example"],
-            ["--allow-insecure-host=packages.example"],
-            id="trusted-host-equals",
-        ),
-    ],
-)
-def test_translate_pip_args_for_uv(pip_args: list[str], expected: list[str]) -> None:
-    assert translate_pip_args_for_uv(pip_args) == expected
-
-
-@pytest.mark.parametrize(
-    ("pip_args", "match"),
-    [
-        pytest.param(["--editable"], "is not supported", id="editable"),
-        pytest.param(["-e"], "is not supported", id="editable-short"),
-        pytest.param(
-            ["--no-build-isolation"],
-            "contains '--no-build-isolation', which has no",
-            id="unknown-flag",
-        ),
-        pytest.param(["--no-deps"], "contains '--no-deps', which has no", id="no-deps"),
-        pytest.param(["--no-binary="], "Invalid value", id="empty-no-binary"),
-        pytest.param(["--index-url"], "Missing value", id="missing-value"),
-    ],
-)
-def test_translate_pip_args_for_uv_errors(pip_args: list[str], match: str) -> None:
-    with pytest.raises(PipxError, match=match):
-        translate_pip_args_for_uv(pip_args)
+    assert uv_run_subprocess.call_args.args[0] == [
+        tmp_path / "uv",
+        "pip",
+        args[0],
+        "--python",
+        str(venv_python),
+        *flags,
+    ]
 
 
 def test_assert_not_pip_under_uv_blocks_pip_on_uv() -> None:
@@ -601,53 +429,41 @@ def test_assert_not_pip_under_uv_blocks_pip_on_uv() -> None:
         assert_not_pip_under_uv("pip", UV)
 
 
-def test_assert_not_pip_under_uv_allows_pip_on_pip() -> None:
-    assert_not_pip_under_uv("pip", PIP)  # does not raise
-
-
-def test_assert_not_pip_under_uv_allows_other_packages_on_uv() -> None:
-    assert_not_pip_under_uv("ruff", UV)  # does not raise
+@pytest.mark.parametrize(
+    ("package_name", "backend_name"),
+    [
+        pytest.param("pip", PIP, id="allows-pip-on-pip"),
+        pytest.param("ruff", UV, id="allows-other-packages-on-uv"),
+    ],
+)
+def test_assert_not_pip_under_uv_allows(package_name: str, backend_name: str) -> None:
+    assert_not_pip_under_uv(package_name, backend_name)
 
 
 def test_uv_list_installed_not_required_uses_distribution_metadata(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    site_packages: Path, tmp_path: Path, uv_run_subprocess: MagicMock
 ) -> None:
-    site_packages = tmp_path / "site-packages"
-    site_packages.mkdir()
-    _write_dist_info(site_packages, "root-package")
-    _write_dist_info(site_packages, "top-package", ["child-package>=1"])
-    _write_dist_info(site_packages, "child-package")
+    write_dist_info(site_packages, "root-package")
+    write_dist_info(site_packages, "top-package", ["child-package>=1"])
+    write_dist_info(site_packages, "child-package")
 
-    def fail_run_subprocess(*_args: object, **_kwargs: object) -> None:
-        pytest.fail("uv pip list should not be invoked with --not-required")
-
-    monkeypatch.setattr("pipx.backends.uv.run_subprocess", fail_run_subprocess)
-    monkeypatch.setattr(
-        "pipx.venv_inspect.fetch_info_in_venv",
-        lambda _venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
-        raising=False,
+    installed: Final[set[str]] = UvBackend().list_installed(
+        venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", not_required=True
     )
 
-    backend = UvBackend.__new__(UvBackend)
-    backend._binary = tmp_path / "uv"  # ruff:ignore[private-member-access]  # constructing backend bypasses __init__ to isolate list_installed
-
-    assert backend.list_installed(
-        venv_root=tmp_path,
-        venv_python=tmp_path / "bin" / "python",
-        not_required=True,
-    ) == {"root-package", "top-package"}
+    assert (installed, uv_run_subprocess.called) == ({"root-package", "top-package"}, False)
 
 
 @pytest.mark.parametrize(
     "run_pip",
     [
         pytest.param(
-            lambda _root, python: PipBackend().upgrade_packaging_libraries(python, [], verbose=False),
+            lambda _root, python: PipBackend().upgrade_packaging_libraries(python, []),
             id="upgrade-packaging-libraries",
         ),
         pytest.param(
             lambda root, python: PipBackend().install(
-                venv_root=root, venv_python=python, requirements=["demo"], pip_args=[]
+                venv_root=root, venv_python=python, requirements=["demo"], pip_args=[], verbose=False
             ),
             id="install",
         ),
@@ -658,7 +474,8 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
             id="uninstall",
         ),
         pytest.param(
-            lambda root, python: PipBackend().list_installed(venv_root=root, venv_python=python), id="list-installed"
+            lambda root, python: PipBackend().list_installed(venv_root=root, venv_python=python, not_required=False),
+            id="list-installed",
         ),
         pytest.param(
             lambda root, python: PipBackend().list_outdated(
@@ -667,20 +484,27 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
             id="list-outdated",
         ),
         pytest.param(
-            lambda root, python: PipBackend().run_raw_pip(venv_root=root, venv_python=python, args=["check"]),
+            lambda root, python: PipBackend().run_raw_pip(
+                venv_root=root, venv_python=python, args=["check"], verbose=False
+            ),
             id="run-raw-pip",
         ),
     ],
 )
 def test_pip_backend_starts_pip_without_site_config(
-    run_pip: Callable[[Path, Path], object], tmp_path: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+    run_pip: Callable[[Path, Path], set[str] | tuple[OutdatedPackage, ...] | subprocess.CompletedProcess[str] | None],
+    tmp_path: Path,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     (site_config := tmp_path / ("pip.ini" if WINDOWS else "pip.conf")).write_text(
         "[install]\ntarget = ..\n", encoding="utf-8"
     )
     seen_by_pip: Final[list[bool]] = []
 
-    def record(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+    def record(
+        *_args: Sequence[str | Path], **_kwargs: bool | str | dict[str, str | None] | None
+    ) -> subprocess.CompletedProcess[str]:
         seen_by_pip.append(site_config.exists())
         return subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr="")
 
@@ -691,14 +515,30 @@ def test_pip_backend_starts_pip_without_site_config(
     assert (seen_by_pip, f"Removing {site_config}" in caplog.text) == ([False], True)
 
 
-@pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
-def test_backend_list_outdated_forwards_index_settings(
-    backend_name: str, tmp_path: Path, mocker: MockerFixture
+@pytest.fixture
+def outdated_process() -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(
+        args=[], returncode=0, stdout='[{"name":"demo","version":"1","latest_version":"2"}]', stderr=""
+    )
+
+
+def test_pip_backend_list_outdated_forwards_index_settings(
+    tmp_path: Path, mocker: MockerFixture, outdated_process: subprocess.CompletedProcess[str]
 ) -> None:
-    backend: PipBackend | UvBackend
-    if backend_name == PIP:
-        backend = PipBackend()
-        expected_command: list[str | Path] = [
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        "pipx.backends.pip.run_subprocess", autospec=True, return_value=outdated_process
+    )
+
+    result: Final = PipBackend().list_outdated(
+        venv_root=tmp_path,
+        venv_python=tmp_path / "bin" / "python",
+        index_args=["--index-url", "https://index.example/simple"],
+        exclude=["click", "pip"],
+    )
+
+    assert (result, run_subprocess.call_args.args[0]) == (
+        (OutdatedPackage(name="demo", version="1", latest_version="2"),),
+        [
             str(tmp_path / "bin" / "python"),
             "-m",
             "pip",
@@ -709,21 +549,28 @@ def test_backend_list_outdated_forwards_index_settings(
             "https://index.example/simple",
             "--exclude=click",
             "--exclude=pip",
-        ]
-    else:
-        mocker.patch(
-            "pipx.backends.uv.find_uv_binary",
-            autospec=True,
-            return_value=(tmp_path / "uv", "path"),
-        )
-        mocker.patch(
-            "pipx.backends.uv.subprocess.run",
-            autospec=True,
-            return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="uv 0.10.0", stderr=""),
-        )
-        backend = UvBackend()
-        expected_command = [
-            tmp_path / "uv",
+        ],
+    )
+
+
+def test_uv_backend_list_outdated_forwards_index_settings(
+    tmp_path: Path, uv_binary: Path, mocker: MockerFixture, outdated_process: subprocess.CompletedProcess[str]
+) -> None:
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        "pipx.backends.uv.run_subprocess", autospec=True, return_value=outdated_process
+    )
+
+    result: Final = UvBackend().list_outdated(
+        venv_root=tmp_path,
+        venv_python=tmp_path / "bin" / "python",
+        index_args=["--index-url", "https://index.example/simple"],
+        exclude=["click", "pip"],
+    )
+
+    assert (result, run_subprocess.call_args.args[0]) == (
+        (OutdatedPackage(name="demo", version="1", latest_version="2"),),
+        [
+            uv_binary,
             "pip",
             "list",
             "--python",
@@ -735,28 +582,7 @@ def test_backend_list_outdated_forwards_index_settings(
             "https://index.example/simple",
             "--exclude=click",
             "--exclude=pip",
-        ]
-    run_subprocess = mocker.patch(
-        f"pipx.backends.{'pip' if backend_name == PIP else 'uv'}.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(
-            args=[],
-            returncode=0,
-            stdout='[{"name":"demo","version":"1","latest_version":"2"}]',
-            stderr="",
-        ),
-    )
-
-    result = backend.list_outdated(
-        venv_root=tmp_path,
-        venv_python=tmp_path / "bin" / "python",
-        index_args=["--index-url", "https://index.example/simple"],
-        exclude=["click", "pip"],
-    )
-
-    assert (result, run_subprocess.call_args.args[0]) == (
-        (OutdatedPackage(name="demo", version="1", latest_version="2"),),
-        expected_command,
+        ],
     )
 
 
@@ -778,193 +604,6 @@ def test_backend_cooldown_args(
     ) == ([], [], [expected, "P7D"])
 
 
-def test_list_not_required_packages_treats_extra_dependencies_as_required(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    # ``child-package`` is required only via ``top-package``'s ``extra == "cli"`` dependency; it must
-    # still be reported as required (not removable) while top-package stays installed.
-    site_packages = tmp_path / "site-packages"
-    site_packages.mkdir()
-    _write_dist_info(site_packages, "top-package", ['child-package>=1; extra == "cli"'], provides_extra=["cli"])
-    _write_dist_info(site_packages, "child-package")
-
-    monkeypatch.setattr(
-        "pipx.venv_inspect.fetch_info_in_venv",
-        lambda _venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
-        raising=False,
-    )
-
-    assert list_not_required_packages(tmp_path / "bin" / "python") == {"top-package"}
-
-
-def test_metadata_round_trip_includes_backend(tmp_path: Path) -> None:
-    venv_dir = tmp_path / "venv"
-    venv_dir.mkdir()
-
-    metadata = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
-    metadata.main_package = pipx_metadata_file.PackageInfo(
-        package="demo",
-        package_or_url="demo",
-        pip_args=[],
-        include_dependencies=False,
-        include_apps=True,
-        apps=["demo"],
-        app_paths=[Path("demo")],
-        apps_of_dependencies=[],
-        app_paths_of_dependencies={},
-        package_version="1.0",
-    )
-    metadata.python_version = "3.12"
-    metadata.backend = "uv"
-    metadata.write()
-
-    raw_payload = json.loads((venv_dir / pipx_metadata_file.PIPX_INFO_FILENAME).read_text())
-    assert raw_payload["backend"] == "uv"
-
-    reread = pipx_metadata_file.PipxMetadata(venv_dir)
-    assert reread.backend == "uv"
-
-
-def test_metadata_version_order_for_shared_libs(tmp_path: Path) -> None:
-    venv_dir = tmp_path / "venv"
-    site_packages = venv_dir / "lib/python/site-packages"
-    site_packages.mkdir(parents=True)
-    (site_packages / PIPX_SHARED_PTH).touch()
-    venv = Venv(venv_dir)
-    venv.pipx_metadata.read_metadata_version = "0.10"
-    venv.pipx_metadata.backend = UV
-
-    assert venv.uses_shared_libs is False
-
-
-def test_legacy_metadata_defaults_to_pip(tmp_path: Path) -> None:
-    venv_dir = tmp_path / "venv"
-    venv_dir.mkdir()
-
-    legacy_payload: _LegacyMetadata = {
-        "main_package": {
-            "package": "demo",
-            "package_or_url": "demo",
-            "pip_args": [],
-            "include_dependencies": False,
-            "include_apps": True,
-            "apps": ["demo"],
-            "app_paths": [],
-            "apps_of_dependencies": [],
-            "app_paths_of_dependencies": {},
-            "man_pages": [],
-            "man_paths": [],
-            "man_pages_of_dependencies": [],
-            "man_paths_of_dependencies": {},
-            "package_version": "1.0",
-            "suffix": "",
-            "pinned": False,
-        },
-        "python_version": "3.12",
-        "source_interpreter": None,
-        "venv_args": [],
-        "injected_packages": {},
-        "pipx_metadata_version": "0.5",
-    }
-    (venv_dir / pipx_metadata_file.PIPX_INFO_FILENAME).write_text(json.dumps(legacy_payload))
-
-    metadata = pipx_metadata_file.PipxMetadata(venv_dir)
-    assert metadata.backend == "pip"
-
-
-def test_validate_backend_silent_on_env_uv_missing(
-    monkeypatch: pytest.MonkeyPatch,
-    mocker: MockerFixture,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    # Diagnostic commands (``pipx environment``/``list``) must keep working
-    # without a startup warning that would later contradict the actual error
-    # from ``UvBackend.__init__``.
-    # Patch both the source and the package-level re-export — either branch
-    # poisons the test if only one is mocked.
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
-    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
-    caplog.set_level("WARNING", logger="pipx.main")
-
-    _validate_backend_available(cli_backend=None, env_backend="uv")
-
-    assert not any("uv" in rec.message.lower() for rec in caplog.records)
-
-
-def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
-    with pytest.raises(PipxError, match="uv' executable could not be found"):
-        _validate_backend_available(cli_backend="uv", env_backend=None)
-
-
-def test_backend_override_warning_dedups_per_venv(
-    tmp_path: Path,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    # ``upgrade-all --backend uv`` against many pip-backed venvs would
-    # otherwise emit a multi-line block per Venv construction.
-    venv_dir = tmp_path / "demo"
-    venv_dir.mkdir()
-    metadata_payload: _CurrentMetadata = {
-        "main_package": {
-            "package": "demo",
-            "package_or_url": "demo",
-            "pip_args": [],
-            "include_dependencies": False,
-            "include_apps": True,
-            "apps": ["demo"],
-            "app_paths": [],
-            "apps_of_dependencies": [],
-            "app_paths_of_dependencies": {},
-            "man_pages": [],
-            "man_paths": [],
-            "man_pages_of_dependencies": [],
-            "man_paths_of_dependencies": {},
-            "package_version": "1.0",
-            "suffix": "",
-            "pinned": False,
-        },
-        "python_version": "3.12",
-        "source_interpreter": None,
-        "venv_args": [],
-        "injected_packages": {},
-        "backend": "pip",
-        "pipx_metadata_version": "0.6",
-    }
-    (venv_dir / pipx_metadata_file.PIPX_INFO_FILENAME).write_text(json.dumps(metadata_payload))
-
-    reset_backend_override_warnings()
-    caplog.set_level("WARNING", logger="pipx.venv")
-
-    Venv(venv_dir, backend="uv")
-    Venv(venv_dir, backend="uv")
-    Venv(venv_dir, backend="uv")
-
-    warnings = [rec for rec in caplog.records if "Ignoring --backend=uv" in rec.message]
-    assert len(warnings) == 1
-
-
-@pytest.mark.parametrize(
-    ("backend", "env_backend", "expected"),
-    [
-        pytest.param("uv", None, (UV, "cli"), id="cli"),
-        pytest.param(None, "uv", (UV, "env"), id="env"),
-    ],
-)
-def test_venv_without_record_resolves_like_a_fresh_one(
-    tmp_path: Path, backend: str | None, env_backend: str | None, expected: tuple[str, str]
-) -> None:
-    venv_dir: Final[Path] = tmp_path / "demo"
-    venv_dir.mkdir()
-    (venv_dir / "pyvenv.cfg").touch()
-
-    venv: Final[Venv] = Venv(venv_dir, backend=backend, env_backend=env_backend)
-
-    assert (venv.backend_name, venv.backend_source) == expected
-
-
 @pytest.mark.parametrize(
     ("version_output", "reported"),
     [
@@ -983,7 +622,11 @@ def test_pip_backend_install_lock_refuses_pip_without_lock_support(
 
     with pytest.raises(PipxError) as error:
         PipBackend().install_lock(
-            venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+            venv_root=tmp_path,
+            venv_python=tmp_path / "bin" / "python",
+            lock_file=tmp_path / "pylock.toml",
+            pip_args=[],
+            verbose=False,
         )
 
     assert (
@@ -1000,7 +643,11 @@ def test_pip_backend_install_lock_passes_lock_to_pip_with_lock_support(tmp_path:
     )
 
     PipBackend().install_lock(
-        venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", lock_file=tmp_path / "pylock.toml", pip_args=[]
+        venv_root=tmp_path,
+        venv_python=tmp_path / "bin" / "python",
+        lock_file=tmp_path / "pylock.toml",
+        pip_args=[],
+        verbose=False,
     )
 
     assert run.call_args.args[0] == [

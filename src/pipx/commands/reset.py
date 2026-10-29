@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.commands.uninstall import UninstallData, _get_venv_package_infos, _get_venv_resource_paths, uninstall_all
+from pipx.commands.uninstall import UninstallData, get_venv_package_infos, get_venv_resource_paths, uninstall_all
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
 from pipx.util import rmdir
@@ -19,19 +19,13 @@ if TYPE_CHECKING:
     from pipx.venv import VenvContainer
 
 
-@dataclass(frozen=True)
-class ResetData(OperationData):
-    packages: tuple[str, ...]
-    removed: tuple[str, ...]
-
-
 def reset(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
     *,
     verbose: bool,
-    dry_run: bool = False,
+    dry_run: bool,
 ) -> OperationResult[ResetData]:
     targets: Final[tuple[Path, ...]] = _reset_targets()
     if dry_run:
@@ -47,10 +41,12 @@ def reset(
                 packages=tuple(sorted(venv_dir.name for venv_dir in venv_container.iter_venv_dirs())),
                 removed=tuple(str(path) for path in would_remove),
             ),
-            messages=tuple(OutputMessage(f"Would remove {path}", stream=OutputStream.STDOUT) for path in would_remove),
+            messages=tuple(
+                OutputMessage(text=f"Would remove {path}", stream=OutputStream.STDOUT) for path in would_remove
+            ),
         )
 
-    # uninstalling is what unlinks the apps and the man pages, which live outside the pipx home
+    # uninstalling unlinks the apps and the man pages, which live outside the pipx home
     uninstalled: Final[OperationResult[UninstallData]] = uninstall_all(
         venv_container, local_bin_dir, local_man_dir, verbose=verbose
     )
@@ -63,9 +59,24 @@ def reset(
         ),
         messages=(
             *uninstalled.messages,
-            OutputMessage(f"pipx is back to a fresh install under {paths.ctx.home}.", stream=OutputStream.STDOUT),
+            OutputMessage(text=f"pipx is back to a fresh install under {paths.CTX.home}.", stream=OutputStream.STDOUT),
         ),
         exit_code=uninstalled.exit_code,
+    )
+
+
+def _reset_targets() -> tuple[Path, ...]:
+    return tuple(
+        target
+        for target in (
+            paths.CTX.venvs,
+            paths.CTX.shared_libs,
+            paths.CTX.venv_cache,
+            paths.CTX.standalone_python_cachedir,
+            paths.CTX.logs,
+            paths.CTX.trash,
+        )
+        if target.is_dir()
     )
 
 
@@ -75,39 +86,30 @@ def _exposed_resource_paths(
     exposed: set[Path] = set()
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir)
-        package_infos = _get_venv_package_infos(venv)
-        exposed |= _get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
+        package_infos = get_venv_package_infos(venv)
+        exposed |= get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
         for man_section in MAN_SECTIONS:
-            exposed |= _get_venv_resource_paths(
+            exposed |= get_venv_resource_paths(
                 "man", venv.man_path / man_section, local_man_dir / man_section, package_infos
             )
         for completion_section in COMPLETION_SECTIONS:
-            exposed |= _get_venv_resource_paths(
+            exposed |= get_venv_resource_paths(
                 "completion",
                 venv.man_path.parent / completion_section,
-                paths.ctx.completion_dir / completion_section,
+                paths.CTX.completion_dir / completion_section,
                 package_infos,
             )
     return tuple(sorted(exposed))
 
 
-def _reset_targets() -> tuple[Path, ...]:
-    return tuple(
-        target
-        for target in (
-            paths.ctx.venvs,
-            paths.ctx.shared_libs,
-            paths.ctx.venv_cache,
-            paths.ctx.standalone_python_cachedir,
-            paths.ctx.logs,
-            paths.ctx.trash,
-        )
-        if target.is_dir()
-    )
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ResetData(OperationData):
+    packages: tuple[str, ...]
+    removed: tuple[str, ...]
 
 
 def _remove(target: Path) -> bool:
-    if target == paths.ctx.logs:
+    if target == paths.CTX.logs:
         _clear_logs(target)
         return True
     rmdir(target, safe_rm=False)
@@ -115,9 +117,9 @@ def _remove(target: Path) -> bool:
 
 
 def _clear_logs(logs: Path) -> None:
-    # this very command logs into one of these files, and Windows refuses to unlink a file it holds open
+    # this command logs into one of these files, and Windows refuses to unlink a file it holds open
     for entry in logs.iterdir():
-        if entry == paths.ctx.log_file:
+        if entry == paths.CTX.log_file:
             continue
         if entry.is_dir():
             rmdir(entry, safe_rm=False)

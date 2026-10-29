@@ -14,15 +14,11 @@ from pipx.util import PipxError
 def resolve_backend_name(
     *,
     cli_value: str | None = None,
-    env_value: str | None = None,
+    env_value: str | None,
     metadata_value: str | None = None,
     auto: bool = True,
 ) -> tuple[str, str]:
-    """Return ``(name, source)`` per precedence cli > metadata > env > auto.
-
-    ``metadata`` sits above ``env`` so ``PIPX_DEFAULT_BACKEND=uv`` cannot
-    silently retarget pip-backed venvs already on disk.
-    """
+    # metadata outranks env so PIPX_DEFAULT_BACKEND=uv cannot retarget pip-backed venvs already on disk
     for candidate, source in ((cli_value, "cli"), (metadata_value, "metadata"), (env_value, "env")):
         if (validated := _validate(candidate)) is not None:
             return validated, source
@@ -31,10 +27,19 @@ def resolve_backend_name(
     return PIP, "auto-pip"
 
 
+def _validate(candidate: str | None) -> str | None:
+    if not candidate:
+        return None
+    if candidate not in KNOWN_BACKENDS:
+        msg = f"Unknown backend {candidate!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}."
+        raise PipxError(msg)
+    return candidate
+
+
+# cached so UvBackend.__init__ probes the version and logs once per process, though validation and construction both
+# ask for the backend
 @cache
 def get_backend(name: str) -> Backend:
-    # Cached so ``UvBackend.__init__``'s version probe and log line fire once
-    # per process even when validation + construction both ask for the backend.
     if name == PIP:
         return PipBackend()
     if name == UV:
@@ -44,8 +49,6 @@ def get_backend(name: str) -> Backend:
 
 
 def assert_not_pip_under_uv(package_name: str, backend_name: str) -> None:
-    # Named narrowly: a future backend with its own deny-list should grow its
-    # own guard rather than overload this one.
     if package_name == "pip" and backend_name != PIP:
         msg = (
             "The 'pip' package cannot be installed or exposed via the uv backend, since uv venvs "
@@ -56,17 +59,7 @@ def assert_not_pip_under_uv(package_name: str, backend_name: str) -> None:
 
 
 def env_default_backend() -> str | None:
-    raw = os.environ.get("PIPX_DEFAULT_BACKEND")
-    return raw.strip() if raw else None
-
-
-def _validate(candidate: str | None) -> str | None:
-    if not candidate:
-        return None
-    if candidate not in KNOWN_BACKENDS:
-        msg = f"Unknown backend {candidate!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}."
-        raise PipxError(msg)
-    return candidate
+    return raw.strip() if (raw := os.environ.get("PIPX_DEFAULT_BACKEND")) else None
 
 
 __all__ = [

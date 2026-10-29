@@ -11,7 +11,7 @@ import sys
 from functools import cache
 from importlib.util import find_spec
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
@@ -19,95 +19,13 @@ from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.self_install import get_environment_value
 from pipx.util import PipxError
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     DEFAULT_PYTHON: str
 
 
-def has_venv() -> bool:
-    return find_spec("venv") is not None
-
-
-class InterpreterResolutionError(PipxError):
-    def __init__(self, source: str, version: str, *, wrap_message: bool = True) -> None:
-        self.source = source
-        self.version = version
-        potentially_path = "/" in version
-        potentially_pylauncher = "python" not in version and not potentially_path
-
-        message = (
-            f"No executable for the provided Python version '{version}' found in {source}."
-            " Please make sure the provided version is "
-        )
-        if source == "py launcher":
-            message += "listed when running `py --list`."
-        if source == "PATH":
-            message += "on your PATH or the file path is valid. "
-            if potentially_path:
-                message += "The provided version looks like a path, but no executable was found there."
-            if potentially_pylauncher:
-                message += (
-                    "The provided version looks like a version, "
-                    "but both the python command and the Python Launcher were not found on PATH."
-                )
-        if source == "the python-build-standalone project":
-            message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
-        if source == "PIPX_DEFAULT_PYTHON":
-            message += (
-                "on your PATH or the file path is valid. "
-                "Try setting it to an executable name (e.g. python3.10) "
-                "or a full path (e.g. /usr/bin/python3.10)."
-            )
-        super().__init__(message, wrap_message=wrap_message)
-
-
-def find_unix_command_python(python_version: str) -> str | None:
-    try:
-        parsed_python_version = version.parse(python_version)
-    except version.InvalidVersion:
-        logger.info("Invalid Python version: %s", python_version)
-        return None
-
-    if (
-        parsed_python_version.epoch != 0
-        or parsed_python_version.is_devrelease
-        or parsed_python_version.is_postrelease
-        or parsed_python_version.is_prerelease
-    ):
-        logger.info("Unsupported Python version: %s", python_version)
-        return None
-
-    # Python command could be `python3` or `python3.x` without micro version component
-    python_command = f"python{'.'.join(python_version.split('.')[:2])}"
-
-    python_path = shutil.which(python_command)
-    if not python_path:
-        logger.info("Command `%s` was not found on the system", python_command)
-        return None
-
-    if parsed_python_version.micro != 0:
-        logger.warning(
-            "The command '%s' located at '%s' will be used. "
-            "It may not match the specified version %s at the micro/patch level.",
-            python_command,
-            python_path,
-            python_version,
-        )
-
-    return python_path
-
-
-def _fetch_standalone_interpreter(python_version: str) -> str:
-    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
-
-    try:
-        return standalone_python.download_python_build_standalone(python_version)
-    except PipxError as e:
-        raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
-
-
-def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER) -> str:
+def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions) -> str:
     if fetch_python == FetchPythonOptions.ALWAYS:
         if _has_path_separator(python_version) or Path(python_version).is_file():
             msg = (
@@ -124,14 +42,11 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
     if found := shutil.which(python_version):
         return found
 
-    if not WINDOWS:
-        python_unix_command = find_unix_command_python(python_version)
-        if python_unix_command:
-            return python_unix_command
+    if not WINDOWS and (python_unix_command := _find_unix_command_python(python_version)):
+        return python_unix_command
 
     try:
-        py_executable = find_py_launcher_python(python_version)
-        if py_executable:
+        if py_executable := find_py_launcher_python(python_version):
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if fetch_python != FetchPythonOptions.MISSING:
@@ -147,14 +62,77 @@ def _has_path_separator(python: str) -> bool:
     return os.sep in python or "/" in python
 
 
-# The following code was copied from https://github.com/uranusjr/pipx-standalone
-# which uses the same technique to build a completely standalone pipx
-# distribution.
-#
-# If we are running under the Windows embeddable distribution,
-# venv isn't available (and we probably don't want to use the
-# embeddable distribution as our applications' base Python anyway)
-# so we try to locate the system Python and use that instead.
+def _fetch_standalone_interpreter(python_version: str) -> str:
+    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
+    try:
+        return standalone_python.download_python_build_standalone(python_version)
+    except PipxError as e:
+        raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+
+
+class InterpreterResolutionError(PipxError):
+    def __init__(self, source: str, version: str) -> None:
+        message = (
+            f"No executable for the provided Python version '{version}' found in {source}."
+            " Please make sure the provided version is "
+        )
+        match source:
+            case "py launcher":
+                message += "listed when running `py --list`."
+            case "PATH":
+                message += "on your PATH or the file path is valid. "
+                if "/" in version:
+                    message += "The provided version looks like a path, but no executable was found there."
+                elif "python" not in version:
+                    message += (
+                        "The provided version looks like a version, "
+                        "but both the python command and the Python Launcher were not found on PATH."
+                    )
+            case "the python-build-standalone project":
+                message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
+            case "PIPX_DEFAULT_PYTHON":
+                message += (
+                    "on your PATH or the file path is valid. "
+                    "Try setting it to an executable name (e.g. python3.10) "
+                    "or a full path (e.g. /usr/bin/python3.10)."
+                )
+        super().__init__(message)
+
+
+def _find_unix_command_python(python_version: str) -> str | None:
+    try:
+        parsed_python_version: Final[version.Version] = version.parse(python_version)
+    except version.InvalidVersion:
+        _LOGGER.info("Invalid Python version: %s", python_version)
+        return None
+
+    if (
+        parsed_python_version.epoch != 0
+        or parsed_python_version.is_devrelease
+        or parsed_python_version.is_postrelease
+        or parsed_python_version.is_prerelease
+    ):
+        _LOGGER.info("Unsupported Python version: %s", python_version)
+        return None
+
+    # the commands carry at most the minor version, as python3 or python3.12 do
+    python_command: Final[str] = f"python{'.'.join(python_version.split('.')[:2])}"
+
+    if not (python_path := shutil.which(python_command)):
+        _LOGGER.info("Command `%s` was not found on the system", python_command)
+        return None
+
+    if parsed_python_version.micro != 0:
+        _LOGGER.warning(
+            "The command '%s' located at '%s' will be used. "
+            "It may not match the specified version %s at the micro/patch level.",
+            python_command,
+            python_path,
+            python_version,
+        )
+
+    return python_path
 
 
 def find_py_launcher_python(python_version: str | None = None) -> str | None:
@@ -162,7 +140,7 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
     if py and python_version:
         python_semver = python_version
         if python_version.startswith("python"):
-            logger.warning(
+            _LOGGER.warning(
                 "Removing `python` from the start of the version, as pylauncher just expects the semantic version"
             )
             python_semver = python_semver.lstrip("python")
@@ -180,60 +158,8 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
     return py
 
 
-def _find_default_windows_python() -> str:
-    if has_venv():
-        return sys.executable
-    python = find_py_launcher_python() or shutil.which("python")
-
-    if python is None:
-        msg = "No suitable Python found"
-        raise PipxError(msg)
-
-    # If the path contains "WindowsApps", it's the store python
-    if "WindowsApps" not in python:
-        return python
-
-    # Special treatment to detect Windows Store stub.
-    # https://twitter.com/zooba/status/1212454929379581952
-
-    proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    if proc.returncode != 0:
-        # Cover the 9009 return code preemptively.
-        msg = "No suitable Python found"
-        raise PipxError(msg)
-    if not proc.stdout.strip():
-        # A real Python should print version, Windows Store stub won't.
-        msg = "No suitable Python found"
-        raise PipxError(msg)
-    return python  # This executable seems to work.
-
-
-def _get_sys_executable() -> str:
-    if WINDOWS:
-        return _find_default_windows_python()
-    return str(Path(sys.executable).resolve())
-
-
-def _resolve_python(python: str) -> str:
-    # a bare name goes to PATH only; testing it as a file first would pick up one sitting in the working directory
-    if _has_path_separator(python) and (path := Path(python)).is_file():
-        return str(path.resolve())
-    if found := shutil.which(python):
-        return found
-    if not WINDOWS and (found := find_unix_command_python(python)):
-        return found
-    raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
-
-
 def get_default_python_spec() -> str:
     return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
-
-
-@cache
-def get_default_python() -> str:
-    if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
-        return _get_sys_executable()
-    return _resolve_python(python)
 
 
 def __getattr__(name: str) -> object:
@@ -243,12 +169,59 @@ def __getattr__(name: str) -> object:
     raise AttributeError(msg)
 
 
+@cache
+def get_default_python() -> str:
+    if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
+        return _get_sys_executable()
+    return _resolve_python(python)
+
+
+def _get_sys_executable() -> str:
+    if WINDOWS:
+        return _find_default_windows_python()
+    return str(Path(sys.executable).resolve())
+
+
+def _find_default_windows_python() -> str:
+    # the Windows embeddable distribution ships without venv, so look for a system Python instead; the technique comes
+    # from https://github.com/uranusjr/pipx-standalone
+    if has_venv():
+        return sys.executable
+    msg: Final[str] = "No suitable Python found"
+    if (python := find_py_launcher_python() or shutil.which("python")) is None:
+        raise PipxError(msg)
+
+    if "WindowsApps" not in python:
+        return python
+
+    # a Python under WindowsApps may be the Microsoft Store stub, which exits with 9009 or prints no version:
+    # https://twitter.com/zooba/status/1212454929379581952
+    proc: Final = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise PipxError(msg)
+    return python
+
+
+def has_venv() -> bool:
+    return find_spec("venv") is not None
+
+
+def _resolve_python(python: str) -> str:
+    # a bare name goes to PATH only; testing it as a file first would pick up one sitting in the working directory
+    if _has_path_separator(python) and (path := Path(python)).is_file():
+        return str(path.resolve())
+    if found := shutil.which(python):
+        return found
+    if not WINDOWS and (found := _find_unix_command_python(python)):
+        return found
+    raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
+
+
 __all__ = [
     "DEFAULT_PYTHON",
     "InterpreterResolutionError",
     "find_py_launcher_python",
     "find_python_interpreter",
-    "find_unix_command_python",
     "get_default_python",
     "get_default_python_spec",
     "has_venv",

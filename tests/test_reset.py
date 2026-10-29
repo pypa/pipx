@@ -16,31 +16,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture
-def installed_pycowsay(
-    request: pytest.FixtureRequest,
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    request.getfixturevalue("pipx_temp_env")
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-    # reset deletes the shared libraries; point it at a stand-in so the worker's session copy, which every later test
-    # reuses, does not have to be rebuilt
-    (shared_libs := tmp_path / "reset-shared-libs").mkdir()
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", shared_libs)
-    paths.ctx.make_local()
-
-
-@pytest.fixture
-def interactive_stdin(mocker: MockerFixture) -> StringIO:
-    stream: Final[StringIO] = StringIO()
-    mocker.patch("pipx.main.sys.stdin", new=stream)
-    mocker.patch.object(stream, "isatty", return_value=True)
-    return stream
-
-
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_removes_the_installed_packages(
     capsys: pytest.CaptureFixture[str],
@@ -53,15 +28,24 @@ def test_reset_removes_the_installed_packages(
     assert not capsys.readouterr().out
 
 
+@pytest.fixture
+def installed_pycowsay(installed_pycowsay: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    # reset deletes the shared libraries; point it at a stand-in so the worker's session copy, which every later test
+    # reuses, does not have to be rebuilt
+    (shared_libs := tmp_path / "reset-shared-libs").mkdir()
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", shared_libs)
+    paths.CTX.make_local()
+    return installed_pycowsay
+
+
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_unlinks_the_apps() -> None:
-    app: Final[Path] = paths.ctx.bin_dir / app_name("pycowsay")
+    app: Final[Path] = paths.CTX.bin_dir / app_name("pycowsay")
     assert app.exists() or app.is_symlink()
 
     assert not run_pipx_cli(["reset", "--yes"])
 
-    assert not app.exists()
-    assert not app.is_symlink()
+    assert (app.exists(), app.is_symlink()) == (False, False)
 
 
 @pytest.mark.parametrize(
@@ -74,7 +58,7 @@ def test_reset_unlinks_the_apps() -> None:
 )
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_removes_the_pipx_state(location: str) -> None:
-    target: Final[Path] = getattr(paths.ctx, location)
+    target: Final[Path] = getattr(paths.CTX, location)
     target.mkdir(parents=True, exist_ok=True)
 
     assert not run_pipx_cli(["reset", "--yes"])
@@ -84,13 +68,26 @@ def test_reset_removes_the_pipx_state(location: str) -> None:
 
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_keeps_the_log_it_writes() -> None:
-    stale: Final[Path] = paths.ctx.logs / "cmd_stale.log"
+    stale: Final[Path] = paths.CTX.logs / "cmd_stale.log"
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.touch()
 
     assert not run_pipx_cli(["reset", "--yes"])
 
-    assert list(paths.ctx.logs.iterdir()) == [paths.ctx.log_file]
+    assert list(paths.CTX.logs.iterdir()) == [paths.CTX.log_file]
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_dry_run_lists_what_it_would_remove(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["reset", "--dry-run"])
+
+    reported: Final[str] = capsys.readouterr().out
+    assert (
+        f"Would remove {paths.CTX.venvs}" in reported,
+        f"Would remove {paths.CTX.bin_dir / app_name('pycowsay')}" in reported,
+    ) == (True, True)
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -98,9 +95,7 @@ def test_reset_dry_run_keeps_everything(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["reset", "--dry-run"])
-    reported: Final[str] = capsys.readouterr().out
-    assert f"Would remove {paths.ctx.venvs}" in reported
-    assert f"Would remove {paths.ctx.bin_dir / app_name('pycowsay')}" in reported
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--short"])
 
@@ -118,11 +113,11 @@ def test_reset_json_reports_what_it_removed(
         "data": {
             "packages": ["pycowsay"],
             "removed": [
-                str(paths.ctx.venvs),
-                str(paths.ctx.shared_libs),
-                str(paths.ctx.venv_cache),
-                str(paths.ctx.standalone_python_cachedir),
-                str(paths.ctx.logs),
+                str(paths.CTX.venvs),
+                str(paths.CTX.shared_libs),
+                str(paths.CTX.venv_cache),
+                str(paths.CTX.standalone_python_cachedir),
+                str(paths.CTX.logs),
             ],
         },
         "pipx_result_version": "1",
@@ -162,9 +157,7 @@ def test_reset_asks_before_it_removes(
     mocker.patch("pipx.main.sys.stdin.isatty", return_value=True)
     mocker.patch("pipx.main.input", return_value=answer)
 
-    assert bool(run_pipx_cli(["reset"])) is not resets
-
-    assert paths.ctx.venvs.is_dir() is not resets
+    assert (bool(run_pipx_cli(["reset"])), paths.CTX.venvs.is_dir()) == (not resets, not resets)
 
 
 @pytest.mark.usefixtures("installed_pycowsay", "interactive_stdin")
@@ -173,9 +166,15 @@ def test_reset_eof_cancels(
 ) -> None:
     assert run_pipx_cli(["reset"]) == 1
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert "Reset cancelled." in captured.err
-    assert paths.ctx.venvs.is_dir()
+    assert ("Reset cancelled." in capsys.readouterr().err, paths.CTX.venvs.is_dir()) == (True, True)
+
+
+@pytest.fixture
+def interactive_stdin(mocker: MockerFixture) -> StringIO:
+    stream: Final[StringIO] = StringIO()
+    mocker.patch("pipx.main.sys.stdin", new=stream)
+    mocker.patch.object(stream, "isatty", return_value=True)
+    return stream
 
 
 @pytest.mark.usefixtures("installed_pycowsay", "interactive_stdin")
@@ -184,22 +183,24 @@ def test_reset_eof_reports_json_error(
 ) -> None:
     assert run_pipx_cli(["reset", "--output", "json"]) == 1
 
-    assert json.loads(capsys.readouterr().out) == {
-        "command": ["reset"],
-        "data": {},
-        "errors": [
-            {
-                "code": "pipx_error",
-                "environment": None,
-                "message": "Reset cancelled.",
-                "package": None,
-            }
-        ],
-        "exit_code": 1,
-        "pipx_result_version": "1",
-        "status": "error",
-    }
-    assert paths.ctx.venvs.is_dir()
+    assert (json.loads(capsys.readouterr().out), paths.CTX.venvs.is_dir()) == (
+        {
+            "command": ["reset"],
+            "data": {},
+            "errors": [
+                {
+                    "code": "pipx_error",
+                    "environment": None,
+                    "message": "Reset cancelled.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
+            "status": "error",
+        },
+        True,
+    )
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -213,6 +214,8 @@ def test_reset_confirmed_json_keeps_prompt_off_stdout(
     assert run_pipx_cli(["reset", "--output", "json"]) == 0
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert json.loads(captured.out)["status"] == "success"
-    assert "Remove every pipx-installed package" in captured.err
-    assert not paths.ctx.venvs.is_dir()
+    assert (
+        json.loads(captured.out)["status"],
+        "Remove every pipx-installed package" in captured.err,
+        paths.CTX.venvs.is_dir(),
+    ) == ("success", True, False)

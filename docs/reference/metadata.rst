@@ -2,7 +2,7 @@
  On-disk metadata
 ##################
 
-pipx has no user configuration file. It is configured only through :doc:`environment variables
+pipx has no user configuration file. You configure it only through :doc:`environment variables
 <environment-variables>`. The only per-installation state pipx keeps is a metadata file inside each managed virtual
 environment.
 
@@ -44,10 +44,10 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
       - Extra arguments passed when the venv was created. pipx records only ``--system-site-packages``, and drops
         any other value with a warning when it reads the file.
     - - ``backend``
-      - Backend that manages the environment, ``pip`` or ``uv``. An unknown value is read back as ``pip`` with a
+      - Backend that manages the environment, ``pip`` or ``uv``. pipx reads an unknown value back as ``pip``, with a
         warning.
     - - ``exposure_enabled``
-      - Whether the environment's apps and man pages are currently exposed on ``PATH``.
+      - Whether pipx currently exposes the environment's apps and man pages on ``PATH``.
 
 *****************
  Package records
@@ -69,10 +69,10 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
       - Resolved installed version.
     - - ``pip_args``
       - Arguments forwarded to the backend at install time, replayed by later ``upgrade`` and ``reinstall`` runs. pipx
-        reads them as pip does and stores each option under its full name, so it stores a clustered ``-qf wheels`` as
-        ``-q -f wheels`` and an abbreviated ``--find-l wheels`` as ``--find-links wheels``. It stores a relative path
-        given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, as an absolute path, and resolves
-        a relative one already on file against the environment's directory.
+        reads them as `pip <https://pip.pypa.io>`_ does and stores each option under its full name, so it stores a
+        clustered ``-qf wheels`` as ``-q -f wheels`` and an abbreviated ``--find-l wheels`` as ``--find-links wheels``.
+        It stores a relative path given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, as an
+        absolute path, and resolves a relative one already on file against the environment's directory.
 
         Options naming a one-shot input or an output location (``-r``/``--requirement``,
         ``--requirements-from-script``, ``--group``, ``--report``, ``--log``, ``--log-file``, ``--local-log``,
@@ -80,18 +80,18 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
         were given on, so pipx neither stores nor replays them.
 
         On POSIX, a replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
-        ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, uv's ``--config-file``,
-        ``--project``, ``--directory``, ``--overrides``/``--override`` or ``--excludes``/``--exclude``, or ``file://``
-        or local-path index URL names a path another account could change, because it or a directory above it is
-        writable by others or owned by another user. The record stays as it is; passing the options again with
-        ``--pip-args`` uses them for that run. ``pipx list --outdated`` reports such an environment as failed rather
-        than checking it against that path.
+        ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, `uv
+        <https://docs.astral.sh/uv/>`_'s ``--config-file``, ``--project``, ``--directory``,
+        ``--overrides``/``--override`` or ``--excludes``/``--exclude``, or ``file://`` or local-path index URL names a
+        path another account could change, because it or a directory above it is writable by others or owned by another
+        user. The record stays as it is; passing the options again with ``--pip-args`` uses them for that run. ``pipx
+        list --outdated`` reports such an environment as failed rather than checking it against that path.
     - - ``include_dependencies``
-      - Whether apps and man pages from all dependencies are exposed.
+      - Whether pipx exposes apps and man pages from all dependencies.
     - - ``include_resources_from``
-      - Dependencies whose apps and man pages are exposed individually.
+      - Dependencies whose apps and man pages pipx exposes individually.
     - - ``include_apps``
-      - Whether this package's own apps are exposed. Always true for ``main_package``.
+      - Whether pipx exposes this package's own apps. Always true for ``main_package``.
     - - ``apps`` / ``app_paths``
       - App names and their paths inside the environment.
     - - ``apps_of_dependencies`` / ``app_paths_of_dependencies``
@@ -117,7 +117,7 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
 
 .. note::
 
-    Path values are encoded as ``{"__type__": "Path", "__Path__": "<path>"}`` so pipx can round-trip them across
+    pipx encodes path values as ``{"__type__": "Path", "__Path__": "<path>"}`` so it can round-trip them across
     platforms. The same snapshot, wrapped under ``pipx_spec_version`` and a ``venvs`` map whose entries nest it under a
     ``metadata`` key, is what ``pipx list --output json`` emits and ``pipx install-all`` consumes (see
     :doc:`json-output`).

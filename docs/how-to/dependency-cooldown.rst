@@ -2,9 +2,9 @@
  Dependency cooldown
 ####################
 
-Skip index artifacts uploaded in the last few days, so a compromised or broken release has time to be caught and yanked
-before your machine picks it up. Reach for this when you install or upgrade tools from a public index and can afford to
-lag the newest version.
+Skip index artifacts uploaded in the last few days, so maintainers have time to catch and yank a compromised or broken
+release before your machine picks it up. Reach for this when you install or upgrade tools from a public index and can
+afford to lag the newest version.
 
 *******************
  Set it per command
@@ -16,8 +16,8 @@ lag the newest version.
 
     $ pipx install --cooldown 7 httpie
 
-pipx translates one policy for both backends: pip receives ``--uploaded-prior-to P7D`` and uv receives
-``--exclude-newer P7D``.
+pipx translates one policy for both backends: `pip <https://pip.pypa.io/>`__ receives ``--uploaded-prior-to P7D`` and
+`uv <https://github.com/astral-sh/uv>`__ receives ``--exclude-newer P7D``.
 
 Under the pip backend the cooldown also covers the shared pip that pipx installs or refreshes during the command. A new
 shared environment starts from the oldest pip pipx supports, then upgrades only to a release older than the cooldown;
@@ -58,7 +58,7 @@ Put the export in your shell profile to make it stick across sessions. pipx has 
       - Applies to the commands listed above. Outranks whatever an earlier install recorded.
     - - 3
       - ``cooldown_days`` in the environment's metadata
-      - What the environment was last installed with. See :doc:`Metadata <../reference/metadata>`.
+      - The value the environment's last install recorded. See :doc:`Metadata <../reference/metadata>`.
 
 A locked install ignores all three: ``pylock.toml`` already pins every version. Passing ``--cooldown`` together with
 ``--lock`` errors, while ``PIPX_COOLDOWN`` yields and the install proceeds.

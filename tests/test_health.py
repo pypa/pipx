@@ -23,12 +23,12 @@ _HEALTH_MODULE: Final[ModuleType] = importlib.import_module("pipx.commands.healt
 
 @pytest.fixture
 def installed_pycowsay(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while pycowsay is installed
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
     capsys: pytest.CaptureFixture[str],
 ) -> Path:
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     capsys.readouterr()
-    return paths.ctx.venvs / "pycowsay"
+    return paths.CTX.venvs / "pycowsay"
 
 
 @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ def test_health_json(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str
 def test_health_deduplicates_repeated_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["health", "pycowsay", "PyCowSay", "--output", "json"]) == 0
 
-    environments = json.loads(capsys.readouterr().out)["data"]["environments"]
+    environments: Final = json.loads(capsys.readouterr().out)["data"]["environments"]
     assert [environment["environment"] for environment in environments] == ["pycowsay"]
 
 
@@ -104,10 +104,10 @@ def test_health_reports_broken_interpreter(installed_pycowsay: Path, capsys: pyt
 
 
 @pytest.mark.parametrize(
-    ("failure", "error"),
+    ("outcome", "error"),
     [
         pytest.param(
-            subprocess.CompletedProcess(["python", "--version"], 7, "", "failure"),
+            [subprocess.CompletedProcess(["python", "--version"], 7, "", "failure")],
             "interpreter exited with status 7",
             id="exit-status",
         ),
@@ -118,13 +118,10 @@ def test_health_reports_interpreter_failure(
     installed_pycowsay: Path,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
-    failure: subprocess.CompletedProcess[str] | OSError,
+    outcome: list[subprocess.CompletedProcess[str]] | OSError,
     error: str,
 ) -> None:
-    if isinstance(failure, OSError):
-        mocker.patch.object(_HEALTH_MODULE, "run_subprocess", autospec=True, side_effect=failure)
-    else:
-        mocker.patch.object(_HEALTH_MODULE, "run_subprocess", autospec=True, return_value=failure)
+    mocker.patch.object(_HEALTH_MODULE, "run_subprocess", autospec=True, side_effect=outcome)
 
     assert run_pipx_cli(["health", "pycowsay"]) == 1
 
@@ -146,7 +143,7 @@ def test_environment_maintenance_reports_unmanaged_package(
 ) -> None:
     assert run_pipx_cli([command, "missing"]) == 1
 
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
     assert (captured.out, captured.err) == output
 
 
@@ -218,32 +215,32 @@ def test_repair_json_stays_pure_when_it_reinstalls(capsys: pytest.CaptureFixture
 
     assert not run_pipx_cli(["repair", "--python", sys.executable, "--output", "json"])
 
-    captured = capsys.readouterr()
-    document = json.loads(captured.out)  # the internal reinstall must not print human text before this
+    captured: Final = capsys.readouterr()
+    document: Final = json.loads(captured.out)  # the internal reinstall must not print human text before this
     assert (document["command"], document["status"], captured.err) == (["repair"], "success", "")
 
 
 @pytest.mark.parametrize(
-    ("healthy_neighbour", "status"),
+    ("healthy_suffixes", "status"),
     [
-        pytest.param(False, "error", id="all-broken"),
-        pytest.param(True, "partial", id="some-broken"),
+        pytest.param([], "error", id="all-broken"),
+        pytest.param(["-other"], "partial", id="some-broken"),
     ],
 )
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_health_json_reports_broken_environment_as_error(
     capsys: pytest.CaptureFixture[str],
-    healthy_neighbour: bool,
+    healthy_suffixes: list[str],
     status: str,
 ) -> None:
-    if healthy_neighbour:
-        assert not run_pipx_cli(["install", "pycowsay", "--suffix=-other"])
+    for suffix in healthy_suffixes:
+        assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     remove_venv_interpreter("pycowsay")
     capsys.readouterr()
 
     assert run_pipx_cli(["health", "--output", "json"]) == 1
 
-    document: Final[dict[str, object]] = json.loads(capsys.readouterr().out)
+    document: Final = json.loads(capsys.readouterr().out)
     assert (document["status"], document["errors"]) == (
         status,
         [

@@ -46,7 +46,7 @@ class Backend(ABC):
         no_deps: bool = False,
         upgrade_package: str | None = None,
         log_pip_errors: bool = True,
-        verbose: bool = False,
+        verbose: bool,
     ) -> CompletedProcess[str]: ...
 
     def install_lock(
@@ -56,7 +56,7 @@ class Backend(ABC):
         venv_python: Path,
         lock_file: Path,
         pip_args: list[str],
-        verbose: bool = False,
+        verbose: bool,
     ) -> CompletedProcess[str]:
         return self.install(
             venv_root=venv_root,
@@ -86,7 +86,7 @@ class Backend(ABC):
         *,
         venv_root: Path,
         venv_python: Path,
-        not_required: bool = False,
+        not_required: bool,
     ) -> set[str]: ...
 
     @abstractmethod
@@ -108,7 +108,7 @@ class Backend(ABC):
         args: list[str],
         capture_stdout: bool = True,
         capture_stderr: bool = True,
-        verbose: bool = False,
+        verbose: bool,
         in_working_dir: bool = False,
     ) -> CompletedProcess[str]: ...
 
@@ -116,37 +116,24 @@ class Backend(ABC):
     def needs_shared_libs(self) -> bool: ...
 
     @abstractmethod
-    def upgrade_packaging_libraries(
-        self,
-        venv_python: Path,
-        pip_args: list[str],
-        *,
-        verbose: bool,
-    ) -> None: ...
+    def upgrade_packaging_libraries(self, venv_python: Path, pip_args: list[str]) -> None: ...
 
 
 def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[OutdatedPackage, ...]:
     if process.returncode:
         msg = f"Package backend exited with code {process.returncode}.\nstderr: {process.stderr}"
-        raise PipxError(
-            msg,
-            wrap_message=False,
-        )
-    return _parse_outdated_packages(process.stdout)
-
-
-def _parse_outdated_packages(output: str) -> tuple[OutdatedPackage, ...]:
+        raise PipxError(msg, wrap_message=False)
     try:
         return tuple(
-            OutdatedPackage(entry["name"], entry["version"], entry["latest_version"])
-            for entry in cast("list[_OutdatedEntry]", json.loads(output))
+            OutdatedPackage(name=entry["name"], version=entry["version"], latest_version=entry["latest_version"])
+            for entry in cast("list[_OutdatedEntry]", json.loads(process.stdout))
         )
     except (json.JSONDecodeError, KeyError, TypeError) as error:
         msg = "Package backend returned invalid JSON for an outdated query."
         raise PipxError(msg, wrap_message=False) from error
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedPackage:
     name: str
     version: str

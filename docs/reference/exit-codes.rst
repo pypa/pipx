@@ -6,9 +6,8 @@ pipx returns ``0`` on success and ``1`` on failure. ``run``, ``runpip``, and ``e
 pip they ran, and argument-parsing errors exit ``2``. A command that raises an unexpected error or is interrupted also
 exits non-zero. The named codes below come from ``pipx.constants``; each maps to ``0`` or ``1``.
 
-``reinstall-all`` exits with ``1`` if any environment could not be reinstalled,
-including when its selected Python interpreter belongs to that environment.
-With ``--output json``, failed environments appear in ``errors`` and only
+``reinstall-all`` exits with ``1`` if it fails to reinstall any environment, including when its selected Python
+interpreter belongs to that environment. With ``--output json``, failed environments appear in ``errors`` and only
 successfully reinstalled environments appear in ``data.environments``.
 
 .. list-table::
@@ -44,4 +43,4 @@ successfully reinstalled environments appear in ``data.environments``.
       - ``reinstall`` selected a Python interpreter that lives inside the environment being reinstalled.
     - - ``1``
       - ``EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND``
-      - The interpreter passed to ``--python`` was not found.
+      - pipx could not find the interpreter passed to ``--python``.

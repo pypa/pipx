@@ -14,6 +14,32 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-9:
+
+`1.18.9 <https://github.com/pypa/pipx/tree/1.18.9>`_ - 2026-10-29
+=================================================================
+
+.. _release-1-18-9-fixed:
+
+Fixed
+-----
+
+- Extend the 1.18.8 handling of recorded pip arguments to uv's path options and to ``--group``. pipx no longer records
+  ``--group``, which names a ``pyproject.toml`` to read packages from, like ``-r``. On POSIX, a recorded
+  ``--config-file``, ``--project``, ``--directory``, ``--overrides``/``--override`` or ``--excludes``/``--exclude`` that
+  points at a path another account could change stops ``pipx upgrade``, ``pipx reinstall`` and the other replaying
+  commands with the same error as ``--find-links``. ``pipx list --outdated`` runs the same check and reports such an
+  environment as failed instead of querying the recorded location. ``pipx runpip`` reads its install arguments with the
+  same parser, so it records an install written as ``-qe ./project`` or ``-e./project`` as editable (:pr:`2363`) by
+  :user:`gaborbernat`.
+- When a rebuild fails during a parallel ``pipx reinstall-all``, the restored environment gets back the shared app, man
+  page or completion links another environment took while the rebuild had it in the trash, unless something outside this
+  run has replaced them since (:pr:`2371`) by :user:`gaborbernat`.
+- ``pipx run`` no longer reuses a cached environment after a change to a variable outside ``PIP_*`` and ``UV_*`` that
+  decides which config file pip or uv reads, which proxy or index answers, which certificate is trusted or which
+  credentials are sent, such as ``XDG_CONFIG_HOME``, ``SSL_CERT_FILE``, ``HTTPS_PROXY`` or ``NETRC``. The values only
+  feed the cache key's hash, so secrets in them stay out of cache paths and logs (:pr:`2364`) by :user:`gaborbernat`.
+
 .. _release-1-18-8:
 
 `1.18.8 <https://github.com/pypa/pipx/tree/1.18.8>`_ - 2026-10-29
