@@ -803,8 +803,7 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocker: MockerFixture) -> None:
-    def handover(_cmd: Sequence[str | Path], env: dict[str, str] | None = None, **_: object) -> NoReturn:
-        assert env is not None
+    def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
         # raises Timeout while held; exec_app waits for the script on Windows, so the lock would outlive the handover
         with VenvContainer(paths.ctx.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
             raise SystemExit(0)
