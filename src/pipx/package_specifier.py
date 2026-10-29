@@ -465,10 +465,10 @@ def _long_option_name(spelled: str) -> str | None:
     })
     if spelled in uv_value_options or spelled in _LONG_FLAGS:
         return spelled
-    return pip_long_option_name(spelled)
+    return _pip_long_option_name(spelled)
 
 
-def pip_long_option_name(spelled: str) -> str | None:
+def _pip_long_option_name(spelled: str) -> str | None:
     if spelled in (pip_options := _PIP_VALUE_OPTIONS | _PIP_LONG_FLAGS):
         return spelled
     match list(_prefixed_options(spelled, pip_options)):
@@ -670,7 +670,7 @@ def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
 def _expand_pip_abbreviation(argument: str) -> str:
     # pip accepts any unambiguous prefix of a long option: a pip recording can hold --index-u for --index-url
     flag, separator, value = argument.partition("=")
-    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
+    if not flag.startswith("--") or (name := _pip_long_option_name(flag)) is None:
         return argument
     return f"{name}{separator}{value}"
 
@@ -910,7 +910,6 @@ __all__ = [
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
-    "pip_long_option_name",
     "recordable_pip_args",
     "replace_index_options",
     "replayable_pip_args",
