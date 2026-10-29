@@ -277,9 +277,9 @@ def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
 
     if not venv.package_metadata:
         msg = (
-            f"Not upgrading {RED(BOLD(venv_dir.name))}. It has missing internal pipx metadata.\n"
-            f"It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"Please uninstall and install this package to fix."
+            f"Not upgrading {RED(BOLD(venv_dir.name))}. It has no internal pipx metadata.\n"
+            "pipx versions before 0.15.0.0 did not record it.\n"
+            "Uninstall and install this package to fix it."
         )
         raise PipxError(msg, wrap_message=False)
 

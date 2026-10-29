@@ -70,7 +70,7 @@ def test_list_reports_unreadable_metadata_per_environment(
         run_pipx_cli(["list", *flags]),
         listed in capsys.readouterr().out,
         "package pycowsay has pipx metadata this user cannot read" in caplog.text,
-        "missing internal pipx metadata" in caplog.text,
+        "has no internal pipx metadata" in caplog.text,
     ) == (constants.EXIT_CODE_LIST_PROBLEM, True, True, False)
 
 
@@ -122,6 +122,15 @@ def test_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert "package pycowsay has invalid interpreter" in capsys.readouterr().err
 
 
+@pytest.mark.usefixtures("uv_symlinked_install")
+def test_list_counts_link_to_uv_symlinked_man_page_as_exposed(capsys: pytest.CaptureFixture[str]) -> None:
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert f"    - {Path('man1', 'tool.1')}\n" in capsys.readouterr().out
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     suffix: Final[str] = "_x"
@@ -137,7 +146,7 @@ def test_list_legacy_venv_without_metadata(capsys: pytest.CaptureFixture[str]) -
     mock_legacy_venv("pycowsay", metadata_version=None)
 
     assert run_pipx_cli(["list"])
-    assert "package pycowsay has missing internal pipx metadata" in capsys.readouterr().err
+    assert "package pycowsay has no internal pipx metadata" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1", "0.2", "0.3"])
@@ -378,7 +387,9 @@ def test_list_rejects_missing_selected_package(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "missing"])
-    assert capsys.readouterr().err.endswith("venv for 'missing' was not found. Was 'missing' installed with pipx?\n")
+    assert capsys.readouterr().err.endswith(
+        "pipx has no venv for 'missing'; run 'pipx list' to see the installed packages\n"
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

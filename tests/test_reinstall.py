@@ -29,9 +29,8 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadat
 from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from pathlib import Path
-    from types import ModuleType
     from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
@@ -98,21 +97,57 @@ def test_reinstall_keeps_environment_of_refused_find_links() -> None:
     assert metadata_file.read_bytes() == recorded
 
 
-@pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_self_resolves_lazy_imports(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def running_venv(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[Path]:
+    # stands in for pipx reinstalling itself: the interpreter runs from the venv and has loaded a package from it
     assert not run_pipx_cli(["install", "pycowsay"])
     venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
-    (venv_dir / "reinstall_import_source.py").write_text("VALUE = 'resolved'\n", encoding="utf-8")
+    _write_probe(venv_dir, "old")
     monkeypatch.syspath_prepend(str(venv_dir))
-    module: Final[ModuleType] = importlib.import_module("pipx.commands.reinstall")
-    exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
-        "lazy from reinstall_import_source import VALUE as reinstall_import_value", vars(module)
-    )
     monkeypatch.setattr(sys, "prefix", str(venv_dir))
+    importlib.import_module("reinstall_probe")
+    yield venv_dir
+    for name in ("reinstall_probe", "reinstall_probe.late"):
+        sys.modules.pop(name, None)
+
+
+def _write_probe(venv_dir: Path, value: str) -> None:
+    (package := venv_dir / "reinstall_probe").mkdir(exist_ok=True)
+    (package / "__init__.py").touch()
+    (package / "late.py").write_text(f"VALUE = {value!r}\n", encoding="utf-8")
+
+
+def test_reinstall_self_imports_submodules_of_the_running_version(running_venv: Path) -> None:
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+    _write_probe(running_venv, "new")
+
+    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
+
+
+@pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
+def test_reinstall_self_resolves_lazy_imports_from_the_running_version(running_venv: Path) -> None:
+    namespace: Final[dict[str, Callable[[], str]]] = {}
+    exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
+        "lazy from reinstall_probe import late\ndef value():\n    return late.VALUE\n", namespace
+    )
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
-    assert getattr(module, "reinstall_import_value", None) == "resolved"
+    _write_probe(running_venv, "new")
+
+    assert namespace["value"]() == "old"
+
+
+def test_reinstall_self_failure_imports_from_the_restored_venv(running_venv: Path, tmp_path: Path) -> None:
+    metadata: Final[PipxMetadata] = PipxMetadata(running_venv)
+    metadata.main_package = replace(metadata.main_package, package_or_url=str(tmp_path / "missing"))
+    metadata.write()
+
+    assert run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -268,7 +303,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
     assert run_pipx_cli(command)
 
     assert (
-        "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err,
+        "Not reinstalling pycowsay. It has no internal pipx metadata" in capsys.readouterr().err,
         install.called,
         (paths.CTX.venvs / "pycowsay").is_dir(),
     ) == (True, False, True)
