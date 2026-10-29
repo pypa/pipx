@@ -10,6 +10,7 @@ import sys
 import time
 import zipfile
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -34,7 +35,6 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
     from pytest_subprocess import FakeProcess
@@ -119,6 +119,15 @@ def test_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert run_pipx_cli(["list"])
     assert "package pycowsay has invalid interpreter" in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("uv_symlinked_install")
+def test_list_counts_link_to_uv_symlinked_man_page_as_exposed(capsys: pytest.CaptureFixture[str]) -> None:
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert f"    - {Path('man1', 'tool.1')}\n" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
