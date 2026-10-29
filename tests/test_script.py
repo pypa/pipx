@@ -8,6 +8,7 @@ from zipfile import ZipFile
 import pytest
 
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from pipx.redact import redact_url_credentials
 from pipx.script import (
     ScriptMetadata,
     download_script,
@@ -16,7 +17,7 @@ from pipx.script import (
     read_script_metadata,
     script_name_from_spec,
 )
-from pipx.util import PipxError, redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from pathlib import Path

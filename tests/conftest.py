@@ -32,9 +32,9 @@ from flit_core.wheel import make_wheel_in
 import pipx
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import paths, shared_libs, standalone_python, venv
-from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
+from pipx.backends.registry import get_backend
 from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
 from pipx.interpreter import get_default_python
@@ -647,8 +647,7 @@ def _activate_temp_env(
     # each importer binds SHARED_LIBS at import time, so each one gets the fresh instance
     fresh_shared_libs: Final = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]  # no public factory
     # importers before the module: monkeypatch reads the old value, which on 3.15 resolves their lazy import, and
-    # resolving it after the module is patched would make teardown restore the fresh instance, not the original;
-    # import_module, since the re-exported upgrade function shadows the submodule on pipx.commands
+    # resolving it after the module is patched would make teardown restore the fresh instance, not the original
     for module in (venv, _pip_backend_module, importlib.import_module("pipx.commands.upgrade"), shared_libs):
         monkeypatch.setattr(module, "SHARED_LIBS", fresh_shared_libs)
 

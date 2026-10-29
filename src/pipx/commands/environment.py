@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["functools", "pipx", "pipx.backends", "pipx.interpreter", "pipx.util"]
+__lazy_modules__ = ["functools", "pipx", "pipx.backends.registry", "pipx.backends.uv", "pipx.interpreter", "pipx.util"]
 
 import os
 from functools import cache
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_name
+from pipx.backends.registry import env_default_backend, resolve_backend_name
+from pipx.backends.uv import find_uv_binary
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import get_default_python

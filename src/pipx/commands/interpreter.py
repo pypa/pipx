@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging", "pipx", "pipx.commands.reinstall", "pipx.util", "pipx.venv", "subprocess"]
+__lazy_modules__ = [
+    "packaging",
+    "pipx",
+    "pipx.commands.reinstall",
+    "pipx.options",
+    "pipx.trash",
+    "pipx.venv",
+    "subprocess",
+]
 
 import logging
 import subprocess
@@ -12,8 +20,9 @@ from packaging import version
 from pipx import constants, paths
 from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
+from pipx.options import ReinstallOptions
 from pipx.result import OperationData, OperationResult, OutputMessage
-from pipx.util import rmdir
+from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -155,14 +164,16 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                         latest_micro_version,
                     )
                     reinstall(
-                        venv_dir=venv.root,
-                        local_bin_dir=paths.CTX.bin_dir,
-                        local_man_dir=paths.CTX.man_dir,
-                        python=upgraded_python,
-                        verbose=verbose,
-                        # the new build is what this rebuild is for, so a package whose Requires-Python rules it out
-                        # fails (and keeps its environment) instead of moving to another Python from PATH
-                        python_flag_passed=True,
+                        venv.root,
+                        ReinstallOptions(
+                            local_bin_dir=paths.CTX.bin_dir,
+                            local_man_dir=paths.CTX.man_dir,
+                            python=upgraded_python,
+                            verbose=verbose,
+                            # the new build is what this rebuild is for, so a package whose Requires-Python rules it
+                            # out fails (and keeps its environment) instead of moving to another Python from PATH
+                            python_flag_passed=True,
+                        ),
                         venv_lock=venv_lock,
                     )
                     upgraded.append((venv.name, interpreter_full_version, latest_micro_version))

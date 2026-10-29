@@ -22,6 +22,7 @@ from pipx.commands.common import (
     reuse_resource_dir_scans,
 )
 from pipx.constants import MACOS
+from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -518,7 +519,11 @@ def test_package_name_from_spec_reads_static_name_without_building(
 
     assert (
         package_name_from_spec(
-            f"{tmp_path}{extras}", sys.executable, pip_args=[], verbose=False, backend=backend, env_backend=env_backend
+            f"{tmp_path}{extras}",
+            sys.executable,
+            pip_args=[],
+            verbose=False,
+            backend=BackendOptions(cli=backend, env=env_backend),
         )
         == expected
     )
@@ -537,7 +542,11 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
 
     assert (
         package_name_from_spec(
-            f"{wheel}{extras}", sys.executable, pip_args=[], verbose=False, backend=backend, env_backend=env_backend
+            f"{wheel}{extras}",
+            sys.executable,
+            pip_args=[],
+            verbose=False,
+            backend=BackendOptions(cli=backend, env=env_backend),
         )
         == expected
     )
@@ -554,7 +563,12 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
 )
 @pytest.mark.usefixtures("lookalikes_below_cwd", "probe_venv")
 def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(package_spec: str) -> None:
-    assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False, backend=None) == "acme-tool"
+    assert (
+        package_name_from_spec(
+            package_spec, sys.executable, pip_args=[], verbose=False, backend=DEFAULT_BACKEND_OPTIONS
+        )
+        == "acme-tool"
+    )
 
 
 @pytest.fixture
@@ -586,7 +600,7 @@ def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: Mag
         sys.executable,
         pip_args=["--index-url", "https://mirror.example/simple"],
         verbose=False,
-        backend=None,
+        backend=DEFAULT_BACKEND_OPTIONS,
     )
 
     probe_venv.return_value.create_venv.assert_called_once_with(
@@ -597,7 +611,9 @@ def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: Mag
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_name_from_spec_builds_setup_py_project(local_extras_project: Path) -> None:
     assert (
-        package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False, backend=None)
+        package_name_from_spec(
+            f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False, backend=DEFAULT_BACKEND_OPTIONS
+        )
         == "repeatme"
     )
 

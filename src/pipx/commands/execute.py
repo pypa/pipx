@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["itertools", "pipx.util", "pipx.venv"]
+__lazy_modules__ = ["itertools", "pipx.subprocess_runner", "pipx.util", "pipx.venv"]
 
 import os
 from itertools import chain
 from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx.constants import WINDOWS
-from pipx.util import PipxError, exec_app
+from pipx.subprocess_runner import exec_app
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
