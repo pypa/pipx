@@ -461,15 +461,15 @@ def _symlink_package_resource(
             pipx_wrap(
                 f"""
                 {HAZARD}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{"" if exists else ", which is missing"}, not {path!s}. Not
-                modifying.
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx leaves it in
+                place instead of linking it to {path!s}.
                 """,
                 subsequent_indent=" " * 4,
             )
         )
         return symlink_path
     if is_symlink and not exists:
-        _LOGGER.info("Removing existing symlink %s since it pointed non-existent location", symlink_path)
+        _LOGGER.info("Removing existing symlink %s because it points to a missing location", symlink_path)
         if symlink_path in _SHARED_RESOURCES.get():
             _DANGLING_TAKEN.get()[symlink_path] = (symlink_path.readlink(), path)
         symlink_path.unlink()
@@ -847,7 +847,7 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {RED(BOLD(venv_dir.name))} has missing internal pipx metadata.\r{HAZARD}",
+            f"   package {RED(BOLD(venv_dir.name))} has no internal pipx metadata.\r{HAZARD}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (

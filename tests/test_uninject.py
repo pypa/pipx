@@ -123,9 +123,9 @@ def test_uninject_json_reports_missing_metadata(capsys: pytest.CaptureFixture[st
                     "message": pipx_wrap(
                         """
                         Can't uninject from Virtual Environment 'pycowsay'.
-                        'pycowsay' has missing internal pipx metadata.
-                        It was likely installed using a pipx version before 0.15.0.0.
-                        Please uninstall and install 'pycowsay' manually to fix.
+                        'pycowsay' has no internal pipx metadata.
+                        pipx versions before 0.15.0.0 did not record it.
+                        Uninstall and install 'pycowsay' manually to fix it.
                         """
                     ),
                     "package": None,

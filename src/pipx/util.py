@@ -571,7 +571,7 @@ def subprocess_post_check_handle_pip_error(
     elif not streamed and (
         uv_errors := [line for line in (completed_process.stderr or "").splitlines() if line.strip()]
     ):
-        print("\nSome possibly relevant errors from uv install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        print("\nErrors from uv install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         for line in uv_errors:
             print(f"    {line}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
@@ -629,7 +629,7 @@ def _analyze_pip_output(pip_stdout: str, pip_stderr: str, *, streamed: bool) -> 
     _log_failed_builds(failed_build_stdout, failed_build_stderr, last_collecting_dep)
 
     if relevants_saved and not streamed:
-        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        print("\nErrors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
         print_categories: Final[list[str]] = list(relevant_searches)
         relevants_saved_filtered = list(relevants_saved)
@@ -658,10 +658,10 @@ def _log_failed_builds(
         failed_to_build_str = "\n    ".join(failed_build_stderr)
         plural_str = "s" if len(failed_build_stderr) > 1 else ""
         print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
-        _LOGGER.error("pip seemed to fail to build package%s:\n    %s", plural_str, failed_to_build_str)
+        _LOGGER.error("pip failed to build package%s:\n    %s", plural_str, failed_to_build_str)
     elif last_collecting_dep is not None:
         print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
-        _LOGGER.error("pip seemed to fail to build package:\n    %s", last_collecting_dep)
+        _LOGGER.error("pip failed while processing package:\n    %s", last_collecting_dep)
 
 
 def full_package_description(package_name: str, package_spec: str) -> str:
