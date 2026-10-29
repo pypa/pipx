@@ -214,6 +214,8 @@ def test_setup_leaves_the_target_of_a_symlinked_trash(tmp_path: Path) -> None:
         pytest.param("pycowsay", ["upgrade", "pycowsay"], id="upgrade"),
         pytest.param(PKG["black"]["spec"], ["upgrade-all"], id="upgrade-all"),
         pytest.param("pycowsay", ["install", "--force", "pycowsay"], id="install-force"),
+        pytest.param("pycowsay", ["inject", "pycowsay", PKG["black"]["spec"]], id="inject"),
+        pytest.param("pycowsay", ["runpip", "pycowsay", "install", PKG["black"]["spec"]], id="runpip"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")

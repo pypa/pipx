@@ -34,7 +34,7 @@ from pipx.commands.common import (
     package_name_from_spec,
     run_post_install_actions,
 )
-from pipx.commands.transaction import marked_unfinished, preserve_venv
+from pipx.commands.transaction import marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
@@ -180,7 +180,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     messages: Final[list[OutputMessage]] = []
     # like install, a package without the apps --include-apps asked for leaves the venv as it was
     with (
-        preserve_venv(venv_dir, enabled=include_apps or bool(include_resources_from)),
+        preserve_venv(venv_dir, enabled=include_apps or bool(include_resources_from) or runs_from_venv(venv_dir)),
         marked_unfinished(venv_dir),
     ):
         package_name = _install_under_installed_name(
