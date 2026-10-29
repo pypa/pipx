@@ -903,6 +903,8 @@ def run_demodep_script(
     ("backend", "variable", "value"),
     [
         pytest.param("pip", "PIP_TIMEOUT", "60", id="pip-timeout"),
+        pytest.param("pip", "PIP_timeout", "60", id="pip-timeout-lower-case"),
+        pytest.param("pip", "PIP_NO-COLOR", "1", id="pip-no-color-dashed"),
         pytest.param("uv", "UV_RUN_RECURSION_DEPTH", "1", id="uv-run-recursion-depth"),
     ],
 )
@@ -924,7 +926,11 @@ def test_run_cache_key_ignores_unrelated_installer_env(
     ("backend", "variable", "value"),
     [
         pytest.param("pip", "PIP_PRE", "1", id="pip-pre"),
+        pytest.param("pip", "PIP_index_url", "file:///pipx-missing-index", id="pip-index-url-lower-case"),
+        pytest.param("pip", "PIP_PIPX_UNLISTED", "1", id="pip-unlisted"),
         pytest.param("uv", "UV_PRERELEASE", "allow", id="uv-prerelease"),
+        pytest.param("uv", "UV_PYTHON_INSTALL_MIRROR", "https://mirror.invalid", id="uv-python-install-mirror"),
+        pytest.param("uv", "UV_PIPX_UNLISTED", "1", id="uv-unlisted"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
