@@ -39,6 +39,7 @@ from pipx.commands.common import (
     drop_links_taken_over,
     expose_shared_resources_in_order,
     force_replaces_only,
+    give_back_shared_links,
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
@@ -317,6 +318,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         )
     except PipxError:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
+        give_back_shared_links(old_resource_paths, original_venv_dir)
         # an expected failure (e.g. pip could not install the package) that the CLI reports itself, so like the CLI
         # entry point keep its traceback for debug output
         _LOGGER.error("%s Reinstall failed; restored %s.", error, venv.name)  # ruff:ignore[error-instead-of-exception]
@@ -328,6 +330,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         raise
     except Exception:
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
+        give_back_shared_links(old_resource_paths, original_venv_dir)
         _LOGGER.exception("%s Reinstall failed; restored %s.", error, venv.name)
         raise
     else:

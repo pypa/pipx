@@ -96,6 +96,8 @@ class VenvProblems:
 
 
 _SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
+# shared links a fan-out task took over because they dangled, with the target they had and the one written
+_DANGLING_TAKEN: Final[ContextVar[dict[Path, tuple[Path, Path]]]] = ContextVar("dangling_taken")
 # None is a user's --force, which replaces whatever holds a name
 _REPLACEABLE_RESOURCES: Final[ContextVar[frozenset[Path] | None]] = ContextVar("replaceable_resources", default=None)
 
@@ -120,9 +122,11 @@ def expose_shared_resources_in_order(
         path for metadata in venvs_metadata for path in _shareable_paths(metadata, local_bin_dir, local_man_dir)
     )
     token = _SHARED_RESOURCES.set(frozenset(path for path, count in counts.items() if count > 1))
+    taken_token = _DANGLING_TAKEN.set({})
     try:
         yield
     finally:
+        _DANGLING_TAKEN.reset(taken_token)
         _SHARED_RESOURCES.reset(token)
 
 
@@ -204,6 +208,25 @@ def _shadowed_module(name: str, path: Path) -> str | None:
 
 def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
     return in_turn(lambda: path not in _SHARED_RESOURCES.get())
+
+
+def give_back_shared_links(resource_paths: set[Path], venv_dir: Path) -> None:
+    # a link dangles while its venv sits in the trash for a rebuild, and an earlier fan-out task exposing the same name
+    # meanwhile takes it; a failed rebuild gives the name back, as a one-at-a-time run would have left it
+    for path in resource_paths & _SHARED_RESOURCES.get():
+        with _in_turn_if_shared(path):
+            if (taken := _DANGLING_TAKEN.get().get(path)) is None:
+                continue
+            dangling, written = taken
+            # a link pointing elsewhere than the takeover left it was replaced since, such as by another run's --force
+            if (
+                path.is_symlink()
+                and path.resolve() == written.resolve()
+                and (restored := (path.parent / dangling).resolve()).is_relative_to(venv_dir.resolve())
+                and restored.exists()
+            ):
+                path.unlink()
+                path.symlink_to(dangling)
 
 
 def expose_package_resources(
@@ -340,6 +363,8 @@ def _symlink_package_resource(
         return symlink_path
     if is_symlink and not exists:
         _LOGGER.info("Removing existing symlink %s since it pointed non-existent location", symlink_path)
+        if symlink_path in _SHARED_RESOURCES.get():
+            _DANGLING_TAKEN.get()[symlink_path] = (symlink_path.readlink(), path)
         symlink_path.unlink()
 
     existing_executable_on_path = which(name_suffixed) if executable else None
@@ -1058,6 +1083,7 @@ __all__ = [
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
+    "give_back_shared_links",
     "group_app_paths",
     "group_resource_paths",
     "locked_package_message",
