@@ -321,16 +321,16 @@ class _FetchPythonEnv(Protocol):
 def fetch_python_env(monkeypatch: pytest.MonkeyPatch) -> _FetchPythonEnv:
     # pipx reads these variables at import, so patch the values main parsed from them
     def apply(invalid: bool, fetch_python_raw: str | None, missing_raw: str | None) -> None:
-        monkeypatch.setattr(main, "FETCH_PYTHON_INVALID", invalid)
-        monkeypatch.setattr(main, "FETCH_PYTHON_RAW", fetch_python_raw)
-        monkeypatch.setattr(main, "FETCH_MISSING_PYTHON_RAW", missing_raw)
+        monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", invalid)
+        monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
+        monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
 
     return apply
 
 
 def test_cli_rejects_invalid_env_cooldown(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setattr(main, "COOLDOWN_INVALID", True)
-    monkeypatch.setattr(main, "COOLDOWN_RAW", "garbage")
+    monkeypatch.setattr(main, "_COOLDOWN_INVALID", True)
+    monkeypatch.setattr(main, "_COOLDOWN_RAW", "garbage")
 
     assert run_pipx_cli(["list"])
 
@@ -520,9 +520,9 @@ def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None
 @pytest.mark.parametrize(
     "patches",
     [
-        pytest.param({"COOLDOWN_INVALID": True, "COOLDOWN_RAW": "abc"}, id="cooldown"),
-        pytest.param({"MAX_LOGS_INVALID": True, "MAX_LOGS_RAW": "x"}, id="max-logs"),
-        pytest.param({"FETCH_PYTHON_INVALID": True}, id="fetch-python"),
+        pytest.param({"_COOLDOWN_INVALID": True, "_COOLDOWN_RAW": "abc"}, id="cooldown"),
+        pytest.param({"_MAX_LOGS_INVALID": True, "_MAX_LOGS_RAW": "x"}, id="max-logs"),
+        pytest.param({"_FETCH_PYTHON_INVALID": True}, id="fetch-python"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
