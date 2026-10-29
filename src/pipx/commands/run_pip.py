@@ -4,6 +4,7 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx.commands.common",
+    "pipx.commands.transaction",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.util",
@@ -16,6 +17,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
+from pipx.commands.transaction import preserve_venv, runs_from_venv
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, extract_index_options, install_specs, replace_index_options
 from pipx.util import PipxError
@@ -31,7 +33,9 @@ def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool)
         msg = f"pipx has no venv for {package!r}; run 'pipx list' to see the installed packages"
         raise PipxError(msg)
     venv.verbose = True
-    exit_code: Final[ExitCode] = venv.run_pip_get_exit_code(pip_args)
+    # pip may change the pipx running this, which keeps importing its own version from the copy
+    with preserve_venv(venv_dir, enabled=runs_from_venv(venv_dir)):
+        exit_code: Final[ExitCode] = venv.run_pip_get_exit_code(pip_args)
     if exit_code == 0:
         _sync_main_package_metadata_after_runpip_install(venv, pip_args)
     return exit_code
