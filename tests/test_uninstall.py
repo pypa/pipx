@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
     SKIP_IF_WINDOWS,
+    WIN,
     app_name,
     file_or_symlink,
     mock_legacy_venv,
@@ -21,8 +23,6 @@ from pipx import paths, venv_inspect
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 
@@ -205,6 +205,47 @@ def test_uninstall_man_page() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert man_page_path.exists()
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+    assert not file_or_symlink(man_page_path)
+
+
+@pytest.mark.parametrize(
+    ("exposure_dir", "relative"),
+    [
+        pytest.param("man_dir", "man1/tool.1", id="man-page"),
+        pytest.param("completion_dir", "bash-completion/completions/tool", id="completion"),
+    ],
+)
+@pytest.mark.usefixtures("uv_symlinked_install")
+def test_uninstall_removes_link_to_uv_symlinked_resource(exposure_dir: str, relative: str) -> None:
+    path: Final[Path] = getattr(paths.CTX, exposure_dir) / relative
+    assert path.is_symlink()
+
+    assert not run_pipx_cli(["uninstall", "foo-bar-x"])
+
+    assert not file_or_symlink(path)
+
+
+@pytest.fixture
+def unc_tmp_path(tmp_path: Path) -> Path:
+    # the administrative share reaches the local disk through a UNC path
+    if not (share := Path(f"\\\\localhost\\{tmp_path.drive.removesuffix(':')}$\\")).is_dir():
+        pytest.skip("needs the Windows administrative share")
+    return share / tmp_path.relative_to(tmp_path.anchor)
+
+
+@pytest.mark.skipif(not WIN, reason="UNC paths are a Windows spelling")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_man_page_under_unc_path(unc_tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Windows reads back a link written under a UNC path as \\?\UNC\..., which must still name the venv
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", unc_tmp_path / "subdir" / "pipxhome")
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", unc_tmp_path / "otherdir" / "pipxmandir")
+    paths.CTX.make_local()
+    man_page_path: Final[Path] = paths.CTX.man_dir / "man6" / "pycowsay.6"
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert man_page_path.is_symlink()
+
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+
     assert not file_or_symlink(man_page_path)
 
 

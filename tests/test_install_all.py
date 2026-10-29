@@ -160,7 +160,7 @@ def test_install_all_force_ignores_explicit_python(tmp_path: Path, capsys: pytes
     (spec_file := tmp_path / "pipx.json").write_text(capsys.readouterr().out, encoding="utf-8")
 
     assert not run_pipx_cli(["install-all", str(spec_file), "--force", "--python", sys.executable])
-    assert "--python is ignored when --force is passed" in capsys.readouterr().out
+    assert "pipx ignores --python when you pass --force" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

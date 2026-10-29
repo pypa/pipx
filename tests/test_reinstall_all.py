@@ -237,12 +237,16 @@ def test_reinstall_all_keeps_shared_man_page_with_its_owner(
 @SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "failure",
-    [pytest.param(PipxError("rebuild failed"), id="pipx-error"), pytest.param(OSError("disk full"), id="unexpected")],
+    [
+        pytest.param(PipxError("rebuild failed"), id="pipx-error"),
+        pytest.param(OSError("disk full"), id="unexpected"),
+        pytest.param(KeyboardInterrupt(), id="interrupt"),
+    ],
 )
 def test_reinstall_all_failed_rebuild_gets_back_shared_man_page(
     shared_man_page_venvs: tuple[Path, Path],
-    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], Exception], None],
-    failure: Exception,
+    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], BaseException], None],
+    failure: BaseException,
 ) -> None:
     fail_owner_rebuild_after_takeover(lambda: None, failure)
 
@@ -265,13 +269,13 @@ def shared_man_page_venvs(pipx_temp_env: None) -> tuple[Path, Path]:  # ruff:ign
 @pytest.fixture
 def fail_owner_rebuild_after_takeover(
     shared_man_page_venvs: tuple[Path, Path], mocker: MockerFixture
-) -> Callable[[Callable[[], None], Exception], None]:
+) -> Callable[[Callable[[], None], BaseException], None]:
     earlier, owner = shared_man_page_venvs
     man_page: Final[Path] = paths.CTX.man_dir / "man6" / "pycowsay.6"
     symlink_to: Final = Path.symlink_to
     check_upgrade_shared_libs: Final = Venv.check_upgrade_shared_libs
 
-    def arm(meanwhile: Callable[[], None], failure: Exception) -> None:
+    def arm(meanwhile: Callable[[], None], failure: BaseException) -> None:
         taken_over: Final[threading.Event] = threading.Event()
 
         def link_and_signal(path: Path, target: Path, target_is_directory: bool = False) -> None:
@@ -296,7 +300,7 @@ def fail_owner_rebuild_after_takeover(
 
 @SKIP_IF_WINDOWS
 def test_reinstall_all_failed_rebuild_keeps_man_page_replaced_elsewhere(
-    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], Exception], None], tmp_path: Path
+    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], BaseException], None], tmp_path: Path
 ) -> None:
     man_page: Final[Path] = paths.CTX.man_dir / "man6" / "pycowsay.6"
     (elsewhere := tmp_path / "pycowsay.6").touch()

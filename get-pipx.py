@@ -6,9 +6,7 @@ import sys
 
 def main() -> None:
     sys.exit(
-        "This installation method has been obsoleted. "
-        "See https://github.com/pypa/pipx for current installation "
-        "instructions."
+        "pipx dropped this installation method. See https://github.com/pypa/pipx for current installation instructions."
     )
 
 

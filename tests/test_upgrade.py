@@ -349,7 +349,7 @@ def test_upgrade_legacy_venv_without_metadata_fails(capsys: pytest.CaptureFixtur
 
     assert run_pipx_cli(["upgrade", "pycowsay"])
 
-    assert "Not upgrading pycowsay. It has missing internal pipx metadata." in capsys.readouterr().err
+    assert "Not upgrading pycowsay. It has no internal pipx metadata." in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(

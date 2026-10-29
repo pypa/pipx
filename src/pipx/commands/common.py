@@ -168,11 +168,27 @@ def drop_links_taken_over(resource_paths: set[Path], *venv_dirs: Path) -> set[Pa
         path
         for path in resource_paths
         if (
-            any(path.resolve().is_relative_to(venv_root) for venv_root in venv_roots)
+            any(_link_target(path).is_relative_to(venv_root) for venv_root in venv_roots)
             if path.is_symlink()
             else not can_symlink(path.parent)
         )
     }
+
+
+def _link_target(link: Path) -> Path:
+    # with UV_LINK_MODE=symlink the venv's own file links on into uv's cache, so only the first hop names the venv
+    target: Final[Path] = link.parent / _without_extended_prefix(str(link.readlink()))
+    return target.parent.resolve() / target.name
+
+
+def _without_extended_prefix(target: str) -> str:
+    # Windows reads a link target back as \\?\C:\... or \\?\UNC\server\share\..., a spelling resolve() keeps while the
+    # venv paths compared against never use it
+    if not WINDOWS:
+        return target
+    if target.startswith(unc := "\\\\?\\UNC\\"):
+        return target.replace(unc, "\\\\", 1)
+    return target.removeprefix("\\\\?\\")
 
 
 def can_symlink(local_resource_dir: Path) -> bool:
@@ -465,15 +481,15 @@ def _symlink_package_resource(
             pipx_wrap(
                 f"""
                 {HAZARD}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{"" if exists else ", which is missing"}, not {path!s}. Not
-                modifying.
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx leaves it in
+                place instead of linking it to {path!s}.
                 """,
                 subsequent_indent=" " * 4,
             )
         )
         return symlink_path
     if is_symlink and not exists:
-        _LOGGER.info("Removing existing symlink %s since it pointed non-existent location", symlink_path)
+        _LOGGER.info("Removing existing symlink %s because it points to a missing location", symlink_path)
         if symlink_path in _SHARED_RESOURCES.get():
             _DANGLING_TAKEN.get()[symlink_path] = (symlink_path.readlink(), path)
         symlink_path.unlink()
@@ -543,7 +559,12 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
         if not force or not _force_replaces(dest):
             _LOGGER.warning("%s  File exists at %s and does not match %s. Not modifying.", HAZARD, dest, src)
             return dest
-        _LOGGER.warning("%s  Overwriting file %s with %s", HAZARD, dest, src)
+        # a rebuilt launcher no longer matches its old copy (Windows .exe stubs embed their build time), but a copy
+        # whose shebang names this venv is the one pipx exposed, so refreshing it needs no warning
+        if _directory_id_or_none(src.parent) in _launcher_owner_ids(dest):
+            _LOGGER.info("Refreshing %s from %s", dest, src)
+        else:
+            _LOGGER.warning("%s  Overwriting file %s with %s", HAZARD, dest, src)
         safe_unlink(dest)
     if src.exists():
         shutil.copy(src, dest)
@@ -593,19 +614,26 @@ def _launcher_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
     start = 0
     while (marker := data.find(b"#!", start)) != -1:
         start = marker + 2
-        end = data.find(b"\n", marker)
-        line = (data[start:] if end == -1 else data[start:end]).strip()
-        if line.startswith(b'"'):
-            interpreter = line[1:close] if (close := line.find(b'"', 1)) != -1 else b""
-        else:
-            interpreter = parts[0] if (parts := line.split()) else b""
+        end = len(data) if (newline := data.find(b"\n", start)) == -1 else newline
+        next_end = len(data) if (newline := data.find(b"\n", end + 1)) == -1 else newline
         # the scan reads every file in the bin directory, so a stray "#!" in a foreign binary hands over arbitrary
-        # bytes: os.fsdecode rejects undecodable ones under the surrogatepass codec Windows uses, and stat an embedded
-        # NUL; neither makes the copy ours
+        # bytes: os.fsdecode rejects undecodable ones under the surrogatepass codec Windows uses, shlex unbalanced
+        # quotes, and stat an embedded NUL; none makes the copy ours
         with suppress(OSError, ValueError):
-            if interpreter:
-                owner_ids.append(_directory_id(Path(os.fsdecode(interpreter)).parent))
+            if interpreter := _shebang_interpreter(data[start:end].strip(), data[end + 1 : next_end]):
+                owner_ids.append(_directory_id(Path(interpreter).parent))
     return owner_ids
+
+
+def _shebang_interpreter(line: bytes, next_line: bytes) -> str:
+    if line == b"/bin/sh" and next_line.startswith(b"'''exec' "):
+        # pip and uv write a /bin/sh trampoline when the interpreter path is too long for a shebang or holds a space,
+        # and name the interpreter, shell-quoted, on the exec line that follows
+        words: Final[list[str]] = shlex.split(os.fsdecode(next_line))
+        return words[1] if len(words) > 1 else ""
+    if line.startswith(b'"'):
+        return os.fsdecode(line[1:close]) if (close := line.find(b'"', 1)) != -1 else ""
+    return os.fsdecode(parts[0]) if (parts := line.split()) else ""
 
 
 def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
@@ -751,7 +779,7 @@ def _build_resource_dir_scan(local_resource_dir: Path) -> _ResourceDirScan:
 def _symlink_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
     # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
     try:
-        return [_directory_id(resource_path.resolve().parent)] if resource_path.is_symlink() else []
+        return [_directory_id(_link_target(resource_path).parent)] if resource_path.is_symlink() else []
     except (FileNotFoundError, RuntimeError):
         return []
 
@@ -851,7 +879,7 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {RED(BOLD(venv_dir.name))} has missing internal pipx metadata.\r{HAZARD}",
+            f"   package {RED(BOLD(venv_dir.name))} has no internal pipx metadata.\r{HAZARD}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
