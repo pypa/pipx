@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.package_specifier",
+    "pipx.redact",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -41,6 +42,7 @@ from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
 from pipx.options import DEFAULT_BACKEND_OPTIONS, ExposureOptions
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
+from pipx.redact import redact_url_credentials
 from pipx.result import (
     OperationData,
     OperationError,
@@ -52,7 +54,7 @@ from pipx.result import (
     render_messages,
     render_result,
 )
-from pipx.util import InstalledNameMismatchError, PipxError, redact_url_credentials
+from pipx.util import InstalledNameMismatchError, PipxError
 from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
 

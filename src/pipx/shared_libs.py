@@ -8,6 +8,7 @@ __lazy_modules__ = [
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.package_specifier",
+    "pipx.subprocess_runner",
     "pipx.util",
     "threading",
 ]
@@ -33,13 +34,8 @@ from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import absolute_path_pip_args
-from pipx.util import (
-    PipxError,
-    get_site_packages,
-    get_venv_paths,
-    run_subprocess,
-    subprocess_post_check,
-)
+from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
+from pipx.util import PipxError, get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator

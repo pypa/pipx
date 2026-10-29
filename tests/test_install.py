@@ -29,7 +29,7 @@ from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
-from pipx.util import redact_url_credentials
+from pipx.redact import redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:

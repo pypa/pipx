@@ -13,6 +13,7 @@ __lazy_modules__ = [
     "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.util",
     "shutil",
     "subprocess",
@@ -42,6 +43,7 @@ from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.options import ExposureOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import (
     OperationData,
     OperationError,
@@ -50,7 +52,7 @@ from pipx.result import (
     OutputMessage,
     OutputStream,
 )
-from pipx.util import PipxError, redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from typing import TypeIs

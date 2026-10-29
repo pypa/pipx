@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging", "pipx", "pipx.commands.reinstall", "pipx.util", "pipx.venv", "subprocess"]
+__lazy_modules__ = ["packaging", "pipx", "pipx.commands.reinstall", "pipx.trash", "pipx.venv", "subprocess"]
 
 import logging
 import subprocess
@@ -13,7 +13,7 @@ from pipx import constants, paths
 from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
 from pipx.result import OperationData, OperationResult, OutputMessage
-from pipx.util import rmdir
+from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:

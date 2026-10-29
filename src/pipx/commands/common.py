@@ -13,6 +13,7 @@ __lazy_modules__ = [
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.result",
+    "pipx.trash",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -55,7 +56,8 @@ from pipx.fanout import in_turn
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.result import OutputMessage, OutputStream
-from pipx.util import PipxError, is_file_name, mkdir, safe_unlink
+from pipx.trash import safe_unlink
+from pipx.util import PipxError, is_file_name, mkdir
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 

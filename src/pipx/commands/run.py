@@ -15,8 +15,11 @@ __lazy_modules__ = [
     "pipx.commands.run_uv",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.redact",
     "pipx.requires_python",
     "pipx.script",
+    "pipx.subprocess_runner",
+    "pipx.trash",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -53,9 +56,12 @@ from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPy
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
+from pipx.redact import redact_url_credentials
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
-from pipx.util import PipxError, exec_app, get_pypackage_bin_path, redact_url_credentials, rmdir, run_pypackage_bin
+from pipx.subprocess_runner import exec_app, run_pypackage_bin
+from pipx.trash import rmdir
+from pipx.util import PipxError, get_pypackage_bin_path
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 

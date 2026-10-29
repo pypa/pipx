@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.commands.reinstall", "pipx.util"]
+__lazy_modules__ = ["pipx.commands.reinstall", "pipx.subprocess_runner", "pipx.util"]
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Final
 from pipx.commands.reinstall import reinstall
 from pipx.constants import ExitCode
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import PipxError, get_venv_paths, run_subprocess
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError, get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

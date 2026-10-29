@@ -19,8 +19,10 @@ __lazy_modules__ = [
     "pipx.interpreter",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.redact",
     "pipx.result",
     "pipx.shared_libs",
+    "pipx.subprocess_runner",
     "pipx.util",
     "pipx.venv",
     "pipx.version",
@@ -77,16 +79,11 @@ from pipx.interpreter import (
 )
 from pipx.options import BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import valid_pypi_name
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
-from pipx.util import (
-    PipxError,
-    mkdir,
-    open_owner_only,
-    redact_url_credentials,
-    reject_empty_index,
-    stream_subprocess_stdout_to_stderr,
-)
+from pipx.subprocess_runner import stream_subprocess_stdout_to_stderr
+from pipx.util import PipxError, mkdir, open_owner_only, reject_empty_index
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 from pipx.wrap import pipx_wrap

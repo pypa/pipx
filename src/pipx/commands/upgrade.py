@@ -13,8 +13,10 @@ __lazy_modules__ = [
     "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.script",
     "pipx.shared_libs",
+    "pipx.subprocess_runner",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -47,10 +49,12 @@ from pipx.interpreter import get_default_python
 from pipx.options import CooldownOptions, ExposureOptions
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
 from pipx.shared_libs import SHARED_LIBS
-from pipx.util import PipxError, redact_url_credentials, run_subprocess
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 

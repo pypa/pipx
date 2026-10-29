@@ -13,7 +13,8 @@ from pipx import paths, pipx_metadata_file
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.venv import Venv, reset_backend_override_warnings
 
 if TYPE_CHECKING:
@@ -43,7 +44,7 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
     (platlib_demo / "METADATA").write_text("Name: demo2\nVersion: 1.0\n", encoding="utf-8")
 
     run_subprocess: Final[MagicMock] = mocker.patch(
-        "pipx.util.run_subprocess",
+        "pipx.subprocess_runner.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
     )

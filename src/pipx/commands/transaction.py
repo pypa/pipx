@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.util", "pipx.venv", "shutil", "tempfile"]
+__lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.trash", "pipx.util", "pipx.venv", "shutil", "tempfile"]
 
 import time
 from contextlib import contextmanager, suppress
@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.fanout import finished_on_interrupt, uninterrupted
-from pipx.util import PipxError, rmdir
+from pipx.trash import rmdir
+from pipx.util import PipxError
 from pipx.venv import VenvContainer
 
 if TYPE_CHECKING:

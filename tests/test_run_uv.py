@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from pipx import paths, util
+from pipx import paths, subprocess_runner
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -64,7 +65,7 @@ def script_run(tmp_path: Path) -> partial[NoReturn]:
 
 @pytest.fixture
 def exec_mock(mocker: MockerFixture) -> MagicMock:
-    mocked_exec: Final[MagicMock] = mocker.create_autospec(util.exec_app, side_effect=RuntimeError("exec"))
+    mocked_exec: Final[MagicMock] = mocker.create_autospec(subprocess_runner.exec_app, side_effect=RuntimeError("exec"))
     mocker.patch("pipx.commands.run_uv.exec_app", new=mocked_exec)
     return mocked_exec
 

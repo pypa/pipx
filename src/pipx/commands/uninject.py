@@ -6,7 +6,8 @@ __lazy_modules__ = [
     "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
-    "pipx.util",
+    "pipx.redact",
+    "pipx.trash",
     "pipx.venv",
     "pipx.venv_inspect",
     "pipx.wrap",
@@ -41,8 +42,9 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import STARS
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import redact_url_credentials, safe_unlink
+from pipx.trash import safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import (
     fetch_info_in_venv,

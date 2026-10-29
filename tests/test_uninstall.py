@@ -369,7 +369,7 @@ def test_uninstall_killed_midway_leaves_nothing_for_reinstall_to_guess(mocker: M
         (path / "pipx_metadata.json").unlink()
         raise KeyboardInterrupt
 
-    mocker.patch("pipx.util.shutil.rmtree", autospec=True, side_effect=lose_the_record_then_die)
+    mocker.patch("pipx.trash.shutil.rmtree", autospec=True, side_effect=lose_the_record_then_die)
     assert run_pipx_cli(["uninstall", "pycowsay"])
     mocker.stopall()
 

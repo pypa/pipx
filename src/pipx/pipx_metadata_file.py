@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx.backends._base", "pipx.package_specifier", "pipx.util", "pipx.wrap", "tempfile"]
+__lazy_modules__ = [
+    "pathlib",
+    "pipx.backends._base",
+    "pipx.package_specifier",
+    "pipx.redact",
+    "pipx.util",
+    "pipx.wrap",
+    "tempfile",
+]
 
 import json
 import logging
@@ -13,7 +21,8 @@ from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import HAZARD
 from pipx.package_specifier import replayable_pip_args
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:

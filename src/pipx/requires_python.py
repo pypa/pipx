@@ -10,7 +10,8 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
-from pipx.util import PipxError, run_subprocess
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

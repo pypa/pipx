@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.util", "pipx.venv", "shutil"]
+__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv", "shutil"]
 
 import logging
 from dataclasses import dataclass
@@ -29,7 +29,7 @@ from pipx.constants import (
 )
 from pipx.emojis import HAZARD, SLEEP, STARS
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
-from pipx.util import rmdir_via_trash, safe_unlink
+from pipx.trash import rmdir_via_trash, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)

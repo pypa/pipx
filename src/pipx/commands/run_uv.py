@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.backends.uv", "pipx.util", "pipx.wrap", "shutil"]
+__lazy_modules__ = [
+    "pipx",
+    "pipx.backends.uv",
+    "pipx.redact",
+    "pipx.subprocess_runner",
+    "pipx.util",
+    "pipx.wrap",
+    "shutil",
+]
 
 import logging
 import os
@@ -10,7 +18,9 @@ from typing import TYPE_CHECKING, Final, NoReturn
 from pipx import paths
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
 from pipx.emojis import HAZARD
-from pipx.util import PipxError, exec_app, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.subprocess_runner import exec_app
+from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:

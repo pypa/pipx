@@ -4,6 +4,7 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
+    "pipx.redact",
     "pipx.util",
     "pipx.wrap",
     "re",
@@ -26,7 +27,8 @@ from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.emojis import HAZARD
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:

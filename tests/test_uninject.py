@@ -12,7 +12,7 @@ from package_info import PKG
 from pipx import paths
 from pipx.commands import common
 from pipx.constants import WINDOWS
-from pipx.util import redact_url_credentials
+from pipx.redact import redact_url_credentials
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:

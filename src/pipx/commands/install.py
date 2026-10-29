@@ -13,8 +13,10 @@ __lazy_modules__ = [
     "pipx.interpreter",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.requires_python",
     "pipx.script",
+    "pipx.trash",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -57,6 +59,7 @@ from pipx.interpreter import get_default_python
 from pipx.options import DEFAULT_COOLDOWN_OPTIONS, BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import package_spec_satisfied, pip_long_option_name, trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
+from pipx.redact import redact_url_credentials
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
 from pipx.result import (
     OperationData,
@@ -70,7 +73,8 @@ from pipx.result import (
     render_result,
 )
 from pipx.script import script_name_from_spec
-from pipx.util import PipxError, redact_url_credentials, rmdir
+from pipx.trash import rmdir
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 

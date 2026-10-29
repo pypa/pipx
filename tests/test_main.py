@@ -29,7 +29,8 @@ from pipx.main import (
     prog_name,
 )
 from pipx.options import BackendOptions
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.version import version
 
 if TYPE_CHECKING:

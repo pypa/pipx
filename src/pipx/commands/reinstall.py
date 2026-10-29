@@ -13,6 +13,8 @@ __lazy_modules__ = [
     "pipx.fanout",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
+    "pipx.trash",
     "pipx.util",
     "pipx.venv",
     "tempfile",
@@ -58,8 +60,10 @@ from pipx.fanout import fan_out, locked_in_order, uninterrupted
 from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
+from pipx.trash import rmdir, safe_unlink
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:

@@ -3,13 +3,17 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
+    "pipx.backends.pip",
     "pipx.backends.registry",
     "pipx.interpreter",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.requires_python",
     "pipx.script",
     "pipx.shared_libs",
+    "pipx.subprocess_runner",
+    "pipx.trash",
     "pipx.util",
     "pipx.wrap",
     "shutil",
@@ -36,6 +40,7 @@ from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
 from pipx.animate import animate
+from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.backends.registry import (
     assert_not_pip_under_uv,
     env_default_backend,
@@ -57,6 +62,7 @@ from pipx.package_specifier import (
     valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.requires_python import IncompatiblePythonError, rejected_constraint
 from pipx.script import installable_script, local_script
 from pipx.shared_libs import (
@@ -64,18 +70,9 @@ from pipx.shared_libs import (
     SHARED_LIBS,
     shared_libs_auto_upgrade_disabled,
 )
-from pipx.util import (
-    InstalledNameMismatchError,
-    PipxError,
-    exec_app,
-    full_package_description,
-    get_site_packages,
-    get_venv_paths,
-    redact_url_credentials,
-    rmdir,
-    subprocess_post_check,
-    subprocess_post_check_handle_pip_error,
-)
+from pipx.subprocess_runner import exec_app, get_site_packages, subprocess_post_check
+from pipx.trash import rmdir
+from pipx.util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
 from pipx.wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)

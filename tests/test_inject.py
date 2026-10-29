@@ -24,7 +24,7 @@ from helpers import (
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.util import redact_url_credentials
+from pipx.redact import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
