@@ -1699,3 +1699,118 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
         return lock.call_args.args[0]
 
     return capture
+
+
+@pytest.fixture
+def plant_secret() -> Callable[[bytes], Path]:
+    def plant(secret: bytes) -> Path:
+        paths.ctx.venv_cache.mkdir(parents=True, exist_ok=True)
+        secret_path: Final[Path] = paths.ctx.venv_cache / ".run-key"
+        secret_path.write_bytes(secret)
+        secret_path.chmod(0o600)
+        return secret_path
+
+    return plant
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_name_depends_on_secret(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path], plant_secret: Callable[[bytes], Path]
+) -> None:
+    plant_secret(b"a" * 32)
+    first: Final[Path] = cache_lock_path(["black"], [], [])
+    plant_secret(b"b" * 32)
+
+    assert cache_lock_path(["black"], [], []) != first
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_name_is_stable_for_a_secret(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path], plant_secret: Callable[[bytes], Path]
+) -> None:
+    plant_secret(b"a" * 32)
+    first: Final[Path] = cache_lock_path(["black"], [], [])
+    plant_secret(b"b" * 32)
+    other: Final[Path] = cache_lock_path(["black"], [], [])
+    plant_secret(b"a" * 32)
+
+    assert cache_lock_path(["black"], [], []) == first != other
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows keeps the secret private through profile ACLs")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_secret_is_private(cache_lock_path: Callable[[list[str], list[str], list[str]], Path]) -> None:
+    cache_lock_path(["black"], [], [])
+
+    assert (paths.ctx.venv_cache / ".run-key").stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize(
+    ("secret", "mode"),
+    [
+        pytest.param(b"a" * 32, 0o644, id="world-readable"),
+        pytest.param(b"a" * 32, 0o640, id="group-readable"),
+        pytest.param(b"short", 0o600, id="truncated"),
+    ],
+)
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no mode bits to check")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_secret_replaces_unusable(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    plant_secret: Callable[[bytes], Path],
+    secret: bytes,
+    mode: int,
+) -> None:
+    secret_path: Final[Path] = plant_secret(secret)
+    secret_path.chmod(mode)
+    cache_lock_path(["black"], [], [])
+
+    assert secret_path.read_bytes() != secret
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no owner to check")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_secret_replaces_foreign_owned(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    plant_secret: Callable[[bytes], Path],
+    mocker: MockerFixture,
+) -> None:
+    secret_path: Final[Path] = plant_secret(b"a" * 32)
+    mocker.patch("os.geteuid", return_value=secret_path.stat().st_uid + 1)
+    cache_lock_path(["black"], [], [])
+
+    assert secret_path.read_bytes() != b"a" * 32
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_secret_keeps_the_one_a_concurrent_run_wrote(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    plant_secret: Callable[[bytes], Path],
+    mocker: MockerFixture,
+) -> None:
+    plant_secret(b"a" * 32)
+    expected: Final[Path] = cache_lock_path(["black"], [], [])
+    plant_secret(b"b" * 32)
+    own: Final[Path] = cache_lock_path(["black"], [], [])
+    (paths.ctx.venv_cache / ".run-key").unlink()
+
+    def concurrent_run_wins(size: int) -> bytes:
+        plant_secret(b"a" * 32)
+        return b"b" * size
+
+    mocker.patch("secrets.token_bytes", side_effect=concurrent_run_wins)
+
+    assert cache_lock_path(["black"], [], []) == expected != own
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_without_usable_secret_logs_fallback(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("tempfile.mkstemp", side_effect=PermissionError(13, "Permission denied"))
+    caplog.set_level(logging.DEBUG)
+    cache_lock_path(["black"], [], [])
+
+    assert "run cache names are not keyed with a secret" in caplog.text
