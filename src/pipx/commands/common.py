@@ -166,11 +166,27 @@ def drop_links_taken_over(resource_paths: set[Path], *venv_dirs: Path) -> set[Pa
         path
         for path in resource_paths
         if (
-            any(path.resolve().is_relative_to(venv_root) for venv_root in venv_roots)
+            any(_link_target(path).is_relative_to(venv_root) for venv_root in venv_roots)
             if path.is_symlink()
             else not can_symlink(path.parent)
         )
     }
+
+
+def _link_target(link: Path) -> Path:
+    # with UV_LINK_MODE=symlink the venv's own file links on into uv's cache, so only the first hop names the venv
+    target: Final[Path] = link.parent / _without_extended_prefix(str(link.readlink()))
+    return target.parent.resolve() / target.name
+
+
+def _without_extended_prefix(target: str) -> str:
+    # Windows reads a link target back as \\?\C:\... or \\?\UNC\server\share\..., a spelling resolve() keeps while the
+    # venv paths compared against never use it
+    if not WINDOWS:
+        return target
+    if target.startswith(unc := "\\\\?\\UNC\\"):
+        return target.replace(unc, "\\\\", 1)
+    return target.removeprefix("\\\\?\\")
 
 
 def can_symlink(local_resource_dir: Path) -> bool:
@@ -463,15 +479,15 @@ def _symlink_package_resource(
             pipx_wrap(
                 f"""
                 {HAZARD}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{"" if exists else ", which is missing"}, not {path!s}. Not
-                modifying.
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx leaves it in
+                place instead of linking it to {path!s}.
                 """,
                 subsequent_indent=" " * 4,
             )
         )
         return symlink_path
     if is_symlink and not exists:
-        _LOGGER.info("Removing existing symlink %s since it pointed non-existent location", symlink_path)
+        _LOGGER.info("Removing existing symlink %s because it points to a missing location", symlink_path)
         if symlink_path in _SHARED_RESOURCES.get():
             _DANGLING_TAKEN.get()[symlink_path] = (symlink_path.readlink(), path)
         symlink_path.unlink()
@@ -749,7 +765,7 @@ def _build_resource_dir_scan(local_resource_dir: Path) -> _ResourceDirScan:
 def _symlink_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
     # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
     try:
-        return [_directory_id(resource_path.resolve().parent)] if resource_path.is_symlink() else []
+        return [_directory_id(_link_target(resource_path).parent)] if resource_path.is_symlink() else []
     except (FileNotFoundError, RuntimeError):
         return []
 
@@ -849,7 +865,7 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {RED(BOLD(venv_dir.name))} has missing internal pipx metadata.\r{HAZARD}",
+            f"   package {RED(BOLD(venv_dir.name))} has no internal pipx metadata.\r{HAZARD}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (

@@ -98,9 +98,9 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     if not venv.package_metadata:
         msg = f"""
             Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
-            {venv.name!r}. {venv.name!r} has missing internal pipx metadata. It
-            was likely installed using a pipx version before 0.15.0.0. Please
-            uninstall and install {venv.name!r}, or reinstall-all to fix.
+            {venv.name!r}. {venv.name!r} has no internal pipx metadata, which
+            pipx versions before 0.15.0.0 did not record. Uninstall and install
+            {venv.name!r}, or run 'pipx reinstall-all', to fix it.
             """
         raise PipxError(msg)
     if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
@@ -145,7 +145,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                     OutputMessage(
                         text=pipx_wrap(
                             f"""
-                            {HAZARD} {package_name} already seems to be installed in {venv.name!r}.
+                            {HAZARD} {package_name} is already installed in {venv.name!r}.
                             Not modifying existing installation in '{venv_dir}'.
                             Pass '--force' to force installation.
                             """
@@ -312,7 +312,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
     packages: Final[list[str]] = sorted(package_set)
 
     if not packages:
-        error: Final[str] = "No packages have been specified."
+        error: Final[str] = "No packages to inject; pass a package spec or --requirement."
         return _finish_inject(
             OperationResult(
                 command=("inject",),

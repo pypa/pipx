@@ -62,6 +62,8 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
+    from filelock import ReadWriteLock
+
     from pipx.options import BackendOptions, CooldownOptions
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -273,23 +275,22 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
                 UV,
                 cooldown_days=cooldown_days,
             )
-            with _locked_venv_cache(venv_dir):
-                _prepare_venv_cache(Venv(venv_dir, backend=backend), None, use_cache=use_cache, refresh=refresh)
-            # on Windows exec_app waits for the script, so holding the lock across it would block every concurrent run
-            # of this script, including one the script starts itself; uv locks the environment while it syncs
-            run_script_via_uv_run(
-                script_path=script_source,
-                venv_dir=venv_dir,
-                app_args=app_args,
-                python=python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                refresh=refresh,
-                dependencies=dependencies,
-                cooldown_days=cooldown_days,
-            )
+            with _running_uv_script_venv(
+                Venv(venv_dir, backend=backend), use_cache=use_cache, refresh=refresh
+            ) as run_venv_dir:
+                run_script_via_uv_run(
+                    script_path=script_source,
+                    venv_dir=run_venv_dir,
+                    app_args=app_args,
+                    python=python,
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    use_cache=use_cache,
+                    verbose=verbose,
+                    refresh=refresh,
+                    dependencies=dependencies,
+                    cooldown_days=cooldown_days,
+                )
         # URL and named-pipe content has no path on disk to hand to ``uv run --script``
         _LOGGER.warning(
             pipx_wrap(
@@ -499,6 +500,33 @@ def _write_cache_secret(secret_path: Path) -> bytes:
 
 
 @contextmanager
+def _running_uv_script_venv(venv: Venv, *, use_cache: bool, refresh: bool) -> Generator[Path]:
+    # on Windows exec_app waits for the script, so holding the cache lock across it would block every concurrent run of
+    # this script, including one the script starts itself; a shared lock lets those through while keeping a wipe or an
+    # expiry sweep away from an environment a script still runs in, and uv locks the environment while it syncs
+    venv_dir: Final[Path] = venv.root
+    with _locked_venv_cache(venv_dir):
+        if (refresh or not use_cache) and _in_use(venv_dir):
+            if refresh and venv_dir.is_dir():
+                # the next run to find the environment idle rebuilds it
+                (venv_dir / _VENV_EXPIRED_FILENAME).touch()
+            running = None
+        else:
+            _prepare_venv_cache(venv, None, use_cache=use_cache, refresh=refresh)
+            running = _run_lock(venv_dir).acquire_read()
+    if running is None:
+        _LOGGER.info("Another run uses the cached venv %s, so this run builds one of its own", venv_dir)
+        private_venv_dir: Final[Path] = venv_dir.with_name(f"{venv_dir.name}-{secrets.token_hex(4)}")
+        try:
+            yield private_venv_dir
+        finally:
+            rmdir(private_venv_dir)
+        return
+    with running:
+        yield venv_dir
+
+
+@contextmanager
 def _locked_venv_cache(venv_dir: Path) -> Generator[None, None, None]:
     from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
@@ -526,9 +554,29 @@ def _remove_expired_venv(venv_dir: Path) -> None:
     if not venv_dir.is_dir():
         return
     age: Final[float] = dt.datetime.now(tz=dt.UTC).timestamp() - venv_dir.stat().st_ctime
-    if age > 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS or (venv_dir / _VENV_EXPIRED_FILENAME).exists():
+    if (
+        age > 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS or (venv_dir / _VENV_EXPIRED_FILENAME).exists()
+    ) and not _in_use(venv_dir):
         _LOGGER.info("Removing expired venv %s", venv_dir)
         rmdir(venv_dir)
+
+
+def _in_use(venv_dir: Path) -> bool:
+    from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    lock: Final[ReadWriteLock] = _run_lock(venv_dir)
+    try:
+        lock.acquire_write(blocking=False)
+    except Timeout:
+        return True
+    lock.release()
+    return False
+
+
+def _run_lock(venv_dir: Path) -> ReadWriteLock:
+    from filelock import ReadWriteLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    return ReadWriteLock(venv_dir.with_name(f".{venv_dir.name}.run"))
 
 
 def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, refresh: bool) -> None:
