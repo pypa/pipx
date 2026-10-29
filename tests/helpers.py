@@ -122,6 +122,12 @@ def unwrap_log_text(log_text: str) -> str:
     return re.sub(r"\n\s+", " ", log_text)
 
 
+def current_log_file() -> Path:
+    log_file = paths.ctx.log_file
+    assert log_file is not None
+    return log_file
+
+
 def _mock_legacy_package_info(modern_package_info: dict[str, Any], metadata_version: str) -> dict[str, Any]:
     if metadata_version in {"0.2", "0.3"}:
         mock_package_info_template = MOCK_PACKAGE_INFO_0_2

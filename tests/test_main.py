@@ -15,7 +15,7 @@ import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import current_log_file, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import constants, main, paths
 from pipx.util import PipxError, redact_url_credentials
@@ -623,7 +623,7 @@ def test_package_is_path_hides_url_credentials(capsys: pytest.CaptureFixture[str
 def test_log_masks_command_line_password_with_space() -> None:
     run_pipx_cli(["upgrade", "--index-url", "https://alice:correct horse@host/simple", "nosuchpackage"])
 
-    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    log: Final[str] = current_log_file().read_text(encoding="utf-8")
     assert "upgrade --index-url https://****:****@host/simple nosuchpackage" in log
 
 
@@ -650,7 +650,7 @@ def test_log_dir_left_world_readable_is_tightened() -> None:
 def test_log_file_is_owner_only() -> None:
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(cast("Path", paths.ctx.log_file).stat().st_mode) == 0o600
+    assert stat.S_IMODE(current_log_file().stat().st_mode) == 0o600
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -659,7 +659,7 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
 
     assert not run_pipx_cli(["list"])
 
-    assert cast("Path", paths.ctx.log_file).parent == paths.ctx.logs
+    assert current_log_file().parent == paths.ctx.logs
 
 
 @pytest.mark.parametrize(
