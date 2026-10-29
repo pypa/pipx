@@ -72,7 +72,10 @@ It is not available on ``install-all``, ``run``, ``exec``, ``runpip``, ``ensurep
 ``pipx list --output json`` without ``--outdated`` does not emit the result envelope; errors still use it. It prints
 the installed-package snapshot that ``install-all`` reads back: an object with ``pipx_spec_version`` (currently
 ``"0.1"``) and a ``venvs`` map of environment name to an object whose ``metadata`` key holds that environment's metadata
-(see :doc:`metadata`). ``pipx list --json`` is a legacy alias for the same snapshot.
+(see :doc:`metadata`). ``pipx list --json`` is a legacy alias for the same snapshot. For a self-managed pipx on Unix,
+the snapshot gives ``source_interpreter`` as ``null`` once the recorded interpreter no longer leads to the one its
+environment runs on, for example a ``python3`` from a bootstrap environment you removed, so ``install-all`` uses the
+default Python there.
 
 .. code-block:: console
 

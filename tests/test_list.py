@@ -10,6 +10,7 @@ import sys
 import time
 import zipfile
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -24,17 +25,17 @@ from helpers import (
     pipx_subprocess_env,
     remove_venv_interpreter,
     run_pipx_cli,
+    write_wheel,
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
-from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, load_spec_file
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata, load_spec_file
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-    from pathlib import Path
+    from collections.abc import Callable, Generator
 
     from pytest_mock import MockerFixture
     from pytest_subprocess import FakeProcess
@@ -230,6 +231,52 @@ def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
         create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False),
     )
+
+
+@pytest.fixture
+def self_managed_pipx(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> PipxMetadata:
+    assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "pipx", "1.0"))])
+    return PipxMetadata(paths.CTX.venvs / "pipx")
+
+
+@pytest.fixture
+def exported_self_managed_interpreter(
+    self_managed_pipx: PipxMetadata, capsys: pytest.CaptureFixture[str]
+) -> Callable[[Path], dict[str, str] | None]:
+    def export(recorded: Path) -> dict[str, str] | None:
+        self_managed_pipx.source_interpreter = recorded
+        self_managed_pipx.write()
+        capsys.readouterr()
+        assert not run_pipx_cli(["list", "--json"])
+        return json.loads(capsys.readouterr().out)["venvs"]["pipx"]["metadata"]["source_interpreter"]
+
+    return export
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.parametrize(
+    "recorded",
+    [
+        pytest.param(Path("bootstrap", "bin", "python3"), id="removed-bootstrap"),
+        pytest.param(Path("/bin/sh"), id="other-file"),
+    ],
+)
+def test_list_json_drops_self_managed_interpreter_not_backing_the_venv(
+    exported_self_managed_interpreter: Callable[[Path], dict[str, str] | None], tmp_path: Path, recorded: Path
+) -> None:
+    assert exported_self_managed_interpreter(tmp_path / recorded) is None
+
+
+@SKIP_IF_WINDOWS
+def test_list_json_keeps_self_managed_interpreter_backing_the_venv(
+    exported_self_managed_interpreter: Callable[[Path], dict[str, str] | None],
+) -> None:
+    backing: Final[Path] = (paths.CTX.venvs / "pipx" / "bin" / "python").resolve()
+
+    assert exported_self_managed_interpreter(backing) == {"__type__": "Path", "__Path__": str(backing)}
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
