@@ -1120,6 +1120,17 @@ def test_run_package_install_failure_expires_cache() -> None:
     assert len(list(paths.ctx.venv_cache.glob("*/pipx_expired_venv"))) == 1
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_app_not_found_keeps_cache(caplog: pytest.LogCaptureFixture) -> None:
+    assert run_pipx_cli(["run", "--spec", "pycowsay", "pycowsayy"]) == 1
+    caplog.set_level(logging.INFO)
+
+    run_pipx_cli_exit(["run", "--spec", "pycowsay", "pycowsay", "hi"], assert_exit=0)
+
+    assert "Reusing cached venv" in caplog.text
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_pip_args_forwarded_to_shared_libs(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture

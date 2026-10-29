@@ -334,28 +334,22 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
             _LOGGER.info("venv location is %s", venv_dir)
-            try:
-                venv, app, app_filename = _prepare_venv(
-                    Path(venv_dir),
-                    package_or_url,
-                    app,
-                    app_filename,
-                    python,
-                    pip_args=pip_args,
-                    venv_args=venv_args,
-                    use_cache=use_cache,
-                    verbose=verbose,
-                    infer_app_name=infer_app_name,
-                    backend=backend,
-                    env_backend=env_backend,
-                    cooldown_days=cooldown_days,
-                    dependencies=dependencies,
-                )
-            except (OSError, PipxError, KeyboardInterrupt):
-                # a half-built venv has no record of its backend, so the next run must start from scratch
-                if venv_dir.is_dir():
-                    (venv_dir / _VENV_EXPIRED_FILENAME).touch()
-                raise
+            venv, app, app_filename = _prepare_venv(
+                Path(venv_dir),
+                package_or_url,
+                app,
+                app_filename,
+                python,
+                pip_args=pip_args,
+                venv_args=venv_args,
+                use_cache=use_cache,
+                verbose=verbose,
+                infer_app_name=infer_app_name,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+                dependencies=dependencies,
+            )
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
@@ -529,19 +523,26 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
 
     override_shared = package_name == "pip"
 
-    venv.create_venv(venv_args, pip_args, override_shared=override_shared)
-    venv.install_package(
-        package_name=package_name,
-        package_or_url=package_or_url,
-        pip_args=pip_args,
-        include_dependencies=False,
-        include_resources_from=(),
-        include_apps=True,
-        is_main_package=True,
-        cooldown_days=cooldown_days,
-        # resolved with the app so a pin or cap on one of its dependencies takes effect
-        extra_requirements=dependencies,
-    )
+    try:
+        venv.create_venv(venv_args, pip_args, override_shared=override_shared)
+        venv.install_package(
+            package_name=package_name,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=False,
+            include_resources_from=(),
+            include_apps=True,
+            is_main_package=True,
+            cooldown_days=cooldown_days,
+            # resolved with the app so a pin or cap on one of its dependencies takes effect
+            extra_requirements=dependencies,
+        )
+    except (OSError, PipxError, KeyboardInterrupt):
+        # a half-built venv has no record of its backend, so the next run must start from scratch; a missing app below
+        # leaves a complete venv the next correct command can reuse
+        if venv_dir.is_dir():
+            (venv_dir / _VENV_EXPIRED_FILENAME).touch()
+        raise
 
     if not venv.has_app(app, app_filename):
         apps = venv.pipx_metadata.main_package.apps
