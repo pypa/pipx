@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = [
-    "pathlib",
-    "pipx.redact",
-    "pipx.wrap",
-]
+__lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
 
 import logging
 import os
