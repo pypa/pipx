@@ -46,6 +46,7 @@ from pipx.backends import (
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import HAZARD
 from pipx.interpreter import get_default_python
+from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
 from pipx.package_specifier import (
     absolute_path_pip_args,
     fix_package_name,
@@ -147,8 +148,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         *,
         verbose: bool = False,
         python: str | None = None,
-        backend: str | None = None,
-        env_backend: str | None = None,
+        backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
     ) -> None:
         self.root: Final[Path] = path
         self.python = python or get_default_python()
@@ -163,8 +163,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             root=self.root,
             existing=recorded,
             metadata_backend=self.pipx_metadata.backend if recorded else None,
-            cli_backend=backend,
-            env_backend=env_backend,
+            cli_backend=backend.cli,
+            env_backend=backend.env,
         )
         self._backend: Backend | None = None
         self._site_packages: list[Path] | None = None
@@ -365,11 +365,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         package_or_url: str,
         pip_args: list[str],
         *,
-        include_dependencies: bool,
-        include_resources_from: Sequence[str],
-        include_apps: bool,
+        exposure: ExposureOptions,
         is_main_package: bool,
-        suffix: str = "",
         install_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
@@ -422,11 +419,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_resources_from=include_resources_from,
-            include_apps=include_apps,
+            exposure=exposure,
             is_main_package=is_main_package,
-            suffix=suffix,
             expected_apps=expected_apps,
             lock_file=lock_file,
             pinned=pinned,
@@ -536,11 +530,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         package_or_url: str,
         pip_args: list[str],
         *,
-        include_dependencies: bool,
-        include_resources_from: Sequence[str],
-        include_apps: bool,
+        exposure: ExposureOptions,
         is_main_package: bool,
-        suffix: str,
         pinned: bool | None = None,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
@@ -558,7 +549,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if lock_file is None:
             lock_file = self.package_metadata[package_name].lock_file if package_name in self.package_metadata else None
         included_dependencies: Final[list[str]] = list(
-            dict.fromkeys(canonicalize_name(name) for name in include_resources_from)
+            dict.fromkeys(canonicalize_name(name) for name in exposure.include_resources_from)
         )
         available_dependencies: Final[set[str]] = (
             venv_package_metadata.app_paths_of_dependencies.keys()
@@ -582,8 +573,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
             pip_args=recordable_pip_args(pip_args),
-            include_apps=include_apps,
-            include_dependencies=include_dependencies,
+            include_apps=exposure.include_apps,
+            include_dependencies=exposure.include_dependencies,
             include_resources_from=included_dependencies,
             apps=venv_package_metadata.apps,
             app_paths=venv_package_metadata.app_paths,
@@ -601,7 +592,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             expected_apps=list(dict.fromkeys(expected_apps)),
             lock_file=lock_file,
             cooldown_days=cooldown_days,
-            suffix=suffix,
+            suffix=exposure.suffix,
             pinned=pinned,
         )
         if is_main_package:
@@ -802,11 +793,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         package_or_url: str,
         pip_args: list[str],
         *,
-        include_dependencies: bool,
-        include_resources_from: Sequence[str],
-        include_apps: bool,
+        exposure: ExposureOptions,
         is_main_package: bool,
-        suffix: str,
         upgrade_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None,
         cooldown_days: int | None,
@@ -833,11 +821,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_resources_from=include_resources_from,
-            include_apps=include_apps,
+            exposure=exposure,
             is_main_package=is_main_package,
-            suffix=suffix,
             expected_apps=expected_apps,
             cooldown_days=cooldown_days,
         )

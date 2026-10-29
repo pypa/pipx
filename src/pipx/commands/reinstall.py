@@ -24,7 +24,7 @@ import contextlib
 import logging
 import sys
 import types
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
 from tempfile import mkdtemp
@@ -55,6 +55,7 @@ from pipx.constants import (
 )
 from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
+from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -80,8 +81,7 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
     verbose: bool,
     skip: Sequence[str],
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> OperationResult[ReinstallData]:
     venv_dirs: Final[list[Path]] = [
         venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in skip
@@ -101,7 +101,6 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
                     verbose=verbose,
                     python_flag_passed=python_flag_passed,
                     backend=backend,
-                    env_backend=env_backend,
                 )
                 for venv_dir in venv_dirs
             ],
@@ -136,8 +135,7 @@ def _reinstall_locked(  # ruff:ignore[too-many-arguments]  # forwards the full r
     python: str,
     verbose: bool,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> OperationResult[ReinstallData]:
     try:
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
@@ -149,7 +147,6 @@ def _reinstall_locked(  # ruff:ignore[too-many-arguments]  # forwards the full r
                 verbose=verbose,
                 python_flag_passed=python_flag_passed,
                 backend=backend,
-                env_backend=env_backend,
                 venv_lock=venv_lock,
             )
     except PipxError as error_raised:
@@ -174,8 +171,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
     python: str,
     verbose: bool,
     python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
+    backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
     venv_lock: BaseFileLock | None,
 ) -> OperationResult[ReinstallData]:
     if not venv_dir.exists():
@@ -201,7 +197,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
             exit_code=EXIT_CODE_REINSTALL_INVALID_PYTHON,
         )
 
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend)
     # checked before the backup, so a refused source leaves the environment as it was
     main_pip_args: Final[list[str]] = trusted_recorded_pip_args(venv.pipx_metadata.main_package.pip_args, venv_dir)
     injected_pip_args: Final[dict[str, list[str]]] = {
@@ -227,6 +223,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
 
     # a legacy environment directory can carry a name that is not canonical; the rebuild uses the canonical one
     canonical_venv_dir: Final[Path] = venv_dir.with_name(canonicalize_name(venv_dir.name))
+    recorded_backend: Final[BackendOptions] = replace(backend, cli=backend.cli or venv.pipx_metadata.backend)
 
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
         with force_replaces_only(old_resource_paths):
@@ -242,16 +239,17 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 verbose=verbose,
                 force=True,
                 reinstall=True,
-                include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-                include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
+                exposure=ExposureOptions(
+                    include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+                    include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
+                    suffix=venv.pipx_metadata.main_package.suffix,
+                ),
                 preinstall_packages=[],
                 expected_apps=venv.pipx_metadata.main_package.expected_apps,
                 lock_file=venv.pipx_metadata.main_package.lock_file,
-                cooldown_days=venv.pipx_metadata.main_package.cooldown_days,
-                suffix=venv.pipx_metadata.main_package.suffix,
+                cooldown=CooldownOptions(cli_days=venv.pipx_metadata.main_package.cooldown_days),
                 python_flag_passed=python_flag_passed,
-                backend=backend or venv.pipx_metadata.backend,
-                env_backend=env_backend,
+                backend=recorded_backend,
                 exposure_enabled=venv.pipx_metadata.exposure_enabled,
                 venv_lock=venv_lock,
                 emit_output=False,
@@ -275,8 +273,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                     # the injected package's index when the injected package depends on it
                     force_reinstall=False,
                     suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
-                    backend=backend or venv.pipx_metadata.backend,
-                    env_backend=env_backend,
+                    backend=recorded_backend,
                     cooldown_days=injected_package.cooldown_days,
                     pinned=injected_package.pinned,
                     emit_output=False,

@@ -31,6 +31,7 @@ from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli, w
 from package_info import PKG
 from pipx import paths, shared_libs, util
 from pipx.commands.run import maybe_script_content, run_package
+from pipx.options import DEFAULT_BACKEND_OPTIONS
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.venv import VenvContainer
 
@@ -1562,8 +1563,7 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
                 python_args=[],
                 refresh=False,
                 infer_app_name=False,
-                backend=None,
-                env_backend=None,
+                backend=DEFAULT_BACKEND_OPTIONS,
                 resolved_backend="pip",
                 no_path_check=True,
                 cooldown_days=None,

@@ -27,6 +27,7 @@ from pipx.main import (
     parse_pipx_args,
     prog_name,
 )
+from pipx.options import BackendOptions
 from pipx.util import PipxError, redact_url_credentials
 from pipx.version import version
 
@@ -591,7 +592,7 @@ def test_validate_backend_silent_on_env_uv_missing(
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
 
-    _validate_backend_available(cli_backend=None, env_backend="uv")
+    _validate_backend_available(BackendOptions(env="uv"))
 
     assert not any("uv" in rec.message.lower() for rec in caplog.records)
 
@@ -600,7 +601,7 @@ def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> Non
     mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
     with pytest.raises(PipxError, match="uv' executable could not be found"):
-        _validate_backend_available(cli_backend="uv", env_backend=None)
+        _validate_backend_available(BackendOptions(cli="uv"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

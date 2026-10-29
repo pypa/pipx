@@ -60,6 +60,7 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
 
+    from pipx.options import BackendOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -212,8 +213,7 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
     *,
     pip_args: list[str],
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None = None,
+    backend: BackendOptions,
     cooldown_days: int | None = None,
 ) -> str:
     start_time: Final[float] = time.time()
@@ -228,7 +228,7 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
 
     if (project_name := local_project_name(package_spec)) is not None:
         backend_name, _ = resolve_backend_name(
-            cli_value=backend, env_value=env_default_backend() if env_backend is None else env_backend
+            cli_value=backend.cli, env_value=env_default_backend() if backend.env is None else backend.env
         )
         # match what the installer would report: pip lists the declared name, uv the normalized one
         package_name = project_name if backend_name == PIP else canonicalize_name(project_name)
@@ -237,7 +237,7 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
         return package_name
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
-        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend, env_backend=env_backend)
+        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend)
         # under pip this can be the call that builds the shared libraries, so their pip must come from the user's index
         venv.create_venv(venv_args=[], pip_args=pip_args)
         package_name = venv.install_package_no_deps(

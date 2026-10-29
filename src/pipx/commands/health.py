@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
+    from pipx.options import BackendOptions
     from pipx.venv import VenvContainer
 
 
@@ -113,8 +114,7 @@ def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reins
     *,
     verbose: bool,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> OperationResult[RepairData]:
     failures: Final[list[_FailedRepair]] = []
     messages: Final[list[OutputMessage]] = []
@@ -139,7 +139,6 @@ def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reins
                         verbose=verbose,
                         python_flag_passed=python_flag_passed,
                         backend=backend,
-                        env_backend=env_backend,
                         venv_lock=venv_lock,
                     )
                 except PipxError as reinstall_error:

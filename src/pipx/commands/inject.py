@@ -18,7 +18,7 @@ __lazy_modules__ = [
 import logging
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from functools import partial
 from pathlib import Path
@@ -37,6 +37,7 @@ from pipx.commands.common import (
 from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
+from pipx.options import DEFAULT_BACKEND_OPTIONS, ExposureOptions
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
 from pipx.result import (
     OperationData,
@@ -56,6 +57,7 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
 
+    from pipx.options import BackendOptions
     from pipx.pipx_metadata_file import PackageInfo
     from pipx.venv_inspect import VenvMetadata
 
@@ -75,8 +77,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     force: bool,
     force_reinstall: bool = True,
     suffix: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     cooldown_days: int | None,
     pinned: bool | None,
     emit_output: bool,
@@ -91,7 +92,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             """
         raise PipxError(msg)
 
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend)
     if not venv.package_metadata:
         msg = f"""
             Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
@@ -117,8 +118,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             os.fspath(venv.python_path),
             pip_args=pip_args,
             verbose=verbose,
-            backend=venv.backend_name,
-            env_backend=env_backend,
+            backend=replace(backend, cli=venv.backend_name),
             cooldown_days=cooldown_days,
         )
 
@@ -189,11 +189,13 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                 package_or_url=package_spec,
                 pip_args=pip_args,
                 install_only_pip_args=reinstall_args,
-                include_dependencies=include_dependencies,
-                include_resources_from=include_resources_from,
-                include_apps=include_apps,
+                exposure=ExposureOptions(
+                    include_apps=include_apps,
+                    include_dependencies=include_dependencies,
+                    include_resources_from=include_resources_from,
+                    suffix=venv_suffix,
+                ),
                 is_main_package=is_main_package,
-                suffix=venv_suffix,
                 pinned=pinned,
                 cooldown_days=cooldown_days,
             ),
@@ -297,8 +299,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
     include_resources_from: Sequence[str],
     force: bool,
     suffix: bool,
-    backend: str | None = None,
-    env_backend: str | None = None,
+    backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
     cooldown_days: int | None,
     pinned: bool | None = None,
     emit_output: bool = True,
@@ -340,7 +341,6 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 force=force,
                 suffix=suffix,
                 backend=backend,
-                env_backend=env_backend,
                 cooldown_days=cooldown_days,
                 pinned=pinned,
                 emit_output=False,

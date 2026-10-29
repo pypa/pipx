@@ -54,6 +54,7 @@ from pipx.constants import (
 from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
+from pipx.options import DEFAULT_COOLDOWN_OPTIONS, BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import package_spec_satisfied, pip_long_option_name, trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
@@ -107,20 +108,16 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     verbose: bool,
     force: bool,
     reinstall: bool,
-    include_dependencies: bool,
-    include_resources_from: Sequence[str],
+    exposure: ExposureOptions,
     preinstall_packages: list[str] | None,
     expected_apps: Sequence[str] = (),
     lock_file: Path | None = None,
-    suffix: str = "",
     python_flag_passed: bool = False,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     exposure_enabled: bool | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
-    cooldown_days: int | None = None,
-    env_cooldown_days: int | None = None,
+    cooldown: CooldownOptions = DEFAULT_COOLDOWN_OPTIONS,
     venv_lock: BaseFileLock | None = None,
     pinned: bool | None = None,
     preserve_existing: bool = False,
@@ -129,7 +126,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     replace_lock: bool = False,
     emit_output: bool = True,
 ) -> OperationResult[InstallData]:
-    validate_suffix(suffix)
+    validate_suffix(exposure.suffix)
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[_InstalledPackage]] = []
     skipped: Final[list[_SkippedInstall]] = []
@@ -140,7 +137,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
             expected_apps,
             preinstall_packages,
             lock_file,
-            cooldown_days,
+            cooldown.cli_days,
             upgrade=upgrade,
             upgrade_strategy=upgrade_strategy,
         )
@@ -149,9 +146,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
         return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
 
     # a lock file already pins every version, leaving PIPX_COOLDOWN nothing to constrain
-    resolution_cooldown: Final[int | None] = (
-        None if lock_file is not None else _first_cooldown(cooldown_days, env_cooldown_days)
-    )
+    resolution_cooldown: Final[int | None] = None if lock_file is not None else cooldown.days
     package_names, resolution_failure, interpreters = _resolve_package_names(
         package_names,
         package_specs,
@@ -160,7 +155,6 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
         tuple(expected_apps),
         verbose=verbose,
         backend=backend,
-        env_backend=env_backend,
         cooldown_days=resolution_cooldown,
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
@@ -173,7 +167,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.CTX.venvs)
     for package_name, package_spec, package_python in zip(package_names, package_specs, interpreters, strict=False):
         if venv_dir is None:
-            venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
+            venv_dir = venv_container.get_venv_dir(f"{package_name}{exposure.suffix}")
 
         with venv_lock or venv_container.venv_lock(venv_dir):
             exists: Final[bool] = venv_dir.exists() and any(venv_dir.iterdir())
@@ -185,8 +179,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                     verbose=verbose,
                     # `pipx install pip` needs pip, which uv venvs lack; an explicit --backend uv still reaches
                     # assert_not_pip_under_uv and fails
-                    backend=(backend or PIP) if installs_pip else backend,
-                    env_backend=None if installs_pip else env_backend,
+                    backend=BackendOptions(cli=backend.cli or PIP) if installs_pip else backend,
                 )
                 required_apps: Final[tuple[str, ...]] = tuple(
                     dict.fromkeys(
@@ -199,10 +192,9 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 required_lock: Final[Path | None] = lock_file if replace_lock else lock_file or recorded_lock
                 required_cooldown: Final[int | None] = _resolve_cooldown(
                     required_lock,
-                    cooldown_days,
+                    cooldown,
                     venv.pipx_metadata.main_package.cooldown_days,
                     modifies_existing=exists and force,
-                    env_cooldown_days=env_cooldown_days,
                 )
                 required_exposure: Final[bool] = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
@@ -247,14 +239,16 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 venv, local_bin_dir, local_man_dir
             )
             preserve_existing_venv: Final[bool] = exists and (
-                preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
+                preserve_existing or bool(required_apps or exposure.include_resources_from) or required_lock is not None
             )
             try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
                 with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
                         rmdir(venv_dir)
-                        venv = Venv(venv_dir, python=venv.python, verbose=verbose, backend=venv.backend_name)
+                        venv = Venv(
+                            venv_dir, python=venv.python, verbose=verbose, backend=BackendOptions(cli=venv.backend_name)
+                        )
                     build: Final[_EnvironmentBuild] = _EnvironmentBuild(
                         venv_args=venv_args,
                         pip_args=pip_args,
@@ -264,9 +258,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         package_name=package_name,
                         package_spec=package_spec,
                         force_reinstall=force and exists,
-                        include_dependencies=include_dependencies,
-                        include_resources_from=include_resources_from,
-                        suffix=suffix,
+                        exposure=exposure,
                         expected_apps=required_apps,
                         lock_file=required_lock,
                         cooldown_days=required_cooldown,
@@ -413,8 +405,7 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
     expected_apps: tuple[str, ...],
     *,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     cooldown_days: int | None,
     fetch_python: FetchPythonOptions,
     python_flag_passed: bool,
@@ -439,7 +430,6 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
                     pip_args=pip_args,
                     verbose=verbose,
                     backend=backend,
-                    env_backend=env_backend,
                     cooldown_days=cooldown_days,
                 )
             except IncompatiblePythonError as error:
@@ -456,7 +446,6 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
                     pip_args=pip_args,
                     verbose=verbose,
                     backend=backend,
-                    env_backend=env_backend,
                     cooldown_days=cooldown_days,
                 )
             resolved.append(name)
@@ -488,19 +477,18 @@ def _supported_python(
 
 def _resolve_cooldown(
     lock_file: Path | None,
-    requested: int | None,
+    requested: CooldownOptions,
     stored: int | None,
     *,
     modifies_existing: bool,
-    env_cooldown_days: int | None = None,
 ) -> int | None:
-    if modifies_existing and lock_file is not None and requested is not None:
+    if modifies_existing and lock_file is not None and requested.cli_days is not None:
         msg = "--cooldown cannot modify a locked environment"
         raise PipxError(msg)
     if lock_file is not None:
         return None
     # PIPX_COOLDOWN states a current machine-wide policy, so it outranks the cooldown the venv was last installed with
-    return _first_cooldown(requested, env_cooldown_days, stored)
+    return _first_cooldown(requested.cli_days, requested.env_days, stored)
 
 
 def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the flat install context for an existing venv
@@ -641,11 +629,8 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
             package_name,
             package_spec,
             main_pip_args,
-            include_dependencies=package_metadata.include_dependencies,
-            include_resources_from=package_metadata.include_resources_from,
-            include_apps=package_metadata.include_apps,
+            exposure=ExposureOptions.recorded(package_metadata),
             is_main_package=True,
-            suffix=package_metadata.suffix,
             upgrade_only_pip_args=[f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None,
             expected_apps=expected_apps,
             cooldown_days=cooldown_days,
@@ -731,9 +716,7 @@ class _EnvironmentBuild:
     package_name: str
     package_spec: str
     force_reinstall: bool
-    include_dependencies: bool
-    include_resources_from: Sequence[str]
-    suffix: str
+    exposure: ExposureOptions
     expected_apps: tuple[str, ...]
     lock_file: Path | None
     cooldown_days: int | None
@@ -752,11 +735,8 @@ class _EnvironmentBuild:
                 package_or_url=self.package_spec,
                 pip_args=self.pip_args,
                 install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
-                include_dependencies=self.include_dependencies,
-                include_resources_from=self.include_resources_from,
-                include_apps=True,
+                exposure=self.exposure,
                 is_main_package=True,
-                suffix=self.suffix,
                 expected_apps=self.expected_apps,
                 lock_file=self.lock_file,
                 cooldown_days=self.cooldown_days,
@@ -791,7 +771,9 @@ def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards
     )
     venv_backup.remove_venv()
     # the rebuild deletes the recorded backend; resolving it again could switch installer and index
-    rebuilt: Final[Venv] = Venv(venv_dir, python=interpreter, verbose=verbose, backend=venv.backend_name)
+    rebuilt: Final[Venv] = Venv(
+        venv_dir, python=interpreter, verbose=verbose, backend=BackendOptions(cli=venv.backend_name)
+    )
     build.run(rebuilt)
     return rebuilt
 
@@ -806,9 +788,8 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
     *,
     verbose: bool,
     force: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
+    backend: BackendOptions,
+    cooldown: CooldownOptions,
     python_flag_passed: bool,
 ) -> ExitCode:
     venvs_metadata: Final[list[PipxMetadata]] = []
@@ -837,8 +818,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     verbose=verbose,
                     force=force,
                     backend=backend,
-                    env_backend=env_backend,
-                    cooldown_days=cooldown_days,
+                    cooldown_days=cooldown.days,
                     python_flag_passed=python_flag_passed,
                 )
                 for venv_metadata in venvs_metadata
@@ -898,8 +878,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     venv_args: list[str],
     verbose: bool,
     force: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     cooldown_days: int | None,
     python_flag_passed: bool,
 ) -> tuple[str, bool]:
@@ -912,13 +891,13 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     try:
         package_pip_args: Final[list[list[str]]] = (
             [pip_args or trusted_recorded_pip_args(package.pip_args, venv_dir) for package in packages]
-            if pip_args or backend in {None, venv_metadata.backend}
-            else _translate_recorded_pip_args(venv_metadata, packages, backend)
+            if pip_args or backend.cli in {None, venv_metadata.backend}
+            else _translate_recorded_pip_args(venv_metadata, packages, backend.cli)
         )
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             package_cooldown: Final[int | None] = _resolve_cooldown(
                 main_package.lock_file,
-                cooldown_days,
+                CooldownOptions(cli_days=cooldown_days),
                 main_package.cooldown_days,
                 modifies_existing=False,
             )
@@ -934,20 +913,21 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                 verbose=verbose,
                 force=force,
                 reinstall=False,
-                include_dependencies=main_package.include_dependencies,
-                include_resources_from=main_package.include_resources_from,
+                exposure=ExposureOptions(
+                    include_dependencies=main_package.include_dependencies,
+                    include_resources_from=main_package.include_resources_from,
+                    suffix=main_package.suffix,
+                ),
                 preinstall_packages=[],
                 expected_apps=main_package.expected_apps,
                 lock_file=main_package.lock_file,
-                suffix=main_package.suffix,
                 python_flag_passed=python_flag_passed,
-                backend=backend or venv_metadata.backend,
-                env_backend=env_backend,
+                backend=replace(backend, cli=backend.cli or venv_metadata.backend),
                 exposure_enabled=venv_metadata.exposure_enabled,
                 replace_expected_apps=True,
                 replace_lock=True,
                 venv_lock=venv_lock,
-                cooldown_days=package_cooldown,
+                cooldown=CooldownOptions(cli_days=package_cooldown),
                 pinned=main_package.pinned,
             )
             # install left an existing environment alone, so its injected packages must not change it either

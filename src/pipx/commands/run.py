@@ -12,6 +12,7 @@ __lazy_modules__ = [
     "pipx.backends",
     "pipx.commands.common",
     "pipx.commands.run_uv",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.requires_python",
     "pipx.script",
@@ -48,6 +49,7 @@ from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import HAZARD
+from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
@@ -57,6 +59,8 @@ from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
+
+    from pipx.options import BackendOptions, CooldownOptions
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -81,9 +85,8 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
     python_args: list[str],
     refresh: bool,
     no_path_check: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
+    backend: BackendOptions,
+    cooldown: CooldownOptions,
     python_flag_passed: bool,
     fetch_python: FetchPythonOptions,
 ) -> NoReturn:
@@ -95,7 +98,7 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
 
     # the resolved backend only picks the route, uv tool run or a venv; the venv still gets the CLI and environment
     # values apart, so it attributes the backend to the right source
-    resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
+    resolved_backend, _ = resolve_backend_name(cli_value=backend.cli, env_value=backend.env)
     # uv cannot discover inferred app names or pipx.run entry points before installing the package
     use_uvx: Final[bool] = (
         resolved_backend == UV
@@ -116,11 +119,10 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
             use_cache=use_cache,
             refresh=refresh,
             backend=backend,
-            env_backend=env_backend,
             resolved_backend=resolved_backend,
             script_source=Path(app) if isinstance(content, Path) else None,
             dependencies=dependencies,
-            cooldown_days=cooldown_days,
+            cooldown_days=cooldown.days,
             python_args=python_args,
             python_flag_passed=python_flag_passed,
             fetch_python=fetch_python,
@@ -138,7 +140,7 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
             refresh=refresh,
             verbose=verbose,
             no_path_check=no_path_check,
-            cooldown_days=cooldown_days,
+            cooldown_days=cooldown.days,
         )
     else:
         run_package(
@@ -155,10 +157,9 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
             refresh=refresh,
             infer_app_name=infer_app_name,
             backend=backend,
-            env_backend=env_backend,
             resolved_backend=resolved_backend,
             no_path_check=no_path_check,
-            cooldown_days=cooldown_days,
+            cooldown_days=cooldown.days,
             python_args=python_args,
         )
 
@@ -225,8 +226,7 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
     use_cache: bool,
     python_args: list[str],
     refresh: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     resolved_backend: str,
     script_source: Path | None,
     dependencies: list[str],
@@ -272,9 +272,7 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
                 cooldown_days=cooldown_days,
             )
             with _locked_venv_cache(venv_dir):
-                _prepare_venv_cache(
-                    Venv(venv_dir, backend=backend, env_backend=env_backend), None, use_cache=use_cache, refresh=refresh
-                )
+                _prepare_venv_cache(Venv(venv_dir, backend=backend), None, use_cache=use_cache, refresh=refresh)
             # on Windows exec_app waits for the script, so holding the lock across it would block every concurrent run
             # of this script, including one the script starts itself; uv locks the environment while it syncs
             run_script_via_uv_run(
@@ -318,12 +316,12 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
         cooldown_days=cooldown_days,
     )
     with _locked_venv_cache(venv_dir):
-        venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+        venv = Venv(venv_dir, backend=backend)
         _prepare_venv_cache(venv, None, use_cache=use_cache, refresh=refresh)
         if venv_dir.exists():
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
-            venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
+            venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             try:
                 venv.create_venv(venv_args, pip_args)
@@ -568,8 +566,7 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
     python_args: list[str],
     refresh: bool,
     infer_app_name: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     resolved_backend: str,
     no_path_check: bool,
     cooldown_days: int | None,
@@ -618,7 +615,7 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
     )
 
     with _locked_venv_cache(venv_dir):
-        venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+        venv = Venv(venv_dir, backend=backend)
         if infer_app_name and (cached := venv.pipx_metadata.main_package).package is not None:
             # repeat ``_prepare_venv``'s sole-script fallback, else the cache check below misses and rebuilds the venv
             app, app_filename = _app_names(cached.apps[0] if len(cached.apps) == 1 else cached.package)
@@ -640,7 +637,6 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
                 verbose=verbose,
                 infer_app_name=infer_app_name,
                 backend=backend,
-                env_backend=env_backend,
                 cooldown_days=cooldown_days,
                 dependencies=dependencies,
             )
@@ -668,12 +664,11 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
     use_cache: bool,
     verbose: bool,
     infer_app_name: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     cooldown_days: int | None,
     dependencies: Sequence[str],
 ) -> tuple[Venv, str, str]:
-    venv: Final[Venv] = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, python=python, verbose=verbose, backend=backend)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package is not None:
@@ -686,7 +681,6 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
             pip_args=pip_args,
             verbose=verbose,
             backend=backend,
-            env_backend=env_backend,
             cooldown_days=cooldown_days,
         )
 
@@ -699,9 +693,7 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
-            include_dependencies=False,
-            include_resources_from=(),
-            include_apps=True,
+            exposure=ExposureOptions(),
             is_main_package=True,
             cooldown_days=cooldown_days,
             # resolved with the app so a pin or cap on one of its dependencies takes effect

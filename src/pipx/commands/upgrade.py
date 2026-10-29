@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.script",
@@ -43,6 +44,7 @@ from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
+from pipx.options import CooldownOptions, ExposureOptions
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -59,6 +61,7 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
     from pipx.commands.outdated import OutdatedData
+    from pipx.options import BackendOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -75,9 +78,8 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
     force: bool,
     install: bool,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
+    backend: BackendOptions,
+    cooldown: CooldownOptions,
 ) -> OperationResult[UpgradeData]:
     results: Final[list[_PackageUpgradeResult]] = []
     install_messages: Final[list[OutputMessage]] = []
@@ -97,9 +99,8 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
                     python=python,
                     python_flag_passed=python_flag_passed,
                     backend=backend,
-                    env_backend=env_backend,
                     venv_lock=venv_lock,
-                    cooldown_days=cooldown_days,
+                    cooldown_days=cooldown.days,
                     extra_messages=install_messages,
                 )
             )
@@ -127,8 +128,7 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
     venv_args: list[str] | None = None,
     python: str | None = None,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     venv: Venv | None = None,
     packages_to_upgrade: Collection[str] | None = None,
     venv_lock: BaseFileLock | None,
@@ -151,14 +151,12 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
                 verbose=verbose,
                 force=force,
                 reinstall=False,
-                include_dependencies=False,
-                include_resources_from=(),
+                exposure=ExposureOptions(),
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
                 backend=backend,
-                env_backend=env_backend,
                 venv_lock=venv_lock,
-                cooldown_days=cooldown_days,
+                cooldown=CooldownOptions(cli_days=cooldown_days),
                 emit_output=False,
             )
             # install does not raise when it does not render, so surface a failed result here
@@ -183,7 +181,6 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
             venv_dir,
             verbose=verbose,
             backend=backend,
-            env_backend=env_backend,
             venv_lock=venv_lock,
             messages=extra_messages,
         )
@@ -230,12 +227,11 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
         )
 
 
-def _repaired_venv(  # ruff:ignore[too-many-arguments]  # forwards the reinstall context for one venv
+def _repaired_venv(
     venv_dir: Path,
     *,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     venv_lock: BaseFileLock | None,
     messages: list[OutputMessage],
 ) -> Venv:
@@ -249,11 +245,10 @@ def _repaired_venv(  # ruff:ignore[too-many-arguments]  # forwards the reinstall
                 python=_base_python(Venv(venv_dir)),
                 verbose=verbose,
                 backend=backend,
-                env_backend=env_backend,
                 venv_lock=venv_lock,
             ).messages
         )
-    return Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    return Venv(venv_dir, verbose=verbose, backend=backend)
 
 
 def _base_python(venv: Venv) -> str:
@@ -370,11 +365,8 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
         package_name,
         parse_specifier_for_upgrade(package_metadata.package_or_url),
         pip_args,
-        include_dependencies=package_metadata.include_dependencies,
-        include_resources_from=package_metadata.include_resources_from,
-        include_apps=package_metadata.include_apps,
+        exposure=ExposureOptions.recorded(package_metadata),
         is_main_package=is_main_package,
-        suffix=package_metadata.suffix,
         expected_apps=package_metadata.expected_apps,
         cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
     )
@@ -491,9 +483,8 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
+    backend: BackendOptions,
+    cooldown: CooldownOptions,
 ) -> OperationResult[UpgradeData]:
     outdated: Final[OutdatedData] = inspect_outdated(
         venv_container,
@@ -502,7 +493,6 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
         pip_args=pip_args,
         skip=skip,
         backend=backend,
-        env_backend=env_backend,
     )
     candidates: Final[set[tuple[str, str]]] = {
         (package.environment, package.package) for package in outdated.packages
@@ -532,8 +522,7 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
                     force=force,
                     python_flag_passed=python_flag_passed,
                     backend=backend,
-                    env_backend=env_backend,
-                    cooldown_days=cooldown_days,
+                    cooldown_days=cooldown.days,
                     candidates=candidates,
                     check_failures=check_failures,
                 )
@@ -595,8 +584,7 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     cooldown_days: int | None,
     candidates: set[tuple[str, str]],
     check_failures: dict[str, list[str]],
@@ -612,7 +600,6 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
                 venv_dir,
                 verbose=verbose,
                 backend=backend,
-                env_backend=env_backend,
                 venv_lock=venv_lock,
                 messages=messages,
             )
@@ -631,7 +618,6 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
                 force=force,
                 python_flag_passed=python_flag_passed,
                 backend=backend,
-                env_backend=env_backend,
                 venv=venv,
                 packages_to_upgrade={
                     package_name

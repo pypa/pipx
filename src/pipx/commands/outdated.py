@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx.constants import ExitCode
+from pipx.options import DEFAULT_BACKEND_OPTIONS
 from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Sequence
     from pathlib import Path
 
+    from pipx.options import BackendOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 
@@ -79,8 +81,7 @@ def inspect_outdated(  # ruff:ignore[too-many-arguments]  # forwards the full ou
     upgradable_only: bool = False,
     pip_args: Sequence[str] = (),
     skip: Collection[str] = (),
-    backend: str | None = None,
-    env_backend: str | None = None,
+    backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
     venv_dirs: Collection[Path] | None = None,
 ) -> OutdatedData:
     selected_venv_dirs: Final[tuple[Path, ...]] = tuple(
@@ -97,7 +98,6 @@ def inspect_outdated(  # ruff:ignore[too-many-arguments]  # forwards the full ou
         upgradable_only=upgradable_only,
         pip_args=pip_args,
         backend=backend,
-        env_backend=env_backend,
     )
     packages: Final[tuple[_OutdatedPackage, ...]] = tuple(
         sorted(
@@ -132,8 +132,7 @@ def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards 
     include_injected: bool,
     upgradable_only: bool,
     pip_args: Sequence[str],
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> tuple[_EnvironmentOutdated, ...]:
     if not venv_dirs:
         return ()
@@ -144,7 +143,6 @@ def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards 
         upgradable_only=upgradable_only,
         pip_args=pip_args,
         backend=backend,
-        env_backend=env_backend,
     )
     if len(venv_dirs) == 1:
         return (check(venv_dirs[0]),)
@@ -159,14 +157,13 @@ def _list_environment_outdated(  # ruff:ignore[too-many-arguments]  # forwards t
     include_injected: bool,
     upgradable_only: bool,
     pip_args: Sequence[str],
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> _EnvironmentOutdated:
     with venv_container.venv_lock(venv_dir):
         if not venv_dir.is_dir():
             return _EnvironmentOutdated()
         return _list_venv_outdated(
-            Venv(venv_dir, backend=backend, env_backend=env_backend),
+            Venv(venv_dir, backend=backend),
             include_injected=include_injected,
             upgradable_only=upgradable_only,
             pip_args=pip_args,

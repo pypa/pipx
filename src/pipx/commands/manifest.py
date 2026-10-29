@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.expose",
     "pipx.commands.install",
     "pipx.commands.uninstall",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.util",
@@ -38,6 +39,7 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.options import ExposureOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import (
@@ -53,6 +55,7 @@ from pipx.util import PipxError, redact_url_credentials
 if TYPE_CHECKING:
     from typing import TypeIs
 
+    from pipx.options import BackendOptions
     from pipx.venv import VenvContainer
 
 
@@ -65,8 +68,7 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
     *,
     verbose: bool,
     prune: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
 ) -> OperationResult[ManifestData]:
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
@@ -95,14 +97,15 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                         verbose=verbose,
                         force=existed,
                         reinstall=False,
-                        include_dependencies=tool.include_dependencies,
-                        include_resources_from=tool.include_resources_from,
+                        exposure=ExposureOptions(
+                            include_dependencies=tool.include_dependencies,
+                            include_resources_from=tool.include_resources_from,
+                            suffix=tool.suffix,
+                        ),
                         preinstall_packages=None,
                         expected_apps=tool.apps,
                         lock_file=tool.lock_file,
-                        suffix=tool.suffix,
                         backend=backend,
-                        env_backend=env_backend,
                         exposure_enabled=tool.expose,
                         preserve_existing=True,
                         replace_expected_apps=True,

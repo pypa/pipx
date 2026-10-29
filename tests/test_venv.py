@@ -11,6 +11,7 @@ import pytest
 from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from pipx import paths, pipx_metadata_file
 from pipx.backends import UV, Backend
+from pipx.options import BackendOptions, ExposureOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError, redact_url_credentials
 from pipx.venv import Venv, reset_backend_override_warnings
@@ -127,11 +128,8 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
                 "demo",
                 "demo",
                 [],
-                include_dependencies=False,
-                include_resources_from=[],
-                include_apps=True,
+                exposure=ExposureOptions(),
                 is_main_package=True,
-                suffix="",
                 expected_apps=None,
                 cooldown_days=None,
             ),
@@ -184,9 +182,9 @@ def test_backend_override_warning_dedups_per_venv(
     reset_backend_override_warnings()
     caplog.set_level("WARNING", logger="pipx.venv")
 
-    Venv(venv_dir, backend="uv")
-    Venv(venv_dir, backend="uv")
-    Venv(venv_dir, backend="uv")
+    Venv(venv_dir, backend=BackendOptions(cli="uv"))
+    Venv(venv_dir, backend=BackendOptions(cli="uv"))
+    Venv(venv_dir, backend=BackendOptions(cli="uv"))
 
     assert len([rec for rec in caplog.records if "Ignoring --backend=uv" in rec.message]) == 1
 
@@ -204,7 +202,7 @@ def test_venv_without_record_resolves_like_a_fresh_one(
     (venv_dir := tmp_path / "demo").mkdir()
     (venv_dir / "pyvenv.cfg").touch()
 
-    venv: Final[Venv] = Venv(venv_dir, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, backend=BackendOptions(cli=backend, env=env_backend))
 
     assert (venv.backend_name, venv.backend_source) == expected
 

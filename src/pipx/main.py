@@ -16,6 +16,7 @@ __lazy_modules__ = [
     "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.result",
     "pipx.shared_libs",
@@ -82,6 +83,7 @@ from pipx.interpreter import (
     get_default_python,
     get_default_python_spec,
 )
+from pipx.options import BackendOptions, CooldownOptions, ExposureOptions
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
@@ -616,19 +618,19 @@ def _cmd_install(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         force=args.force,
         upgrade=args.upgrade,
         reinstall=False,
-        include_dependencies=args.include_deps,
-        include_resources_from=args.include_resources_from,
+        exposure=ExposureOptions(
+            include_dependencies=args.include_deps,
+            include_resources_from=args.include_resources_from,
+            suffix=args.suffix,
+        ),
         preinstall_packages=args.preinstall,
         expected_apps=args.app or (),
         lock_file=args.lock,
-        suffix=args.suffix,
         python_flag_passed=ctx.python_flag_passed,
         fetch_python=ctx.fetch_python,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
         upgrade_strategy=args.upgrade_strategy,
-        cooldown_days=ctx.cooldown_days,
-        env_cooldown_days=ctx.env_cooldown_days,
+        cooldown=ctx.cooldown,
         emit_output=False,
     )
 
@@ -670,8 +672,7 @@ def _cmd_install_all(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
         verbose=ctx.verbose,
         force=args.force,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        cooldown=ctx.cooldown,
         python_flag_passed=ctx.python_flag_passed,
     )
 
@@ -813,8 +814,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRes
             force=args.force,
             suffix=args.with_suffix,
             backend=ctx.backend,
-            env_backend=ctx.env_backend,
-            cooldown_days=ctx.effective_cooldown_days,
+            cooldown_days=ctx.cooldown.days,
             emit_output=False,
         )
 
@@ -985,8 +985,7 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         install=args.install,
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        cooldown=ctx.cooldown,
     )
 
 
@@ -1044,8 +1043,7 @@ def _cmd_upgrade_all(args: argparse.Namespace, ctx: _DispatchContext) -> Operati
         pip_args=ctx.pip_args,
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        cooldown=ctx.cooldown,
     )
 
 
@@ -1204,7 +1202,6 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
             verbose=ctx.verbose,
             python_flag_passed=ctx.python_flag_passed,
             backend=ctx.backend,
-            env_backend=ctx.env_backend,
             venv_lock=venv_lock,
         )
 
@@ -1250,7 +1247,6 @@ def _cmd_reinstall_all(args: argparse.Namespace, ctx: _DispatchContext) -> Opera
         skip=ctx.skip_list,
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
     )
 
 
@@ -1313,7 +1309,6 @@ def _cmd_repair(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRes
         verbose=ctx.verbose,
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
     )
 
 
@@ -1551,7 +1546,6 @@ def _cmd_sync(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResul
         verbose=ctx.verbose,
         prune=args.prune,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
     )
 
 
@@ -1673,8 +1667,7 @@ def _cmd_run(args: argparse.Namespace, ctx: _DispatchContext) -> NoReturn:
         refresh=args.refresh,
         no_path_check=args.no_path_check,
         backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        cooldown=ctx.cooldown,
         python_args=args.python_args,
         python_flag_passed=ctx.python_flag_passed,
         fetch_python=ctx.fetch_python,
@@ -2132,9 +2125,10 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
             )
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
-    cli_backend: Final[str | None] = getattr(args, "backend", None) or None
-    env_backend: Final[str | None] = env_default_backend()
-    _validate_backend_available(cli_backend, env_backend)
+    backend: Final[BackendOptions] = BackendOptions(
+        cli=getattr(args, "backend", None) or None, env=env_default_backend()
+    )
+    _validate_backend_available(backend)
 
     ctx: Final[_DispatchContext] = _DispatchContext(
         fetch_python=args.fetch_python if "fetch_python" in args else FetchPythonOptions.NEVER,
@@ -2146,14 +2140,14 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         python=python,
         python_flag_passed=bool(getattr(args, "python", None)),
         spec=spec,
-        backend=cli_backend,
-        env_backend=env_backend,
-        cooldown_days=getattr(args, "cooldown", None),
-        env_cooldown_days=COOLDOWN if "cooldown" in args else None,
+        backend=backend,
+        cooldown=CooldownOptions(
+            cli_days=getattr(args, "cooldown", None), env_days=COOLDOWN if "cooldown" in args else None
+        ),
     )
     with (
         skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)),
-        shared_pip_cooldown(ctx.effective_cooldown_days),
+        shared_pip_cooldown(ctx.cooldown.days),
         # pip writes its progress to stdout, which under JSON belongs to the envelope alone
         stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
     ):
@@ -2184,9 +2178,9 @@ def package_is_path(package: str) -> None:
         )
 
 
-def _validate_backend_available(cli_backend: str | None, env_backend: str | None) -> None:
+def _validate_backend_available(backend: BackendOptions) -> None:
     # no auto-detection: it costs a `uv --version` subprocess, also for the commands that never build a backend
-    name, source = resolve_backend_name(cli_value=cli_backend, env_value=env_backend, auto=False)
+    name, source = resolve_backend_name(cli_value=backend.cli, env_value=backend.env, auto=False)
     if source in {"cli", "env"}:
         _LOGGER.info("Backend resolved to %s (source: %s)", name, source)
     # only an explicit --backend uv fails early; a uv picked by the environment stays silent so diagnostic commands,
@@ -2205,16 +2199,9 @@ class _DispatchContext:
     python: str
     python_flag_passed: bool
     spec: str | None
-    backend: str | None
-    env_backend: str | None
-    cooldown_days: int | None
-    env_cooldown_days: int | None
+    backend: BackendOptions
+    cooldown: CooldownOptions
     fetch_python: FetchPythonOptions
-
-    @property
-    def effective_cooldown_days(self) -> int | None:
-        # install takes the two apart instead, so a lock file can override the machine-wide policy
-        return self.cooldown_days if self.cooldown_days is not None else self.env_cooldown_days
 
 
 def get_pip_args(args: argparse.Namespace) -> list[str]:
