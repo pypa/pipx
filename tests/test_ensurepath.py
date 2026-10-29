@@ -37,15 +37,14 @@ def mock_userpath(mocker: MockerFixture) -> MagicMock:
 
 
 def test_ensure_path_dry_run_does_not_append(mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
-    path_added, _ = ensure_path_module.ensure_path(
-        Path("/some/bin"), force=True, prepend=False, all_shells=False, dry_run=True
-    )
+    location: Final[Path] = Path("/some/bin")
+    path_added, _ = ensure_path_module.ensure_path(location, force=True, prepend=False, all_shells=False, dry_run=True)
 
     assert (path_added, mock_userpath.append.called, mock_userpath.prepend.called, capsys.readouterr().out) == (
         False,
         False,
         False,
-        "Would append /some/bin to the PATH environment variable.\n",
+        f"Would append {location} to the PATH environment variable.\n",
     )
 
 

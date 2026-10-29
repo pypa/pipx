@@ -212,18 +212,14 @@ def test_venv_without_record_resolves_like_a_fresh_one(
 def test_package_name_determination_preserves_install_error(mocker: MockerFixture, tmp_path: Path) -> None:
     (tmp_path / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(tmp_path)
-    backend: Final[MagicMock] = mocker.create_autospec(
-        Backend,
-        instance=True,
-        **{
-            "cooldown_args.return_value": [],
-            "install.return_value": subprocess.CompletedProcess(
-                ["pip", "install", "requires-newer-python"],
-                1,
-                stdout="",
-                stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
-            ),
-        },
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    # Python before 3.14 ignores a keyword argument naming a method of an autospec
+    backend.cooldown_args.return_value = []
+    backend.install.return_value = subprocess.CompletedProcess(
+        ["pip", "install", "requires-newer-python"],
+        1,
+        stdout="",
+        stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
     )
     mocker.patch.object(venv, "_backend", backend)
     mocker.patch.object(venv, "list_installed_packages", return_value=set())

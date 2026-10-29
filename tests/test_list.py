@@ -76,9 +76,9 @@ def test_list_reports_unreadable_metadata_per_environment(
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
     (venv_dir := tmp_path / "venvs" / "example").mkdir(parents=True)
     venv_container: Final[venv.VenvContainer] = venv.VenvContainer(venv_dir.parent)
-    lock: Final = mocker.create_autospec(
-        BaseFileLock, instance=True, **{"acquire.side_effect": PermissionError("read-only lock file")}
-    )
+    lock: Final = mocker.create_autospec(BaseFileLock, instance=True)
+    # Python before 3.14 ignores a keyword argument naming a method of an autospec
+    lock.acquire.side_effect = PermissionError("read-only lock file")
     mocker.patch.object(venv_container, "venv_lock", return_value=lock)
     mocker.patch.object(
         importlib.import_module("pipx.commands.list_packages"),

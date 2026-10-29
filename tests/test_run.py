@@ -1542,11 +1542,9 @@ def test_run_cache_key_ignores_unrelated_env(
 @pytest.fixture
 def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
     # stop at the filesystem boundary before installing conflicting argument sets
-    lock: Final = mocker.patch(
-        "filelock.FileLock",
-        autospec=True,
-        **{"return_value.__enter__.side_effect": OSError("cache lock unavailable")},
-    )
+    lock: Final = mocker.patch("filelock.FileLock", autospec=True)
+    # Python before 3.14 does not configure a dunder of an autospec through keyword arguments
+    lock.return_value.__enter__.side_effect = OSError("cache lock unavailable")
 
     def capture(dependencies: list[str], pip_args: list[str], venv_args: list[str]) -> Path:
         with pytest.raises(OSError, match="cache lock unavailable"):
