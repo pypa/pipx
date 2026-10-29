@@ -8,15 +8,7 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = [
-    "packaging.specifiers",
-    "packaging.utils",
-    "pathlib",
-    "pipx.util",
-    "re",
-    "tomllib",
-    "urllib.parse",
-]
+__lazy_modules__ = ["packaging.specifiers", "packaging.utils", "pathlib", "pipx.util", "re", "tomllib", "urllib.parse"]
 
 import logging
 import os
