@@ -414,6 +414,30 @@ def test_get_exposed_paths_matches_copied_launcher_with_quoted_interpreter(
     assert get_exposed_paths_for_package(venv_resource_path, local_resource_dir) == {launcher}
 
 
+# pip and uv start a launcher this way when the interpreter path is too long for a shebang or holds a space
+@pytest.mark.parametrize(
+    ("exec_line", "owned"),
+    [
+        pytest.param("'''exec' {python} \"$0\" \"$@\"", True, id="pip-unquoted"),
+        pytest.param('\'\'\'exec\' "{python}" "$0" "$@"', True, id="pip-double-quoted"),
+        pytest.param("'''exec' '{python}' \"$0\" \"$@\"", True, id="uv-single-quoted"),
+        pytest.param("'''exec' '{python}", False, id="unbalanced-quote"),
+        pytest.param("'''exec' ", False, id="no-interpreter"),
+    ],
+)
+def test_get_exposed_paths_matches_copied_launcher_with_sh_trampoline(
+    tmp_path: Path, mocker: MockerFixture, exec_line: str, owned: bool
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (launcher := local_resource_dir / "myapp").write_text(
+        f"#!/bin/sh\n{exec_line.format(python=venv_resource_path / 'python')}\n' '''\n"
+    )
+
+    assert (launcher in get_exposed_paths_for_package(venv_resource_path, local_resource_dir)) is owned
+
+
 def test_get_exposed_paths_ignores_unreadable_copy(tmp_path: Path, mocker: MockerFixture) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     (venv_resource_path := tmp_path / "venv_bin").mkdir()
