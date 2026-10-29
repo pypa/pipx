@@ -69,7 +69,7 @@ def test_list_reports_unreadable_metadata_per_environment(
         run_pipx_cli(["list", *flags]),
         listed in capsys.readouterr().out,
         "package pycowsay has pipx metadata this user cannot read" in caplog.text,
-        "missing internal pipx metadata" in caplog.text,
+        "has no internal pipx metadata" in caplog.text,
     ) == (constants.EXIT_CODE_LIST_PROBLEM, True, True, False)
 
 
@@ -136,7 +136,7 @@ def test_list_legacy_venv_without_metadata(capsys: pytest.CaptureFixture[str]) -
     mock_legacy_venv("pycowsay", metadata_version=None)
 
     assert run_pipx_cli(["list"])
-    assert "package pycowsay has missing internal pipx metadata" in capsys.readouterr().err
+    assert "package pycowsay has no internal pipx metadata" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1", "0.2", "0.3"])

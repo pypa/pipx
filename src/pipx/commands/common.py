@@ -847,7 +847,7 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {RED(BOLD(venv_dir.name))} has missing internal pipx metadata.\r{HAZARD}",
+            f"   package {RED(BOLD(venv_dir.name))} has no internal pipx metadata.\r{HAZARD}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
