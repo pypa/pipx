@@ -39,7 +39,7 @@ from importlib.machinery import all_suffixes
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Literal
 
 import userpath
 from packaging.utils import canonicalize_name
@@ -51,17 +51,17 @@ from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import HAZARD, STARS
 from pipx.fanout import in_turn
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
-from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, is_file_name, mkdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Collection, Generator, Iterable, Mapping, Sequence
 
     from pipx.options import BackendOptions
-    from pipx.pipx_metadata_file import PackageInfo
+    from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
@@ -1008,6 +1008,83 @@ def locked_package_message(package_name: str) -> str:
     return f"Not upgrading locked package {package_name}. Update its lock file and run `pipx reinstall {package_name}`."
 
 
+def get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
+    if venv.pipx_metadata.main_package.package is not None:
+        return tuple(venv.package_metadata.values())
+    if not venv.python_path.is_file():
+        return None
+    try:
+        venv_metadata: Final[VenvMetadata] = venv.get_venv_metadata_for_package(venv.root.name, set())
+    except PipxError as error:
+        # an environment that cannot report its packages is still removable, from the links that point into it
+        _LOGGER.warning("%s  Unable to inspect %s, removing it anyway: %s", HAZARD, venv.name, error)
+        return None
+    return (
+        PackageInfo(
+            package=venv.root.name,
+            package_or_url="",
+            pip_args=[],
+            include_apps=True,
+            include_dependencies=False,
+            apps=venv_metadata.apps,
+            app_paths=venv_metadata.app_paths,
+            apps_of_dependencies=venv_metadata.apps_of_dependencies,
+            app_paths_of_dependencies=venv_metadata.app_paths_of_dependencies,
+            man_pages=venv_metadata.man_pages,
+            man_paths=venv_metadata.man_paths,
+            man_pages_of_dependencies=venv_metadata.man_pages_of_dependencies,
+            man_paths_of_dependencies=venv_metadata.man_paths_of_dependencies,
+            package_version=venv_metadata.package_version,
+            suffix="",
+        ),
+    )
+
+
+def get_venv_resource_paths(
+    resource_type: Literal["app", "man", "completion"],
+    venv_resource_path: Path,
+    local_resource_dir: Path,
+    package_infos: tuple[PackageInfo, ...] | None,
+) -> set[Path]:
+    if package_infos is not None:
+        get_package_resource_paths: Final[Callable[[PackageInfo, Path, Path], set[Path]]] = {
+            "app": get_package_bin_dir_app_paths,
+            "man": get_package_man_paths,
+            "completion": get_package_completion_paths,
+        }[resource_type]
+        return set().union(
+            *(
+                get_package_resource_paths(package_info, venv_resource_path, local_resource_dir)
+                for package_info in package_infos
+            )
+        )
+
+    # without metadata, pipx infers ownership from link targets
+    if not local_resource_dir.is_dir() or not can_symlink(local_resource_dir):
+        return set()
+    return get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+
+
+def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
+
+
+def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
+    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
+
+
+def get_package_completion_paths(
+    package_info: PackageInfo,
+    venv_completion_path: Path,
+    local_completion_dir: Path,
+) -> set[Path]:
+    return get_exposed_paths_for_package(
+        venv_completion_path,
+        local_completion_dir,
+        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
+    )
+
+
 __all__ = [
     "VenvProblems",
     "add_suffix",
@@ -1022,6 +1099,11 @@ __all__ = [
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
+    "get_package_bin_dir_app_paths",
+    "get_package_completion_paths",
+    "get_package_man_paths",
+    "get_venv_package_infos",
+    "get_venv_resource_paths",
     "get_venv_summary",
     "give_back_shared_links",
     "group_app_paths",

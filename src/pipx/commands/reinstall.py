@@ -10,7 +10,6 @@ __lazy_modules__ = [
     "pipx.commands.inject",
     "pipx.commands.install",
     "pipx.commands.transaction",
-    "pipx.commands.uninstall",
     "pipx.fanout",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -39,12 +38,13 @@ from pipx.commands.common import (
     drop_links_taken_over,
     expose_shared_resources_in_order,
     force_replaces_only,
+    get_venv_package_infos,
+    get_venv_resource_paths,
     give_back_shared_links,
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished, rename_once_released
-from pipx.commands.uninstall import get_venv_package_infos, get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,

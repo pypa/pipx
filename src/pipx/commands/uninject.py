@@ -6,7 +6,6 @@ __lazy_modules__ = [
     "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
-    "pipx.commands.uninstall",
     "pipx.util",
     "pipx.venv",
     "pipx.venv_inspect",
@@ -26,16 +25,14 @@ from pipx.commands.common import (
     drop_links_taken_over,
     exposed_app_names,
     get_expected_venv_resource_paths,
+    get_package_bin_dir_app_paths,
+    get_package_completion_paths,
+    get_package_man_paths,
 )
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
     InjectionStatus,
-)
-from pipx.commands.uninstall import (
-    get_package_bin_dir_app_paths,
-    get_package_completion_paths,
-    get_package_man_paths,
 )
 from pipx.constants import (
     COMPLETION_SECTIONS,
