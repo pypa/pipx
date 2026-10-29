@@ -62,45 +62,6 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _VENV_EXPIRED_FILENAME: Final[str] = "pipx_expired_venv"
 _VCS_SCHEMES: Final[frozenset[str]] = frozenset({"bzr", "git", "hg", "svn"})
 
-# The installer reads far more of its environment than any list could track (pip takes PIP_ followed by any option
-# name or alias, in any case, with - or _), so the cache key takes every PIP_*/UV_* variable except these, which
-# cannot change what gets resolved or installed: they tune timeouts, retries, parallelism, output and the cache, or
-# are set by `uv run` for its children. Names are compared as pip sees them: upper case with _ for -.
-_PIP_UNKEYED_ENV: Final[frozenset[str]] = frozenset({
-    "PIP_CACHE_DIR",
-    "PIP_DISABLE_PIP_VERSION_CHECK",
-    "PIP_LOCAL_LOG",
-    "PIP_LOG",
-    "PIP_LOG_FILE",
-    "PIP_NO_CACHE_DIR",
-    "PIP_NO_COLOR",
-    "PIP_NO_INPUT",
-    "PIP_NO_PYTHON_VERSION_WARNING",
-    "PIP_NO_WARN_CONFLICTS",
-    "PIP_NO_WARN_SCRIPT_LOCATION",
-    "PIP_PROGRESS_BAR",
-    "PIP_QUIET",
-    "PIP_RESUME_RETRIES",
-    "PIP_RETRIES",
-    "PIP_ROOT_USER_ACTION",
-    "PIP_TIMEOUT",
-    "PIP_VERBOSE",
-})
-_UV_UNKEYED_ENV: Final[frozenset[str]] = frozenset({
-    "UV_CACHE_DIR",
-    "UV_CONCURRENT_BUILDS",
-    "UV_CONCURRENT_CACHE_READS",
-    "UV_CONCURRENT_DOWNLOADS",
-    "UV_CONCURRENT_INSTALLS",
-    "UV_HTTP_CONNECT_TIMEOUT",
-    "UV_HTTP_RETRIES",
-    "UV_HTTP_TIMEOUT",
-    "UV_NO_CACHE",
-    "UV_NO_PROGRESS",
-    "UV_REQUEST_TIMEOUT",
-    "UV_RUN_RECURSION_DEPTH",
-})
-
 _APP_NOT_FOUND_ERROR_MESSAGE: Final[str] = """\
 '{app}' executable script not found in package '{package_name}'.
 Available executable scripts:
@@ -628,8 +589,53 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     *,
     cooldown_days: int | None,
 ) -> Path:
-    # the installer also reads its index, find-links and similar settings from the environment
-    prefix, unkeyed = ("UV_", _UV_UNKEYED_ENV) if backend == UV else ("PIP_", _PIP_UNKEYED_ENV)
+    # The installer also reads its index, find-links and similar settings from the environment, more of them than a list
+    # could track: pip takes PIP_ followed by any option name or alias, in any case, with - or _. So every PIP_*/UV_*
+    # variable counts except these, which tune timeouts, retries, parallelism, output and the cache, or are set by
+    # `uv run` for its children. Names are compared as pip sees them: upper case with _ for -.
+    prefix, unkeyed = (
+        (
+            "UV_",
+            {
+                "UV_CACHE_DIR",
+                "UV_CONCURRENT_BUILDS",
+                "UV_CONCURRENT_CACHE_READS",
+                "UV_CONCURRENT_DOWNLOADS",
+                "UV_CONCURRENT_INSTALLS",
+                "UV_HTTP_CONNECT_TIMEOUT",
+                "UV_HTTP_RETRIES",
+                "UV_HTTP_TIMEOUT",
+                "UV_NO_CACHE",
+                "UV_NO_PROGRESS",
+                "UV_REQUEST_TIMEOUT",
+                "UV_RUN_RECURSION_DEPTH",
+            },
+        )
+        if backend == UV
+        else (
+            "PIP_",
+            {
+                "PIP_CACHE_DIR",
+                "PIP_DISABLE_PIP_VERSION_CHECK",
+                "PIP_LOCAL_LOG",
+                "PIP_LOG",
+                "PIP_LOG_FILE",
+                "PIP_NO_CACHE_DIR",
+                "PIP_NO_COLOR",
+                "PIP_NO_INPUT",
+                "PIP_NO_PYTHON_VERSION_WARNING",
+                "PIP_NO_WARN_CONFLICTS",
+                "PIP_NO_WARN_SCRIPT_LOCATION",
+                "PIP_PROGRESS_BAR",
+                "PIP_QUIET",
+                "PIP_RESUME_RETRIES",
+                "PIP_RETRIES",
+                "PIP_ROOT_USER_ACTION",
+                "PIP_TIMEOUT",
+                "PIP_VERBOSE",
+            },
+        )
+    )
     installer_env: Final = sorted(
         (name, value)
         for name, value in os.environ.items()
