@@ -1,1 +1,1 @@
-from __future__ import annotations
+"""The pipx subcommands, one module per command."""
