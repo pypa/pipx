@@ -18,6 +18,7 @@ import pytest
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
     SKIP_IF_WINDOWS,
+    WIN,
     app_name,
     drop_extra_app,
     mock_legacy_venv,
@@ -28,8 +29,11 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.backends import uv as uv_backend
+from pipx.main import cli
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -493,6 +497,81 @@ def test_upgrade_uv_keeps_pinned_injected_dependency(tmp_path: Path) -> None:
     assert not run_pipx_cli(["upgrade", "tool"])
 
     assert sorted(path.name for path in (paths.CTX.venvs / "tool").rglob("plug-*.dist-info")) == ["plug-1.5.dist-info"]
+
+
+@pytest.fixture
+def uv_tool_index(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    index: Final[Path] = tmp_path / "index"
+    # the app waits for its input to close, so a launcher started with a pipe stays running
+    write_wheel(index, "tool", "1.0", module_code="import sys\n\nsys.stdin.read()\nsys.exit()\n")
+    assert not run_pipx_cli(["install", "--backend", "uv", f"--pip-args=--no-index --find-links {index}", "tool"])
+    return index
+
+
+@pytest.fixture
+def uv_tool_launcher(
+    uv_tool_index: Path,  # ruff:ignore[unused-function-argument]  # the tool must be installed first
+) -> Path:
+    return get_venv_paths(paths.CTX.venvs / "tool")[0] / app_name("tool")
+
+
+@pytest.fixture
+def read_only_trash() -> Iterator[None]:
+    (trash := paths.CTX.trash).mkdir(parents=True, exist_ok=True)
+    trash.chmod(0o500)
+    yield
+    trash.chmod(0o700)
+
+
+@pytest.mark.skipif(not WIN, reason="only Windows refuses to delete a running launcher")
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_upgrade_uv_replaces_the_running_launcher(
+    uv_tool_index: Path, uv_tool_launcher: Path, mocker: MockerFixture
+) -> None:
+    write_wheel(uv_tool_index, "tool", "2.0")
+
+    with subprocess.Popen([uv_tool_launcher], stdin=subprocess.PIPE):
+        exit_code: Final[int] = _upgrade_tool_started_from(uv_tool_launcher, mocker)
+
+    assert (exit_code, _installed_tool_versions()) == (0, ["tool-2.0.dist-info"])
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_upgrade_uv_puts_back_the_launcher_it_did_not_replace(uv_tool_launcher: Path, mocker: MockerFixture) -> None:
+    mocker.patch.object(uv_backend, "WINDOWS", True)
+    content: Final[bytes] = uv_tool_launcher.read_bytes()
+
+    assert not _upgrade_tool_started_from(uv_tool_launcher, mocker)
+
+    assert uv_tool_launcher.read_bytes() == content
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+@pytest.mark.usefixtures("read_only_trash")
+def test_upgrade_uv_proceeds_when_the_launcher_cannot_move(
+    uv_tool_index: Path, uv_tool_launcher: Path, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(uv_backend, "WINDOWS", True)
+    write_wheel(uv_tool_index, "tool", "2.0")
+
+    assert (_upgrade_tool_started_from(uv_tool_launcher, mocker), _installed_tool_versions()) == (
+        0,
+        ["tool-2.0.dist-info"],
+    )
+
+
+def _upgrade_tool_started_from(launcher: Path, mocker: MockerFixture) -> int:
+    # the Windows launcher names itself to Python without its .exe suffix
+    mocker.patch.object(sys, "argv", [str(launcher.with_suffix("")), "upgrade", "tool"])
+    return cli()
+
+
+def _installed_tool_versions() -> list[str]:
+    return sorted(path.name for path in (paths.CTX.venvs / "tool").rglob("tool-*.dist-info"))
 
 
 @pytest.mark.parametrize(

@@ -12,7 +12,6 @@ __lazy_modules__ = [
     "re",
     "shutil",
     "tarfile",
-    "tempfile",
     "urllib.request",
 ]
 
@@ -26,9 +25,9 @@ import platform
 import re
 import shutil
 import tarfile
-import tempfile
 import time
 import urllib.error
+from contextlib import contextmanager
 from functools import partial
 from http import HTTPStatus
 from pathlib import Path, PurePosixPath
@@ -40,6 +39,7 @@ from pipx.animate import animate
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from typing import TypeIs
 
     from filelock import BaseFileLock
@@ -113,9 +113,9 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
 
         full_version, (download_link, digest) = resolve_python_version(python_version)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            archive: Final[Path] = Path(tempdir) / f"python-{full_version}.tar.gz"
-            download_dir: Final[Path] = Path(tempdir) / "download"
+        with _staging_dir(install_dir) as staging_dir:
+            archive: Final[Path] = staging_dir / f"python-{full_version}.tar.gz"
+            download_dir: Final[Path] = staging_dir / "download"
 
             _download(full_version, download_link, archive)
             _unpack(full_version, archive, download_dir, digest)
@@ -251,6 +251,23 @@ def _backoff_or_raise(error: Exception, attempt: int, url: str) -> None:
     time.sleep(0.5 * 2 ** (attempt - 1))
 
 
+@contextmanager
+def _staging_dir(install_dir: Path) -> Generator[Path]:
+    # unpack next to install_dir rather than in the system temp dir: from a tmpfs /tmp or another btrfs subvolume,
+    # moving the build into place copies all of it and splits its hard links into separate files; the dot prefix hides
+    # a fetch in progress from interpreter list, prune and upgrade
+    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
+    # under the version lock, anything already at this name is a killed fetch's leftover
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    # owner-only like a system temp dir; mkdir fails rather than unpack into a directory created here since the cleanup
+    staging_dir.mkdir(mode=0o700)
+    try:
+        yield staging_dir
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+
+
 def _download(full_version: str, download_link: str, archive: Path) -> None:
     with animate(f"Downloading python {full_version} build", do_animation=True):
         try:
@@ -368,22 +385,17 @@ def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -
 
 
 def _install_atomically(source: Path, install_dir: Path) -> None:
-    install_dir.parent.mkdir(parents=True, exist_ok=True)
-    # stage on the same filesystem as install_dir so the swap-in is an atomic rename rather than a mid-copy window
-    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
     backup_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.previous")
-    for leftover in (staging_dir, backup_dir):
-        if leftover.exists():
-            shutil.rmtree(leftover)
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir)
 
-    shutil.move(str(source), str(staging_dir))
     if replaced_existing := install_dir.exists():
-        Path(install_dir).replace(backup_dir)
+        install_dir.replace(backup_dir)
     try:
-        Path(staging_dir).replace(install_dir)
+        source.replace(install_dir)
     except OSError:
         if replaced_existing:
-            Path(backup_dir).replace(install_dir)
+            backup_dir.replace(install_dir)
         raise
     if replaced_existing:
         shutil.rmtree(backup_dir, ignore_errors=True)

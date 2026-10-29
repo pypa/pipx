@@ -4,17 +4,20 @@ import json
 import platform
 import shutil
 import subprocess
+import sys
 from typing import TYPE_CHECKING, Final
+from venv import EnvBuilder
 
 import pytest
 
 from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
+from package_info import PKG
 from pipx import paths, pipx_metadata_file
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.redact import redact_url_credentials
-from pipx.util import PipxError
+from pipx.util import PipxError, get_venv_paths
 from pipx.venv import Venv, reset_backend_override_warnings
 
 if TYPE_CHECKING:
@@ -272,3 +275,24 @@ def test_package_name_determination_accepts_normalized_dist_info_name(mocker: Mo
     venv: Final[Venv] = _probe_venv(mocker, tmp_path, "Cool.Tool", ["cool_tool-1.0.dist-info"])
 
     assert venv.install_package_no_deps("https://example.com/cool_tool-1.0-py3-none-any.whl", [], None) == "Cool.Tool"
+
+
+@pytest.mark.parametrize(
+    "symlinks",
+    [
+        pytest.param(
+            True, id="symlinks", marks=pytest.mark.skipif(sys.platform == "win32", reason="venv copies on Windows")
+        ),
+        pytest.param(False, id="copies"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_from_bootstrap_venv_records_interpreter_outside_it(tmp_path: Path, symlinks: bool) -> None:
+    EnvBuilder(symlinks=symlinks).create(bootstrap := tmp_path / "bootstrap")
+    _, bootstrap_python, _ = get_venv_paths(bootstrap)
+
+    assert not run_pipx_cli(["install", "--python", str(bootstrap_python), PKG["pycowsay"]["spec"]])
+
+    recorded: Final[Path | None] = PipxMetadata(paths.CTX.venvs / "pycowsay").source_interpreter
+    assert recorded is not None
+    assert (recorded.is_file(), recorded.is_relative_to(bootstrap)) == (True, False)

@@ -54,7 +54,12 @@ from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.options import BackendOptions, CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
-from pipx.package_specifier import package_spec_satisfied, translate_pip_args, trusted_recorded_pip_args
+from pipx.package_specifier import (
+    changeable_by_others,
+    package_spec_satisfied,
+    translate_pip_args,
+    trusted_recorded_pip_args,
+)
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.redact import redact_url_credentials
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
@@ -806,18 +811,30 @@ def _install_spec_venv(
 def _get_python_interpreter(source_interpreter: Path | None) -> str | None:
     if source_interpreter is None:
         return None
-    if source_interpreter.is_file():
+    if (reason := _distrusted_interpreter(source_interpreter)) is None:
         return str(source_interpreter)
 
     print(  # ruff:ignore[print]  # user-facing CLI output
         pipx_wrap(
             f"""
             The exported python interpreter '{source_interpreter}' is ignored
-            as not found.
+            as {reason}; using the default python instead.
             """
         )
     )
 
+    return None
+
+
+def _distrusted_interpreter(python: Path) -> str | None:
+    if not python.is_file():
+        return "not found"
+    # the snapshot can outlive the interpreter it names, and whoever creates that path again picks what runs here
+    resolved: Final[Path] = python.resolve()
+    if any((path.parent.parent / "pyvenv.cfg").is_file() for path in {python, resolved}):
+        return "it is inside a virtual environment, which can be removed and created again"
+    if (location := changeable_by_others(python) or changeable_by_others(resolved)) is not None:
+        return f"another account can change {location}"
     return None
 
 

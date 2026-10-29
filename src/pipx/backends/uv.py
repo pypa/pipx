@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "contextlib",
     "importlib",
     "json",
     "pathlib",
     "pipx",
     "pipx.backends.pip",
     "pipx.subprocess_runner",
+    "pipx.trash",
     "pipx.util",
     "shutil",
     "subprocess",
@@ -17,6 +19,7 @@ import logging
 import re
 import shutil
 import subprocess
+from contextlib import nullcontext
 from functools import cache
 from importlib import import_module
 from pathlib import Path
@@ -28,7 +31,9 @@ from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
+from pipx.constants import WINDOWS
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
+from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
 
 if TYPE_CHECKING:
@@ -128,14 +133,17 @@ class UvBackend(Backend):
         if no_deps:
             cmd.append("--no-deps")
         cmd += [*self._default_index_args(self._strip_pip_quiet_flags(pip_args)), *requirements]
-        process: Final = run_subprocess(
-            cmd,
-            run_dir=str(venv_root),
-            log_stdout=not log_pip_errors,
-            log_stderr=not log_pip_errors,
-            env_overrides=self._env_overrides(),
-            stream_output=verbose,
-        )
+        # unlike pip, which moves the files it replaces aside, uv deletes them in place, and Windows refuses that for
+        # the running launcher of a pipx upgrading itself
+        with running_launcher_moved_aside(venv_python.parent) if WINDOWS else nullcontext():
+            process: Final = run_subprocess(
+                cmd,
+                run_dir=str(venv_root),
+                log_stdout=not log_pip_errors,
+                log_stderr=not log_pip_errors,
+                env_overrides=self._env_overrides(),
+                stream_output=verbose,
+            )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process, tool_name="uv", streamed=verbose)
         return process

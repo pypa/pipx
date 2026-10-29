@@ -3,15 +3,16 @@ from __future__ import annotations
 import contextlib
 import datetime as dt
 import email.message
+import errno
 import hashlib
 import http.client
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tarfile
-import tempfile
 import urllib.error
 import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -199,11 +200,8 @@ def test_early_python_311_stays_inside_through_archive_links(
 def test_early_python_311_keeps_links_inside_archive(
     monkeypatch: pytest.MonkeyPatch,
     published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
-    tmp_path: Path,
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
-    # from a temp dir on another filesystem, such as a tmpfs /tmp, moving into the pipx home copies the hard link apart
-    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
         python_tar.addfile(tarfile.TarInfo("python/bin/python3.99"), io.BytesIO())
@@ -225,6 +223,46 @@ def test_early_python_311_keeps_links_inside_archive(
         (python_path.parent / "python").resolve(),
         (python_path.parents[1] / "lib" / "python3.99").stat().st_nlink,
     ) == (True, "python3.99", python_path.resolve(), 2)
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
+    mocker: MockerFixture,
+    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+) -> None:
+    cache_dir, publish = published_darwin_release
+    real_rename: Final = os.rename
+
+    def rename_within_cache_dir(source: str | Path, target: str | Path) -> None:
+        if not Path(source).is_relative_to(cache_dir):
+            raise OSError(errno.EXDEV, os.strerror(errno.EXDEV))
+        real_rename(source, target)
+
+    # like a tmpfs /tmp or another btrfs subvolume, renames from outside the pipx home fail so shutil.move copies
+    mocker.patch.object(os, "rename", side_effect=rename_within_cache_dir)
+    mocker.patch.object(os, "replace", side_effect=rename_within_cache_dir)
+    archive: Final[io.BytesIO] = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        python_tar.addfile(tarfile.TarInfo("python/bin/python3"), io.BytesIO())
+        _add_links(python_tar, [("python/bin/python3.99", tarfile.LNKTYPE, "python/bin/python3")])
+    publish(archive.getvalue())
+
+    assert Path(standalone_python.download_python_build_standalone("3.99")).stat().st_nlink == 2
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_failed_fetch_leaves_no_staging_dir(
+    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+) -> None:
+    cache_dir, publish = published_darwin_release
+    (stale := cache_dir / ".3.99.incoming" / "download").mkdir(parents=True)
+    publish(b"not a gzip archive")
+
+    with pytest.raises(standalone_python.PipxError, match="Unable to unpack"):
+        standalone_python.download_python_build_standalone("3.99")
+
+    assert not stale.parent.exists()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -269,6 +307,21 @@ def test_standalone_python_upgrade_replaces_existing_build(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_upgrade_clears_backup_left_by_crashed_upgrade(
+    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+) -> None:
+    cache_dir, publish = published_darwin_release
+    (cache_dir / "3.99").mkdir(parents=True)
+    (leftover := cache_dir / ".3.99.previous").mkdir()
+    (leftover / "stale").write_text("old", encoding="utf-8")
+    publish(_python_archive_bytes())
+
+    python_path: Final[str] = standalone_python.download_python_build_standalone("3.99", override=True)
+
+    assert (Path(python_path).is_file(), leftover.exists()) == (True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_restores_backup_when_swap_fails(
     published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
     mocker: MockerFixture,
@@ -301,23 +354,23 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
     mocker: MockerFixture,
 ) -> None:
     published_darwin_release[1](_python_archive_bytes())
-    real_move: Final = shutil.move
+    real_replace: Final = os.replace
     concurrent: Final[list[Future[str]]] = []
 
-    def move_into_staging(source: str, destination: str) -> str:
-        # start the second fetch while the first one is moving its build into the staging directory
+    def swap_into_place(source: str | Path, destination: str | Path) -> None:
+        # start the second fetch while the first one is swapping its build into place
         if not concurrent:
             concurrent.append(executor.submit(standalone_python.download_python_build_standalone, "3.99"))
             with pytest.raises(TimeoutError):
                 concurrent[0].result(timeout=0.2)
-        return real_move(source, destination)
+        real_replace(source, destination)
 
-    moves: Final = mocker.patch.object(shutil, "move", side_effect=move_into_staging)
+    swaps: Final = mocker.patch.object(os, "replace", side_effect=swap_into_place)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
-    assert (concurrent[0].result(), moves.call_count, Path(python_path).is_file()) == (python_path, 1, True)
+    assert (concurrent[0].result(), swaps.call_count, Path(python_path).is_file()) == (python_path, 1, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
