@@ -7,17 +7,21 @@ import os
 import re
 import signal
 import sys
+import threading
 import time
+from contextlib import suppress
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.util import PipxError
+from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -238,6 +242,99 @@ def test_reinstall_all_keeps_shared_man_page_with_its_owner(
     assert not run_pipx_cli(["reinstall-all"])
 
     assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(owner)
+
+
+@pytest.fixture
+def shared_man_page_venvs(pipx_temp_env: None) -> tuple[Path, Path]:  # ruff:ignore[unused-function-argument]  # it sets the pipx home
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
+    earlier, owner = (venv_dir.resolve() for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir())
+    (paths.ctx.man_dir / "man6" / "pycowsay.6").unlink()
+    (paths.ctx.man_dir / "man6" / "pycowsay.6").symlink_to(owner / "share" / "man" / "man6" / "pycowsay.6")
+    return earlier, owner
+
+
+@pytest.fixture
+def fail_owner_rebuild_after_takeover(
+    shared_man_page_venvs: tuple[Path, Path], mocker: MockerFixture
+) -> Callable[[Callable[[], None], Exception], None]:
+    earlier, owner = shared_man_page_venvs
+    man_page: Final[Path] = paths.ctx.man_dir / "man6" / "pycowsay.6"
+    symlink_to: Final = Path.symlink_to
+    check_upgrade_shared_libs: Final = Venv.check_upgrade_shared_libs
+
+    def arm(meanwhile: Callable[[], None], failure: Exception) -> None:
+        taken_over: Final[threading.Event] = threading.Event()
+
+        def link_and_signal(path: Path, target: Path, target_is_directory: bool = False) -> None:
+            symlink_to(path, target, target_is_directory)
+            if path == man_page and Path(target).resolve().is_relative_to(earlier):
+                taken_over.set()
+
+        def fail_once_taken_over(venv: Venv, *, verbose: bool, pip_args: list[str]) -> None:
+            # until the rebuild creates the owner's venv again, its man page dangles and the earlier task takes it
+            if venv.root.name != owner.name or venv.root.exists():
+                check_upgrade_shared_libs(venv, verbose=verbose, pip_args=pip_args)
+                return
+            assert taken_over.wait(timeout=60)
+            meanwhile()
+            raise failure
+
+        mocker.patch.object(Path, "symlink_to", autospec=True, side_effect=link_and_signal)
+        mocker.patch.object(Venv, "check_upgrade_shared_libs", autospec=True, side_effect=fail_once_taken_over)
+
+    return arm
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "failure",
+    [pytest.param(PipxError("rebuild failed"), id="pipx-error"), pytest.param(OSError("disk full"), id="unexpected")],
+)
+def test_reinstall_all_failed_rebuild_gets_back_shared_man_page(
+    shared_man_page_venvs: tuple[Path, Path],
+    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], Exception], None],
+    failure: Exception,
+) -> None:
+    fail_owner_rebuild_after_takeover(lambda: None, failure)
+
+    with suppress(OSError):
+        run_pipx_cli(["reinstall-all"])
+
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
+
+
+@skip_if_windows
+def test_reinstall_all_failed_rebuild_keeps_man_page_replaced_elsewhere(
+    fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], Exception], None], tmp_path: Path
+) -> None:
+    man_page: Final[Path] = paths.ctx.man_dir / "man6" / "pycowsay.6"
+    (elsewhere := tmp_path / "pycowsay.6").touch()
+
+    def replace_link() -> None:
+        man_page.unlink()
+        man_page.symlink_to(elsewhere)
+
+    fail_owner_rebuild_after_takeover(replace_link, PipxError("rebuild failed"))
+
+    assert run_pipx_cli(["reinstall-all"])
+
+    assert man_page.resolve() == elsewhere.resolve()
+
+
+@skip_if_windows
+def test_reinstall_all_failed_rebuild_keeps_shared_man_page_nobody_took(
+    shared_man_page_venvs: tuple[Path, Path], before_venv_subprocess: Callable[[Path, Callable[[], None]], None]
+) -> None:
+    def fail() -> NoReturn:
+        msg = "rebuild failed"
+        raise PipxError(msg)
+
+    before_venv_subprocess(shared_man_page_venvs[1] / "bin", fail)
+
+    assert run_pipx_cli(["reinstall-all"])
+
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")
