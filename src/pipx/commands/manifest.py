@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.expose",
     "pipx.commands.install",
     "pipx.commands.uninstall",
+    "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.util",
     "shutil",
@@ -37,6 +38,7 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import (
     OperationData,
@@ -86,7 +88,7 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                         local_bin_dir,
                         local_man_dir,
                         python,
-                        recorded.main_package.pip_args,
+                        trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
                         recorded.venv_args,
                         verbose=verbose,
                         force=existed,
