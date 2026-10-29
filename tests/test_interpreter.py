@@ -15,7 +15,7 @@ import pipx.paths
 import pipx.standalone_python
 from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
-from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
+from pipx.interpreter import InterpreterResolutionError, find_python_interpreter, recordable_interpreter
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -507,3 +507,29 @@ def test_interpreter_quiet_says_nothing(
 
     captured: Final = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
+
+
+@pytest.mark.parametrize(
+    ("pyvenv_cfg", "expected"),
+    [
+        pytest.param(b"home = {base_dir}\n", "python3", id="home"),
+        pytest.param(b"home = {missing}\nexecutable = {base_dir}/python3.14\n", "python3.14", id="executable"),
+        pytest.param(b"home = {missing}\n", None, id="home-without-interpreter"),
+        pytest.param(b"version = 3.14.0\n", None, id="no-home"),
+        pytest.param(b"home = \xff\n", None, id="undecodable"),
+    ],
+)
+def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, expected: str | None) -> None:
+    (base_dir := tmp_path / "base").mkdir()
+    for name in ("python3", "python3.14"):
+        (base_dir / name).touch()
+    (bootstrap := tmp_path / "bootstrap").mkdir()
+    (bootstrap / "pyvenv.cfg").write_bytes(
+        pyvenv_cfg.replace(b"{base_dir}", str(base_dir).encode()).replace(
+            b"{missing}", str(tmp_path / "missing").encode()
+        )
+    )
+    (bin_dir := bootstrap / "bin").mkdir()
+    (python := bin_dir / "python3").touch()
+
+    assert recordable_interpreter(python) == (None if expected is None else base_dir / expected)
