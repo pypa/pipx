@@ -23,7 +23,6 @@ __lazy_modules__ = [
 
 import contextlib
 import logging
-import sys
 from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
@@ -47,7 +46,9 @@ from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.transaction import (
     REINSTALL_BACKUP_SUFFIX,
+    import_from_copy,
     is_unfinished,
+    release_copy,
     rename_once_released,
     repoint_imports,
     runs_from_venv,
@@ -182,7 +183,7 @@ def reinstall(
     running: Final[bool] = runs_from_venv(venv_dir)
     reinstall_backup_dir: Final[Path] = _create_reinstall_backup(venv_dir)
     if running:
-        repoint_imports(Path(sys.prefix), reinstall_backup_dir)
+        import_from_copy(reinstall_backup_dir)
     messages: Final[list[OutputMessage]] = [OutputMessage(text=f"uninstalled {venv.name}! {STARS}")]
 
     # a legacy environment directory can carry a name that is not canonical; the rebuild uses the canonical one
@@ -393,6 +394,7 @@ def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir
     # a signal between the two steps would leave the venv deleted and its only copy in the trash
     with uninterrupted():
         rmdir(venv_dir)
+        release_copy(backup_dir)
         backup_dir.rename(restore_venv_dir)
         repoint_imports(backup_dir, restore_venv_dir)
 

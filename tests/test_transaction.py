@@ -187,7 +187,8 @@ def test_setup_sweeps_trash_entries_no_command_holds() -> None:
     paths.CTX.trash.mkdir(parents=True)
     for name in ("demo-abcd1234-pipx-backup", "demo-abcd1234-pipx-reinstall", "pipx-trash.app"):
         (paths.CTX.trash / name).mkdir()
-        (paths.CTX.trash / name / "file").touch()
+        # the lock a pipx that imported from its copy leaves behind once it exits
+        (paths.CTX.trash / name / "pipx_in_use.lock").touch()
     (paths.CTX.trash / "pipx-trash.app.exe").touch()
 
     run_pipx_cli(["list"])
@@ -242,5 +243,23 @@ def test_self_upgrade_failure_imports_from_the_restored_venv(
     metadata.write()
 
     assert run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert importlib.import_module("running_probe.late").VALUE == "old"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [pytest.param(["upgrade", "pycowsay"], id="upgrade"), pytest.param(["reinstall", "pycowsay"], id="reinstall")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_self_change_keeps_its_copy_through_a_later_trash_sweep(
+    run_from_venv: Callable[[Path], None], command: list[str]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    run_from_venv(paths.CTX.venvs / "pycowsay")
+    assert not run_pipx_cli(command)
+
+    # another pipx run sweeps the trash once the command above released the venv lock
+    run_pipx_cli(["list"])
 
     assert importlib.import_module("running_probe.late").VALUE == "old"
