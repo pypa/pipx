@@ -14,6 +14,385 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-8:
+
+`1.18.8 <https://github.com/pypa/pipx/tree/1.18.8>`_ - 2026-10-29
+=================================================================
+
+.. _release-1-18-8-fixed:
+
+Fixed
+-----
+
+- A ``pipx run`` that names an app the package does not provide, such as ``pipx run --spec black blackk``, no longer
+  expires the cached environment, so the corrected command reuses it instead of rebuilding. A failed venv creation or
+  install still expires the entry (:pr:`2354`) by :user:`gaborbernat`.
+- A second Ctrl-C during ``pipx reinstall-all``, ``upgrade-all`` or ``install-all`` no longer hangs pipx. A signal
+  handled just after a worker took the shared lock could leave it held, so every other task waited forever (:pr:`2348`)
+  by :user:`gaborbernat`.
+- A self-managed pipx no longer adopts a recorded default interpreter that no longer backs its own environment, such as
+  the ``python3`` of a bootstrap environment removed after ``pipx install pipx --python python3``. pipx failed every
+  command with a ``PIPX_DEFAULT_PYTHON`` error, or built new environments on whatever appeared at that path later
+  (:pr:`2245`) by :user:`gaborbernat`.
+- Apply ``--cooldown`` and ``PIPX_COOLDOWN`` to the shared pip that the pip backend installs or refreshes during the
+  command. pipx used to fetch the newest pip, even one uploaded minutes earlier, while it held back the package itself.
+  A new shared environment now starts from the oldest pip pipx supports and upgrades only to a release older than the
+  cooldown (:pr:`2311`) by :user:`gaborbernat`.
+- Finish restoring an environment when Ctrl-C, ``SIGTERM`` or ``SIGHUP`` arrives while a failed or interrupted ``pipx
+  reinstall``, ``install --force``, ``inject``, ``upgrade`` or ``manifest sync`` rolls it back. The rollback deletes the
+  half-built environment and then moves the backup in, and a signal between the two steps left the environment deleted
+  and its only copy in the trash, which the next pipx command emptied. pipx now holds such a signal until the backup is
+  back in place and acts on it afterwards (:pr:`2329`) by :user:`gaborbernat`.
+- For an editable install, pipx now copies only the man pages that resolve inside the project directory. Before, it
+  followed absolute paths, ``..`` and symlinks, and a wheel installed by name could ship its own editable
+  ``direct_url.json`` to make pipx copy any readable file into the environment and link it as a man page (:pr:`2268`) by
+  :user:`gaborbernat`.
+- Ignore apps, man pages and completions whose name is not a plain file name, such as ``..``, and never delete a
+  directory to make room for an app link, so ``pipx reinstall`` can no longer remove the parent of ``PIPX_BIN_DIR``
+  (:pr:`2228`) by :user:`gaborbernat`.
+- Ignore recorded ``venv_args`` other than ``--system-site-packages``, with a warning, when reading a snapshot or
+  ``pipx_metadata.json``, so ``pipx install-all`` and ``pipx reinstall`` no longer pass an edited ``--clear <dir>`` or
+  an extra directory to ``python -m venv`` (:pr:`2239`) by :user:`gaborbernat`.
+- Installing an editable project whose man page or project directory is a looping symlink no longer crashes pipx on
+  Python 3.11 and 3.12; pipx skips that man page (:pr:`2334`) by :user:`gaborbernat`.
+- Keep ``pipx reinstall-all``, ``upgrade-all``, and ``install-all`` waiting for the environments they change when pipx
+  can no longer write their output, as with ``pipx reinstall-all 2>&1 | head`` or a closed stderr. pipx used to log a
+  traceback and return while it still rebuilt environments in the background, so an interrupt then skipped the rollback,
+  and an environment waiting for its turn hung (:pr:`2290`) by :user:`gaborbernat`.
+- Keep a command, man page or completion link that another package took over while ``pipx reinstall``,
+  ``reinstall-all``, ``uninject`` or ``uninstall-all`` was running. These commands gathered the environment's links
+  first and deleted them by name later, so a name another package claimed in between, for example in the same parallel
+  ``reinstall-all``, disappeared without a message. pipx now deletes a link only if it still points into the environment
+  by Bernát Gábor.
+- Keep pipx's ``pipx_metadata.json`` when the installer replaces it with a wheel's data file of the same name. A failed
+  ``pipx install --force``, ``pipx upgrade`` or ``pipx inject``, or a ``pipx runpip APP install`` of a dependency, used
+  to leave the wheel's copy in place, and later commands read its index arguments, spec and suffix as pipx's own. pipx
+  now puts its record back after every installer run (:pr:`2269`) by :user:`gaborbernat`.
+- Keep standalone Python archive members inside the unpack directory on Python 3.11.0 to 3.11.3, which lack
+  ``tarfile.data_filter``. pipx's own extractor checked member names as text, so a member whose path went through a
+  symlink unpacked earlier from the same archive was written wherever that link led. It now resolves each path through
+  the links already on disk, extracts under normalized names like the data filter does, and refuses a hard link to a
+  symlink (:pr:`2279`) by :user:`gaborbernat`.
+- Keep the apps, manual pages, and completions of injected packages exposed when ``pipx manifest sync`` reinstalls an
+  existing environment, and expose the environment again when the sync is interrupted. pipx used to drop those links
+  without a message, so another package could take the freed names without ``--force``, and an interrupted sync left the
+  rolled-back environment unexposed (:pr:`2273`) by :user:`gaborbernat`.
+- Keep the environment when ``pipx install --force`` or ``pipx install-all --force`` cannot move it aside before a
+  ``Requires-Python`` rebuild. On Windows the move fails while any file inside the environment is open, and pipx then
+  deleted the environment and reported a ``FileNotFoundError`` instead of the real error. pipx now retries the move the
+  way ``pipx reinstall`` does, and if it still fails it leaves the environment in place and reports the original error
+  (:pr:`2350`) by :user:`gaborbernat`.
+- Keep the recorded source of a local wheel when ``pipx runpip <venv> install`` abbreviates a value-taking pip option
+  whose value names the package, such as ``--only-bin <name>`` for ``--only-binary <name>``, and record an install
+  through an abbreviated ``--editable``, such as ``--edit <path>``, as editable (:pr:`2225`) by :user:`gaborbernat`.
+- Keep the rollback backup of a running ``pipx reinstall``, ``reinstall-all``, ``install --force``, ``upgrade`` or
+  ``inject`` when another pipx command starts. Every command used to empty the trash at startup, so a ``pipx list`` run
+  meanwhile deleted the backup, and when the first command then failed or was interrupted it lost the environment with a
+  ``FileNotFoundError``. pipx now skips a backup while its environment's lock is held and removes it only once orphaned
+  (:pr:`2298`) by :user:`gaborbernat`.
+- Leave a command, man page or completion that the environment did not expose before with its owner when ``pipx
+  reinstall``, ``reinstall-all``, ``interpreter upgrade``, the repair step of ``pipx upgrade``, or a repeated ``pipx
+  manifest sync`` rebuilds the environment. These used to replace such a file as if ``--force`` had been passed,
+  deleting a user's own script or repointing another environment's command, although ``pipx install`` had left it alone
+  with a warning. A name two environments both declare now stays with the one that held it, instead of going to
+  whichever ``reinstall-all`` rebuilt last (:pr:`2321`) by :user:`gaborbernat`.
+- Leave an existing environment alone in ``pipx install-all`` without ``--force``. pipx said it was not modifying the
+  environment, then injected the snapshot's ``injected_packages`` into it anyway. Pass ``--force`` to bring existing
+  environments in line with the snapshot (:pr:`2333`) by :user:`gaborbernat`.
+- Let an environment take over an app, manual page, or completion name whose link points to a file that another
+  installed environment no longer ships. pipx before 1.18.0 left such links behind when an upgrade dropped an app, and
+  pipx kept them as collisions that only ``--force`` cleared. A link counts as left over when the environment it points
+  into no longer lists the file in its metadata. The collision warning for a link whose target is missing now says so
+  (:pr:`2356`) by :user:`gaborbernat`.
+- Mask URL passwords and tokens in the remaining places that printed or logged them as typed: the ``Injecting packages``
+  log line, the ``--output json`` error fields of ``inject``, ``install`` and ``uninject``, the progress lines of ``pipx
+  run`` script dependencies and ``--preinstall``, the local source that ``pipx upgrade`` reports, invalid requirement
+  errors from manifests and inline script metadata, ``--pip-args`` rejected by the uv backend of ``pipx run``, the
+  "looks like a path" error, and installer output that pipx captures and logs (:pr:`2252`) by :user:`gaborbernat`.
+- Mask a URL password that contains a literal space or tab, such as ``--index-url "http://alice:correct
+  horse@host/simple"``, in the command log, ``--verbose`` output and messages; pipx now masks each argument of a command
+  line before joining it (:pr:`2241`) by :user:`gaborbernat`.
+- Mask the user part of URL credentials that contain a colon, so a token written as ``https://TOKEN:@host`` or
+  ``TOKEN:x-oauth-basic@`` no longer shows in the command log, ``--verbose`` output and messages. Such URLs now show as
+  ``****:****@``, which also hides a plain user name such as ``alice`` (:pr:`2244`) by :user:`gaborbernat`.
+- On Windows under the uv backend, ``pipx run script.py`` now releases the run-cache lock before the script starts. pipx
+  held it until the script exited, so a second run of the same script waited without a message, and a script that ran
+  itself through pipx never finished (:pr:`2352`) by :user:`gaborbernat`.
+- Refuse ``pipx install --lock`` and ``pipx manifest sync`` with a lock under the pip backend when the environment's pip
+  is older than 26.1. That pip read ``pylock.toml`` as a requirements file: a real lock failed with a confusing
+  ``Invalid requirement`` error, and a file that was not a lock had its lines applied as pip options. The error now
+  names the pip version and suggests ``pipx upgrade-shared`` (:pr:`2289`) by :user:`gaborbernat`.
+- Refuse a URL spec whose installed ``METADATA`` names a different project than its ``.dist-info`` directory. A wheel
+  could rewrite that name through its data files and make ``pipx install --upgrade URL`` install it into another
+  application's environment (:pr:`2236`) by :user:`gaborbernat`.
+- Refuse a ``--python`` value that is not a version before ``--fetch-python=missing`` or ``--fetch-python=always`` looks
+  in the standalone interpreter cache. pipx joined the raw value onto ``PIPX_HOME/py`` and deleted the result as a
+  failed earlier download, so a directory path, ``..``, ``.`` or a bare ``python`` removed that directory, ``PIPX_HOME``
+  or the whole interpreter cache (:pr:`2262`) by :user:`gaborbernat`.
+- Refuse an empty or whitespace-only ``--index-url`` instead of silently installing from the default index (:pr:`2217`)
+  by :user:`Svastikkka`.
+- Refuse an empty or whitespace-only index option inside ``--pip-args`` (``--index-url``, ``-i``, ``--extra-index-url``,
+  ``--default-index``, ``--index``), and under the uv backend an empty index recorded by an earlier install, instead of
+  letting uv install from the default index (:pr:`2253`) by :user:`gaborbernat`.
+- Refuse an environment name that is empty or a path instead of acting outside ``$PIPX_HOME/venvs``. ``pipx uninstall
+  ""``, for example from an unset shell variable, used to remove every environment and exit 0, and an ``install-all``
+  snapshot, manifest tool name or reported package name holding a path built the environment at that path. pipx now
+  stops with ``Invalid environment name`` (:pr:`2331`) by :user:`gaborbernat`.
+- Refuse to overwrite ``/etc/profile.d/pipx.sh`` or ``/etc/paths.d/pipx`` in ``pipx ensurepath --global`` when the file
+  holds content pipx did not write, such as an administrator's ``PIPX_GLOBAL_HOME`` or ``PIP_INDEX_URL`` exports. pipx
+  used to replace the whole file with its ``PATH`` entry and report success. It now leaves the file and its mode alone
+  and exits with an error that names ``--force``, which still replaces the file. pipx replaces a file that holds only an
+  earlier pipx entry, as before (:pr:`2315`) by :user:`gaborbernat`.
+- Refuse to run ``pipx manifest lock`` when a tool's ``lock`` path resolves outside the manifest directory, instead of
+  replacing a ``pylock.toml`` elsewhere on disk and discarding its previous contents. ``pipx manifest sync`` still reads
+  such locks (:pr:`2223`) by :user:`gaborbernat`.
+- Refuse to run pip or uv in an environment whose ``pyvenv.cfg`` is gone, and suggest ``pipx reinstall``. Without that
+  file the environment's ``python`` link starts the interpreter it was created from, so a ``pipx upgrade`` after a wheel
+  had shipped and then dropped ``pyvenv.cfg`` installed the package into that interpreter's prefix and reported success
+  (:pr:`2326`) by :user:`gaborbernat`.
+- Reject ``--global``, ``--skip-maintenance``, ``--verbose`` and ``--quiet`` placed between ``manifest``,
+  ``interpreter`` or ``cache`` and their subcommand, as in ``pipx manifest --global sync``. pipx accepted the option
+  there and then dropped it, so ``pipx manifest --global sync --prune`` synced and pruned the per-user store with exit
+  0. Put the option after the subcommand, as in ``pipx manifest sync --global`` (:pr:`2320`) by :user:`gaborbernat`.
+- Report an environment whose ``pipx_metadata.json`` the current user cannot read as unreadable in ``pipx list``,
+  instead of as missing metadata from a pipx older than 0.15 that needs reinstalling. A non-root user sees this for
+  every environment of ``pipx list --global``, because pipx keeps the file owner-only: it can hold index credentials.
+  ``pipx list`` still lists the environments the user can read (:pr:`2323`) by :user:`gaborbernat`.
+- Resolve every relative path given to a pip option, such as ``--cert ca.pem``, ``-r requirements.txt``, ``--log`` or
+  ``--cache-dir``, against the directory pipx was started in, also when the option is clustered or abbreviated, as in
+  ``-qr requirements.txt`` or ``--find-l wheels``. The shared pip refresh runs inside the shared libraries directory, so
+  ``pipx upgrade-shared --pip-args='--cert=ca.pem'`` failed with ``invalid path: ca.pem``; installs, upgrades and ``pipx
+  run`` now also resolve these values against the starting directory (:pr:`2351`) by :user:`gaborbernat`.
+- Restore every earlier lock when ``pipx manifest lock`` fails because a directory sits at a later tool's lock path.
+  pipx used to stop rolling back at that directory, keep the new locks of the tools before it, and delete their previous
+  versions (:pr:`2260`) by :user:`gaborbernat`.
+- Restore the existing environment when ``pipx install --force`` or ``pipx install-all --force`` rebuilds it on another
+  interpreter because of the package's ``Requires-Python`` and the rebuild fails. pipx used to delete the environment
+  first and leave behind an empty one without its app, injected packages, or ``pipx_metadata.json``, while it reported
+  it had kept the environment. It now moves the environment to its trash before the rebuild and moves it back on failure
+  (:pr:`2229`) by :user:`gaborbernat`.
+- Stop ``pipx ensurepath --global --force`` from crashing with ``UnicodeDecodeError`` when ``/etc/profile.d/pipx.sh`` or
+  ``/etc/paths.d/pipx`` holds bytes that are not UTF-8. ``--force`` now replaces the file without reading it, and
+  without ``--force`` such a file gets the same error that names ``--force`` as any other file pipx did not write
+  (:pr:`2355`) by :user:`gaborbernat`.
+- Stop ``pipx interpreter upgrade`` from moving an environment to another Python found on ``PATH`` when the newest
+  release of its package has a ``Requires-Python`` that rules out the new standalone build. The command reported the
+  patch upgrade as done while the environment now ran on, for example, ``/usr/bin/python3.11``. It now fails, restores
+  the environment on its standalone build, and exits 1 (:pr:`2301`) by :user:`gaborbernat`.
+- Stop ``pipx upgrade-all`` from moving an app, manual page, or completion that two environments expose to the other
+  environment while the installer of its owner is replacing the linked file. pipx treated any link whose target was
+  missing as left over and replaced it without ``--force``; a missing target inside another environment that still
+  exists now counts as a collision (:pr:`2303`) by :user:`gaborbernat`.
+- Stop a self-managed pipx (``pipx install pipx``) started through its own environment's script from taking that
+  environment's ``bin`` directory for ``PIPX_BIN_DIR`` when the path to the script holds ``..`` or a symlinked
+  directory, such as ``../share/pipx/venvs/pipx/bin/pipx`` from ``~/.local/bin``. Such a command linked the apps it
+  installed into pipx's own environment, off ``PATH`` and onto pipx's own import path. pipx now recognizes the exposed
+  link by real locations, which also works when you reach the pipx home through a symlink (:pr:`2309`) by
+  :user:`gaborbernat`.
+- Stop pipx from importing modules out of the directory of its own launcher script, or out of the working directory
+  under ``python -m pipx``, once ``pipx.__main__`` starts. After ``pip install --user pipx`` that directory is
+  ``~/.local/bin``, where pipx links apps, so pipx imported a ``json.py`` or ``shlex.py`` script a package shipped there
+  in place of the standard library module, and an exposed ``json.py`` broke every later pipx command, ``pipx uninstall``
+  included. For modules pip's launcher imports before that point, such as ``re`` and ``enum``, pipx refuses to expose
+  apps named after standard library modules. Programs that import ``pipx.__main__`` no longer see their script directory
+  on ``sys.path`` either (:pr:`2316`) by :user:`gaborbernat`.
+- Stop recording pip options that name a one-shot input or an output location, such as ``-r requirements.txt``,
+  ``--log``, ``--report``, ``--cache-dir`` or ``--target``: they apply to the command they were given on, and a later
+  ``pipx upgrade`` or ``pipx reinstall`` no longer reads or writes those paths. pipx reads pip arguments as pip does, so
+  a clustered short option such as ``-qr requirements.txt`` or an abbreviation such as ``--log-f pip.log`` counts too.
+  On POSIX, ``pipx upgrade``, ``pipx reinstall`` and the other commands that replay recorded arguments stop with an
+  error, before the installer runs and without changing the record, when a recorded ``--find-links``, ``--constraint``,
+  ``--build-constraint``, ``--cert``, ``--client-cert``, or ``file://`` or local-path index URL points at a path another
+  account could change. Pass the options again with ``--pip-args`` to use them for that run (:pr:`2359`) by
+  :user:`gaborbernat`.
+- Stop two pipx commands that fetch the same standalone Python at once from leaving an interpreter with part of its
+  standard library missing in ``PIPX_HOME/py``. Both staged the build in one fixed directory and each deleted the
+  other's half-copied tree as a leftover; pipx now holds a per-version lock while it fetches, so the second command
+  waits and reuses the first one's build. ``pipx interpreter list``, ``prune`` and ``upgrade`` also skip the staging and
+  backup directories of a fetch in progress instead of treating them as interpreters. An interpreter that an earlier
+  fetch already left incomplete still needs deleting by hand (:pr:`2293`) by :user:`gaborbernat`.
+- The pip backend now removes ``pip.conf`` (``pip.ini`` on Windows) from the root of an environment before it starts pip
+  there. A wheel could ship that file as a data file, and pip read it as its site configuration, so a ``target`` or
+  index in it made a later ``pipx upgrade`` or ``pipx inject`` install outside the environment or from another index
+  (:pr:`2264`) by :user:`gaborbernat`.
+- Under the uv backend, ``--index-url`` (``-i``) now reaches uv as ``--default-index``. uv let ``UV_DEFAULT_INDEX`` or a
+  default ``[[index]]`` entry override a command-line ``--index-url``, so ``pipx run``, ``install``, ``upgrade`` and
+  ``outdated`` used the default index instead of the one named on the command line (:pr:`2247`) by :user:`gaborbernat`.
+- Under the uv backend, ``pipx run script.py`` now keeps the script's environment in pipx's run cache, keyed to the
+  script's path, the interpreter, ``--pip-args`` and the cooldown. uv kept one environment per script path and reused it
+  while it satisfied the script, so a changed ``--index-url``, ``--pip-args`` or ``--cooldown``, or ``--refresh``, still
+  ran what an earlier run installed. ``pipx cache purge`` and the 14-day expiry now cover these environments
+  (:pr:`2274`) by :user:`gaborbernat`.
+- Under the uv backend, ``pipx run`` now puts ``--`` before the app name it hands to ``uv tool run``. An app word that
+  started with a single dash, such as ``pipx run -- -ihttp://host/simple demodep``, was read by uv as one of its own
+  options, and uv installed and ran the next word as the package (:pr:`2299`) by :user:`gaborbernat`.
+- Under the uv backend, ``pipx upgrade``, ``upgrade-all`` and ``install --upgrade`` now pass uv ``--upgrade-package
+  NAME`` instead of ``--upgrade``, so they upgrade only the named package and leave its dependencies alone unless the
+  new release needs others, as pip's default ``only-if-needed`` strategy does. Before, uv upgraded every dependency,
+  replacing packages injected with ``pipx inject --force`` and pinned with ``pipx pin --injected-only`` (:pr:`2248`) by
+  :user:`gaborbernat`.
+- When ``pipx install`` or ``pipx run --spec`` under the pip backend has to install a URL, VCS or sdist spec to learn
+  its name, the shared pip it installs along the way now comes from the command's ``--index-url`` and ``--pip-args``
+  instead of pip's default index (:pr:`2275`) by :user:`gaborbernat`.
+- When an environment holds two ``.dist-info`` records with the same name, pipx now reads the first one on ``sys.path``,
+  the one the environment's interpreter uses. Since 1.15.1 it read the last one, so ``--system-site-packages`` with a
+  different version of the package in the base interpreter reported that version and exposed its commands (:pr:`2258`)
+  by :user:`gaborbernat`.
+- ``pipx install --preinstall`` and ``pipx run --with`` now refuse a value that starts with ``-``. Written as
+  ``--with=--find-links=DIR`` or ``--preinstall=-rFILE``, such a value reached pip or ``uv pip install`` as an installer
+  option and changed where packages came from, instead of failing like the main package spec does. Pass installer
+  options with ``--pip-args`` (:pr:`2307`) by :user:`gaborbernat`.
+- ``pipx install-all --backend uv`` now translates index options that a pip recording spells as an abbreviation pip
+  accepts, such as ``--index-u URL``, instead of dropping them and installing from the default index. A recorded pip
+  ``--index URL`` now becomes uv ``--default-index URL``, matching how pip read it (:pr:`2232`) by :user:`gaborbernat`.
+- ``pipx install`` with several packages no longer builds every environment on the Python it picked for one package
+  whose ``Requires-Python`` rules out the default interpreter; the other packages keep the default Python (:pr:`2222`)
+  by :user:`gaborbernat`.
+- ``pipx list --outdated`` and ``pipx upgrade-all`` now check uv environments against the index recorded with uv's
+  option names (``--default-index``, ``--index``, ``--allow-insecure-host``, ``--index-strategy``,
+  ``--keyring-provider``) instead of uv's default index (:pr:`2220`) by :user:`gaborbernat`.
+- ``pipx reinstall``, ``pipx reinstall-all`` and ``pipx repair`` now refuse an environment whose ``pipx_metadata.json``
+  is unreadable or was lost to a killed install, instead of rebuilding it from the default index under the directory
+  name. ``pipx install`` marks the environment unfinished until it writes the record, and ``pipx uninstall`` moves the
+  environment to its trash before deleting it, so a killed uninstall no longer leaves a venv without its record
+  (:pr:`2234`) by :user:`gaborbernat`.
+- ``pipx run --with`` now installs the ``--with`` packages in the same installer call as the app. pipx skipped a
+  ``--with`` naming a package the app already depends on, such as ``--with 'dep==1.0'``, as already installed, so the
+  app ran with the newest release on the pip backend. A ``--with`` naming the app with an extra no longer links the
+  cached environment's commands into ``PIPX_BIN_DIR`` (:pr:`2266`) by :user:`gaborbernat`.
+- ``pipx run script.py`` now expires its cache entry when creating the environment fails or is interrupted, not only
+  when installing the script's dependencies does. A Ctrl-C during ``python -m venv`` left an empty cache directory, and
+  every later run of the script reused it and failed with ``FileNotFoundError`` until the entry expired (:pr:`2294`) by
+  :user:`gaborbernat`.
+- ``pipx run`` and ``pipx install`` now fail when a script download ends before its ``Content-Length``. Before, pipx ran
+  or installed the part that arrived and could exit 0 (:pr:`2251`) by :user:`gaborbernat`.
+- ``pipx run`` and ``pipx install`` now refuse an ``http`` or ``https`` script URL with credentials, naming it with the
+  password masked. Before, a URL such as ``https://user:password@host/tool.py`` failed with an error that printed the
+  password in clear text and wrote it to the log. ``pipx install`` also reports a malformed script URL as an error
+  instead of a traceback (:pr:`2249`) by :user:`gaborbernat`.
+- ``pipx run`` no longer keys its cache on the ``PIP_*`` and ``UV_*`` variables that cannot change what the installer
+  resolves or installs: timeouts, retries, parallelism, verbosity, progress and color output, cache directories, and the
+  ``UV_RUN_RECURSION_DEPTH`` that ``uv run`` sets for its children. Setting one of them rebuilt the environment for an
+  unchanged command. Every other variable with those prefixes stays in the key, whatever its case or ``-``/``_``
+  spelling, since pip reads ``PIP_index_url`` the same as ``PIP_INDEX_URL`` (:pr:`2353`) by :user:`gaborbernat`.
+- ``pipx run`` now includes the installer's environment variables (``PIP_*``, or ``UV_*`` under the uv backend) in its
+  cache key. A run after changing ``PIP_INDEX_URL``, ``PIP_FIND_LINKS`` or ``UV_INDEX_URL`` reused the environment built
+  from the previous index for up to 14 days (:pr:`2282`) by :user:`gaborbernat`.
+- ``pipx run`` now keys its cache on the absolute path of a local ``--spec``, ``--with`` or ``--find-links`` value. The
+  same relative path typed in two directories, such as ``--spec ./dist/tool-1.0-py3-none-any.whl``, shared one
+  environment, so the second directory ran the first directory's build by Bernát Gábor.
+- ``pipx run`` now names the script URL, with credentials masked, when a download fails, as ``pipx install`` already
+  did. ``pipx install`` of a script URL whose body does not decode in its declared charset, or declares an unknown one,
+  now reports an error instead of a traceback, as ``pipx run`` already did (:pr:`2255`) by :user:`gaborbernat`.
+- ``pipx runpip <venv> install`` now records a relative ``--find-links`` (``-f``) path resolved against the directory
+  you ran it from. Before, a later ``pipx upgrade`` or ``pipx reinstall`` read it against the environment's directory,
+  failed with ``Failed to read --find-links directory`` or ``No matching distribution found``, and rolled back
+  (:pr:`2349`) by :user:`gaborbernat`.
+- ``pipx runpip`` starts pip or uv in your working directory again instead of the environment's root, so relative paths
+  such as ``-r requirements.txt``, ``-c constraints.txt`` or ``./dist/app.whl`` name your files. Since 1.12.0 the
+  installer looked them up in the environment, where they were missing or named a data file an installed wheel had put
+  there (:pr:`2318`) by :user:`gaborbernat`.
+- ``pipx uninject`` no longer removes apps, man pages and completions that the main package or another injected package
+  of the environment still exposes, such as a command of a dependency both packages share under ``--include-deps``
+  (:pr:`2296`) by :user:`gaborbernat`.
+- ``pipx uninject`` now ignores installed distributions whose metadata ``Name`` is not a valid project name when it
+  looks for orphaned dependencies to remove. A name such as ``-t/some/dir`` or ``-rFILE`` reached ``uv pip uninstall``
+  or ``pip uninstall`` as an option, and with uv could delete packages from a directory outside pipx (:pr:`2306`) by
+  :user:`gaborbernat`.
+- pipx no longer crashes on Python 3.11 and 3.12 when a package's ``installed-files.txt`` lists a looping symlink, and
+  skips that entry instead (:pr:`2336`) by :user:`gaborbernat`.
+- pipx no longer exposes an app whose name is a standard library module or ``pipx`` plus an import suffix, such as
+  ``enum.py``, ``re.pyc`` or ``pipx.py``, or a directory named after one, and warns instead. Python searches the
+  directory of the script it starts first, so in ``~/.local/bin`` such an app replaced the module for pip's ``pipx``
+  launcher, which imports ``re`` and then ``pipx`` before pipx can drop that directory from ``sys.path``, and for every
+  other Python script installed there (:pr:`2342`) by :user:`gaborbernat`.
+- pipx no longer reads ``installed-files.txt`` from a distribution that has a ``RECORD``, matching
+  ``importlib.metadata``. A dependency, or a package injected without ``--include-apps``, could ship that file into the
+  main package's ``.dist-info`` and get its own apps, man pages and completions exposed without ``--include-deps``
+  (:pr:`2277`) by :user:`gaborbernat`.
+- pipx now adds ``-E`` to an app script's shebang by writing a new file and renaming it over the script, instead of
+  writing into the existing file. With the uv backend the script can be a hard link or symlink into uv's cache, so the
+  in-place write also changed the cache entry and the same script in every other environment uv had installed that wheel
+  into (:pr:`2285`) by :user:`gaborbernat`.
+- pipx now reads a package's ``entry_points.txt`` only when that package's ``RECORD`` lists it, or when the package has
+  no ``RECORD``. A dependency could ship that file into the ``.dist-info`` of a main package that has no entry points of
+  its own and get its apps exposed without ``--include-deps`` (:pr:`2340`) by :user:`gaborbernat`.
+
+.. _release-1-18-8-documentation:
+
+Documentation
+-------------
+
+- Document what the security policy covers: which inputs pipx trusts, and which reports count as vulnerabilities
+  (:pr:`2198`) by :user:`gaborbernat`.
+
+.. _release-1-18-8-security:
+
+Security
+--------
+
+- A bare package name such as ``pipx install pycowsay`` now always means the package on the index. A file of that name
+  without a suffix in the working directory no longer gets installed as a PEP 723 script; pass a path such as
+  ``./pycowsay`` to install one. URL specs no longer pick up a script at the matching relative path below the working
+  directory either (:pr:`2243`) by :user:`gaborbernat`.
+- Ask the Python Launcher for Unix for a ``--python`` value only when it is an ``X`` or ``X.Y`` version. The launcher
+  ran any other value, such as ``3.14.8`` or ``3.13t``, on the first interpreter its search found, which could be a
+  ``.venv`` in a parent of the current directory (:pr:`2242`) by :user:`gaborbernat`.
+- Create the self-managed bootstrap environment in the installation guide with ``mktemp -d`` instead of the fixed
+  ``/tmp/bootstrap`` path, which another local user could create first and plant code in that ran as the reader, and as
+  root at the ``sudo`` step (:pr:`2219`) by :user:`gaborbernat`.
+- Look up a command name in ``PIPX_DEFAULT_PYTHON``, such as ``python3``, on ``PATH`` only: pipx no longer uses a file
+  of that name in the current directory as the default interpreter. Write ``./python3`` to pick that file on purpose
+  (:pr:`2226`) by :user:`gaborbernat`.
+- Pass the absolute path ``PATH`` lookup found for ``--python python3.11`` on to the backend instead of the bare name.
+  uv read the bare name as a version request and could pick a ``.venv`` interpreter from a parent of the current
+  directory. A file in the current directory named like the value, such as ``./3.11``, no longer counts as a path either
+  (:pr:`2240`) by :user:`gaborbernat`.
+- Read a package name from a local ``pyproject.toml`` or wheel only for local path specs. A URL spec such as
+  ``https://host/app.whl`` no longer takes its name, and with it the target environment, from a file at the matching
+  relative path below the working directory (:pr:`2238`) by :user:`gaborbernat`.
+- Record relative ``--find-links`` and ``--constraint`` values passed to ``pipx upgrade --pip-args`` and ``pipx run``
+  scripts as absolute paths, resolve relative values already in ``pipx_metadata.json`` against the environment's
+  directory, and run the shared pip refresh inside the shared libraries directory, so a later ``pipx upgrade`` or ``pipx
+  reinstall`` no longer reads wheels from whatever directory you start it in (:pr:`2233`) by :user:`gaborbernat`.
+- Record the index options of a ``pipx runpip <venv> install`` that replaces the main package, so a later ``pipx
+  upgrade`` or ``pipx reinstall`` asks the same index instead of resolving the bare name on the default one (:pr:`2231`)
+  by :user:`gaborbernat`.
+- Start scripts read from a URL or a named pipe, ``pipx.run`` entry points, and apps run with ``--python-args`` with
+  ``python -P`` so a module in the current directory, such as a planted ``json.py``, no longer shadows what the program
+  imports (:pr:`2221`) by :user:`gaborbernat`.
+- Stop ``pipx reinstall`` from replacing the main package while it replays injected packages. The replay passed
+  ``--force-reinstall``, so an injected package that depends on the main package made the installer fetch the main
+  package again by name from the injected package's index and install that release over the recorded source. ``pipx
+  inject --force`` now passes ``--force-reinstall`` only when the package is already injected, and under the uv backend
+  reinstalls just that package with ``--reinstall-package`` (:pr:`2227`) by :user:`gaborbernat`.
+- Stop ``pipx run`` from retrying a failed uv install with pip. A venv directory without ``pipx_metadata.json`` no
+  longer counts as recorded with the pip backend, so it resolves its backend like a new venv, and a ``pipx run`` whose
+  install fails now expires its cache entry so the next run rebuilds it. pip ignores ``UV_INDEX_URL``, so the retry
+  fetched the package from pip's default index instead of the private one (:pr:`2235`) by :user:`gaborbernat`.
+- The uv backend no longer applies a ``uv.toml`` or ``pyproject.toml`` found in the directory uv runs in, the script's
+  directory, or their parents, such as one another local account wrote to a shared ``/tmp``. pipx now points uv's
+  project-config search at ``PIPX_HOME`` through ``UV_PROJECT``, and through ``--project`` for ``uv run --script``. Your
+  user and system ``uv.toml`` and ``UV_CONFIG_FILE`` still apply. Keep ``PIPX_HOME`` out of directories other accounts
+  can write (:pr:`2246`) by :user:`gaborbernat`.
+- When ``pipx install --force`` or ``pipx manifest sync`` rebuilds an existing environment, either on another Python
+  because the release's ``Requires-Python`` rules out the current one or to apply a lock file, keep the backend recorded
+  for that environment. The rebuild used to pick the backend as for a new environment, so a pip-backed environment could
+  move to uv and install from uv's default index instead of the one set in ``PIP_INDEX_URL`` or ``pip.conf``
+  (:pr:`2237`) by :user:`gaborbernat`.
+- ``pipx inject ENV 'APP[extra]'`` now adds the extra to the main package's recorded source instead of replacing it with
+  the bare name ``APP[extra]``. An app installed from a wheel, a directory or a URL no longer turns into the index's
+  project of the same name on the next ``pipx upgrade`` or ``pipx reinstall``. Extras accumulate with the ones already
+  recorded, and a main-package spec that changes the version, path or URL needs ``--force`` (:pr:`2250`) by
+  :user:`gaborbernat`.
+- ``pipx manifest sync`` now keeps the installer and venv options recorded for an environment that already exists, such
+  as ``--index-url``. It used to reinstall the tool from the default index and erase the recorded options (:pr:`2224`)
+  by :user:`gaborbernat`.
+- pipx now creates its log directory readable by its owner only (``0700``), tightens an existing one, and writes
+  ``cmd_*.log`` and ``cmd_*_{pip,uv}_errors.log`` as ``0600``. The logs record the full command line, including the
+  arguments ``pipx run`` and ``pipx exec`` pass to the application, and in a ``--global`` store under ``/opt/pipx/logs``
+  any local account could read them (:pr:`2230`) by :user:`gaborbernat`.
+
 .. _release-1-18-7:
 
 `1.18.7 <https://github.com/pypa/pipx/tree/1.18.7>`_ - 2026-10-28
