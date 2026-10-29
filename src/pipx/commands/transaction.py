@@ -195,7 +195,7 @@ def _is_backup_in_use(entry: Path) -> bool:
     venv_name: Final[str] = entry.name.removesuffix(suffix).rpartition("-")[0]
     if _is_held(VenvContainer(paths.CTX.venvs).venv_lock(paths.CTX.venvs / venv_name)):
         return True
-    # acquiring a lock creates its file, which would mark a copy no pipx imports from
+    # only a copy some pipx imported from has the lock file, and acquiring a missing one would create it
     return (in_use := entry / _IN_USE_LOCK).is_file() and _is_held(FileLock(in_use))
 
 
