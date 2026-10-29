@@ -70,8 +70,6 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from filelock import ReadWriteLock
-
     from pipx.constants import FetchPythonOptions
     from pipx.options import RunOptions
 
@@ -436,19 +434,22 @@ def _write_cache_secret(secret_path: Path) -> bytes:
 
 @contextmanager
 def _running_uv_script_venv(venv: Venv, *, use_cache: bool, refresh: bool) -> Generator[Path]:
+    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
     # on Windows exec_app waits for the script, so holding the cache lock across it would block every concurrent run of
-    # this script, including one the script starts itself; a shared lock lets those through while keeping a wipe or an
-    # expiry sweep away from an environment a script still runs in, and uv locks the environment while it syncs
+    # this script, including one the script starts itself; a lock file of each run's own lets those through while
+    # keeping a wipe or an expiry sweep away from an environment a script still runs in, and uv locks the environment
+    # while it syncs
     venv_dir: Final[Path] = venv.root
     with _locked_venv_cache(venv_dir):
-        if (refresh or not use_cache) and _in_use(venv_dir):
+        if _in_use(venv_dir) and (refresh or not use_cache):
             if refresh and venv_dir.is_dir():
                 # the next run to find the environment idle rebuilds it
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
             running = None
         else:
             _prepare_venv_cache(venv, None, use_cache=use_cache, refresh=refresh)
-            running = _run_lock(venv_dir).acquire_read()
+            (running := FileLock(venv_dir.with_name(f".{venv_dir.name}.run-{secrets.token_hex(8)}.lock"))).acquire()
     if running is None:
         _LOGGER.info("Another run uses the cached venv %s, so this run builds one of its own", venv_dir)
         private_venv_dir: Final[Path] = venv_dir.with_name(f"{venv_dir.name}-{secrets.token_hex(4)}")
@@ -457,8 +458,11 @@ def _running_uv_script_venv(venv: Venv, *, use_cache: bool, refresh: bool) -> Ge
         finally:
             rmdir(private_venv_dir)
         return
-    with running:
+    try:
         yield venv_dir
+    finally:
+        running.release()
+        Path(running.lock_file).unlink(missing_ok=True)
 
 
 @contextmanager
@@ -497,21 +501,20 @@ def _remove_expired_venv(venv_dir: Path) -> None:
 
 
 def _in_use(venv_dir: Path) -> bool:
-    from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+    from filelock import FileLock, Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
-    lock: Final[ReadWriteLock] = _run_lock(venv_dir)
-    try:
-        lock.acquire_write(blocking=False)
-    except Timeout:
-        return True
-    lock.release()
-    return False
-
-
-def _run_lock(venv_dir: Path) -> ReadWriteLock:
-    from filelock import ReadWriteLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
-
-    return ReadWriteLock(venv_dir.with_name(f".{venv_dir.name}.run"))
+    in_use = False
+    for lock_file in venv_dir.parent.glob(f".{venv_dir.name}.run-*.lock"):
+        lock = FileLock(lock_file)
+        try:
+            lock.acquire(timeout=0)
+        except Timeout:
+            in_use = True
+            continue
+        # the run that held it has ended or, on POSIX, handed its process over to uv
+        lock.release()
+        lock_file.unlink(missing_ok=True)
+    return in_use
 
 
 def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, refresh: bool) -> None:

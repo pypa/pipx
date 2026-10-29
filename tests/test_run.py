@@ -882,7 +882,24 @@ def test_run_script_uv_rebuilds_environment_refreshed_while_running(
     assert sys_exit.value.code == (venv_dir, False)
 
 
-@pytest.mark.skipif(not WIN, reason="pipx hands the process over to uv elsewhere, so nothing is left to clean up")
+def test_run_script_uv_leaves_no_run_lock_files(uv_script: Path, mocker: MockerFixture) -> None:
+    venv_dirs: Final[list[Path]] = []
+
+    def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
+        venv_dirs.append(Path(env["VIRTUAL_ENV"]))
+        raise SystemExit(0)
+
+    mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
+    run_pipx_cli_exit(["run", "--backend", "uv", str(uv_script)], assert_exit=0)
+    # what a run that handed its process over to uv leaves
+    venv_dirs[0].with_name(f".{venv_dirs[0].name}.run-ended.lock").touch()
+
+    run_pipx_cli_exit(["run", "--backend", "uv", str(uv_script)], assert_exit=0)
+
+    assert list(paths.CTX.venv_cache.glob(".*.run-*.lock")) == []
+
+
+@pytest.mark.skipif(not WIN, reason="on POSIX pipx hands its process to uv, so it cannot remove the environment after")
 def test_run_script_uv_removes_its_own_environment_once_done(
     run_beside_running_uv_script: Callable[[list[str], str], Path],
 ) -> None:
