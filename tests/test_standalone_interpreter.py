@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.error
 import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -198,8 +199,11 @@ def test_early_python_311_stays_inside_through_archive_links(
 def test_early_python_311_keeps_links_inside_archive(
     monkeypatch: pytest.MonkeyPatch,
     published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    tmp_path: Path,
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
+    # from a temp dir on another filesystem, such as a tmpfs /tmp, moving into the pipx home copies the hard link apart
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
         python_tar.addfile(tarfile.TarInfo("python/bin/python3.99"), io.BytesIO())
@@ -588,7 +592,7 @@ def test_prune_removes_unused_standalone_interpreter(capsys: pytest.CaptureFixtu
     assert not run_pipx_cli(["interpreter", "prune"])
 
     out: Final[str] = capsys.readouterr().out
-    assert ("Successfully removed:" in out, f"- Python {_TARGET_PYTHON_VERSION}" in out) == (True, True)
+    assert ("Removed:" in out, f"- Python {_TARGET_PYTHON_VERSION}" in out) == (True, True)
 
 
 @pytest.mark.usefixtures("pruned_unused_interpreter")

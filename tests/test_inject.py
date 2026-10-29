@@ -187,7 +187,7 @@ def test_inject_json_reports_no_packages(
                 {
                     "code": "package_inject_failed",
                     "environment": "pycowsay",
-                    "message": "No packages have been specified.",
+                    "message": "No packages to inject; pass a package spec or --requirement.",
                     "package": None,
                 }
             ],
@@ -386,7 +386,7 @@ def test_inject_legacy_venv_without_metadata(capsys: pytest.CaptureFixture[str])
 
     assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
 
-    assert "Please uninstall and install" in capsys.readouterr().err
+    assert "Uninstall and install" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "capsys")

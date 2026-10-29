@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 import pipx.main
-from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli, write_wheel
+from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import paths, shared_libs, subprocess_runner
 from pipx.commands.run import maybe_script_content, run_package
@@ -811,6 +811,83 @@ def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocke
     (script := tmp_path / "test.py").write_text("# /// script\n# dependencies = []\n# ///\n")
 
     run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
+
+
+@pytest.fixture
+def uv_script(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while running
+    tmp_path: Path,
+) -> Path:
+    if shutil.which("uv") is None:
+        pytest.skip("needs the uv binary")
+    (script := tmp_path / "test.py").write_text("# /// script\n# dependencies = []\n# ///\n")
+    return script
+
+
+@pytest.fixture
+def run_beside_running_uv_script(uv_script: Path, mocker: MockerFixture) -> Callable[[list[str], str], Path]:
+    # exec_app waits for the script on Windows, so the handover runs it and then stands in for it still running there
+    # while another pipx process runs the same script
+    def run(flags: list[str], planted: str) -> Path:
+        venv_dirs: Final[list[Path]] = []
+
+        def handover(cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
+            subprocess.run([str(arg) for arg in cmd], env=env, check=True)
+            venv_dirs.append(venv_dir := Path(env["VIRTUAL_ENV"]))
+            (venv_dir / planted).touch()
+            subprocess.run(
+                [sys.executable, "-m", "pipx", "run", "--backend", "uv", *flags, str(uv_script)],
+                env=pipx_subprocess_env(),
+                check=True,
+            )
+            raise SystemExit(0)
+
+        mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
+        run_pipx_cli_exit(["run", "--backend", "uv", str(uv_script)], assert_exit=0)
+        # autospec refuses to wrap a mock, so a test patching exec_app again needs the original back
+        mocker.stopall()
+        return venv_dirs[0]
+
+    return run
+
+
+@pytest.mark.parametrize(
+    ("flags", "planted"),
+    [
+        pytest.param(["--no-cache"], "running", id="no-cache"),
+        pytest.param(["--refresh"], "running", id="refresh"),
+        pytest.param([], "pipx_expired_venv", id="expired"),
+    ],
+)
+def test_run_script_uv_keeps_environment_a_running_script_uses(
+    run_beside_running_uv_script: Callable[[list[str], str], Path], flags: list[str], planted: str
+) -> None:
+    assert (run_beside_running_uv_script(flags, planted) / planted).is_file()
+
+
+def test_run_script_uv_rebuilds_environment_refreshed_while_running(
+    run_beside_running_uv_script: Callable[[list[str], str], Path], uv_script: Path, mocker: MockerFixture
+) -> None:
+    venv_dir: Final[Path] = run_beside_running_uv_script(["--refresh"], "running")
+
+    def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
+        raise SystemExit((Path(env["VIRTUAL_ENV"]), (venv_dir / "running").exists()))
+
+    mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
+
+    with pytest.raises(SystemExit) as sys_exit:
+        run_pipx_cli(["run", "--backend", "uv", str(uv_script)])
+
+    assert sys_exit.value.code == (venv_dir, False)
+
+
+@pytest.mark.skipif(not WIN, reason="pipx hands the process over to uv elsewhere, so nothing is left to clean up")
+def test_run_script_uv_removes_its_own_environment_once_done(
+    run_beside_running_uv_script: Callable[[list[str], str], Path],
+) -> None:
+    venv_dir: Final[Path] = run_beside_running_uv_script(["--no-cache"], "running")
+
+    assert [path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()] == [venv_dir]
 
 
 @pytest.mark.parametrize(

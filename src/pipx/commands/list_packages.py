@@ -6,6 +6,7 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
+    "pipx.self_install",
     "pipx.venv",
 ]
 
@@ -18,9 +19,10 @@ from pipx import paths
 from pipx.colors import BOLD
 from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
 from pipx.commands.transaction import is_unfinished
-from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
+from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
 from pipx.emojis import SLEEP
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
+from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -82,6 +84,9 @@ def _list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
         if venv_problems.any_():
             warning_messages.append(warning_message)
             continue
+        if _records_stale_self_managed_python(venv_metadata):
+            # install-all would build on whatever interpreter appears at the recorded path again
+            venv_metadata.source_interpreter = None
         listed[venv_dir.name] = venv_metadata
 
     print(  # ruff:ignore[print]  # user-facing CLI output
@@ -99,6 +104,16 @@ def _list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
         _LOGGER.warning(warning_message)
 
     return all_venv_problems
+
+
+def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:
+    # pipx is self-managed only on POSIX, where its venv links bin/python to the interpreter it is built on
+    return (
+        not WINDOWS
+        and venv_metadata.main_package.package == "pipx"
+        and (recorded := venv_metadata.source_interpreter) is not None
+        and not backs_self_managed_venv(recorded, venv_metadata.venv_dir)
+    )
 
 
 def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
@@ -184,9 +199,9 @@ def _log_venv_problems(problems: VenvProblems) -> None:
         )
     if problems.missing_metadata:
         _LOGGER.warning(
-            "\nOne or more packages have a missing internal pipx metadata.\n"
-            "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "\nOne or more packages have no internal pipx metadata.\n"
+            "   pipx versions before 0.15.0.0 did not record it.\n"
+            "   Uninstall and install these packages to fix them."
         )
     if problems.unreadable_metadata:
         _LOGGER.warning(
@@ -196,8 +211,7 @@ def _log_venv_problems(problems: VenvProblems) -> None:
         )
     if problems.not_installed:
         _LOGGER.warning(
-            "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "\nOne or more packages are not installed properly.\n   Uninstall and install these packages to fix them."
         )
 
 

@@ -18,13 +18,11 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "tempfile",
-    "types",
 ]
 
 import contextlib
 import logging
 import sys
-import types
 from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
@@ -221,13 +219,14 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         raise PipxError(msg)
 
     old_resource_paths: Final[set[Path]] = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
-    _resolve_self_reinstall_imports(venv_dir)
+    runs_from_venv: Final[bool] = Path(sys.prefix).resolve() == venv_dir.resolve()
     reinstall_backup_dir: Final[Path] = _create_reinstall_backup(venv_dir)
+    if runs_from_venv:
+        _repoint_imports(Path(sys.prefix), reinstall_backup_dir)
     messages: Final[list[OutputMessage]] = [OutputMessage(text=f"uninstalled {venv.name}! {STARS}")]
 
     # a legacy environment directory can carry a name that is not canonical; the rebuild uses the canonical one
     canonical_venv_dir: Final[Path] = venv_dir.with_name(canonicalize_name(venv_dir.name))
-    recorded_backend: Final[BackendOptions] = replace(backend, cli=backend.cli or venv.pipx_metadata.backend)
 
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
         with force_replaces_only(old_resource_paths):
@@ -253,7 +252,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 lock_file=venv.pipx_metadata.main_package.lock_file,
                 cooldown=CooldownOptions(cli_days=venv.pipx_metadata.main_package.cooldown_days),
                 python_flag_passed=python_flag_passed,
-                backend=recorded_backend,
+                backend=(recorded_backend := replace(backend, cli=backend.cli or venv.pipx_metadata.backend)),
                 exposure_enabled=venv.pipx_metadata.exposure_enabled,
                 venv_lock=venv_lock,
                 emit_output=False,
@@ -304,6 +303,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         raise
     except KeyboardInterrupt:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
+        give_back_shared_links(old_resource_paths, venv_dir)
         _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]
         raise
     except Exception:
@@ -312,7 +312,9 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         _LOGGER.exception("%s Reinstall failed; restored %s.", ERROR, venv.name)
         raise
     else:
-        rmdir(reinstall_backup_dir)
+        # the running pipx keeps importing from the backup, so the trash cleanup of the next pipx run removes it
+        if not runs_from_venv:
+            rmdir(reinstall_backup_dir)
 
     return OperationResult(
         command=("reinstall",),
@@ -339,8 +341,8 @@ def _unrecorded_package_spec(venv: Venv) -> str:
             if venv.has_package(venv.main_package_name):
                 return venv.main_package_name
     msg: Final[str] = (
-        f"Not reinstalling {venv.name}. It has missing internal pipx metadata, so pipx cannot tell what it was "
-        "installed from. Please uninstall and install this package to fix."
+        f"Not reinstalling {venv.name}. It has no internal pipx metadata, so pipx cannot tell what it was "
+        "installed from. Uninstall and install this package to fix it."
     )
     raise PipxError(msg)
 
@@ -361,25 +363,6 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
     )
 
 
-def _resolve_self_reinstall_imports(venv_dir: Path) -> None:
-    if Path(sys.prefix).resolve() != venv_dir.resolve() or not hasattr(types, "LazyImportType"):
-        return
-
-    # the running venv is about to move, so resolve the imports that still need its source files
-    resolved: Final[set[tuple[str, str]]] = set()
-    while pending := [
-        (module, name)
-        for module in tuple(sys.modules.values())
-        if isinstance(module, types.ModuleType) and module.__name__.startswith("pipx.")
-        for name, value in vars(module).items()
-        if isinstance(value, types.LazyImportType) and (module.__name__, name) not in resolved
-    ]:
-        for module, name in pending:
-            resolved.add((module.__name__, name))
-            with contextlib.suppress(ImportError):
-                getattr(module, name)
-
-
 def _create_reinstall_backup(venv_dir: Path) -> Path:
     # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
     # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
@@ -390,6 +373,20 @@ def _create_reinstall_backup(venv_dir: Path) -> Path:
     backup_dir.rmdir()
     rename_once_released(venv_dir, backup_dir)
     return backup_dir
+
+
+def _repoint_imports(source: Path, target: Path) -> None:
+    # pipx reinstalling itself moves away the venv it runs from and installs another version in its place; later
+    # imports (lazy ones and those inside functions) must load the moved code, or old and new modules mix; sys.path
+    # finds top-level modules and each package's __path__ its submodules
+    sys.path[:] = [_moved(entry, source, target) for entry in sys.path]
+    for module in tuple(sys.modules.values()):
+        if isinstance(search_path := getattr(module, "__path__", None), list):
+            search_path[:] = [_moved(entry, source, target) for entry in search_path]
+
+
+def _moved(entry: str, source: Path, target: Path) -> str:
+    return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
 
 
 def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
@@ -443,6 +440,7 @@ def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir
     with uninterrupted():
         rmdir(venv_dir)
         backup_dir.rename(restore_venv_dir)
+        _repoint_imports(backup_dir, restore_venv_dir)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

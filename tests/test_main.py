@@ -677,4 +677,4 @@ def test_option_shaped_package_is_refused(capsys: pytest.CaptureFixture[str], ar
     with pytest.raises(SystemExit):
         run_pipx_cli(argv)
 
-    assert "is an installer option, not a package; pass it with --pip-args" in capsys.readouterr().err
+    assert "is an installer option; pass it with --pip-args" in capsys.readouterr().err

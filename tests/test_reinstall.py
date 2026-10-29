@@ -29,9 +29,8 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadat
 from pipx.redact import redact_url_credentials
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from pathlib import Path
-    from types import ModuleType
     from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
@@ -98,21 +97,57 @@ def test_reinstall_keeps_environment_of_refused_find_links() -> None:
     assert metadata_file.read_bytes() == recorded
 
 
-@pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_self_resolves_lazy_imports(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def running_venv(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[Path]:
+    # stands in for pipx reinstalling itself: the interpreter runs from the venv and has loaded a package from it
     assert not run_pipx_cli(["install", "pycowsay"])
     venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
-    (venv_dir / "reinstall_import_source.py").write_text("VALUE = 'resolved'\n", encoding="utf-8")
+    _write_probe(venv_dir, "old")
     monkeypatch.syspath_prepend(str(venv_dir))
-    module: Final[ModuleType] = importlib.import_module("pipx.commands.reinstall")
-    exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
-        "lazy from reinstall_import_source import VALUE as reinstall_import_value", vars(module)
-    )
     monkeypatch.setattr(sys, "prefix", str(venv_dir))
+    importlib.import_module("reinstall_probe")
+    yield venv_dir
+    for name in ("reinstall_probe", "reinstall_probe.late"):
+        sys.modules.pop(name, None)
+
+
+def _write_probe(venv_dir: Path, value: str) -> None:
+    (package := venv_dir / "reinstall_probe").mkdir(exist_ok=True)
+    (package / "__init__.py").touch()
+    (package / "late.py").write_text(f"VALUE = {value!r}\n", encoding="utf-8")
+
+
+def test_reinstall_self_imports_submodules_of_the_running_version(running_venv: Path) -> None:
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+    _write_probe(running_venv, "new")
+
+    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
+
+
+@pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
+def test_reinstall_self_resolves_lazy_imports_from_the_running_version(running_venv: Path) -> None:
+    namespace: Final[dict[str, Callable[[], str]]] = {}
+    exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
+        "lazy from reinstall_probe import late\ndef value():\n    return late.VALUE\n", namespace
+    )
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
-    assert getattr(module, "reinstall_import_value", None) == "resolved"
+    _write_probe(running_venv, "new")
+
+    assert namespace["value"]() == "old"
+
+
+def test_reinstall_self_failure_imports_from_the_restored_venv(running_venv: Path, tmp_path: Path) -> None:
+    metadata: Final[PipxMetadata] = PipxMetadata(running_venv)
+    metadata.main_package = replace(metadata.main_package, package_or_url=str(tmp_path / "missing"))
+    metadata.write()
+
+    assert run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -268,7 +303,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
     assert run_pipx_cli(command)
 
     assert (
-        "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err,
+        "Not reinstalling pycowsay. It has no internal pipx metadata" in capsys.readouterr().err,
         install.called,
         (paths.CTX.venvs / "pycowsay").is_dir(),
     ) == (True, False, True)
@@ -332,8 +367,20 @@ def test_reinstall_keeps_a_file_it_did_not_expose(
     assert (user_file.is_symlink(), user_file.read_text(encoding="utf-8")) == (False, "mine")
 
 
+@pytest.mark.parametrize(
+    "home_depth",
+    [
+        pytest.param(0, id="short-home"),
+        # past the shebang length limit, installers start launchers with a /bin/sh trampoline that execs the interpreter
+        pytest.param(3, id="long-home", marks=SKIP_IF_WINDOWS),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, mocker: MockerFixture) -> None:
+def test_reinstall_refreshes_a_stale_copy_it_exposed(
+    dotted_app_wheel: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, home_depth: int
+) -> None:
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", paths.CTX.home.joinpath(*["h" * 200] * home_depth))
+    paths.CTX.make_local()
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
     exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")
@@ -343,6 +390,34 @@ def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, moc
 
     # Windows launchers embed their build time, so compare with the launcher this reinstall wrote
     assert exposed.read_bytes() == (util.get_venv_paths(paths.CTX.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_refreshes_its_own_stale_copy_quietly(
+    dotted_app_wheel: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", str(dotted_app_wheel)])
+    exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")
+    exposed.write_bytes(exposed.read_bytes() + b"# stale\n")
+    caplog.clear()
+
+    assert not run_pipx_cli(["reinstall", "foo-bar-x"])
+
+    assert f"Overwriting file {exposed}" not in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_warns_when_overwriting_a_foreign_copy(
+    dotted_app_wheel: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    paths.CTX.bin_dir.mkdir(parents=True)
+    (exposed := paths.CTX.bin_dir / app_name("tool3.12")).write_text("#!/elsewhere/bin/python\n", encoding="utf-8")
+
+    assert not run_pipx_cli(["install", "--force", str(dotted_app_wheel)])
+
+    assert f"Overwriting file {exposed}" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

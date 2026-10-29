@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["completions"])
-    assert "Add the appropriate command" in capsys.readouterr().out
+    assert "Add the command for your shell" in capsys.readouterr().out
 
 
 def test_installed_venvs_noncanonical_prefix(tmp_path: Path) -> None:

@@ -183,11 +183,11 @@ options. Up to eight environments install at once, with their output printed in 
 .. code-block:: console
 
     $ pipx install-all pipx.json
-    'black' (24.3.0) already seems to be installed. Not
+    'black' (24.3.0) is already installed. Not
     modifying existing installation in '/home/user/.local/share/pipx/venvs/black'.
     Pass '--force' to force installation, or use
     'pipx upgrade black' to upgrade.
-    'pipx' (1.4.3) already seems to be installed. Not
+    'pipx' (1.4.3) is already installed. Not
     modifying existing installation in '/home/user/.local/share/pipx/venvs/pipx'.
     Pass '--force' to force installation, or use
     'pipx upgrade pipx' to upgrade.
