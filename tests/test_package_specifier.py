@@ -646,6 +646,61 @@ def test_parse_specifier_for_install_find_links_args(
 
 
 @pytest.mark.parametrize(
+    "option",
+    [
+        "--build-constraint",
+        "-r",
+        "--requirement",
+        "--requirements-from-script",
+        "-t",
+        "--target",
+        "--root",
+        "--prefix",
+        "--src",
+        "--source",
+        "--source-dir",
+        "--source-directory",
+        "--report",
+        "--log",
+        "--log-file",
+        "--local-log",
+        "--cert",
+        "--client-cert",
+        "--cache-dir",
+    ],
+)
+def test_parse_specifier_for_install_path_option_separated(option: str) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", [option, "file"])
+    assert pip_args_out == [option, str(Path("file").resolve())]
+
+
+@pytest.mark.parametrize("option", ["--requirement", "--cert", "--cache-dir"])
+def test_parse_specifier_for_install_path_option_equals(option: str) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", [f"{option}=file"])
+    assert pip_args_out == [f"{option}={Path('file').resolve()}"]
+
+
+@pytest.mark.parametrize("option", ["-r", "-t"])
+def test_parse_specifier_for_install_path_option_attached(option: str) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", [f"{option}file"])
+    assert pip_args_out == [f"{option}{Path('file').resolve()}"]
+
+
+@pytest.mark.parametrize(
+    "kept",
+    [
+        pytest.param(["--report", "-"], id="report-stdout"),
+        pytest.param(["--report=-"], id="report-stdout-equals"),
+        pytest.param(["-r", "https://example.com/requirements.txt"], id="requirement-url"),
+        pytest.param(["-rhttps://example.com/requirements.txt"], id="requirement-url-attached"),
+    ],
+)
+def test_parse_specifier_for_install_path_option_keeps_value(kept: list[str]) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", [*kept, "--log", "file"])
+    assert pip_args_out == [*kept, "--log", str(Path("file").resolve())]
+
+
+@pytest.mark.parametrize(
     ("pyproject", "expected"),
     [
         pytest.param(b'[project]\nname = "Foo_Bar.X"\n', "Foo_Bar.X", id="static"),
