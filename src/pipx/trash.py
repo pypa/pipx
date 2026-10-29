@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "random", "shutil", "string"]
+__lazy_modules__ = ["pathlib", "pipx", "random", "shutil", "string"]
 
 import logging
 import random
 import shutil
 import string
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Generator
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -63,8 +66,39 @@ def safe_unlink(file: Path) -> None:
         file.rename(_get_trash_file(file))
 
 
+@contextmanager
+def running_launcher_moved_aside(scripts_dir: Path) -> Generator[None]:
+    # Windows lets a running file be renamed but not deleted, so the launcher this pipx started from waits in the trash
+    # while an installer that deletes files in place rewrites the scripts directory
+    if (launcher := _running_launcher(scripts_dir)) is None:
+        yield
+        return
+    aside: Final[Path] = _get_trash_file(launcher)
+    try:
+        launcher.rename(aside)
+    except OSError as error:
+        _LOGGER.debug("could not move the running launcher %s aside: %s", launcher, error)
+        yield
+        return
+    try:
+        yield
+    finally:
+        # the installer had nothing to replace, or failed before writing the new launcher
+        if not launcher.exists():
+            aside.rename(launcher)
+
+
+def _running_launcher(scripts_dir: Path) -> Path | None:
+    # the Windows launcher passes its own path, without the .exe suffix, to Python as the script name
+    for candidate in (Path(sys.argv[0]), Path(f"{sys.argv[0]}.exe")):
+        if candidate.is_file() and (launcher := candidate.resolve()).parent == scripts_dir.resolve():
+            return launcher
+    return None
+
+
 __all__ = [
     "rmdir",
     "rmdir_via_trash",
+    "running_launcher_moved_aside",
     "safe_unlink",
 ]

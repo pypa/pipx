@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["importlib.util", "packaging", "pathlib", "pipx.self_install", "re", "shutil", "subprocess"]
+__lazy_modules__ = [
+    "configparser",
+    "importlib.util",
+    "packaging",
+    "pathlib",
+    "pipx.self_install",
+    "re",
+    "shutil",
+    "subprocess",
+]
 
 import logging
 import os
@@ -8,6 +17,8 @@ import re
 import shutil
 import subprocess
 import sys
+from configparser import ConfigParser
+from configparser import Error as ConfigParserError
 from functools import cache
 from importlib.util import find_spec
 from pathlib import Path
@@ -217,6 +228,31 @@ def _resolve_python(python: str) -> str:
     raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
+def recordable_interpreter(python: Path) -> Path | None:
+    # an interpreter inside a virtual environment, such as an activated bootstrap's python3, goes away with that
+    # environment, and whoever creates the path again decides what install-all runs from a snapshot; the new
+    # environment runs on the base interpreter instead
+    if not (pyvenv_cfg := python.parent.parent / "pyvenv.cfg").is_file():
+        return python
+    config: Final[dict[str, str]] = read_pyvenv_cfg(pyvenv_cfg)
+    # home keeps the directory the base interpreter ran from, such as a link that survives patch upgrades; executable,
+    # resolved and written by venv since 3.11, covers a home without this name, as a macOS framework build has no python
+    candidates: Final[list[Path]] = [Path(home) / python.name] if (home := config.get("home")) else []
+    if executable := config.get("executable"):
+        candidates.append(Path(executable))
+    return next((candidate for candidate in candidates if candidate.is_file()), None)
+
+
+def read_pyvenv_cfg(pyvenv_cfg: Path) -> dict[str, str]:
+    config: Final[ConfigParser] = ConfigParser()
+    try:
+        # pyvenv.cfg has no section header, which ConfigParser requires
+        config.read_string(f"[DEFAULT]\n{pyvenv_cfg.read_text(encoding='utf-8')}")
+    except (OSError, UnicodeDecodeError, ConfigParserError):
+        return {}
+    return dict(config["DEFAULT"])
+
+
 __all__ = [
     "DEFAULT_PYTHON",
     "InterpreterResolutionError",
@@ -225,4 +261,6 @@ __all__ = [
     "get_default_python",
     "get_default_python_spec",
     "has_venv",
+    "read_pyvenv_cfg",
+    "recordable_interpreter",
 ]

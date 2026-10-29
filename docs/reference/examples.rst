@@ -153,9 +153,9 @@ Narrow the output or change the format; the package filter works with every form
 *************
 
 Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`). Each environment gets the
-venv and pip arguments the snapshot recorded unless you pass your own. A ``--backend`` other than the recorded one skips
-the recorded pip arguments with a warning, since they can hold options only the old backend accepts. pipx translates
-options with an exact equivalent instead, so the environment still installs from the recorded index:
+interpreter, venv and pip arguments the snapshot recorded unless you pass your own. A ``--backend`` other than the
+recorded one skips the recorded pip arguments with a warning, since they can hold options only the old backend accepts.
+pipx translates options with an exact equivalent instead, so the environment still installs from the recorded index:
 
 =============================== ======================================================
 pip                             uv
@@ -178,7 +178,13 @@ spelling. When a recorded index option has no equivalent, such as a `uv <https:/
 
 ``pip`` searches every index for the best version, while ``uv`` stops at the first index that has the package, so a
 ``uv`` ``--index`` moved to ``pip`` can pick a newer release from ``PyPI``. Pass ``--pip-args`` to replace the recorded
-options. Up to eight environments install at once, with their output printed in snapshot order:
+options.
+
+pipx skips the recorded interpreter, says why, and uses the default Python when that interpreter is gone, sits inside a
+virtual environment, or, on Unix, can be changed by another account through the file or a directory above it. Pass
+``--python`` to pick one yourself.
+
+Up to eight environments install at once, with their output printed in snapshot order:
 
 .. code-block:: console
 
