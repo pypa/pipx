@@ -391,16 +391,7 @@ def _parse_pip_args(pip_args: list[str]) -> list[_PipArgument]:
 def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
     spelled, separator, value = argument.partition("=")
     if (name := _long_option_name(spelled)) is None:
-        if not _prefixed_options(spelled, _PIP_VALUE_OPTIONS):
-            # pip rejects an unknown option, so keep it as typed
-            return _PipArgument(name=argument)
-        # an older pip, with fewer options, can take a prefix this table finds ambiguous, so keep it as typed, with
-        # the value the option it names there would take
-        return (
-            _PipArgument(name=spelled, value=value, separator=separator)
-            if separator
-            else _PipArgument(name=spelled, value=next(arguments, None))
-        )
+        return _unresolved_long_option(argument, arguments)
     if separator and name in _LONG_FLAGS:
         # pip rejects a value given to a flag, so keep it as typed
         return _PipArgument(name=argument)
@@ -409,6 +400,20 @@ def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
     if separator:
         return _PipArgument(name=name, value=value, separator=separator)
     return _PipArgument(name=name, value=next(arguments, None))
+
+
+def _unresolved_long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
+    spelled, separator, value = argument.partition("=")
+    # an older pip, with fewer options, can take a prefix this table finds ambiguous, so keep it as typed, with the
+    # value the option it names there takes; a prefix that could also name a flag, as --b could
+    # --break-system-packages, may take none, so the next argument stays its own
+    candidates: Final[frozenset[str]] = _prefixed_options(spelled, _PIP_VALUE_OPTIONS | _PIP_LONG_FLAGS)
+    if separator and candidates & _PIP_VALUE_OPTIONS:
+        return _PipArgument(name=spelled, value=value, separator=separator)
+    if candidates and candidates <= _PIP_VALUE_OPTIONS:
+        return _PipArgument(name=spelled, value=next(arguments, None))
+    # pip rejects an unknown option, so keep it as typed
+    return _PipArgument(name=argument)
 
 
 def _long_option_name(spelled: str) -> str | None:
