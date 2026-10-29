@@ -53,11 +53,15 @@ def discover_self_managed_environment() -> dict[str, str]:
         isinstance(source_interpreter, dict)
         and source_interpreter.get("__type__") == "Path"
         and isinstance(source_path := source_interpreter.get("__Path__"), str)
-        # a record pointing at a since-removed bootstrap venv must not outlive it or adopt whatever appears there later
-        and Path(source_path).resolve() == (venv / "bin" / "python").resolve()
+        and backs_self_managed_venv(Path(source_path), venv)
     ):
         environment["PIPX_DEFAULT_PYTHON"] = source_path
     return environment
+
+
+def backs_self_managed_venv(source_interpreter: Path, venv: Path) -> bool:
+    # a record pointing at a since-removed bootstrap venv must not outlive it or adopt whatever appears there later
+    return source_interpreter.resolve() == (venv / "bin" / "python").resolve()
 
 
 def _invoked_executable(executable: str) -> Path | None:
@@ -77,6 +81,7 @@ def get_environment_value(name: str) -> str | None:
 
 __all__ = [
     "DEFAULT_PIPX_GLOBAL_HOME",
+    "backs_self_managed_venv",
     "discover_self_managed_environment",
     "get_environment_value",
 ]
