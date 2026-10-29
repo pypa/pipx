@@ -75,7 +75,7 @@ class InterpreterResolutionError(PipxError):
     def __init__(self, source: str, version: str) -> None:
         message = (
             f"No executable for the provided Python version '{version}' found in {source}."
-            " Please make sure the provided version is "
+            " Check that the provided version is "
         )
         match source:
             case "py launcher":
@@ -87,7 +87,7 @@ class InterpreterResolutionError(PipxError):
                 elif "python" not in version:
                     message += (
                         "The provided version looks like a version, "
-                        "but both the python command and the Python Launcher were not found on PATH."
+                        "but neither the python command nor the Python Launcher is on PATH."
                     )
             case "the python-build-standalone project":
                 message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."

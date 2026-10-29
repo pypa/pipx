@@ -176,7 +176,7 @@ def test_install_multiple_packages_when_some_already_installed(capsys: pytest.Ca
     assert (
         "black" in second,
         "pycowsay" in second,
-        "already seems to be installed" in second,
+        "is already installed" in second,
         "installed package isort" in second,
     ) == (True, True, True, True)
 
@@ -256,7 +256,7 @@ def test_force_install(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         "installed package" in skipped,
         "pycowsay" in skipped,
-        "already seems to be installed" in skipped,
+        "is already installed" in skipped,
     ) == (False, True, True)
 
     run_pipx_cli(["install", "pycowsay", "--force"])
@@ -705,7 +705,7 @@ def test_install_env_cooldown_ignored_for_pylock(
             "--lock cannot be combined with --cooldown",
             id="cooldown",
         ),
-        pytest.param(["pycowsay"], "lock.toml", "lock.toml", "Lock files must be named", id="name"),
+        pytest.param(["pycowsay"], "lock.toml", "lock.toml", "Rename the lock file 'lock.toml'", id="name"),
         pytest.param(["pycowsay"], "pylock.test.toml", "pylock.missing.toml", "Lock file does not exist", id="missing"),
     ],
 )
@@ -930,7 +930,7 @@ def test_install_same_package_twice_no_force(capsys: pytest.CaptureFixture[str])
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     out: Final[str] = capsys.readouterr().out
-    assert ("already seems to be installed" in out, "pipx upgrade" in out, "0.0.0.2" in out) == (True, True, True)
+    assert ("is already installed" in out, "pipx upgrade" in out, "0.0.0.2" in out) == (True, True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1386,7 +1386,7 @@ def test_install_uv_failure_shows_uv_error(
     assert run_pipx_cli(["install", "--backend", "uv", str(project)])
 
     assert re.search(
-        r"Some possibly relevant errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
+        r"Errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
         capsys.readouterr().err,
     )
 
@@ -1551,7 +1551,7 @@ def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         "Fatal error from pip" in err,
         Path(pip_log_file_match[1]).exists(),
-        re.search(r"pip (failed|seemed to fail) to build package", err) is not None,
+        re.search(r"pip failed (to build|while processing) package", err) is not None,
     ) == (True, True, True)
 
 
@@ -1831,7 +1831,7 @@ def test_passed_python_and_force_flag_warning(capsys: pytest.CaptureFixture[str]
 
     assert not run_pipx_cli(["install", "--python", sys.executable, "--force", PKG["pycowsay"]["spec"]])
 
-    assert "--python is ignored when --force is passed." in capsys.readouterr().out
+    assert "pipx ignores --python when you pass --force." in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -1850,7 +1850,7 @@ def test_force_flag_without_python_does_not_warn(
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"])
 
-    assert "--python is ignored when --force is passed." not in capsys.readouterr().out
+    assert "pipx ignores --python when you pass --force." not in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
