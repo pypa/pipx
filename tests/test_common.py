@@ -255,17 +255,6 @@ _HELD_RESOURCES: Final[list[ParameterSet]] = [
 ]
 
 
-def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
-    metadata = PipxMetadata(paths.ctx.venvs / "holder", read=False)
-    main_package = replace(metadata.main_package, package="holder", package_or_url="holder")
-    if injected:
-        metadata.main_package = main_package
-        metadata.injected_packages = {"extra": replace(main_package, package="extra", **recorded)}
-    else:
-        metadata.main_package = replace(main_package, **recorded)
-    metadata.write()
-
-
 @skip_if_windows
 @pytest.mark.parametrize(("resource_type", "resource", "exposed", "field"), _HELD_RESOURCES)
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -280,6 +269,17 @@ def test_expose_keeps_link_to_resource_its_venv_still_records(
     link.symlink_to(held)
 
     assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([link], held)
+
+
+def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
+    metadata = PipxMetadata(paths.ctx.venvs / "holder", read=False)
+    main_package = replace(metadata.main_package, package="holder", package_or_url="holder")
+    if injected:
+        metadata.main_package = main_package
+        metadata.injected_packages = {"extra": replace(main_package, package="extra", **recorded)}
+    else:
+        metadata.main_package = replace(main_package, **recorded)
+    metadata.write()
 
 
 @skip_if_windows
