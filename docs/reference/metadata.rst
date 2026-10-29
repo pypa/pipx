@@ -8,9 +8,8 @@ environment.
 
 Every environment under ``$PIPX_HOME/venvs/<environment>/`` holds a ``pipx_metadata.json`` file. pipx writes it after
 each operation and reads it to drive ``list``, ``upgrade``, ``reinstall``, ``uninstall``, and the rest. Treat it as
-pipx-owned; pipx rewrites it atomically and may change its shape between versions. A package can't change it: pipx
-puts the file back after each installer run, including ``pipx runpip``, so a wheel's data file of the same name never
-replaces it.
+pipx-owned; pipx rewrites it atomically and may change its shape between versions. pipx puts the file back after each
+installer run, including ``pipx runpip``, so a wheel's data file of the same name cannot replace it.
 
 pipx masks passwords and tokens in URLs it prints or logs, but keeps ``package_or_url`` and ``pip_args`` here as given,
 since ``reinstall`` and ``upgrade`` need them. Those credentials stay in plain text in this file and in the ``pipx list
@@ -42,8 +41,8 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``source_interpreter``
       - Path to the interpreter used to create the environment, or ``null``.
     - - ``venv_args``
-      - Extra arguments passed when the venv was created. pipx records only ``--system-site-packages``; any other
-        value is dropped with a warning when the file is read.
+      - Extra arguments passed when the venv was created. pipx records only ``--system-site-packages``, and drops
+        any other value with a warning when it reads the file.
     - - ``backend``
       - Backend that manages the environment, ``pip`` or ``uv``. An unknown value is read back as ``pip`` with a
         warning.
@@ -70,15 +69,18 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
       - Resolved installed version.
     - - ``pip_args``
       - Arguments forwarded to the backend at install time, replayed by later ``upgrade`` and ``reinstall`` runs. pipx
-        reads them as pip does and stores each option under its full name, so a clustered ``-qf wheels`` is stored as
-        ``-q -f wheels`` and an abbreviated ``--find-l wheels`` as ``--find-links wheels``. A relative path given to a
-        pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, is stored as an absolute path; a relative one
-        already on file resolves against the environment's directory. Options naming a one-shot input or an output
-        location (``-r``/``--requirement``, ``--requirements-from-script``, ``--group``, ``--report``, ``--log``,
-        ``--log-file``, ``--local-log``, ``--cache-dir``, ``-t``/``--target``, ``--prefix``, ``--root`` and
-        ``--src``), and uv's ``--directory`` and ``--project``, which would move uv's configuration search away from
-        ``PIPX_HOME``, apply only to the command they were given on and are never stored or replayed. On POSIX, a
-        replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
+        reads them as pip does and stores each option under its full name, so it stores a clustered ``-qf wheels`` as
+        ``-q -f wheels`` and an abbreviated ``--find-l wheels`` as ``--find-links wheels``. It stores a relative path
+        given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, as an absolute path, and resolves
+        a relative one already on file against the environment's directory.
+
+        Options naming a one-shot input or an output location (``-r``/``--requirement``,
+        ``--requirements-from-script``, ``--group``, ``--report``, ``--log``, ``--log-file``, ``--local-log``,
+        ``--cache-dir``, ``-t``/``--target``, ``--prefix``, ``--root`` and ``--src``) apply only to the command they
+        were given on, so pipx neither stores nor replays them. The same goes for uv's ``--directory`` and
+        ``--project``, which would move uv's configuration search away from ``PIPX_HOME``.
+
+        On POSIX, a replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
         ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, uv's ``--config-file``,
         ``--overrides``/``--override`` or ``--excludes``/``--exclude``, or ``file://`` or local-path index URL names a
         path another account could change, because it or a directory above it is writable by others or owned by

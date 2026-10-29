@@ -71,8 +71,7 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
 
 
 @contextmanager
-def uninterrupted() -> Generator[None, None, None]:
-    """Hold SIGINT, SIGTERM and SIGHUP back until the block ends, then deliver the first one that arrived."""
+def uninterrupted() -> Generator[None]:
     if current_thread() is not main_thread():
         yield
         return

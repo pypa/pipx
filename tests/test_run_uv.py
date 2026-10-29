@@ -250,8 +250,8 @@ def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
 
 @pytest.mark.usefixtures("fake_uv")
 def test_run_via_uv_tool_run_venv_args_rejection_hides_url_credentials(mocker: MockerFixture) -> None:
-    mocker.patch("pipx.commands.run_uv.exec_app")
-    mocker.patch("pipx.commands.run_uv.which", return_value=None)
+    mocker.patch("pipx.commands.run_uv.exec_app", autospec=True)
+    mocker.patch("pipx.commands.run_uv.which", autospec=True, return_value=None)
     venv_arg: Final[str] = "--prompt=http://u:s3cr3ttok@host/"
 
     with pytest.raises(PipxError) as error:

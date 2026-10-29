@@ -475,8 +475,7 @@ def test_run_entry_point_ignores_working_directory_modules(
 
 @pytest.fixture
 def planted_json_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    cwd: Final[Path] = tmp_path / "cwd"
-    cwd.mkdir()
+    (cwd := tmp_path / "cwd").mkdir()
     (cwd / "json.py").write_text("raise SystemExit('imported json.py from the working directory')\n", encoding="utf-8")
     monkeypatch.chdir(cwd)
 
@@ -790,9 +789,8 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
     # sibling of PIPX_HOME, since a uv.toml above PIPX_HOME would still apply
     (script_dir := tmp_path / "scripts").mkdir()
     (script_dir / "uv.toml").write_text("index-url = [\n")
-    script: Final[Path] = script_dir / "test.py"
     out: Final[Path] = tmp_path / "output.txt"
-    script.write_text(
+    (script := script_dir / "test.py").write_text(
         f"# /// script\n# dependencies = []\n# ///\nfrom pathlib import Path\nPath({str(out)!r}).write_text('ran')\n"
     )
 
@@ -809,8 +807,7 @@ def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocke
             raise SystemExit(0)
 
     mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text("# /// script\n# dependencies = []\n# ///\n")
+    (script := tmp_path / "test.py").write_text("# /// script\n# dependencies = []\n# ///\n")
 
     run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
 
@@ -824,19 +821,12 @@ def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocke
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_script_uv_rebuilds_for_new_request(
-    tmp_path: Path,
-    mocker: MockerFixture,
+    demodep_version_script: tuple[Path, Path],
     second_links: str,
     second_flags: list[str],
     publish_demodep: Callable[[str, str], Path],
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    out: Final[Path] = tmp_path / "output.txt"
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text(
-        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
-        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
-    )
+    script, out = demodep_version_script
     run_pipx_cli_exit(
         ["run", "--backend", "uv", f"--pip-args=--find-links={publish_demodep('old', '1.0')}", str(script)],
         assert_exit=0,
@@ -846,6 +836,17 @@ def test_run_script_uv_rebuilds_for_new_request(
     run_pipx_cli_exit(["run", "--backend", "uv", *second_flags, f"--pip-args=--find-links={links}", str(script)])
 
     assert out.read_text() == "2.0"
+
+
+@pytest.fixture
+def demodep_version_script(tmp_path: Path, mocker: MockerFixture) -> tuple[Path, Path]:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    out: Final[Path] = tmp_path / "output.txt"
+    (script := tmp_path / "test.py").write_text(
+        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
+        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
+    )
+    return script, out
 
 
 @pytest.fixture
@@ -865,15 +866,11 @@ def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_rebuilds_after_installer_env_changes(
-    tmp_path: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, publish_demodep: Callable[[str, str], Path]
+    demodep_version_script: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+    publish_demodep: Callable[[str, str], Path],
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    out: Final[Path] = tmp_path / "output.txt"
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text(
-        "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
-        f"from pathlib import Path\nPath({str(out)!r}).write_text(version('demodep'))\n"
-    )
+    script, out = demodep_version_script
     monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("old", "1.0")))
     run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
     monkeypatch.setenv("PIP_FIND_LINKS", str(publish_demodep("new", "2.0")))
@@ -888,8 +885,7 @@ def run_demodep_script(
     tmp_path: Path, mocker: MockerFixture, publish_demodep: Callable[[str, str], Path]
 ) -> Callable[[str], set[Path]]:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text("# /// script\n# dependencies = ['demodep']\n# ///\nimport demodep\n")
+    (script := tmp_path / "test.py").write_text("# /// script\n# dependencies = ['demodep']\n# ///\nimport demodep\n")
     links: Final[Path] = publish_demodep("links", "1.0")
 
     def run(backend: str) -> set[Path]:
@@ -1196,9 +1192,8 @@ def test_run_package_install_failure_expires_cache(root: Path) -> None:
     # fail their pip reinstall and leave the base interpreter's bundled pip for later tests on this worker
     find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
-    command = ["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]
 
-    assert run_pipx_cli(command) == 1
+    assert run_pipx_cli(["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]) == 1
 
     assert len(list(paths.ctx.venv_cache.glob("*/pipx_expired_venv"))) == 1
 
@@ -1537,14 +1532,13 @@ def test_run_with_pins_app_dependency(
     make_project_with_dependency: Callable[[str], Path], tmp_path: Path, mocker: MockerFixture, backend: str
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
-    app_wheel: Final[Path] = make_wheel_in(make_project_with_dependency("black") / "pyproject.toml", tmp_path).file
 
     run_pipx_cli_exit([
         "run",
         "--backend",
         backend,
         "--spec",
-        str(app_wheel),
+        str(make_wheel_in(make_project_with_dependency("black") / "pyproject.toml", tmp_path).file),
         "--with",
         "black==22.8.0",
         "empty-project",
@@ -1575,7 +1569,7 @@ def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
     run_module = importlib.import_module("pipx.commands.run")
-    mocker.patch.object(run_module, "download_script", return_value="print('hi')")
+    mocker.patch.object(run_module, "download_script", autospec=True, return_value="print('hi')")
 
     assert run_module.maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
 

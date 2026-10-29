@@ -141,15 +141,15 @@ def test_recordable_pip_args_spells_out_option(pip_args: list[str], expected: li
 @pytest.mark.parametrize(
     ("pip_args", "expected"),
     [
-        pytest.param(["-qf", "wheels"], ["-q", "-f", "{base}/wheels"], id="clustered"),
-        pytest.param(["--find-l=wheels"], ["--find-links={base}/wheels"], id="abbreviated"),
-        pytest.param(["-vc", "c.txt"], ["-v", "-c", "{base}/c.txt"], id="clustered-constraint"),
+        pytest.param(["-qf", "wheels"], ["-q", "-f", "{base}{sep}wheels"], id="clustered"),
+        pytest.param(["--find-l=wheels"], ["--find-links={base}{sep}wheels"], id="abbreviated"),
+        pytest.param(["-vc", "c.txt"], ["-v", "-c", "{base}{sep}c.txt"], id="clustered-constraint"),
     ],
 )
 def test_absolute_path_pip_args_resolves_spelling(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
     base: Final[Path] = tmp_path.resolve()
 
-    assert absolute_path_pip_args(pip_args, base) == [token.format(base=base) for token in expected]
+    assert absolute_path_pip_args(pip_args, base) == [token.format(base=base, sep=os.sep) for token in expected]
 
 
 @pytest.mark.parametrize(

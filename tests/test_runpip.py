@@ -105,46 +105,51 @@ _NEW_INDEX: Final[tuple[str, ...]] = ("--no-index", "--find-links", "{new}")
 
 @pytest.mark.parametrize("backend", ["pip", "uv"])
 @pytest.mark.parametrize(
-    ("install_index_args", "runpip_index_args"),
+    ("install_args", "runpip_args", "expected"),
     [
-        pytest.param((), _NEW_INDEX, id="record"),
-        pytest.param(("--find-links", "{old}"), _NEW_INDEX, id="replace"),
-        pytest.param(("--find-links", "{old}"), (), id="keep"),
+        pytest.param((), (*_NEW_INDEX, "empty-project"), _NEW_INDEX, id="record"),
+        pytest.param(("--pip-args=--find-links {old}",), (*_NEW_INDEX, "empty-project"), _NEW_INDEX, id="replace"),
+        pytest.param(("--pip-args=--find-links {old}",), ("{wheel}",), ("--find-links", "{old}"), id="keep"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_runpip_install_records_index_options(
     empty_project: Path,
     empty_project_wheel: Path,
+    *,
     backend: str,
-    install_index_args: tuple[str, ...],
-    runpip_index_args: tuple[str, ...],
+    install_args: tuple[str, ...],
+    runpip_args: tuple[str, ...],
+    expected: tuple[str, ...],
 ) -> None:
-    links = {"old": str(empty_project.parent), "new": str(empty_project_wheel.parent)}
-    pip_args = [f"--pip-args={' '.join(install_index_args).format_map(links)}"] if install_index_args else []
-    assert not run_pipx_cli(["install", "--backend", backend, *pip_args, "--editable", str(empty_project)])
+    links: Final[dict[str, str]] = {
+        "old": str(empty_project.parent),
+        "new": str(empty_project_wheel.parent),
+        "wheel": str(empty_project_wheel),
+    }
 
-    assert not run_pipx_cli([
-        "runpip",
-        "empty-project",
-        "install",
-        "--force-reinstall",
-        *(arg.format_map(links) for arg in runpip_index_args),
-        "empty-project" if runpip_index_args else str(empty_project_wheel),
-    ])
+    def fill(args: tuple[str, ...]) -> list[str]:
+        return [arg.format_map(links) for arg in args]
+
+    assert not run_pipx_cli(["install", "--backend", backend, *fill(install_args), "--editable", str(empty_project)])
+
+    assert not run_pipx_cli(["runpip", "empty-project", "install", "--force-reinstall", *fill(runpip_args)])
 
     metadata = json.loads((paths.ctx.venvs / "empty-project" / "pipx_metadata.json").read_text())
-    expected = [arg.format_map(links) for arg in runpip_index_args or install_index_args]
-    assert metadata["main_package"]["pip_args"] == expected
+    assert metadata["main_package"]["pip_args"] == fill(expected)
 
 
-@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param("uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv is not installed")),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_runpip_resolves_relative_paths_in_working_directory(
     empty_project_wheel: Path, local_extras_wheel: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, backend: str
 ) -> None:
-    if backend == "uv" and shutil.which("uv") is None:
-        pytest.skip("uv is not installed")
     assert not run_pipx_cli(["install", "--backend", backend, str(empty_project_wheel)])
     # a wheel's data files unpack into the venv root, so a file there must not stand in for the user's
     (paths.ctx.venvs / "empty-project" / "requirements.txt").write_text("picked-by-an-installed-wheel\n")

@@ -189,7 +189,6 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     return _Script(_script_app(package_or_url, expected_apps), content, metadata)
 
 
-_URL_TIMEOUT: Final[int] = 30
 # a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
 # cannot hang pipx or exhaust memory
 _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
@@ -201,7 +200,7 @@ def download_script(url: str) -> str:
 
     _reject_url_credentials(url)
     try:
-        with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
+        with urlopen(url, timeout=30) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             _reject_incomplete_script(url, response, data)
             return data.decode(response.headers.get_content_charset() or "utf-8")

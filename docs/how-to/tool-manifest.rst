@@ -66,9 +66,9 @@ generate the declared locks:
 
 ``pipx manifest lock`` passes the manifest to nab once per locked dependency group, and records that group as the
 lock's default so installers select it. Existing locks seed their replacements, and pipx overwrites the declared files
-only after every resolution succeeds. Entries without ``lock`` stay unlocked. It refuses to run when a ``lock`` path
-resolves outside the manifest directory, through ``..``, ``~``, an absolute path, or a symlink; ``pipx manifest sync``
-still reads locks kept elsewhere.
+only after every resolution succeeds. Entries without ``lock`` stay unlocked. ``pipx manifest lock`` refuses to run
+when a ``lock`` path resolves outside the manifest directory, through ``..``, ``~``, an absolute path, or a symlink;
+``pipx manifest sync`` still reads locks kept elsewhere.
 
 *******************
  Apply the manifest
@@ -82,7 +82,7 @@ still reads locks kept elsewhere.
 entries install from the artifacts in their named PEP 751 files. Under the pip backend, a locked entry needs pip 26.1
 or newer; run ``pipx upgrade-shared`` when pipx reports an older one. pipx restores an existing environment and its
 exposed resources when a tool fails to install, lacks a required app, or the sync is interrupted. For an environment
-that already exists, ``sync`` keeps the installer and venv options recorded when it was installed, such as
+that already exists, ``sync`` keeps the installer and venv options recorded at install time, such as
 ``--index-url`` or ``--system-site-packages``, the same way ``pipx reinstall`` does, and keeps the apps, manual pages,
 and completions of its injected packages exposed.
 

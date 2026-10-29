@@ -70,10 +70,8 @@ def test_list_reports_unreadable_metadata_per_environment(
     capsys.readouterr()
     caplog.clear()
 
-    exit_code = run_pipx_cli(["list", *flags])
-
     assert (
-        exit_code,
+        run_pipx_cli(["list", *flags]),
         listed in capsys.readouterr().out,
         "package pycowsay has pipx metadata this user cannot read" in caplog.text,
         "missing internal pipx metadata" in caplog.text,

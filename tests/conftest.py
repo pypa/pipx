@@ -64,19 +64,16 @@ def root() -> Path:
 
 @pytest.fixture
 def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Take signals with Python's default handlers, restored afterwards: an interrupted pipx ignores further signals.
-
-    A signal that lands while the main thread runs a weakref callback or a finalizer, as garbage collection does at
-    any allocation, raises its KeyboardInterrupt there, and the interpreter reports it as unraisable instead of
-    propagating it. pipx's handler leaves a mark it acts on instead, so the report is dropped; any other unraisable
-    exception still fails the test.
-    """
+    # a signal landing while the main thread runs a weakref callback or finalizer (garbage collection can run at any
+    # allocation) raises KeyboardInterrupt there, which the interpreter reports as unraisable; pipx's handler leaves a
+    # mark it acts on, so drop that report and keep failing on any other unraisable exception
     report: Final = sys.unraisablehook
     monkeypatch.setattr(
         sys,
         "unraisablehook",
         lambda unraisable: None if issubclass(unraisable.exc_type, KeyboardInterrupt) else report(unraisable),
     )
+    # an interrupted pipx ignores further signals, so each test starts from Python's default handlers
     numbers: Final = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
     previous: Final = {number: signal.getsignal(number) for number in numbers}
     signal.signal(signal.SIGINT, signal.default_int_handler)
@@ -701,18 +698,15 @@ def _pipx_temp_env_helper(
 
 @pytest.fixture
 def permissive_umask() -> Iterator[None]:
-    previous = os.umask(0o022)
+    previous: Final[int] = os.umask(0o022)
     yield
     os.umask(previous)
 
 
 @pytest.fixture
 def age_shared_pip() -> Iterator[Callable[[float], float]]:
-    """Backdate the shared pip's last upgrade, returning the stored time, and put the original time back afterwards.
-
-    The pip lives in the session's shared libs, so a test that left it stale would make the next pipx install on that
-    worker upgrade it, with whatever pip arguments that test passes.
-    """
+    # the pip lives in the session's shared libs: left stale, the next pipx install on this worker would upgrade it with
+    # whatever pip arguments that test passes, so the original time goes back afterwards
     originals: Final[dict[Path, int]] = {}
 
     def age(age_sec: float) -> float:

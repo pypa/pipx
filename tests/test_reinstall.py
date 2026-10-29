@@ -272,9 +272,11 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
 
     assert run_pipx_cli(command)
 
-    assert "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err
-    install.assert_not_called()
-    assert (paths.ctx.venvs / "pycowsay").is_dir()
+    assert (
+        "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err,
+        install.called,
+        (paths.ctx.venvs / "pycowsay").is_dir(),
+    ) == (True, False, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -293,12 +295,12 @@ def test_reinstall_keeps_a_dropped_app_name_taken_over_during_the_rebuild(
     tmp_path: Path,
 ) -> None:
     def release(*apps: str) -> Path:
+        entry_points: Final[str] = "".join(f"{app} = foo_bar_x:main\n" for app in apps)
         return make_wheel({
             "foo_bar_x.py": "def main() -> None:\n    pass\n",
             "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
             "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
-            "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\n"
-            + "".join(f"{app} = foo_bar_x:main\n" for app in apps),
+            "foo_bar_x-1.dist-info/entry_points.txt": f"[console_scripts]\n{entry_points}",
             "foo_bar_x-1.dist-info/RECORD": "",
         })
 
@@ -595,8 +597,7 @@ def test_reinstall_keeps_main_package_a_plugin_depends_on(tmp_path: Path) -> Non
     plugin_index: Final[Path] = tmp_path / "plugin-index"
     write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
     write_wheel(plugin_index, "tool", "99.0")
-    local_tool: Final[Path] = write_wheel(tmp_path / "local", "tool", "1.0")
-    assert not run_pipx_cli(["install", "--backend", "pip", str(local_tool)])
+    assert not run_pipx_cli(["install", "--backend", "pip", str(write_wheel(tmp_path / "local", "tool", "1.0"))])
     assert not run_pipx_cli(["inject", "tool", "plugin", f"--pip-args=--no-index --find-links={plugin_index}"])
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "tool"])
@@ -625,7 +626,7 @@ def test_reinstall_finishes_the_restore_through_a_second_signal(
     mocker: MockerFixture, before_venv_subprocess: Callable[[Path, Callable[[], None]], None]
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    metadata_before: Final[str] = (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()
+    metadata_before: Final[str] = (record := paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text()
     before_venv_subprocess(paths.ctx.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
 
     def rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
@@ -636,7 +637,7 @@ def test_reinstall_finishes_the_restore_through_a_second_signal(
 
     run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    assert (paths.ctx.venvs / "pycowsay" / "pipx_metadata.json").read_text() == metadata_before
+    assert record.read_text() == metadata_before
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

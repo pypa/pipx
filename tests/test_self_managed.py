@@ -75,34 +75,29 @@ def test_self_managed_moved_value_is_discovered(
 
 
 @_SKIP_ON_WINDOWS
-def test_self_managed_direct_venv_script_does_not_set_bin_dir(
-    self_managed_installation: _SelfManagedInstallation,
-) -> None:
-    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable=str(self_managed_installation.venv / "bin" / "pipx"),
-    )
-
-
-@_SKIP_ON_WINDOWS
-def test_self_managed_venv_script_through_parent_directory_does_not_set_bin_dir(
-    self_managed_installation: _SelfManagedInstallation,
-) -> None:
-    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable=str(self_managed_installation.bin_dir / ".." / "venvs" / "pipx" / "bin" / "pipx"),
-    )
-
-
-@_SKIP_ON_WINDOWS
-def test_self_managed_venv_script_through_linked_directory_does_not_set_bin_dir(
+@pytest.mark.parametrize(
+    "venv_script",
+    [
+        pytest.param(lambda installation, _linked_home: installation.venv / "bin" / "pipx", id="direct"),
+        pytest.param(
+            lambda installation, _linked_home: installation.bin_dir / ".." / "venvs" / "pipx" / "bin" / "pipx",
+            id="through-parent-directory",
+        ),
+        pytest.param(
+            lambda _installation, linked_home: linked_home / "venvs" / "pipx" / "bin" / "pipx",
+            id="through-linked-directory",
+        ),
+    ],
+)
+def test_self_managed_venv_script_does_not_set_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
     tmp_path: Path,
+    venv_script: Callable[[_SelfManagedInstallation, Path], Path],
 ) -> None:
     (linked_home := tmp_path / "home-link").symlink_to(self_managed_installation.home)
     assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
         prefix=self_managed_installation.venv,
-        executable=str(linked_home / "venvs" / "pipx" / "bin" / "pipx"),
+        executable=str(venv_script(self_managed_installation, linked_home)),
     )
 
 

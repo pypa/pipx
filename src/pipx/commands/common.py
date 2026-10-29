@@ -190,20 +190,14 @@ def expose_resources_globally(
     return collisions
 
 
-_SHADOWED_MODULES: Final[frozenset[str]] = frozenset({*sys.stdlib_module_names, "pipx"})
-
-
 def _shadowed_module(name: str, path: Path) -> str | None:
     # a script started from the bin dir, such as pip's pipx launcher, searches that dir first, and the launcher imports
     # re (and through it enum, functools and more) and then pipx itself before pipx can drop the entry from sys.path
+    shadowed: Final[frozenset[str]] = frozenset({*sys.stdlib_module_names, "pipx"})
     if path.is_dir():
-        return name if name in _SHADOWED_MODULES else None
+        return name if name in shadowed else None
     return next(
-        (
-            module
-            for suffix in all_suffixes()
-            if (module := name.removesuffix(suffix)) != name and module in _SHADOWED_MODULES
-        ),
+        (module for suffix in all_suffixes() if (module := name.removesuffix(suffix)) != name and module in shadowed),
         None,
     )
 
@@ -333,12 +327,11 @@ def _symlink_package_resource(
         if exists and symlink_path.samefile(path):
             _LOGGER.info("Same path %s and %s", symlink_path, path)
             return None
-        missing: Final[str] = "" if exists else ", which is missing"
         _LOGGER.warning(
             pipx_wrap(
                 f"""
                 {hazard}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{missing}, not {path!s}. Not
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}, not {path!s}. Not
                 modifying.
                 """,
                 subsequent_indent=" " * 4,

@@ -72,7 +72,7 @@ def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None
 
 
 @contextmanager
-def shared_pip_cooldown(days: int | None) -> Generator[None, None, None]:
+def shared_pip_cooldown(days: int | None) -> Generator[None]:
     token = _COOLDOWN_DAYS.set(days)
     try:
         yield

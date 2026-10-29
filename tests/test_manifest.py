@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Literal, cast
+from typing import TYPE_CHECKING, Final, Literal
 
 import pytest
 
@@ -16,6 +16,26 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pytest_mock import MockerFixture
+
+
+_TWO_LOCKS_MANIFEST: Final[str] = """[project]
+name = "pipx-tools"
+version = "1"
+dependencies = []
+
+[dependency-groups]
+black = ["black>=22,<23"]
+pycowsay = ["pycowsay"]
+
+[tool.pipx]
+version = "1.0"
+
+[tool.pipx.tools.black]
+lock = "pylock.black.toml"
+
+[tool.pipx.tools.pycowsay]
+lock = "pylock.pycowsay.toml"
+"""
 
 
 @pytest.fixture
@@ -561,46 +581,16 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
     assert (expected_error in capsys.readouterr().err, lock_file.read_text(encoding="utf-8")) == (True, "old\n")
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "nab_writes_new_lock")
 def test_lock_manifest_rolls_back_every_lock_when_one_replacement_fails(
     write_manifest: Callable[[str], Path],
     tmp_path: Path,
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    manifest = write_manifest(
-        """[project]
-name = "pipx-tools"
-version = "1"
-dependencies = []
-
-[dependency-groups]
-black = ["black>=22,<23"]
-pycowsay = ["pycowsay"]
-
-[tool.pipx]
-version = "1.0"
-
-[tool.pipx.tools.black]
-lock = "pylock.black.toml"
-
-[tool.pipx.tools.pycowsay]
-lock = "pylock.pycowsay.toml"
-
-[tool.nab]
-offline = false
-"""
-    )
+    manifest = write_manifest(f"{_TWO_LOCKS_MANIFEST}\n[tool.nab]\noffline = false\n")
     (tmp_path / "pylock.black.toml").write_text("old-black\n", encoding="utf-8")
     (tmp_path / "pylock.pycowsay.toml").write_text("old-pycowsay\n", encoding="utf-8")
-
-    def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
-        del check, cwd
-        Path(command[command.index("--output") + 1]).write_text("new\n", encoding="utf-8")
-        return subprocess.CompletedProcess(command, 0)
-
-    mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
-    mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
 
     real_replace = Path.replace
     swap_ins = {"count": 0}
@@ -625,37 +615,8 @@ offline = false
     ) == (True, "old-black\n", "old-pycowsay\n")
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_lock_manifest_rolls_back_earlier_locks_when_a_target_cannot_be_undone(
-    write_manifest: Callable[[str], Path],
-    tmp_path: Path,
-    mocker: MockerFixture,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    manifest = write_manifest(
-        """[project]
-name = "pipx-tools"
-version = "1"
-dependencies = []
-
-[dependency-groups]
-black = ["black>=22,<23"]
-pycowsay = ["pycowsay"]
-
-[tool.pipx]
-version = "1.0"
-
-[tool.pipx.tools.black]
-lock = "pylock.black.toml"
-
-[tool.pipx.tools.pycowsay]
-lock = "pylock.pycowsay.toml"
-"""
-    )
-    (tmp_path / "pylock.black.toml").write_text("old-black\n", encoding="utf-8")
-    # a directory refuses both the swap-in and the unlink that would undo it
-    (tmp_path / "pylock.pycowsay.toml").mkdir()
-
+@pytest.fixture
+def nab_writes_new_lock(mocker: MockerFixture) -> None:
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
         del check, cwd
         Path(command[command.index("--output") + 1]).write_text("new\n", encoding="utf-8")
@@ -663,6 +624,18 @@ lock = "pylock.pycowsay.toml"
 
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
     mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "nab_writes_new_lock")
+def test_lock_manifest_rolls_back_earlier_locks_when_a_target_cannot_be_undone(
+    write_manifest: Callable[[str], Path],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = write_manifest(_TWO_LOCKS_MANIFEST)
+    (tmp_path / "pylock.black.toml").write_text("old-black\n", encoding="utf-8")
+    # a directory refuses both the swap-in and the unlink that would undo it
+    (tmp_path / "pylock.pycowsay.toml").mkdir()
 
     assert run_pipx_cli(["manifest", "lock", str(manifest)])
 
@@ -739,5 +712,6 @@ def test_sync_manifest_invalid_requirement_hides_url_credentials(
     assert run_pipx_cli(["manifest", "sync", str(write_manifest(_manifest(package, "internal")))])
 
     err: Final[str] = capsys.readouterr().err
-    output: Final[str] = err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    assert paths.ctx.log_file is not None
+    output: Final[str] = err + paths.ctx.log_file.read_text(encoding="utf-8")
     assert (redact_url_credentials(package) in " ".join(err.split()), "s3cr3ttok" in output) == (True, False)
