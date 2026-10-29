@@ -333,11 +333,12 @@ def _symlink_package_resource(
         if exists and symlink_path.samefile(path):
             _LOGGER.info("Same path %s and %s", symlink_path, path)
             return None
+        missing: Final[str] = "" if exists else ", which is missing"
         _LOGGER.warning(
             pipx_wrap(
                 f"""
                 {hazard}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}, not {path!s}. Not
+                to {symlink_path.resolve()}{missing}, not {path!s}. Not
                 modifying.
                 """,
                 subsequent_indent=" " * 4,
@@ -373,7 +374,29 @@ def _links_into_another_venv(symlink_path: Path, path: Path) -> bool:
     except RuntimeError:  # a symlink loop, which Python before 3.13 reports this way
         return False
     venv_dir: Final[Path | None] = next((parent for parent in target.parents if parent.parent == venvs), None)
-    return venv_dir is not None and venv_dir.is_dir() and not path.resolve().is_relative_to(venv_dir)
+    return (
+        venv_dir is not None
+        and venv_dir.is_dir()
+        and not path.resolve().is_relative_to(venv_dir)
+        and _still_exposed_by(venv_dir, target)
+    )
+
+
+def _still_exposed_by(venv_dir: Path, target: Path) -> bool:
+    # pipx before 1.18.0 kept the link when a new release dropped the app, so a resource the venv's metadata no longer
+    # lists is a left-over, not a file an installer is rewriting
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    if metadata.read_metadata_version is None:  # unreadable metadata can't prove the link stale
+        return True
+    return any(
+        resource.resolve() == target
+        for package in (metadata.main_package, *metadata.injected_packages.values())
+        for resource in (
+            *package.app_paths_to_expose,
+            *package.man_paths_to_expose,
+            *package.completion_paths_to_expose,
+        )
+    )
 
 
 def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
