@@ -15,7 +15,7 @@ import pipx.paths
 import pipx.standalone_python
 from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
-from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
+from pipx.interpreter import InterpreterResolutionError, find_python_interpreter, recordable_interpreter
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -507,3 +507,20 @@ def test_interpreter_quiet_says_nothing(
 
     captured: Final = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
+
+
+@pytest.mark.parametrize(
+    "pyvenv_cfg",
+    [
+        pytest.param(b"home = {missing}\n", id="home-without-interpreter"),
+        pytest.param(b"version = 3.14.0\n", id="no-home"),
+        pytest.param(b"home = \xff\n", id="undecodable"),
+    ],
+)
+def test_recordable_interpreter_without_base_interpreter_is_none(tmp_path: Path, pyvenv_cfg: bytes) -> None:
+    (bootstrap := tmp_path / "bootstrap").mkdir()
+    (bootstrap / "pyvenv.cfg").write_bytes(pyvenv_cfg.replace(b"{missing}", str(tmp_path / "missing").encode()))
+    (bin_dir := bootstrap / "bin").mkdir()
+    (python := bin_dir / "python3").touch()
+
+    assert recordable_interpreter(python) is None
