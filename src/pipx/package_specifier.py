@@ -8,13 +8,26 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "packaging.utils", "pathlib", "pipx.util", "re", "tomllib", "urllib.parse"]
+__lazy_modules__ = [
+    "itertools",
+    "packaging.specifiers",
+    "packaging.utils",
+    "pathlib",
+    "pipx.util",
+    "re",
+    "tomllib",
+    "urllib.parse",
+]
 
 import logging
+import os
 import re
+import stat
+import sys
 import tomllib
 import urllib.parse
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, cast
 
@@ -25,6 +38,8 @@ from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from packaging.requirements import Requirement
 
 logger = logging.getLogger(__name__)
@@ -57,6 +72,26 @@ _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--cache-dir",
 })
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f", "-r", "-t"})
+# a later upgrade or reinstall replays what pipx records, possibly as root, so a one-shot input or an output location
+# recorded here would be read or written again after its directory has changed hands
+_PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
+    "-r",
+    "--requirement",
+    "--requirements-from-script",
+    "-t",
+    "--target",
+    "--root",
+    "--prefix",
+    "--src",
+    "--source",
+    "--source-dir",
+    "--source-directory",
+    "--report",
+    "--log",
+    "--log-file",
+    "--local-log",
+    "--cache-dir",
+})
 # pip writes --report - to stdout
 _PIP_STDOUT_VALUE: Final[str] = "-"
 _SHORT_OPTION_LEN: Final[int] = 2
@@ -252,28 +287,87 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
     return package_or_url, absolute_path_pip_args(pip_args, Path.cwd())
 
 
+def recordable_pip_args(pip_args: list[str]) -> list[str]:
+    recorded: list[str] = []
+    arguments: Final[Iterator[str]] = iter(pip_args)
+    for option in arguments:
+        if (path_option := _path_option(option)) is None or path_option[0] not in _PIP_ONE_SHOT_OPTIONS:
+            recorded.append(option)
+        elif path_option[2] is None:
+            next(arguments, None)
+    return recorded
+
+
+def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    # the record's installer ran in the venv root, so a relative path resolves there, never against the caller's
+    # working directory, which another account may control
+    replayable: list[str] = []
+    arguments: Final[Iterator[str]] = iter(absolute_path_pip_args(recordable_pip_args(pip_args), venv_dir))
+    for option in arguments:
+        if (path_option := _path_option(option)) is None:
+            replayable.append(option)
+            continue
+        option_name, _, value = path_option
+        option_args: list[str] = [option]
+        if value is None and (value := next(arguments, None)) is not None:
+            option_args.append(value)
+        if value is not None and (location := _changeable_by_others(value)) is not None:
+            logger.warning(
+                "%s: ignoring recorded %s %s; another account can change %s.",
+                venv_dir.name,
+                option_name,
+                redact_url_credentials(value),
+                location,
+            )
+            continue
+        replayable.extend(option_args)
+    return replayable
+
+
 def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
-    pip_args = pip_args.copy()
-    for index in range(len(pip_args)):
-        option = pip_args[index]
-        if (
-            len(option) > _SHORT_OPTION_LEN
-            and (option_name := option[:2]) in _PIP_ATTACHED_PATH_OPTIONS
-            and option[2] != "="
+    resolved: list[str] = []
+    arguments: Final[Iterator[str]] = iter(pip_args)
+    for option in arguments:
+        if (path_option := _path_option(option)) is None:
+            resolved.append(option)
+        elif (value := path_option[2]) is not None:
+            resolved.append(f"{path_option[0]}{path_option[1]}{_absolute_path_value(value, base)}")
+        else:
+            resolved.extend([option, *(_absolute_path_value(argument, base) for argument in islice(arguments, 1))])
+    return resolved
+
+
+def _path_option(option: str) -> tuple[str, str, str | None] | None:
+    """Split a pip option taking a path into its name, the separator before an inline value, and that value."""
+    if len(option) > _SHORT_OPTION_LEN and (name := option[:2]) in _PIP_ATTACHED_PATH_OPTIONS and option[2] != "=":
+        return name, "", option[2:]
+    name, separator, value = option.partition("=")
+    if name not in _PIP_PATH_OPTIONS:
+        return None
+    return name, separator, value if separator else None
+
+
+def _changeable_by_others(value: str) -> Path | None:
+    if sys.platform == "win32":
+        return None
+    url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(value)
+    if url.scheme not in {"", "file"}:
+        return None
+    path: Final[Path] = Path(urllib.parse.unquote(url.path) if url.scheme else value)
+    trusted: Final[set[int]] = {0, os.geteuid()}
+    # the sticky bit keeps others from replacing an entry they do not own, but not from adding one where none exists
+    has_existing_child = False
+    for location in (path, *path.parents):
+        try:
+            status = location.stat()
+        except OSError:
+            continue
+        if status.st_uid not in trusted or (
+            status.st_mode & stat.S_IWOTH and not (has_existing_child and status.st_mode & stat.S_ISVTX)
         ):
-            pip_args[index] = f"{option_name}{_absolute_path_value(option[2:], base)}"
-            continue
-
-        option_name, separator, value = option.partition("=")
-        if option_name not in _PIP_PATH_OPTIONS:
-            continue
-
-        if separator:
-            pip_args[index] = f"{option_name}={_absolute_path_value(value, base)}"
-        elif (argument_index := index + 1) < len(pip_args):
-            pip_args[argument_index] = _absolute_path_value(pip_args[argument_index], base)
-
-    return pip_args
+            return location
+        has_existing_child = True
+    return None
 
 
 def _absolute_path_value(value: str, base: Path) -> str:
@@ -539,7 +633,9 @@ __all__ = [
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
+    "recordable_pip_args",
     "replace_index_options",
+    "replayable_pip_args",
     "resolve_local_path",
     "source_without_extras",
     "static_project_name",

@@ -118,6 +118,23 @@ def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, m
     assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
 
 
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_drops_recorded_find_links_writable_by_others(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    shared: Final[Path] = tmp_path.resolve() / "shared"
+    shared.mkdir()
+    shared.chmod(0o777)
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared / "wheels")])
+    metadata.write()
+    caplog.clear()
+
+    assert not run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert f"ignoring recorded --find-links {shared / 'wheels'}; another account can change {shared}." in caplog.text
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_inline_script(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])

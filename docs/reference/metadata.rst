@@ -69,9 +69,14 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``package_version``
       - Resolved installed version.
     - - ``pip_args``
-      - Arguments forwarded to the backend at install time. A relative path given to a pip option, such as ``--cert
-        ca.pem`` or ``-r requirements.txt``, is stored as an absolute path; a relative one already on file resolves
-        against the environment's directory.
+      - Arguments forwarded to the backend at install time, replayed by later ``upgrade`` and ``reinstall`` runs. A
+        relative path given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, is stored as an
+        absolute path; a relative one already on file resolves against the environment's directory. Options naming a
+        one-shot input or an output location (``-r``/``--requirement``, ``--requirements-from-script``, ``--report``,
+        ``--log``, ``--log-file``, ``--local-log``, ``--cache-dir``, ``-t``/``--target``, ``--prefix``, ``--root`` and
+        ``--src``) apply only to the command they were given on and are never stored or replayed. On POSIX, a stored
+        path that another account could change, because it or a directory above it is writable by others or owned by
+        another user, is dropped with a warning instead of replayed.
     - - ``include_dependencies``
       - Whether apps and man pages from all dependencies are exposed.
     - - ``include_resources_from``
