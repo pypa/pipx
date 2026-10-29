@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx.constants import ExitCode
-from pipx.package_specifier import extract_index_options, valid_pypi_name
+from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
@@ -206,6 +206,14 @@ def _list_venv_outdated(
             skipped.append(_SkippedPackage(venv.name, display_name, "editable"))
         elif valid_pypi_name(package_info.package_or_url) is None:
             skipped.append(_SkippedPackage(venv.name, display_name, "non-index"))
+        elif not pip_args and (source := changeable_recorded_source(package_info.pip_args, venv.root)) is not None:
+            failures.append(
+                _FailedEnvironment(
+                    venv.name,
+                    f"refusing to check {display_name} for updates through {source}, and with it the versions "
+                    "reported. Move the file or directory to a place only you and root can change.",
+                )
+            )
         else:
             packages_by_index.setdefault(tuple(extract_index_options(list(pip_args) or package_info.pip_args)), {})[
                 canonicalize_name(package_name)

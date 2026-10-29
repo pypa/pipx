@@ -79,6 +79,8 @@ def test_runpip_install_refreshes_main_package_metadata(
         pytest.param(("--edit", "{project}"), id="abbreviated"),
         pytest.param(("--edit={project}",), id="abbreviated-attached"),
         pytest.param(("--editable={project}",), id="attached"),
+        pytest.param(("-qe", "{project}"), id="clustered"),
+        pytest.param(("-e{project}",), id="short-attached"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -160,6 +160,7 @@ _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
     "--requirement",
     "--requirements",
     "--requirements-from-script",
+    "--group",
     "-t",
     "--target",
     "--root",
@@ -174,7 +175,8 @@ _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
     "--local-log",
     "--cache-dir",
 })
-# recorded options naming what to install from or what to trust, by file or directory
+# recorded options naming what to install from, what to trust or where uv reads its configuration, by file or
+# directory
 _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "-b",
     "-c",
@@ -183,9 +185,16 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--build-constraints",
     "--cert",
     "--client-cert",
+    "--config-file",
     "--constraint",
     "--constraints",
+    "--directory",
+    "--exclude",
+    "--excludes",
     "--find-links",
+    "--override",
+    "--overrides",
+    "--project",
 })
 # pip writes --report - to stdout
 _PIP_STDOUT_VALUE: Final[str] = "-"
@@ -392,9 +401,11 @@ def _render(arguments: Iterable[_PipArgument]) -> list[str]:
 
 
 def _absolute_paths(arguments: list[_PipArgument], base: Path) -> list[_PipArgument]:
+    # --group takes a group name, with an optional pyproject.toml path in front of it
     return [
         replace(argument, value=_absolute_path_value(argument.value, base))
         if argument.value is not None
+        and argument.name != "--group"
         and (argument.name in _PIP_ONE_SHOT_OPTIONS or argument.name in _PIP_SOURCE_PATH_OPTIONS)
         else argument
         for argument in arguments
@@ -501,6 +512,16 @@ def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument
     return [_PipArgument(name=argument)]
 
 
+def install_specs(install_args: list[str]) -> list[tuple[str, bool]]:
+    specs: Final[list[tuple[str, bool]]] = []
+    for argument in _parse_pip_args(install_args):
+        if argument.name in {"-e", "--editable"} and argument.value is not None:
+            specs.append((argument.value, True))
+        elif not argument.name.startswith("-"):
+            specs.append((argument.name, False))
+    return specs
+
+
 def recordable_pip_args(pip_args: list[str]) -> list[str]:
     return _render(_without_one_shot(_parse_pip_args(pip_args)))
 
@@ -516,17 +537,23 @@ def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
 
 
 def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    if (source := changeable_recorded_source(pip_args, venv_dir)) is not None:
+        msg: Final[str] = (
+            f"{venv_dir.name}: refusing to replay {source}, and with it what gets installed. Move the file or "
+            "directory to a place only you and root can change, or pass the options again with --pip-args to use "
+            "them for this run."
+        )
+        # a wrapped line would split a long path
+        raise PipxError(msg, wrap_message=False)
+    return pip_args
+
+
+def changeable_recorded_source(pip_args: list[str], venv_dir: Path) -> str | None:
     for argument in _parse_pip_args(pip_args):
         if (location := _changeable_source(argument, venv_dir)) is not None:
             recorded: Final[str] = " ".join(map(redact_url_credentials, argument.tokens))
-            msg = (
-                f"{venv_dir.name}: refusing to replay the recorded {recorded}: another account can change {location}, "
-                "and with it what gets installed. Move the file or directory to a place only you and root can change, "
-                "or pass the options again with --pip-args to use them for this run."
-            )
-            # a wrapped line would split a long path
-            raise PipxError(msg, wrap_message=False)
-    return pip_args
+            return f"the recorded {recorded}: another account can change {location}"
+    return None
 
 
 def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
@@ -831,9 +858,11 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 __all__ = [
     "absolute_path_pip_args",
     "add_extras",
+    "changeable_recorded_source",
     "extract_index_options",
     "fix_package_name",
     "get_extras",
+    "install_specs",
     "local_project_name",
     "package_spec_satisfied",
     "parse_specifier_for_install",

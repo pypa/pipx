@@ -172,6 +172,55 @@ def test_upgrade_replays_recorded_find_links_owned_by_user(recorded_find_links: 
     ]
 
 
+@pytest.fixture
+def recorded_uv_project(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    assert not run_pipx_cli(["install", "--backend", "uv", "pycowsay"])
+    project: Final[Path] = tmp_path.resolve() / "project"
+    project.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--project", str(project)])
+    metadata.write()
+    return project
+
+
+@skip_if_windows
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_upgrade_refuses_recorded_uv_project_writable_by_others(
+    recorded_uv_project: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    recorded_uv_project.chmod(0o777)
+    capsys.readouterr()
+
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert (
+        f"pycowsay: refusing to replay the recorded --project {recorded_uv_project}: another account can change "
+        f"{recorded_uv_project}, and with it what gets installed."
+    ) in capsys.readouterr().err
+
+
+@skip_if_windows
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_upgrade_keeps_metadata_of_refused_uv_project(recorded_uv_project: Path) -> None:
+    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    recorded: Final[bytes] = metadata_file.read_bytes()
+    recorded_uv_project.chmod(0o777)
+
+    run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert metadata_file.read_bytes() == recorded
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+def test_upgrade_replays_recorded_uv_project_owned_by_user(recorded_uv_project: Path) -> None:
+    assert not run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == ["--project", str(recorded_uv_project)]
+
+
 @skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_refuses_recorded_file_index_url_writable_by_others(
