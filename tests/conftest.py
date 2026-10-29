@@ -32,9 +32,9 @@ from flit_core.wheel import make_wheel_in
 import pipx
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import paths, shared_libs, standalone_python, venv
-from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
+from pipx.backends.registry import get_backend
 from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
 from pipx.interpreter import get_default_python

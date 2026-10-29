@@ -17,7 +17,8 @@ from docutils.writers.manpage import Writer
 
 from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
-from pipx import backends, main, paths
+from pipx import main, paths
+from pipx.backends import registry
 from pipx.main import (
     _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     build_parser,
@@ -559,7 +560,7 @@ def test_json_output_reports_rejected_arguments_in_envelope(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
-    mocker.patch("pipx.backends.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
 
     assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
@@ -571,7 +572,7 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
 def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
     find_uv_binary: Final[MagicMock] = mocker.patch(
-        "pipx.backends.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
+        "pipx.backends.registry.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
     )
 
     assert not run_pipx_cli(["list"])
@@ -585,9 +586,9 @@ def test_validate_backend_silent_on_env_uv_missing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     # diagnostic commands (`pipx environment`, `pipx list`) must keep working without a startup warning that the later
-    # UvBackend.__init__ error would contradict; patch both the source and the package re-export, as either one left
+    # UvBackend.__init__ error would contradict; patch both the source and the registry lookup, as either one left
     # unpatched would find uv
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
@@ -598,7 +599,7 @@ def test_validate_backend_silent_on_env_uv_missing(
 
 
 def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
     with pytest.raises(PipxError, match="uv' executable could not be found"):
         _validate_backend_available(BackendOptions(cli="uv"))

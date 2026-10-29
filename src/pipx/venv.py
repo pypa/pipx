@@ -3,7 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
-    "pipx.backends",
+    "pipx.backends.registry",
     "pipx.interpreter",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -29,15 +29,14 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
     from packaging.utils import NormalizedName
 
+    from pipx.backends._base import Backend, OutdatedPackage
     from pipx.venv_inspect import VenvMetadata
 
 from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
 from pipx.animate import animate
-from pipx.backends import (
-    Backend,
-    OutdatedPackage,
+from pipx.backends.registry import (
     assert_not_pip_under_uv,
     env_default_backend,
     get_backend,
