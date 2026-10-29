@@ -97,6 +97,12 @@ The key also covers the variables outside those prefixes that ``pip`` or ``uv`` 
 already differs. The values only feed the hash, so tokens and proxy passwords never appear in a cache path or a log
 line.
 
+The hash is an HMAC keyed with a random secret that pipx creates on the first run and keeps in ``.run-key`` inside the
+cache directory. Other accounts can often list that directory, and without the secret they could hash guesses at a
+token until one matched an entry's name. On POSIX pipx creates the file with mode ``0600`` and replaces one that another
+account owns or can read. On Windows it relies on the ACLs of the user profile. When pipx can neither read nor write the
+secret, as in a read-only cache, it falls back to a plain SHA-256 hash and logs this at debug level.
+
 Cached environments expire after 14 days, after which the next run rebuilds against the latest release. The key leaves
 out edits to ``pip.conf`` or ``uv.toml``, so pass ``--refresh`` after changing them. The temporary venv borrows the
 shared ``pip``.

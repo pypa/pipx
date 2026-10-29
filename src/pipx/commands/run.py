@@ -3,6 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = [
     "datetime",
     "hashlib",
+    "hmac",
     "json",
     "packaging.requirements",
     "packaging.utils",
@@ -17,15 +18,21 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
+    "secrets",
     "shutil",
+    "tempfile",
     "urllib.parse",
 ]
 
 import datetime as dt
 import hashlib
+import hmac
 import json
 import logging
 import os
+import secrets
+import sys
+import tempfile
 import urllib.parse
 from contextlib import contextmanager
 from pathlib import Path
@@ -54,6 +61,8 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _VENV_EXPIRED_FILENAME: Final[str] = "pipx_expired_venv"
+_RUN_KEY_FILENAME: Final[str] = ".run-key"
+_RUN_KEY_BYTES: Final[int] = 32
 
 
 def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
@@ -437,10 +446,56 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     )
     # Preserve list and field boundaries so different invocations cannot reuse the same digest input. Only the truncated
     # digest leaves this function, so proxy URLs and tokens in the environment never reach the cache path or the logs.
-    digest: Final = hashlib.sha256(
-        json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
+    key: Final = json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
+    # other accounts can list the cache, so an unkeyed digest would let them test guesses at a token against a name
+    digest: Final = (
+        hashlib.sha256(key) if (secret := _cache_secret()) is None else hmac.new(secret, key, hashlib.sha256)
     )
     return Path(paths.CTX.venv_cache) / digest.hexdigest()[:15]
+
+
+def _cache_secret() -> bytes | None:
+    secret_path: Final[Path] = Path(paths.CTX.venv_cache) / _RUN_KEY_FILENAME
+    try:
+        return _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
+    except OSError as error:
+        # a cache pipx cannot write to can still serve the entries already in it, so name them the way it always did
+        _LOGGER.debug("Cannot use %s (%s), so run cache names are not keyed with a secret", secret_path, error)
+        return None
+
+
+def _read_cache_secret(secret_path: Path) -> bytes | None:
+    try:
+        with secret_path.open("rb") as file:
+            status: Final[os.stat_result] = os.fstat(file.fileno())
+            secret: Final[bytes] = file.read(_RUN_KEY_BYTES + 1)
+    except FileNotFoundError:
+        return None
+    # Windows reports no owner and fakes the mode bits; the ACLs of the user profile keep the file private there
+    if sys.platform != "win32" and (status.st_uid != os.geteuid() or status.st_mode & 0o077):
+        _LOGGER.debug("Replacing %s, which another account owns or can read", secret_path)
+        return None
+    return secret if len(secret) == _RUN_KEY_BYTES else None
+
+
+def _write_cache_secret(secret_path: Path) -> bytes:
+    secret_path.parent.mkdir(parents=True, exist_ok=True)
+    secret: Final[bytes] = secrets.token_bytes(_RUN_KEY_BYTES)
+    # mkstemp creates the file with O_EXCL and mode 0600, and linking it into place publishes it whole, so a concurrent
+    # first run sees either no secret or the complete one
+    descriptor, staged = tempfile.mkstemp(dir=secret_path.parent, prefix=f"{_RUN_KEY_FILENAME}-")
+    try:
+        with os.fdopen(descriptor, "wb") as file:
+            file.write(secret)
+        try:
+            os.link(staged, secret_path)
+        except FileExistsError:
+            if (existing := _read_cache_secret(secret_path)) is not None:
+                return existing
+            Path(staged).replace(secret_path)
+    finally:
+        Path(staged).unlink(missing_ok=True)
+    return secret
 
 
 @contextmanager
