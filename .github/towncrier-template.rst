@@ -25,14 +25,14 @@
 {% endfor %}
 
 {% if sections[section][category]|length == 0 %}
-No significant changes.
+No user-facing changes.
 
 {% else %}
 {% endif %}
 
 {% endfor %}
 {% else %}
-No significant changes.
+No user-facing changes.
 
 
 {% endif %}

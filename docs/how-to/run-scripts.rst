@@ -120,6 +120,10 @@ the uv backend pipx keys a local script's environment to the script's path inste
 it on each run. Under both backends a changed ``--python``, ``--pip-args`` or ``--cooldown`` also builds a fresh one,
 and ``--refresh`` rebuilds it.
 
+On Windows under the uv backend, a ``--refresh`` or ``--no-cache`` run of a script that another run is still executing
+leaves that run's environment alone: it builds a throwaway one for itself, and after ``--refresh`` the next run to find
+the cached environment idle rebuilds it.
+
 When the block sets ``requires-python``, pipx keeps the default Python if it satisfies the constraint and otherwise
 looks for an interpreter that does, the same way ``pipx install`` does (see :doc:`standalone-python`). An explicit
 ``--python`` that fails the constraint is an error. Both backends follow this rule.
