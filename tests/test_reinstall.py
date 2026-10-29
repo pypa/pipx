@@ -292,7 +292,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
     assert run_pipx_cli(command)
 
     assert (
-        "Not reinstalling pycowsay. It has missing internal pipx metadata" in capsys.readouterr().err,
+        "Not reinstalling pycowsay. It has no internal pipx metadata" in capsys.readouterr().err,
         install.called,
         (paths.CTX.venvs / "pycowsay").is_dir(),
     ) == (True, False, True)

@@ -309,6 +309,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         raise
     except KeyboardInterrupt:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
+        give_back_shared_links(old_resource_paths, venv_dir)
         _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]
         raise
     except Exception:
@@ -346,8 +347,8 @@ def _unrecorded_package_spec(venv: Venv) -> str:
             if venv.has_package(venv.main_package_name):
                 return venv.main_package_name
     msg: Final[str] = (
-        f"Not reinstalling {venv.name}. It has missing internal pipx metadata, so pipx cannot tell what it was "
-        "installed from. Please uninstall and install this package to fix."
+        f"Not reinstalling {venv.name}. It has no internal pipx metadata, so pipx cannot tell what it was "
+        "installed from. Uninstall and install this package to fix it."
     )
     raise PipxError(msg)
 
