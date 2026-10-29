@@ -22,7 +22,6 @@ __lazy_modules__ = [
 import contextlib
 import logging
 import sys
-import time
 import types
 from dataclasses import dataclass
 from functools import partial
@@ -42,7 +41,7 @@ from pipx.commands.common import (
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished
+from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished, rename_once_released
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -75,21 +74,8 @@ def _create_reinstall_backup(venv_dir: Path) -> Path:
     paths.ctx.trash.mkdir(parents=True, exist_ok=True)
     backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=paths.ctx.trash))
     backup_dir.rmdir()
-    _rename_once_released(venv_dir, backup_dir)
+    rename_once_released(venv_dir, backup_dir)
     return backup_dir
-
-
-def _rename_once_released(source: Path, target: Path) -> None:
-    # Windows refuses to rename a directory while a handle inside it is open, and reinstall-all rebuilding another venv
-    # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
-    for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
-        try:
-            source.rename(target)
-        except PermissionError:
-            time.sleep(delay)
-        else:
-            return
-    source.rename(target)
 
 
 def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir: Path) -> None:
