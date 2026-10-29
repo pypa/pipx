@@ -10,211 +10,17 @@ __lazy_modules__ = [
 ]
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING
 
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
-from pipx.package_specifier import absolute_path_pip_args, extract_index_options, replace_index_options
+from pipx.package_specifier import absolute_path_pip_args, extract_index_options, install_specs, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pipx.constants import ExitCode
-
-
-# runpip forwards to pip or uv pip depending on the backend, so skip the values of either one's install options
-_OPTIONS_WITH_VALUE: Final[frozenset[str]] = frozenset({
-    "--abi",
-    "--all-releases",
-    "--allow-insecure-host",
-    "--build-constraint",
-    "--build-constraints",
-    "--cache-dir",
-    "--cert",
-    "--client-cert",
-    "--color",
-    "--config-file",
-    "--config-setting",
-    "--config-settings",
-    "--config-settings-package",
-    "--constraint",
-    "--constraints",
-    "--default-index",
-    "--default-timeout",
-    "--directory",
-    "--exclude",
-    "--exclude-newer",
-    "--exclude-newer-package",
-    "--excludes",
-    "--exists-action",
-    "--extra",
-    "--extra-index-url",
-    "--find-links",
-    "--fork-strategy",
-    "--group",
-    "--implementation",
-    "--index",
-    "--index-strategy",
-    "--index-url",
-    "--keyring-provider",
-    "--link-mode",
-    "--local-log",
-    "--log",
-    "--log-file",
-    "--no-binary",
-    "--no-build-isolation-package",
-    "--no-editable-package",
-    "--no-sources-package",
-    "--only-binary",
-    "--only-final",
-    "--output-format",
-    "--override",
-    "--overrides",
-    "--platform",
-    "--prefix",
-    "--prerelease",
-    "--prerelease-package",
-    "--progress-bar",
-    "--project",
-    "--proxy",
-    "--pypi-url",
-    "--python",
-    "--python-platform",
-    "--python-version",
-    "--refresh-package",
-    "--reinstall-package",
-    "--report",
-    "--requirement",
-    "--requirements",
-    "--requirements-from-script",
-    "--resolution",
-    "--resume-retries",
-    "--retries",
-    "--root",
-    "--root-user-action",
-    "--source",
-    "--source-dir",
-    "--source-directory",
-    "--src",
-    "--target",
-    "--timeout",
-    "--torch-backend",
-    "--trusted-host",
-    "--upgrade-group",
-    "--upgrade-package",
-    "--upgrade-strategy",
-    "--uploaded-prior-to",
-    "--use-deprecated",
-    "--use-feature",
-    "-C",
-    "-P",
-    "-b",
-    "-c",
-    "-f",
-    "-i",
-    "-p",
-    "-r",
-    "-t",
-})
-
-# pip expands an unambiguous prefix of a long option; knowing its flags (and uv's flags that prefix a listed option)
-# keeps a prefix shared with a flag, or a complete uv flag, from being read as taking a value
-_LONG_FLAGS: Final[frozenset[str]] = frozenset({
-    "--break-system-packages",
-    "--check-build-dependencies",
-    "--compile",
-    "--debug",
-    "--disable-pip-version-check",
-    "--dry-run",
-    "--force-reinstall",
-    "--help",
-    "--ignore-installed",
-    "--ignore-requires-python",
-    "--isolated",
-    "--no-build",
-    "--no-build-isolation",
-    "--no-cache-dir",
-    "--no-clean",
-    "--no-color",
-    "--no-compile",
-    "--no-dependencies",
-    "--no-deps",
-    "--no-editable",
-    "--no-index",
-    "--no-input",
-    "--no-proxy-env",
-    "--no-python-version-warning",
-    "--no-require-hashes",
-    "--no-sources",
-    "--no-user",
-    "--no-warn-conflicts",
-    "--no-warn-script-location",
-    "--only-dependencies",
-    "--only-deps",
-    "--pre",
-    "--prefer-binary",
-    "--quiet",
-    "--refresh",
-    "--reinstall",
-    "--require-hashes",
-    "--require-venv",
-    "--require-virtualenv",
-    "--upgrade",
-    "--use-pep517",
-    "--user",
-    "--verbose",
-    "--version",
-})
-
-
-def _takes_value(arg: str) -> bool:
-    if arg in _OPTIONS_WITH_VALUE:
-        return True
-    if not arg.startswith("--") or "=" in arg or arg in _LONG_FLAGS:
-        return False
-    candidates = {option for option in _OPTIONS_WITH_VALUE | _LONG_FLAGS if option.startswith(arg)}
-    return bool(candidates) and candidates <= _OPTIONS_WITH_VALUE
-
-
-def _abbreviates_editable(option: str) -> bool:
-    # pip reads --edit as --editable, and recording its path as a plain spec would drop the editable install on upgrade
-    return (
-        option.startswith("--")
-        and "--editable".startswith(option)
-        and not any(known.startswith(option) for known in _OPTIONS_WITH_VALUE | _LONG_FLAGS)
-    )
-
-
-def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
-    if not pip_args or pip_args[0] != "install":
-        return []
-
-    specs: list[tuple[str, bool]] = []
-
-    index = 1
-    while index < len(pip_args):
-        arg = pip_args[index]
-        if arg == "-e" or _abbreviates_editable(arg):
-            if index + 1 < len(pip_args):
-                specs.append((pip_args[index + 1], True))
-            index += 2
-            continue
-        option, separator, value = arg.partition("=")
-        if separator and _abbreviates_editable(option):
-            specs.append((value, True))
-            index += 1
-            continue
-        if _takes_value(arg):
-            index += 2
-            continue
-        if arg.startswith("-"):
-            index += 1
-            continue
-        specs.append((arg, False))
-        index += 1
-
-    return specs
 
 
 def _updated_main_package_pip_args(
@@ -235,7 +41,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
     if main_package.package is None:
         return
 
-    for package_spec, editable in _iter_install_specs(pip_args):
+    for package_spec, editable in install_specs(pip_args[1:]) if pip_args[:1] == ["install"] else []:
         package_name = package_name_from_spec(
             package_spec,
             str(venv.python_path),

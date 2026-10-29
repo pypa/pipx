@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final, Literal, TypeAlias, cast
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from helpers import mock_legacy_venv, remove_venv_interpreter, run_pipx_cli, skip_if_windows
 from pipx import paths, util
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
@@ -450,6 +450,28 @@ def test_list_outdated_rejects_other_filters(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", option])
     assert capsys.readouterr().err == "--outdated cannot be combined with --short or --pinned.\n"
+
+
+@skip_if_windows
+def test_list_outdated_refuses_find_links_others_can_change(
+    outdated_environment: MagicMock, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (shared := tmp_path.resolve() / "shared").mkdir()
+    shared.chmod(0o777)
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared)])
+    metadata.write()
+
+    assert run_pipx_cli(["list", "--outdated"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err, outdated_environment.call_count) == (
+        "",
+        (f"pycowsay: refusing to check pycowsay for updates through the recorded --find-links {shared}: another "
+        f"account can change {shared}, and with it the versions reported. Move the file or directory to a place "
+        "only you and root can change.\n"),
+        0,
+    )
 
 
 @pytest.mark.usefixtures("outdated_environment")

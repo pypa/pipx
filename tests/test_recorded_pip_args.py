@@ -27,6 +27,9 @@ ONE_SHOT_OPTIONS: Final[list[str]] = [
     "--requirement",
     "--requirements",
     "--requirements-from-script",
+    "--group",
+    "--directory",
+    "--project",
     "-t",
     "--target",
     "--root",
@@ -166,14 +169,21 @@ def test_extract_index_options_reads_spelling(pip_args: list[str], expected: lis
     [
         pytest.param(["-r", "requirements.txt", "--no-compile"], ["--no-compile"], id="separated"),
         pytest.param(["-qr", "requirements.txt"], ["-q"], id="clustered"),
+        pytest.param(["--project", "/shared", "--no-compile"], ["--no-compile"], id="uv-project"),
+        pytest.param(["--directory=/shared"], [], id="uv-directory"),
     ],
 )
 def test_replayable_pip_args_drops_one_shot_option(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
     assert replayable_pip_args(pip_args, tmp_path) == expected
 
 
-def test_replayable_pip_args_resolves_relative_path_against_venv(tmp_path: Path) -> None:
-    assert replayable_pip_args(["--cert", "ca.pem"], tmp_path) == ["--cert", str((tmp_path / "ca.pem").resolve())]
+@pytest.mark.parametrize("option", ["--cert", "--config-file", "--overrides", "--excludes"])
+def test_replayable_pip_args_resolves_relative_path_against_venv(tmp_path: Path, option: str) -> None:
+    assert replayable_pip_args([option, "file"], tmp_path) == [option, str((tmp_path / "file").resolve())]
+
+
+def test_absolute_path_pip_args_keeps_group_name(tmp_path: Path) -> None:
+    assert absolute_path_pip_args(["--group", "dev"], tmp_path) == ["--group", "dev"]
 
 
 @skip_if_windows
@@ -207,6 +217,12 @@ def test_replayable_pip_args_keeps_value_without_local_path(tmp_path: Path, kept
         pytest.param(["--cert", "{shared}/ca.pem"], "--cert {shared}/ca.pem", id="cert"),
         pytest.param(["-b", "{shared}/c.txt"], "-b {shared}/c.txt", id="uv-build-constraints"),
         pytest.param(["-f", "{venv}/wheels,{shared}/wheels"], "-f {venv}/wheels,{shared}/wheels", id="uv-comma"),
+        pytest.param(["--config-file", "{shared}/uv.toml"], "--config-file {shared}/uv.toml", id="uv-config-file"),
+        pytest.param(["--config-file={shared}/uv.toml"], "--config-file={shared}/uv.toml", id="uv-config-file-equals"),
+        pytest.param(["--overrides", "{shared}/o.txt"], "--overrides {shared}/o.txt", id="uv-overrides"),
+        pytest.param(["--override", "{shared}/o.txt"], "--override {shared}/o.txt", id="uv-override"),
+        pytest.param(["--excludes", "{shared}/x.txt"], "--excludes {shared}/x.txt", id="uv-excludes"),
+        pytest.param(["--exclude", "{shared}/x.txt"], "--exclude {shared}/x.txt", id="uv-exclude"),
     ],
 )
 def test_trusted_recorded_pip_args_refuses_source_others_can_change(
