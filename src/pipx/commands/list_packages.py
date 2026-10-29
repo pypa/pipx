@@ -6,6 +6,7 @@ __lazy_modules__ = [
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
+    "pipx.self_install",
     "pipx.venv",
 ]
 
