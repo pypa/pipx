@@ -30,7 +30,7 @@ from filelock import FileLock
 from flit_core.wheel import make_wheel_in
 
 import pipx
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
 from pipx import paths, shared_libs, standalone_python, venv
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
@@ -704,3 +704,17 @@ def site_packages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "pipx.venv_inspect.fetch_info_in_venv", lambda _venv_python: ([str(site_packages)], {}, "Python 3.13.0")
     )
     return site_packages
+
+
+@pytest.fixture
+def run_from_venv(monkeypatch: pytest.MonkeyPatch) -> Iterator[Callable[[Path], None]]:
+    # stands in for pipx changing itself: the interpreter runs from the venv and has loaded a package from it
+    def activate(venv_dir: Path) -> None:
+        write_import_probe(venv_dir, "old")
+        monkeypatch.syspath_prepend(str(venv_dir))
+        monkeypatch.setattr(sys, "prefix", str(venv_dir))
+        importlib.import_module("running_probe")
+
+    yield activate
+    for name in ("running_probe", "running_probe.late"):
+        sys.modules.pop(name, None)

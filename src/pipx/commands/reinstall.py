@@ -45,7 +45,13 @@ from pipx.commands.common import (
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished, rename_once_released
+from pipx.commands.transaction import (
+    REINSTALL_BACKUP_SUFFIX,
+    is_unfinished,
+    rename_once_released,
+    repoint_imports,
+    runs_from_venv,
+)
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,
@@ -173,10 +179,10 @@ def reinstall(
     old_resource_paths: Final[set[Path]] = _get_reinstall_resource_paths(
         venv, options.local_bin_dir, options.local_man_dir
     )
-    runs_from_venv: Final[bool] = Path(sys.prefix).resolve() == venv_dir.resolve()
+    running: Final[bool] = runs_from_venv(venv_dir)
     reinstall_backup_dir: Final[Path] = _create_reinstall_backup(venv_dir)
-    if runs_from_venv:
-        _repoint_imports(Path(sys.prefix), reinstall_backup_dir)
+    if running:
+        repoint_imports(Path(sys.prefix), reinstall_backup_dir)
     messages: Final[list[OutputMessage]] = [OutputMessage(text=f"uninstalled {venv.name}! {STARS}")]
 
     # a legacy environment directory can carry a name that is not canonical; the rebuild uses the canonical one
@@ -275,7 +281,7 @@ def reinstall(
         raise
     else:
         # the running pipx keeps importing from the backup, so the trash cleanup of the next pipx run removes it
-        if not runs_from_venv:
+        if not running:
             rmdir(reinstall_backup_dir)
 
     return OperationResult(
@@ -337,20 +343,6 @@ def _create_reinstall_backup(venv_dir: Path) -> Path:
     return backup_dir
 
 
-def _repoint_imports(source: Path, target: Path) -> None:
-    # pipx reinstalling itself moves away the venv it runs from and installs another version in its place; later
-    # imports (lazy ones and those inside functions) must load the moved code, or old and new modules mix; sys.path
-    # finds top-level modules and each package's __path__ its submodules
-    sys.path[:] = [_moved(entry, source, target) for entry in sys.path]
-    for module in tuple(sys.modules.values()):
-        if isinstance(search_path := getattr(module, "__path__", None), list):
-            search_path[:] = [_moved(entry, source, target) for entry in search_path]
-
-
-def _moved(entry: str, source: Path, target: Path) -> str:
-    return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
-
-
 def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
     # raising from a helper keeps the raise out of the caller's try block
     if errors:
@@ -402,7 +394,7 @@ def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir
     with uninterrupted():
         rmdir(venv_dir)
         backup_dir.rename(restore_venv_dir)
-        _repoint_imports(backup_dir, restore_venv_dir)
+        repoint_imports(backup_dir, restore_venv_dir)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

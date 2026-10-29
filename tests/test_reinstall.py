@@ -19,6 +19,7 @@ from helpers import (
     mock_legacy_venv,
     module_version,
     run_pipx_cli,
+    write_import_probe,
     write_wheel,
 )
 from package_info import PKG
@@ -29,7 +30,7 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadat
 from pipx.redact import redact_url_credentials
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable
     from pathlib import Path
     from unittest.mock import MagicMock
 
@@ -100,42 +101,30 @@ def test_reinstall_keeps_environment_of_refused_find_links() -> None:
 @pytest.fixture
 def running_venv(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[Path]:
-    # stands in for pipx reinstalling itself: the interpreter runs from the venv and has loaded a package from it
+    run_from_venv: Callable[[Path], None],
+) -> Path:
     assert not run_pipx_cli(["install", "pycowsay"])
     venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
-    _write_probe(venv_dir, "old")
-    monkeypatch.syspath_prepend(str(venv_dir))
-    monkeypatch.setattr(sys, "prefix", str(venv_dir))
-    importlib.import_module("reinstall_probe")
-    yield venv_dir
-    for name in ("reinstall_probe", "reinstall_probe.late"):
-        sys.modules.pop(name, None)
-
-
-def _write_probe(venv_dir: Path, value: str) -> None:
-    (package := venv_dir / "reinstall_probe").mkdir(exist_ok=True)
-    (package / "__init__.py").touch()
-    (package / "late.py").write_text(f"VALUE = {value!r}\n", encoding="utf-8")
+    run_from_venv(venv_dir)
+    return venv_dir
 
 
 def test_reinstall_self_imports_submodules_of_the_running_version(running_venv: Path) -> None:
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
-    _write_probe(running_venv, "new")
+    write_import_probe(running_venv, "new")
 
-    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
+    assert importlib.import_module("running_probe.late").VALUE == "old"
 
 
 @pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
 def test_reinstall_self_resolves_lazy_imports_from_the_running_version(running_venv: Path) -> None:
     namespace: Final[dict[str, Callable[[], str]]] = {}
     exec(  # ruff:ignore[exec-builtin]  # keep Python 3.15 syntax parseable on older versions
-        "lazy from reinstall_probe import late\ndef value():\n    return late.VALUE\n", namespace
+        "lazy from running_probe import late\ndef value():\n    return late.VALUE\n", namespace
     )
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
-    _write_probe(running_venv, "new")
+    write_import_probe(running_venv, "new")
 
     assert namespace["value"]() == "old"
 
@@ -147,7 +136,7 @@ def test_reinstall_self_failure_imports_from_the_restored_venv(running_venv: Pat
 
     assert run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    assert importlib.import_module("reinstall_probe.late").VALUE == "old"
+    assert importlib.import_module("running_probe.late").VALUE == "old"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

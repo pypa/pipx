@@ -273,6 +273,12 @@ def module_version(venv_name: str) -> str:
     ).strip()
 
 
+def write_import_probe(venv_dir: Path, value: str) -> None:
+    (package := venv_dir / "running_probe").mkdir(exist_ok=True)
+    (package / "__init__.py").touch()
+    (package / "late.py").write_text(f"VALUE = {value!r}\n", encoding="utf-8")
+
+
 def file_or_symlink(path: Path) -> bool:
     # exists() is false for a broken symlink
     return path.exists() or path.is_symlink()
@@ -301,5 +307,6 @@ __all__ = [
     "run_pipx_cli",
     "unwrap_log_text",
     "write_dist_info",
+    "write_import_probe",
     "write_wheel",
 ]
