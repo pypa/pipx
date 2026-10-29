@@ -156,42 +156,6 @@ def _upgrade_venv(
     return _upgrade_venv_packages(venv, options, packages_to_upgrade=None)
 
 
-def _upgrade_venv_packages(
-    venv: Venv, options: UpgradeOptions, *, packages_to_upgrade: Collection[str] | None
-) -> tuple[_PackageUpgradeResult, ...]:
-    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
-    if main_package.lock_file is not None:
-        return (
-            _PackageUpgradeResult(
-                environment=venv.name,
-                package=venv.name,
-                previous_version=main_package.package_version,
-                version=main_package.package_version,
-                status=_UpgradeStatus.LOCKED,
-                injected=False,
-                location=str(venv.root),
-                interpreter=venv.pipx_metadata.python_version,
-                backend=venv.pipx_metadata.backend,
-            ),
-        )
-
-    upgrading: Final[bool] = packages_to_upgrade is None or bool(packages_to_upgrade)
-    main_pip_args: Final[list[str]] = options.pip_args or (
-        trusted_recorded_pip_args(main_package.pip_args, venv.root) if upgrading else main_package.pip_args
-    )
-    if upgrading:
-        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=options.verbose)
-
-    with (
-        preserve_venv(
-            venv.root,
-            enabled=upgrading and any(package.expected_apps for package in venv.package_metadata.values()),
-        ),
-        marked_unfinished(venv.root),
-    ):
-        return _upgrade_packages(venv, main_pip_args, options, packages_to_upgrade=packages_to_upgrade)
-
-
 def _repaired_venv(
     venv_dir: Path,
     *,
@@ -244,6 +208,42 @@ def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
             "Uninstall and install this package to fix it."
         )
         raise PipxError(msg, wrap_message=False)
+
+
+def _upgrade_venv_packages(
+    venv: Venv, options: UpgradeOptions, *, packages_to_upgrade: Collection[str] | None
+) -> tuple[_PackageUpgradeResult, ...]:
+    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
+    if main_package.lock_file is not None:
+        return (
+            _PackageUpgradeResult(
+                environment=venv.name,
+                package=venv.name,
+                previous_version=main_package.package_version,
+                version=main_package.package_version,
+                status=_UpgradeStatus.LOCKED,
+                injected=False,
+                location=str(venv.root),
+                interpreter=venv.pipx_metadata.python_version,
+                backend=venv.pipx_metadata.backend,
+            ),
+        )
+
+    upgrading: Final[bool] = packages_to_upgrade is None or bool(packages_to_upgrade)
+    main_pip_args: Final[list[str]] = options.pip_args or (
+        trusted_recorded_pip_args(main_package.pip_args, venv.root) if upgrading else main_package.pip_args
+    )
+    if upgrading:
+        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=options.verbose)
+
+    with (
+        preserve_venv(
+            venv.root,
+            enabled=upgrading and any(package.expected_apps for package in venv.package_metadata.values()),
+        ),
+        marked_unfinished(venv.root),
+    ):
+        return _upgrade_packages(venv, main_pip_args, options, packages_to_upgrade=packages_to_upgrade)
 
 
 def _upgrade_packages(

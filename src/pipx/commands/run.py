@@ -178,7 +178,6 @@ def _run_script(
     resolved_backend: str,
     script_source: Path | None,
 ) -> NoReturn:
-    dependencies: Final[list[str]] = options.dependencies
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
@@ -186,7 +185,7 @@ def _run_script(
         raise PipxError(msg) from error
     requirements = None if metadata is None else list(metadata.dependencies)
 
-    if dependencies:
+    if options.dependencies:
         if requirements is None:
             # a plain script has no requirements list for ``--with`` to extend
             msg = (
@@ -195,7 +194,7 @@ def _run_script(
                 "via `pipx run --spec`."
             )
             raise PipxError(msg)
-        requirements = [*requirements, *dependencies]
+        requirements = [*requirements, *options.dependencies]
 
     # uv treats the --python pipx hands it as an explicit request and runs a script on it even when requires-python
     # rules it out, so pipx settles the interpreter for both backends

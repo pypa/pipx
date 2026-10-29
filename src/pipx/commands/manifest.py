@@ -64,9 +64,6 @@ if TYPE_CHECKING:
 def sync_manifest(
     manifest_file: Path, venv_container: VenvContainer, options: SyncOptions
 ) -> OperationResult[ManifestData]:
-    local_bin_dir: Final[Path] = options.local_bin_dir
-    local_man_dir: Final[Path] = options.local_man_dir
-    verbose: Final[bool] = options.verbose
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
     messages: Final[list[OutputMessage]] = []
@@ -79,7 +76,7 @@ def sync_manifest(
             was_exposed: Final[bool] = existed and recorded.exposure_enabled
             try:
                 if was_exposed:
-                    unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
                 # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
                 with force_replaces_only(()):
                     outcome: Final = install(
@@ -87,12 +84,12 @@ def sync_manifest(
                         [tool.package_name],
                         [tool.package],
                         InstallOptions(
-                            local_bin_dir=local_bin_dir,
-                            local_man_dir=local_man_dir,
+                            local_bin_dir=options.local_bin_dir,
+                            local_man_dir=options.local_man_dir,
                             python=options.python,
                             pip_args=trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
                             venv_args=recorded.venv_args,
-                            verbose=verbose,
+                            verbose=options.verbose,
                             force=existed,
                             reinstall=False,
                             exposure=ExposureOptions(
@@ -118,22 +115,26 @@ def sync_manifest(
             except (Exception, KeyboardInterrupt):
                 # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
                 if was_exposed:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
                 raise
             # install returns a failed result rather than raising when it does not render, so check both
             if error_message is not None:
                 failures.append(_FailedTool(environment=tool.environment, error=error_message))
                 messages.append(OutputMessage(text=error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
             else:
                 synced.append(tool.environment)
                 # install links the main package alone, while unexpose also dropped the links of injected packages
                 if existed and tool.expose:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
 
     if options.prune and not failures:
-        messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose=verbose))
+        messages.extend(
+            _prune_environments(
+                manifest, venv_container, options.local_bin_dir, options.local_man_dir, verbose=options.verbose
+            )
+        )
     return OperationResult(
         command=("manifest", "sync"),
         data=ManifestData(environments=tuple(synced), locks=()),

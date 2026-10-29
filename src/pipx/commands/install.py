@@ -412,7 +412,6 @@ def _resolve_cooldown(
 def _handle_existing_install(
     venv: Venv, build: _EnvironmentBuild, options: InstallOptions, *, python: str
 ) -> _ExistingInstall:
-    package_name: Final[str] = build.package_name
     messages: Final[list[OutputMessage]] = []
     if not options.reinstall and options.force and options.python_flag_passed:
         messages.append(
@@ -420,7 +419,7 @@ def _handle_existing_install(
                 text=pipx_wrap(
                     f"""
                     pipx ignores --python when you pass --force.
-                    To reinstall {package_name} with {python},
+                    To reinstall {build.package_name} with {python},
                     run `pipx reinstall {venv.name} --python {python}` instead.
                     """
                 )
@@ -439,8 +438,8 @@ def _handle_existing_install(
         messages.extend(upgrade_messages)
         return _ExistingInstall(
             continue_install=False,
-            packages=(_installed_package(venv, package_name),) if reason is None else (),
-            skipped=(_SkippedInstall(environment=venv.name, package=package_name, reason=reason),)
+            packages=(_installed_package(venv, build.package_name),) if reason is None else (),
+            skipped=(_SkippedInstall(environment=venv.name, package=build.package_name, reason=reason),)
             if reason is not None
             else (),
             messages=tuple(messages),
@@ -463,7 +462,7 @@ def _handle_existing_install(
     return _ExistingInstall(
         continue_install=False,
         packages=(),
-        skipped=(_SkippedInstall(environment=venv.name, package=package_name, reason="already-installed"),),
+        skipped=(_SkippedInstall(environment=venv.name, package=build.package_name, reason="already-installed"),),
         messages=tuple(messages),
     )
 
@@ -479,34 +478,31 @@ class _ExistingInstall:
 def _upgrade_existing_venv(
     venv: Venv, build: _EnvironmentBuild, options: InstallOptions
 ) -> tuple[str | None, tuple[OutputMessage, ...]]:
-    package_name: Final[str] = build.package_name
-    package_spec: Final[str] = build.package_spec
-    expected_apps: Final[tuple[str, ...]] = build.expected_apps
     package_metadata = venv.pipx_metadata.main_package
     installed_version: Final[str] = package_metadata.package_version
     if package_metadata.lock_file is not None:
         skip = ("locked", locked_package_message(venv.name))
     elif package_spec_satisfied(
-        package_spec,
-        package_name,
+        build.package_spec,
+        build.package_name,
         installed_version,
-        package_metadata.package_or_url or package_name,
+        package_metadata.package_or_url or build.package_name,
     ):
         skip = (
             "already-satisfied",
-            f"{package_name} {installed_version} already satisfies {redact_url_credentials(package_spec)}",
+            f"{build.package_name} {installed_version} already satisfies {redact_url_credentials(build.package_spec)}",
         )
     elif package_metadata.pinned:
         skip = ("pinned", f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
     else:
         skip = None
     if skip is not None:
-        validate_expected_apps(venv, package_name, expected_apps)
-        _record_expected_apps(venv, expected_apps)
+        validate_expected_apps(venv, build.package_name, build.expected_apps)
+        _record_expected_apps(venv, build.expected_apps)
         reason, message = skip
         return reason, (OutputMessage(text=message),)
 
-    with preserve_venv(venv.root, enabled=bool(expected_apps)):
+    with preserve_venv(venv.root, enabled=bool(build.expected_apps)):
         main_pip_args: Final[list[str]] = options.pip_args or trusted_recorded_pip_args(
             package_metadata.pip_args, venv.root
         )
@@ -516,18 +512,18 @@ def _upgrade_existing_venv(
             venv, options.local_bin_dir, options.local_man_dir
         )
         venv.upgrade_package(
-            package_name,
-            package_spec,
+            build.package_name,
+            build.package_spec,
             main_pip_args,
             exposure=ExposureOptions.recorded(package_metadata),
             is_main_package=True,
             upgrade_only_pip_args=[f"--upgrade-strategy={options.upgrade_strategy}"]
             if options.upgrade_strategy is not None
             else None,
-            expected_apps=expected_apps,
+            expected_apps=build.expected_apps,
             cooldown_days=build.cooldown_days,
         )
-        validate_expected_apps(venv, package_name, expected_apps)
+        validate_expected_apps(venv, build.package_name, build.expected_apps)
         package_metadata = venv.pipx_metadata.main_package
         if venv.pipx_metadata.exposure_enabled:
             expose_package_resources(package_metadata, options.local_bin_dir, options.local_man_dir, force=False)
@@ -737,19 +733,16 @@ def _install_spec_venv(
         else _get_python_interpreter(venv_metadata.source_interpreter) or options.python
     )
     packages: Final[list[PackageInfo]] = [main_package, *venv_metadata.injected_packages.values()]
-    pip_args: Final[list[str]] = options.pip_args
-    backend: Final[BackendOptions] = options.backend
-    cooldown_days: Final[int | None] = options.cooldown.days
     try:
         package_pip_args: Final[list[list[str]]] = (
-            [pip_args or trusted_recorded_pip_args(package.pip_args, venv_dir) for package in packages]
-            if pip_args or backend.cli in {None, venv_metadata.backend}
-            else _translate_recorded_pip_args(venv_metadata, packages, backend.cli)
+            [options.pip_args or trusted_recorded_pip_args(package.pip_args, venv_dir) for package in packages]
+            if options.pip_args or options.backend.cli in {None, venv_metadata.backend}
+            else _translate_recorded_pip_args(venv_metadata, packages, options.backend.cli)
         )
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
             package_cooldown: Final[int | None] = _resolve_cooldown(
                 main_package.lock_file,
-                CooldownOptions(cli_days=cooldown_days),
+                CooldownOptions(cli_days=options.cooldown.days),
                 main_package.cooldown_days,
                 modifies_existing=False,
             )
@@ -775,7 +768,7 @@ def _install_spec_venv(
                     expected_apps=main_package.expected_apps,
                     lock_file=main_package.lock_file,
                     python_flag_passed=options.python_flag_passed,
-                    backend=replace(backend, cli=backend.cli or venv_metadata.backend),
+                    backend=replace(options.backend, cli=options.backend.cli or venv_metadata.backend),
                     exposure_enabled=venv_metadata.exposure_enabled,
                     replace_expected_apps=True,
                     replace_lock=True,
@@ -800,7 +793,7 @@ def _install_spec_venv(
                         include_resources_from=inject_package.include_resources_from,
                         force=options.force,
                         with_suffix=inject_package.suffix == main_package.suffix,
-                        cooldown_days=_first_cooldown(cooldown_days, inject_package.cooldown_days),
+                        cooldown_days=_first_cooldown(options.cooldown.days, inject_package.cooldown_days),
                         pinned=inject_package.pinned,
                     ),
                 )

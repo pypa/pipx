@@ -105,7 +105,7 @@ class UninjectOptions:
     verbose: bool
 
 
-# upgrade-all shares the record: it upgrades every environment but those in skip, and never installs
+# upgrade-all shares this record; skip applies to upgrade-all alone, install, python and venv_args to upgrade alone
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UpgradeOptions:
     pip_args: list[str]
@@ -121,7 +121,7 @@ class UpgradeOptions:
     skip: Sequence[str] = ()
 
 
-# reinstall-all, repair and the interpreter upgrade rebuild environments the way reinstall does
+# reinstall-all, repair and the interpreter upgrade rebuild through reinstall; skip applies to reinstall-all alone
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ReinstallOptions:
     local_bin_dir: Path
