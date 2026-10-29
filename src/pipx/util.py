@@ -10,7 +10,7 @@ __lazy_modules__ = [
     "pipx.wrap",
     "pty",
     "re",
-    "secrets",
+    "random",
     "select",
     "shutil",
     "string",
@@ -23,8 +23,8 @@ import codecs
 import errno
 import logging
 import os
+import random
 import re
-import secrets
 import shutil
 import string
 import subprocess
@@ -105,7 +105,7 @@ def rmdir(path: Path, *, safe_rm: bool = True) -> None:
 
 def _get_trash_file(path: Path) -> Path:
     paths.CTX.trash.mkdir(exist_ok=True)
-    prefix: Final[str] = "".join(secrets.choice(string.ascii_lowercase) for _ in range(8))
+    prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
     return paths.CTX.trash / f"{prefix}.{path.name}"
 
 
