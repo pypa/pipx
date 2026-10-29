@@ -21,8 +21,11 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
 _UNFINISHED_MARKER: Final[str] = "pipx_unfinished"
+_IN_USE_LOCK: Final[str] = "pipx_in_use.lock"
 _BACKUP_SUFFIX: Final[str] = "-pipx-backup"
 REINSTALL_BACKUP_SUFFIX: Final[str] = "-pipx-reinstall"
+# filelock releases a lock it garbage collects, so the locks on copies the running pipx imports from live here
+_HELD_COPIES: Final[dict[Path, BaseFileLock]] = {}
 
 
 @contextmanager
@@ -55,7 +58,7 @@ class VenvBackup:
             msg: Final[str] = f"pipx could not back up environment {self._venv_dir.name}: {error}"
             raise PipxError(msg) from error
         self._backup_dir = backup_dir
-        self._holds_imports = runs_from_venv(self._venv_dir) and repoint_imports(Path(sys.prefix), backup_dir)
+        self._holds_imports = runs_from_venv(self._venv_dir) and import_from_copy(backup_dir)
 
     def _new_backup_dir(self) -> Path:
         # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate
@@ -83,6 +86,7 @@ class VenvBackup:
             # a signal between the two steps would leave the venv deleted and its only copy in the trash
             with uninterrupted():
                 rmdir(self._venv_dir)
+                release_copy(self._backup_dir)
                 self._backup_dir.rename(self._venv_dir)
                 if self._holds_imports:
                     repoint_imports(self._backup_dir, Path(sys.prefix))
@@ -112,6 +116,25 @@ def repoint_imports(source: Path, target: Path) -> bool:
 
 def _moved(entry: str, source: Path, target: Path) -> str:
     return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
+
+
+def import_from_copy(copy_dir: Path) -> bool:
+    if not repoint_imports(Path(sys.prefix), copy_dir):
+        return False
+    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    # the running pipx imports from the copy until it exits, long after it releases the venv lock, so it holds a lock
+    # of its own that keeps a concurrent trash sweep away; the operating system drops it when the process ends
+    (lock := FileLock(copy_dir / _IN_USE_LOCK)).acquire()
+    _HELD_COPIES[copy_dir] = lock
+    return True
+
+
+def release_copy(copy_dir: Path) -> None:
+    # the copy goes back in place of the venv, which must not carry the lock file
+    if (lock := _HELD_COPIES.pop(copy_dir, None)) is not None:
+        lock.release()
+        (copy_dir / _IN_USE_LOCK).unlink(missing_ok=True)
 
 
 def rename_once_released(source: Path, target: Path) -> None:
@@ -160,16 +183,25 @@ def empty_trash() -> None:
 
 
 def _is_backup_in_use(entry: Path) -> bool:
-    # a command keeps its environment's lock for as long as it may restore that environment from its backup
+    # a command keeps its environment's lock for as long as it may restore that environment from its backup, and a
+    # pipx that changed its own environment keeps the copy's lock for as long as it imports from it
     suffix: Final[str | None] = next(
         (candidate for candidate in (_BACKUP_SUFFIX, REINSTALL_BACKUP_SUFFIX) if entry.name.endswith(candidate)), None
     )
     if suffix is None:
         return False
-    from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
     venv_name: Final[str] = entry.name.removesuffix(suffix).rpartition("-")[0]
-    lock: Final[BaseFileLock] = VenvContainer(paths.CTX.venvs).venv_lock(paths.CTX.venvs / venv_name)
+    if _is_held(VenvContainer(paths.CTX.venvs).venv_lock(paths.CTX.venvs / venv_name)):
+        return True
+    # acquiring a lock creates its file, which would mark a copy no pipx imports from
+    return (in_use := entry / _IN_USE_LOCK).is_file() and _is_held(FileLock(in_use))
+
+
+def _is_held(lock: BaseFileLock) -> bool:
+    from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
     try:
         lock.acquire(timeout=0)
     except (Timeout, OSError):
@@ -182,9 +214,11 @@ __all__ = [
     "REINSTALL_BACKUP_SUFFIX",
     "VenvBackup",
     "empty_trash",
+    "import_from_copy",
     "is_unfinished",
     "marked_unfinished",
     "preserve_venv",
+    "release_copy",
     "rename_once_released",
     "repoint_imports",
     "runs_from_venv",
