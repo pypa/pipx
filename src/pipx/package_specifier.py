@@ -20,7 +20,7 @@ import tomllib
 import urllib.parse
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final, TypeAlias
 
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
@@ -151,7 +151,7 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
     pip_args = pip_args.copy()
     parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
     package_or_url: Final[str] = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
-    if "--editable" in pip_args and not parsed_package.valid_local_path:
+    if "--editable" in pip_args and not isinstance(parsed_package, _LocalPath):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -171,7 +171,7 @@ def _parse_specifier(package_spec: str) -> _ParsedPackage:
     # match pip's PyPI precedence by checking local paths only for names that PyPI rejects
     if (valid_pep508 := _requirement(package_spec)) is not None:
         if not _is_archive_name(valid_pep508.name):
-            return _ParsedPackage(valid_pep508=valid_pep508)
+            return _Pep508(requirement=valid_pep508)
         if not (package_path := Path(valid_pep508.name).expanduser()).exists():
             msg = f"{package_path} does not exist"
             raise PipxError(msg)
@@ -179,17 +179,17 @@ def _parse_specifier(package_spec: str) -> _ParsedPackage:
             msg = f"Only extras can follow the local archive {package_path}"
             raise PipxError(msg)
         # keep the extras as typed so the bare and ./ spellings store the same spec
-        return _ParsedPackage(valid_local_path=f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}")
+        return _LocalPath(path=f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}")
 
     parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
     if parsed_url.scheme and (
         parsed_url.netloc or (parsed_url.scheme in {"file", "git+file", "hg+file"} and parsed_url.path.startswith("/"))
     ):
-        return _ParsedPackage(valid_url=package_spec)
+        return _Url(url=package_spec)
 
     package_path_str, package_extras_str = _split_path_extras(package_spec)
     if (package_path := Path(package_path_str).expanduser()).exists():
-        return _ParsedPackage(valid_local_path=f"{package_path.resolve()}{package_extras_str}")
+        return _LocalPath(path=f"{package_path.resolve()}{package_extras_str}")
 
     msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
     raise PipxError(msg)
@@ -226,10 +226,21 @@ def _is_archive_name(name: str) -> bool:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class _ParsedPackage:
-    valid_pep508: Requirement | None = None
-    valid_url: str | None = None
-    valid_local_path: str | None = None
+class _Pep508:
+    requirement: Requirement
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Url:
+    url: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _LocalPath:
+    path: str
+
+
+_ParsedPackage: TypeAlias = _Pep508 | _Url | _LocalPath
 
 
 def _split_path_extras(package_spec: str) -> tuple[str, str]:
@@ -250,27 +261,27 @@ def _split_path_extras(package_spec: str) -> tuple[str, str]:
 
 
 def _parsed_package_to_package_or_url(parsed_package: _ParsedPackage, *, remove_version_specifiers: bool) -> str:
-    if parsed_package.valid_pep508 is not None:
-        if parsed_package.valid_pep508.marker is not None:
-            _LOGGER.warning(
-                pipx_wrap(
-                    f"""
-                    {HAZARD}  Ignoring environment markers
-                    ({parsed_package.valid_pep508.marker}) in package
-                    specification. Use pipx options to specify this type of
-                    information.
-                    """,
-                    subsequent_indent=" " * 4,
+    match parsed_package:
+        case _Pep508(requirement=requirement):
+            if requirement.marker is not None:
+                _LOGGER.warning(
+                    pipx_wrap(
+                        f"""
+                        {HAZARD}  Ignoring environment markers
+                        ({requirement.marker}) in package
+                        specification. Use pipx options to specify this type of
+                        information.
+                        """,
+                        subsequent_indent=" " * 4,
+                    )
                 )
+            package_or_url = _package_or_url_from_pep508(
+                requirement, remove_version_specifiers=remove_version_specifiers
             )
-        package_or_url = _package_or_url_from_pep508(
-            parsed_package.valid_pep508,
-            remove_version_specifiers=remove_version_specifiers,
-        )
-    elif parsed_package.valid_url is not None:
-        package_or_url = parsed_package.valid_url
-    elif parsed_package.valid_local_path is not None:
-        package_or_url = parsed_package.valid_local_path
+        case _Url(url=url):
+            package_or_url = url
+        case _LocalPath(path=path):
+            package_or_url = path
 
     _LOGGER.info("cleaned package spec: %s", redact_url_credentials(package_or_url))
     return package_or_url
@@ -572,7 +583,7 @@ def _changeable_by_others(value: str, base: Path) -> Path | None:
 
 
 def resolve_local_path(package_spec: str) -> str:
-    return _parse_specifier(package_spec).valid_local_path or package_spec
+    return parsed.path if isinstance(parsed := _parse_specifier(package_spec), _LocalPath) else package_spec
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
@@ -584,35 +595,37 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
 
 
 def get_extras(package_spec: str) -> set[str]:
-    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
-    if parsed_package.valid_pep508 is not None:
-        return parsed_package.valid_pep508.extras
-    if parsed_package.valid_local_path:
-        from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
+    match _parse_specifier(package_spec):
+        case _Pep508(requirement=requirement):
+            return requirement.extras
+        case _LocalPath(path=path):
+            from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
 
-        return Requirement(f"notapackage{_split_path_extras(parsed_package.valid_local_path)[1]}").extras
-    return set()
+            return Requirement(f"notapackage{_split_path_extras(path)[1]}").extras
+        case _Url():
+            return set()
 
 
 def source_without_extras(package_spec: str) -> str:
-    parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
-    if parsed_package.valid_pep508 is not None:
-        parsed_package.valid_pep508.extras = set()
-        return _package_or_url_from_pep508(parsed_package.valid_pep508)
-    if parsed_package.valid_url is not None:
-        return parsed_package.valid_url
-    return _split_path_extras(cast("str", parsed_package.valid_local_path))[0]
+    match _parse_specifier(package_spec):
+        case _Pep508(requirement=requirement):
+            requirement.extras = set()
+            return _package_or_url_from_pep508(requirement)
+        case _Url(url=url):
+            return url
+        case _LocalPath(path=path):
+            return _split_path_extras(path)[0]
 
 
 def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
     parsed_package: Final[_ParsedPackage] = _parse_specifier(package_or_url)
-    if parsed_package.valid_pep508 is not None:
-        parsed_package.valid_pep508.extras |= extras
-        return str(parsed_package.valid_pep508)
+    if isinstance(parsed_package, _Pep508):
+        parsed_package.requirement.extras |= extras
+        return str(parsed_package.requirement)
     merged: Final[str] = ",".join(sorted(get_extras(package_or_url) | extras))
-    if parsed_package.valid_url is not None:
-        return f"{package_name}[{merged}] @ {parsed_package.valid_url}"
-    return f"{_split_path_extras(cast('str', parsed_package.valid_local_path))[0]}[{merged}]"
+    if isinstance(parsed_package, _Url):
+        return f"{package_name}[{merged}] @ {parsed_package.url}"
+    return f"{_split_path_extras(parsed_package.path)[0]}[{merged}]"
 
 
 def valid_pypi_name(package_spec: str) -> str | None:
@@ -628,9 +641,9 @@ def valid_pypi_name(package_spec: str) -> str | None:
 def local_project_name(package_spec: str) -> str | None:
     # Path() reads a URL as a relative path (http://host/x is http:/host/x), so files below the working directory could
     # otherwise name the environment for a remote spec
-    if (local_path := _parse_specifier(package_spec).valid_local_path) is None:
+    if not isinstance(parsed := _parse_specifier(package_spec), _LocalPath):
         return None
-    return static_project_name(local_path) or wheel_project_name(local_path)
+    return static_project_name(parsed.path) or wheel_project_name(parsed.path)
 
 
 def static_project_name(package_spec: str) -> str | None:
