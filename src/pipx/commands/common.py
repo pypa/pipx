@@ -555,7 +555,12 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
         if not force or not _force_replaces(dest):
             _LOGGER.warning("%s  File exists at %s and does not match %s. Not modifying.", HAZARD, dest, src)
             return dest
-        _LOGGER.warning("%s  Overwriting file %s with %s", HAZARD, dest, src)
+        # a rebuilt launcher no longer matches its old copy (Windows .exe stubs embed their build time), but a copy
+        # whose shebang names this venv is the one pipx exposed, so refreshing it needs no warning
+        if _directory_id_or_none(src.parent) in _launcher_owner_ids(dest):
+            _LOGGER.info("Refreshing %s from %s", dest, src)
+        else:
+            _LOGGER.warning("%s  Overwriting file %s with %s", HAZARD, dest, src)
         safe_unlink(dest)
     if src.exists():
         shutil.copy(src, dest)
