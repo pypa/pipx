@@ -78,9 +78,23 @@ plus any ``--with`` packages, with local paths made absolute), the ``--python`` 
 backend, the cooldown, and the installer's environment variables (``PIP_*``, or ``UV_*`` under the uv backend, in any
 case and with ``-`` or ``_``, as pip reads them). pipx leaves out a short list of variables that cannot change what
 gets installed, such as timeouts, retries, verbosity, progress bars, color and cache directories, so they do not fork
-the cache. Cached environments expire after 14 days, after which the next run rebuilds against the latest release.
-Edits to ``pip.conf`` or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary
-venv borrows the shared pip.
+the cache.
+
+The key also covers the variables outside those prefixes that pip or uv read, in any case:
+
+- config files: ``XDG_CONFIG_HOME``, ``XDG_CONFIG_DIRS``, ``APPDATA``, ``SYSTEMDRIVE``, ``WIN_PD_OVERRIDE_APPDATA``
+  and ``WIN_PD_OVERRIDE_COMMON_APPDATA``
+- TLS trust: ``SSL_CERT_FILE``, ``SSL_CERT_DIR``, ``SSL_CLIENT_CERT``, ``REQUESTS_CA_BUNDLE`` and ``CURL_CA_BUNDLE``
+- proxies: ``HTTP_PROXY``, ``HTTPS_PROXY``, ``ALL_PROXY`` and ``NO_PROXY``
+- credentials: ``NETRC``, ``PYTHON_KEYRING_BACKEND``, ``HF_TOKEN``, ``PYX_API_KEY``, ``PYX_AUTH_TOKEN`` and the
+  ``AWS_*`` variables uv reads to sign S3 requests
+
+``HOME`` and ``USERPROFILE`` stay out: another home means another user, whose default pipx home, and so its cache, already
+differs. The values only feed the hash, so tokens and proxy passwords never appear in a cache path or a log line.
+
+Cached environments expire after 14 days, after which the next run rebuilds against the latest release. Edits to
+``pip.conf`` or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary venv
+borrows the shared pip.
 
 Under the uv backend pipx usually hands the whole run to ``uv tool run``, which uses uv's own cache. ``pipx run --with
 PKG`` adds extra dependencies to the temporary environment either way.

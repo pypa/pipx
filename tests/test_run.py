@@ -1645,6 +1645,39 @@ def test_run_cache_key_is_stable(cache_lock_path: Callable[[list[str], list[str]
     assert cache_lock_path(["black", "isort"], ["-q"], []) == cache_lock_path(["black", "isort"], ["-q"], [])
 
 
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        pytest.param("XDG_CONFIG_HOME", "/pipx-tests/config", id="xdg-config-home"),
+        pytest.param("SSL_CERT_FILE", "/pipx-tests/ca.pem", id="ssl-cert-file"),
+        pytest.param("HTTPS_PROXY", "http://proxy.invalid:3128", id="https-proxy"),
+        pytest.param("https_proxy", "http://proxy.invalid:3128", id="https-proxy-lower-case"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_key_follows_tool_env(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    monkeypatch: pytest.MonkeyPatch,
+    variable: str,
+    value: str,
+) -> None:
+    monkeypatch.delenv(variable, raising=False)
+    first: Final[Path] = cache_lock_path(["black"], [], [])
+    monkeypatch.setenv(variable, value)
+
+    assert cache_lock_path(["black"], [], []) != first
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_key_ignores_unrelated_env(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first: Final[Path] = cache_lock_path(["black"], [], [])
+    monkeypatch.setenv("PIPX_TESTS_UNRELATED", "1")
+
+    assert cache_lock_path(["black"], [], []) == first
+
+
 @pytest.fixture
 def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
     # Stop at the filesystem boundary before installing conflicting argument sets.
