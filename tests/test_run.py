@@ -868,6 +868,64 @@ def test_run_rebuilds_after_installer_env_changes(
     assert out.read_text() == "2.0"
 
 
+@pytest.fixture
+def run_demodep_script(
+    tmp_path: Path, mocker: MockerFixture, publish_demodep: Callable[[str, str], Path]
+) -> Callable[[str], set[Path]]:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text("# /// script\n# dependencies = ['demodep']\n# ///\nimport demodep\n")
+    links: Final[Path] = publish_demodep("links", "1.0")
+
+    def run(backend: str) -> set[Path]:
+        run_pipx_cli_exit(["run", "--backend", backend, f"--pip-args=--find-links={links}", str(script)], assert_exit=0)
+        return {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+
+    return run
+
+
+@pytest.mark.parametrize(
+    ("backend", "variable", "value"),
+    [
+        pytest.param("pip", "PIP_TIMEOUT", "60", id="pip-timeout"),
+        pytest.param("uv", "UV_RUN_RECURSION_DEPTH", "1", id="uv-run-recursion-depth"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_key_ignores_unrelated_installer_env(
+    monkeypatch: pytest.MonkeyPatch,
+    run_demodep_script: Callable[[str], set[Path]],
+    backend: str,
+    variable: str,
+    value: str,
+) -> None:
+    first: Final[set[Path]] = run_demodep_script(backend)
+    monkeypatch.setenv(variable, value)
+
+    assert run_demodep_script(backend) == first
+
+
+@pytest.mark.parametrize(
+    ("backend", "variable", "value"),
+    [
+        pytest.param("pip", "PIP_PRE", "1", id="pip-pre"),
+        pytest.param("uv", "UV_PRERELEASE", "allow", id="uv-prerelease"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_key_follows_resolution_installer_env(
+    monkeypatch: pytest.MonkeyPatch,
+    run_demodep_script: Callable[[str], set[Path]],
+    backend: str,
+    variable: str,
+    value: str,
+) -> None:
+    first: Final[set[Path]] = run_demodep_script(backend)
+    monkeypatch.setenv(variable, value)
+
+    assert len(run_demodep_script(backend) - first) == 1
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
