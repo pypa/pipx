@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
     venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():
-        msg = f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
+        msg = f"pipx has no venv for {package!r}; run 'pipx list' to see the installed packages"
         raise PipxError(msg)
     venv.verbose = True
     # pip may change the pipx running this, which keeps importing its own version from the copy

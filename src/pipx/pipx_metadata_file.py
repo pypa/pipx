@@ -166,8 +166,8 @@ class PipxMetadata:
             metadata_dict["source_interpreter"] = None
         elif version not in {_METADATA_VERSION, "0.11", "0.10", "0.9", "0.8", "0.7", "0.6", "0.5"}:
             msg = f"""
-                {self.venv_dir.name}: Unknown metadata version {version}.
-                Perhaps it was installed with a later version of pipx.
+                {self.venv_dir.name}: Unknown metadata version {version}, written
+                by a later version of pipx. Upgrade pipx to manage this package.
                 """
             raise PipxError(msg)
         # files before 0.6 record no backend

@@ -308,9 +308,9 @@ def test_upgrade_all_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
                     "code": "package_upgrade_failed",
                     "environment": "pycowsay",
                     "message": (
-                        "Not upgrading pycowsay. It has missing internal pipx metadata.\n"
-                        "It was likely installed using a pipx version before 0.15.0.0.\n"
-                        "Please uninstall and install this package to fix."
+                        "Not upgrading pycowsay. It has no internal pipx metadata.\n"
+                        "pipx versions before 0.15.0.0 did not record it.\n"
+                        "Uninstall and install this package to fix it."
                     ),
                     "package": None,
                 }
