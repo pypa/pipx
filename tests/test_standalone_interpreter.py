@@ -202,7 +202,7 @@ def test_early_python_311_keeps_links_inside_archive(
     tmp_path: Path,
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
-    # unpacked on another filesystem, as a tmpfs /tmp is, the move into the pipx home copies the hard link apart
+    # from a temp dir on another filesystem, such as a tmpfs /tmp, moving into the pipx home copies the hard link apart
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
