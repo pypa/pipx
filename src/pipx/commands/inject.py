@@ -9,6 +9,7 @@ __lazy_modules__ = [
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.transaction",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.redact",
     "pipx.util",

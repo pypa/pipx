@@ -11,6 +11,7 @@ __lazy_modules__ = [
     "pipx.commands.install",
     "pipx.commands.transaction",
     "pipx.fanout",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.redact",

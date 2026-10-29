@@ -4,6 +4,7 @@ __lazy_modules__ = [
     "concurrent.futures",
     "functools",
     "packaging.utils",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.util",
     "pipx.venv",
