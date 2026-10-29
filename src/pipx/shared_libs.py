@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
-    "configparser",
     "packaging.version",
     "pathlib",
     "pipx",
@@ -16,8 +15,6 @@ import datetime as dt
 import logging
 import os
 import time
-from configparser import ConfigParser
-from configparser import Error as ConfigParserError
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
@@ -31,7 +28,7 @@ from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
-from pipx.interpreter import get_default_python
+from pipx.interpreter import get_default_python, pyvenv_home
 from pipx.package_specifier import absolute_path_pip_args
 from pipx.util import (
     PipxError,
@@ -169,19 +166,8 @@ class _SharedLibs:
         if not WINDOWS:
             return True
 
-        pyvenv_cfg: Final[Path] = python_path.parent.parent / "pyvenv.cfg"
-        if not pyvenv_cfg.is_file():
-            return True
-
-        config: Final[ConfigParser] = ConfigParser()
-        try:
-            # pyvenv.cfg has no section header, which ConfigParser requires
-            config.read_string(f"[DEFAULT]\n{pyvenv_cfg.read_text(encoding='utf-8')}")
-        except (OSError, UnicodeDecodeError, ConfigParserError):
-            # an unreadable pyvenv.cfg gives no evidence against the venv
-            return True
-
-        if (home := config.get("DEFAULT", "home", fallback=None)) and not (
+        # a missing or unreadable pyvenv.cfg gives no evidence against the venv
+        if (home := pyvenv_home(python_path.parent.parent / "pyvenv.cfg")) and not (
             original_python := Path(home) / "python.exe"
         ).is_file():
             _LOGGER.info("Shared libs venv references a missing Python interpreter: %s", original_python)

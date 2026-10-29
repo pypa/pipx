@@ -45,7 +45,7 @@ from pipx.backends import (
 )
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import HAZARD
-from pipx.interpreter import get_default_python
+from pipx.interpreter import get_default_python, recordable_interpreter
 from pipx.package_specifier import (
     absolute_path_pip_args,
     fix_package_name,
@@ -295,7 +295,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # update_package_metadata records it from the package inspection, sparing a `python --version` run
         self.pipx_metadata.python_version = None
         if source_interpreter := shutil.which(self.python):
-            self.pipx_metadata.source_interpreter = Path(source_interpreter)
+            self.pipx_metadata.source_interpreter = recordable_interpreter(Path(source_interpreter))
 
     def remove_venv(self) -> None:
         if self.safe_to_remove():

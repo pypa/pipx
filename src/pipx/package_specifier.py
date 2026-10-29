@@ -579,13 +579,16 @@ def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
 
 
 def _changeable_by_others(value: str, base: Path) -> Path | None:
-    if sys.platform == "win32":
-        return None
     url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(value)
     if url.scheme not in {"", "file"}:
         return None
     # the installer runs in the venv root, where a relative index directory resolves
-    path: Final[Path] = base / (urllib.parse.unquote(url.path) if url.scheme else value)
+    return changeable_by_others(base / (urllib.parse.unquote(url.path) if url.scheme else value))
+
+
+def changeable_by_others(path: Path) -> Path | None:
+    if sys.platform == "win32":
+        return None
     trusted: Final[set[int]] = {0, os.geteuid()}
     # the sticky bit keeps others from replacing an entry they do not own, but not from adding one where none exists
     has_existing_child = False
@@ -827,6 +830,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 __all__ = [
     "absolute_path_pip_args",
     "add_extras",
+    "changeable_by_others",
     "changeable_recorded_source",
     "extract_index_options",
     "fix_package_name",

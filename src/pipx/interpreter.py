@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["importlib.util", "packaging", "pathlib", "pipx.self_install", "re", "shutil", "subprocess"]
+__lazy_modules__ = [
+    "configparser",
+    "importlib.util",
+    "packaging",
+    "pathlib",
+    "pipx.self_install",
+    "re",
+    "shutil",
+    "subprocess",
+]
 
 import logging
 import os
@@ -8,6 +17,8 @@ import re
 import shutil
 import subprocess
 import sys
+from configparser import ConfigParser
+from configparser import Error as ConfigParserError
 from functools import cache
 from importlib.util import find_spec
 from pathlib import Path
@@ -217,6 +228,27 @@ def _resolve_python(python: str) -> str:
     raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
+def recordable_interpreter(python: Path) -> Path | None:
+    # an interpreter inside a virtual environment, such as an activated bootstrap's python3, goes away with that
+    # environment, and whoever creates the path again decides what install-all runs from a snapshot; the new
+    # environment runs on the base interpreter, and pyvenv.cfg names it by the link Homebrew keeps across patch upgrades
+    if not (pyvenv_cfg := python.parent.parent / "pyvenv.cfg").is_file():
+        return python
+    if (home := pyvenv_home(pyvenv_cfg)) is None or not (base := Path(home) / python.name).is_file():
+        return None
+    return base
+
+
+def pyvenv_home(pyvenv_cfg: Path) -> str | None:
+    config: Final[ConfigParser] = ConfigParser()
+    try:
+        # pyvenv.cfg has no section header, which ConfigParser requires
+        config.read_string(f"[DEFAULT]\n{pyvenv_cfg.read_text(encoding='utf-8')}")
+    except (OSError, UnicodeDecodeError, ConfigParserError):
+        return None
+    return config.get("DEFAULT", "home", fallback=None)
+
+
 __all__ = [
     "DEFAULT_PYTHON",
     "InterpreterResolutionError",
@@ -225,4 +257,6 @@ __all__ = [
     "get_default_python",
     "get_default_python_spec",
     "has_venv",
+    "pyvenv_home",
+    "recordable_interpreter",
 ]

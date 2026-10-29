@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import current_log_file, run_pipx_cli
+from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -133,13 +133,25 @@ def test_install_all_selects_interpreter(
 
 
 @pytest.fixture
-def recorded_snapshot(make_snapshot: Callable[[list[list[str]]], Path], tmp_path: Path) -> tuple[Path, Path]:
-    spec_file: Final[Path] = make_snapshot([["install", "pycowsay"]])
-    snapshot: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+def recorded_snapshot(record_interpreter: Callable[[Path], Path], tmp_path: Path) -> tuple[Path, Path]:
     (recorded := tmp_path / "python-recorded").touch()
-    snapshot["venvs"]["pycowsay"]["metadata"]["source_interpreter"] = {"__type__": "Path", "__Path__": str(recorded)}
-    spec_file.write_text(json.dumps(snapshot), encoding="utf-8")
-    return spec_file, recorded
+    return record_interpreter(recorded), recorded
+
+
+@pytest.fixture
+def record_interpreter(make_snapshot: Callable[[list[list[str]]], Path]) -> Callable[[Path], Path]:
+    spec_file: Final[Path] = make_snapshot([["install", "pycowsay"]])
+
+    def record(recorded: Path) -> Path:
+        snapshot: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+        snapshot["venvs"]["pycowsay"]["metadata"]["source_interpreter"] = {
+            "__type__": "Path",
+            "__Path__": str(recorded),
+        }
+        spec_file.write_text(json.dumps(snapshot), encoding="utf-8")
+        return spec_file
+
+    return record
 
 
 def test_install_all_reports_missing_recorded_interpreter(
@@ -150,6 +162,57 @@ def test_install_all_reports_missing_recorded_interpreter(
     assert not run_pipx_cli(["install-all", str(spec_file)])
     printed: Final[str] = " ".join(capsys.readouterr().out.split())
     assert ("The exported python interpreter" in printed, "is ignored as not found" in printed) == (True, True)
+
+
+def _inside_venv(tmp_path: Path) -> Path:
+    (bootstrap := tmp_path / "bootstrap" / "bin").mkdir(parents=True)
+    (bootstrap.parent / "pyvenv.cfg").touch()
+    (python := bootstrap / "python3").touch()
+    return python
+
+
+def _in_shared_directory(tmp_path: Path) -> Path:
+    (shared := tmp_path / "shared").mkdir()
+    shared.chmod(0o777)
+    (python := shared / "python3").touch()
+    return python
+
+
+def _linked_into_shared_directory(tmp_path: Path) -> Path:
+    (link := tmp_path / "python3").symlink_to(_in_shared_directory(tmp_path))
+    return link
+
+
+@pytest.mark.parametrize(
+    ("place", "reason"),
+    [
+        pytest.param(_inside_venv, "it is inside a virtual environment", id="inside-venv"),
+        pytest.param(_in_shared_directory, "another account can change", id="shared-directory", marks=SKIP_IF_WINDOWS),
+        pytest.param(
+            _linked_into_shared_directory,
+            "another account can change",
+            id="linked-into-shared-directory",
+            marks=SKIP_IF_WINDOWS,
+        ),
+    ],
+)
+def test_install_all_replaces_distrusted_recorded_interpreter_with_default(
+    *,
+    record_interpreter: Callable[[Path], Path],
+    tmp_path: Path,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    place: Callable[[Path], Path],
+    reason: str,
+) -> None:
+    install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
+
+    assert not run_pipx_cli(["install-all", str(record_interpreter(place(tmp_path)))])
+
+    assert (
+        Path(install.call_args.args[5]).resolve(),
+        f"is ignored as {reason}" in " ".join(capsys.readouterr().out.split()),
+    ) == (Path(sys.executable).resolve(), True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
