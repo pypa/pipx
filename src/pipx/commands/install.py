@@ -52,7 +52,7 @@ from pipx.constants import (
 from pipx.emojis import hazard, sleep
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.package_specifier import package_spec_satisfied, trusted_recorded_pip_args
+from pipx.package_specifier import package_spec_satisfied, pip_long_option_name, trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
 from pipx.result import (
@@ -915,21 +915,10 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
 
 def _expand_pip_abbreviation(argument: str) -> str:
     # pip accepts any unambiguous prefix of a long option, so a pip recording can hold --index-u for --index-url
-    long_options: Final[tuple[str, ...]] = (
-        "--index-url",
-        "--extra-index-url",
-        "--find-links",
-        "--no-index",
-        "--pre",
-        "--trusted-host",
-        "--constraint",
-        "--keyring-provider",
-    )
     flag, separator, value = argument.partition("=")
-    if not flag.startswith("--") or flag in long_options:
+    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
         return argument
-    matches: Final[list[str]] = [option for option in long_options if option.startswith(flag)]
-    return f"{matches[0]}{separator}{value}" if len(matches) == 1 else argument
+    return f"{name}{separator}{value}"
 
 
 def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:

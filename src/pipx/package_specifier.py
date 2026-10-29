@@ -483,10 +483,16 @@ def _long_option_name(spelled: str) -> str | None:
         "--upgrade-group",
         "--upgrade-package",
     })
-    if spelled in _PIP_LONG_VALUE_OPTIONS or spelled in uv_value_options or spelled in _LONG_FLAGS:
+    if spelled in uv_value_options or spelled in _LONG_FLAGS:
+        return spelled
+    return pip_long_option_name(spelled)
+
+
+def pip_long_option_name(spelled: str) -> str | None:
+    if spelled in (pip_options := _PIP_LONG_VALUE_OPTIONS | _PIP_LONG_FLAGS):
         return spelled
     # pip, through optparse, takes any unambiguous prefix of its own long options
-    match [option for option in _PIP_LONG_VALUE_OPTIONS | _PIP_LONG_FLAGS if option.startswith(spelled)]:
+    match [option for option in pip_options if option.startswith(spelled)]:
         case [option]:
             return option
         case _:
@@ -868,6 +874,7 @@ __all__ = [
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",
+    "pip_long_option_name",
     "recordable_pip_args",
     "replace_index_options",
     "replayable_pip_args",
