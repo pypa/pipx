@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a bug in pipx
 title: ''
 labels: bug
 assignees: ''
@@ -8,7 +8,7 @@ assignees: ''
 
 **Issue**
 
-Describe what's the expected behavior and what you're observing.
+Describe the behavior you expect and what you observe instead.
 
 **Environment**
 
@@ -21,4 +21,4 @@ Provide at least:
 
 **Output of the failing command**
 
-Make sure to run the command with `--verbose`:
+Run the command with `--verbose`:

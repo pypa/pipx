@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-"""
-Script to migrate from pipsi to pipx
-"""
+"""Migrate the packages pipsi manages to pipx."""
 
 from __future__ import annotations
 
@@ -11,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 from shutil import which
+from typing import Final
 
 
 def main() -> None:
@@ -20,28 +19,18 @@ def main() -> None:
     if not sys.stdout.isatty():
         sys.exit("Must be run from a terminal, not a script")
 
-    pipsi_home = os.environ.get("PIPSI_HOME", Path("~/.local/venvs/").expanduser())
-    packages = [p.name for p in Path(pipsi_home).iterdir()]
-
-    if not packages:
+    pipsi_home: Final = os.environ.get("PIPSI_HOME", Path("~/.local/venvs/").expanduser())
+    if not (packages := [path.name for path in Path(pipsi_home).iterdir()]):
         sys.exit(0)
 
-    for _package in packages:
+    while (answer := input("Continue? [y/n] ")) not in {"y", "n"}:
         pass
-
-    answer = None
-    while answer not in {"y", "n"}:
-        answer = input("Continue? [y/n] ")
-
     if answer == "n":
         sys.exit(0)
 
     for package in packages:
-        ret = subprocess.run(["pipsi", "uninstall", "--yes", package], check=False)  # ruff:ignore[start-process-with-partial-path]  # pipsi resolved from PATH
-        if ret.returncode:
-            pass
-        else:
-            ret = subprocess.run(["pipx", "install", package], check=False)  # ruff:ignore[start-process-with-partial-path]  # pipx resolved from PATH
+        if not subprocess.run(["pipsi", "uninstall", "--yes", package], check=False).returncode:  # ruff:ignore[start-process-with-partial-path]  # pipsi resolved from PATH
+            subprocess.run(["pipx", "install", package], check=False)  # ruff:ignore[start-process-with-partial-path]  # pipx resolved from PATH
 
 
 if __name__ == "__main__":

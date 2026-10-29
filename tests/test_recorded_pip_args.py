@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import skip_if_windows
+from helpers import SKIP_IF_WINDOWS
 from pipx.package_specifier import (
     absolute_path_pip_args,
     extract_index_options,
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-ONE_SHOT_OPTIONS: Final[list[str]] = [
+_ONE_SHOT_OPTIONS: Final[list[str]] = [
     "-r",
     "--requirement",
     "--requirements",
@@ -60,12 +60,12 @@ def sticky_dir(tmp_path: Path) -> Path:
     return sticky
 
 
-@pytest.mark.parametrize("option", ONE_SHOT_OPTIONS)
+@pytest.mark.parametrize("option", _ONE_SHOT_OPTIONS)
 def test_recordable_pip_args_drops_one_shot_option_separated(option: str) -> None:
     assert recordable_pip_args(["--pre", option, "value", "--no-compile"]) == ["--pre", "--no-compile"]
 
 
-@pytest.mark.parametrize("option", ONE_SHOT_OPTIONS)
+@pytest.mark.parametrize("option", _ONE_SHOT_OPTIONS)
 def test_recordable_pip_args_drops_one_shot_option_equals(option: str) -> None:
     assert recordable_pip_args([f"{option}=value", "--no-compile"]) == ["--no-compile"]
 
@@ -184,7 +184,7 @@ def test_absolute_path_pip_args_keeps_group_name(tmp_path: Path) -> None:
     assert absolute_path_pip_args(["--group", "dev"], tmp_path) == ["--group", "dev"]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_replayable_pip_args_keeps_path_others_can_change(shared_dir: Path) -> None:
     pip_args: Final[list[str]] = ["--find-links", str(shared_dir / "wheels")]
 
@@ -202,7 +202,7 @@ def test_replayable_pip_args_keeps_value_without_local_path(tmp_path: Path, kept
     assert replayable_pip_args(kept, tmp_path) == kept
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     ("pip_args", "spelled"),
     [
@@ -241,7 +241,7 @@ def test_trusted_recorded_pip_args_refuses_source_others_can_change(
     assert str(error.value) == expected.format(shared=shared_dir, venv=venv)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "pip_args",
     [
@@ -261,7 +261,7 @@ def test_trusted_recorded_pip_args_refuses_local_index_others_can_change(shared_
         )
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "pip_args",
     [
@@ -274,18 +274,18 @@ def test_trusted_recorded_pip_args_refuses_sticky_dir(sticky_dir: Path, tmp_path
         trusted_recorded_pip_args([argument.format(sticky=sticky_dir) for argument in pip_args], tmp_path)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(sys.platform != "win32" and os.geteuid() == 0, reason="root owns the files it creates")
 def test_trusted_recorded_pip_args_refuses_path_owned_by_another_account(tmp_path: Path, mocker: MockerFixture) -> None:
-    ca: Final[Path] = tmp_path.resolve() / "ca.pem"
-    ca.write_text("", encoding="utf-8")
-    mocker.patch("os.geteuid", return_value=ca.stat().st_uid + 1)
+    certificate: Final[Path] = tmp_path.resolve() / "ca.pem"
+    certificate.write_text("", encoding="utf-8")
+    mocker.patch("os.geteuid", return_value=certificate.stat().st_uid + 1)
 
-    with pytest.raises(PipxError, match=re.escape(f"another account can change {ca},")):
-        trusted_recorded_pip_args(["--cert", str(ca)], tmp_path)
+    with pytest.raises(PipxError, match=re.escape(f"another account can change {certificate},")):
+        trusted_recorded_pip_args(["--cert", str(certificate)], tmp_path)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_trusted_recorded_pip_args_keeps_own_path_in_sticky_dir(sticky_dir: Path, tmp_path: Path) -> None:
     wheels: Final[Path] = sticky_dir / "wheels"
     wheels.mkdir(mode=0o755)

@@ -13,35 +13,27 @@ from pipx.constants import WINDOWS
 from pipx.self_install import DEFAULT_PIPX_GLOBAL_HOME, get_environment_value
 from pipx.wrap import pipx_wrap
 
-DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
-FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx"]
-if WINDOWS:
-    FALLBACK_PIPX_HOMES += [Path.home() / "pipx"]
+DEFAULT_PIPX_HOME: Final[Path] = user_data_path("pipx")
+FALLBACK_PIPX_HOMES: Final[list[Path]] = [Path.home() / ".local/pipx", *([Path.home() / "pipx"] if WINDOWS else [])]
 
 DEFAULT_PIPX_BIN_DIR: Final[Path] = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR: Final[Path] = Path.home() / ".local/share/man"
-DEFAULT_PIPX_COMPLETION_DIR: Final[Path] = Path.home() / ".local/share"
 DEFAULT_PIPX_GLOBAL_BIN_DIR: Final[Path] = Path("/usr/local/bin")
 DEFAULT_PIPX_GLOBAL_MAN_DIR: Final[Path] = Path("/usr/local/share/man")
-DEFAULT_PIPX_GLOBAL_COMPLETION_DIR: Final[Path] = Path("/usr/local/share")
 
-# Overrides for testing
-OVERRIDE_PIPX_HOME = None
-OVERRIDE_PIPX_BIN_DIR = None
-OVERRIDE_PIPX_MAN_DIR = None
-OVERRIDE_PIPX_COMPLETION_DIR = None
-OVERRIDE_PIPX_SHARED_LIBS = None
-OVERRIDE_PIPX_GLOBAL_HOME = None
-OVERRIDE_PIPX_GLOBAL_BIN_DIR = None
-OVERRIDE_PIPX_GLOBAL_MAN_DIR = None
-OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR = None
-OVERRIDE_PIPX_GLOBAL_SHARED_LIBS = None
+# tests point these at temporary directories so no test touches the real pipx locations
+OVERRIDE_PIPX_HOME: Path | None = None
+OVERRIDE_PIPX_BIN_DIR: Path | None = None
+OVERRIDE_PIPX_MAN_DIR: Path | None = None
+OVERRIDE_PIPX_COMPLETION_DIR: Path | None = None
+OVERRIDE_PIPX_SHARED_LIBS: Path | None = None
+OVERRIDE_PIPX_GLOBAL_HOME: Path | None = None
+OVERRIDE_PIPX_GLOBAL_BIN_DIR: Path | None = None
+OVERRIDE_PIPX_GLOBAL_MAN_DIR: Path | None = None
+OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR: Path | None = None
+OVERRIDE_PIPX_GLOBAL_SHARED_LIBS: Path | None = None
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-
-
-def get_expanded_environ(env_name: str) -> Path | None:
-    return Path(value).expanduser().absolute() if (value := get_environment_value(env_name)) else None
 
 
 class _PathContext:
@@ -64,9 +56,53 @@ class _PathContext:
     def __init__(self) -> None:
         self.make_local()
 
+    def make_local(self) -> None:
+        self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")
+        self._default_home = DEFAULT_PIPX_HOME
+        self._base_bin = OVERRIDE_PIPX_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")
+        self._default_bin = DEFAULT_PIPX_BIN_DIR
+        self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")
+        self._default_man = DEFAULT_PIPX_MAN_DIR
+        self._base_completion = OVERRIDE_PIPX_COMPLETION_DIR or get_expanded_environ("PIPX_COMPLETION_DIR")
+        self._default_completion = Path.home() / ".local/share"
+        self._base_shared_libs = OVERRIDE_PIPX_SHARED_LIBS or get_expanded_environ("PIPX_SHARED_LIBS")
+        self._default_log = user_log_path("pipx")
+        self._default_cache = user_cache_path("pipx")
+        self._default_trash = self._default_home / "trash"
+        self._fallback_home = next((fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()), None)
+        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
+        self._clear_cached_paths()
+
+    def _clear_cached_paths(self) -> None:
+        for attribute in ("bin_dir", "completion_dir", "home", "man_dir", "shared_libs"):
+            self.__dict__.pop(attribute, None)
+
+    def make_global(self) -> None:
+        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")
+        self._default_home = DEFAULT_PIPX_GLOBAL_HOME
+        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
+        self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
+        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
+        self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._base_completion = OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR or get_expanded_environ(
+            "PIPX_GLOBAL_COMPLETION_DIR"
+        )
+        self._default_completion = Path("/usr/local/share")
+        self._default_log = self._default_home / "logs"
+        self._default_cache = self._default_home / ".cache"
+        self._default_trash = self._default_home / "trash"
+        self._base_shared_libs = OVERRIDE_PIPX_GLOBAL_SHARED_LIBS
+        self._fallback_home = None
+        self._home_exists = self._base_home is not None
+        self._clear_cached_paths()
+
     @property
     def venvs(self) -> Path:
         return self.home / "venvs"
+
+    @cached_property
+    def home(self) -> Path:
+        return (self._base_home or self._fallback_home or self._default_home).absolute()
 
     @property
     def logs(self) -> Path:
@@ -81,9 +117,7 @@ class _PathContext:
     @property
     def trash(self) -> Path:
         # renaming into the trash has to stay on one filesystem, so it follows the venvs under the home
-        if self._home_exists:
-            return self.home / ".trash"
-        return self._default_trash
+        return self.home / ".trash" if self._home_exists else self._default_trash
 
     @cached_property
     def bin_dir(self) -> Path:
@@ -98,67 +132,15 @@ class _PathContext:
         return (self._base_completion or self._default_completion).resolve()
 
     @cached_property
-    def home(self) -> Path:
-        if self._base_home:
-            home = self._base_home
-        elif self._fallback_home:
-            home = self._fallback_home
-        else:
-            home = self._default_home
-        return home.absolute()
-
-    @cached_property
     def shared_libs(self) -> Path:
         return (self._base_shared_libs or self.home / "shared").resolve()
-
-    def _clear_cached_paths(self) -> None:
-        for attribute in ("bin_dir", "completion_dir", "home", "man_dir", "shared_libs"):
-            self.__dict__.pop(attribute, None)
-
-    def make_local(self) -> None:
-        self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")
-        self._default_home = DEFAULT_PIPX_HOME
-        self._base_bin = OVERRIDE_PIPX_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")
-        self._default_bin = DEFAULT_PIPX_BIN_DIR
-        self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")
-        self._default_man = DEFAULT_PIPX_MAN_DIR
-        self._base_completion = OVERRIDE_PIPX_COMPLETION_DIR or get_expanded_environ("PIPX_COMPLETION_DIR")
-        self._default_completion = DEFAULT_PIPX_COMPLETION_DIR
-        self._base_shared_libs = OVERRIDE_PIPX_SHARED_LIBS or get_expanded_environ("PIPX_SHARED_LIBS")
-        self._default_log = Path(user_log_path("pipx"))
-        self._default_cache = Path(user_cache_path("pipx"))
-        self._default_trash = self._default_home / "trash"
-        self._fallback_home = next((fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()), None)
-        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
-        self._clear_cached_paths()
-
-    def make_global(self) -> None:
-        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")
-        self._default_home = DEFAULT_PIPX_GLOBAL_HOME
-        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
-        self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
-        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
-        self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
-        self._base_completion = OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR or get_expanded_environ(
-            "PIPX_GLOBAL_COMPLETION_DIR"
-        )
-        self._default_completion = DEFAULT_PIPX_GLOBAL_COMPLETION_DIR
-        self._default_log = self._default_home / "logs"
-        self._default_cache = self._default_home / ".cache"
-        self._default_trash = self._default_home / "trash"
-        self._base_shared_libs = OVERRIDE_PIPX_GLOBAL_SHARED_LIBS
-        self._fallback_home = None
-        self._home_exists = self._base_home is not None
-        self._clear_cached_paths()
 
     @property
     def standalone_python_cachedir(self) -> Path:
         return self.home / "py"
 
     def log_warnings(self) -> None:
-        fallback_home_exists = self._fallback_home is not None and self._fallback_home.exists()
-        specific_home_exists = self.home != self._fallback_home
-        if fallback_home_exists and specific_home_exists:
+        if self._fallback_home is not None and self._fallback_home.exists() and self.home != self._fallback_home:
             _LOGGER.info(
                 pipx_wrap(
                     (
@@ -171,14 +153,17 @@ class _PathContext:
             )
 
 
-ctx = _PathContext()
+def get_expanded_environ(env_name: str) -> Path | None:
+    return Path(value).expanduser().absolute() if (value := get_environment_value(env_name)) else None
+
+
+CTX: Final[_PathContext] = _PathContext()
 
 
 __all__ = [
+    "CTX",
     "DEFAULT_PIPX_BIN_DIR",
-    "DEFAULT_PIPX_COMPLETION_DIR",
     "DEFAULT_PIPX_GLOBAL_BIN_DIR",
-    "DEFAULT_PIPX_GLOBAL_COMPLETION_DIR",
     "DEFAULT_PIPX_GLOBAL_HOME",
     "DEFAULT_PIPX_GLOBAL_MAN_DIR",
     "DEFAULT_PIPX_HOME",
@@ -193,6 +178,5 @@ __all__ = [
     "OVERRIDE_PIPX_HOME",
     "OVERRIDE_PIPX_MAN_DIR",
     "OVERRIDE_PIPX_SHARED_LIBS",
-    "ctx",
     "get_expanded_environ",
 ]

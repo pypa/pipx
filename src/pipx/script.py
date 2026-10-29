@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from zipfile import ZipFile
 
 
-_APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     r"""
     ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
@@ -43,80 +42,6 @@ _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
-
-
-@dataclass(frozen=True)
-class ScriptMetadata:
-    dependencies: tuple[str, ...]
-    requires_python: str | None
-
-
-@dataclass(frozen=True)
-class _Script:
-    app: str
-    content: str
-    metadata: ScriptMetadata
-
-
-def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
-    text: Final[str] = (content.read_text(encoding="utf-8") if isinstance(content, Path) else content).removeprefix(
-        "\ufeff"
-    )
-    normalized_text: Final[str] = text.replace("\r\n", "\n")
-    matches: Final[list[re.Match[str]]] = [
-        match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
-    ]
-    if not matches:
-        if any(match.group("type") == "pyproject" for match in _INLINE_METADATA.finditer(normalized_text)):
-            msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
-            raise ValueError(msg)
-        return None
-    if len(matches) > 1:
-        msg = "Multiple `# /// script` metadata blocks found"
-        raise ValueError(msg)
-
-    raw: Final[dict[str, str | list[str]]] = cast(
-        "dict[str, str | list[str]]",
-        tomllib.loads(
-            "".join(
-                line[2:] if line.startswith("# ") else line[1:]
-                for line in matches[0].group("content").splitlines(keepends=True)
-            )
-        ),
-    )
-    dependencies: Final[str | list[str]] = raw.get("dependencies", [])
-    if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
-        msg = "Inline script `dependencies` must be an array of strings."
-        raise PipxError(msg)
-    from packaging.requirements import (  # ruff:ignore[import-outside-top-level]  # parser slows startup
-        InvalidRequirement,
-        Requirement,
-    )
-
-    normalized: Final[list[str]] = []
-    try:
-        for dependency in dependencies:
-            normalized.append(str(Requirement(dependency)))
-    except InvalidRequirement as error:
-        msg = f"Invalid requirement {redact_url_credentials(dependency)}: {redact_url_credentials(str(error))}"
-        # packaging quotes the requirement in its message, so chaining it would log the credentials with the traceback
-        raise PipxError(msg) from None
-
-    requires_python: Final[str | None] = _normalize_requires_python(raw.get("requires-python"))
-    return ScriptMetadata(tuple(normalized), requires_python)
-
-
-def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> str | None:
-    if not is_script_spec(package_spec):
-        return None
-    if len(expected_apps) > 1:
-        msg = "A script can provide one --app name."
-        raise PipxError(msg)
-    app: Final[str] = _script_app(package_spec, expected_apps)
-    if _APP_NAME.fullmatch(app) is None:
-        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
-        raise PipxError(msg)
-    return canonicalize_name(app)
 
 
 @contextmanager
@@ -133,6 +58,19 @@ def installable_script(
     script: Final[_Script] = _read_script(package_or_url, expected_apps)
     with TemporaryDirectory(prefix="pipx-script-") as directory:
         yield str(_write_wheel(Path(directory), package_name, script))
+
+
+def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> str | None:
+    if not is_script_spec(package_spec):
+        return None
+    if len(expected_apps) > 1:
+        msg = "A script can provide one --app name."
+        raise PipxError(msg)
+    app: Final[str] = _script_app(package_spec, expected_apps)
+    if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]*", app) is None:
+        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
+        raise PipxError(msg)
+    return canonicalize_name(app)
 
 
 def is_script_spec(package_spec: str) -> bool:
@@ -162,7 +100,7 @@ def _has_inline_script_metadata(path: Path) -> bool:
         content: Final[str] = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return False
-    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("\ufeff")))
+    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("﻿")))
 
 
 def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
@@ -177,7 +115,7 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
         script.read_text(encoding="utf-8")
         if (script := local_script(package_or_url)) is not None
         else download_script(package_or_url)
-    ).removeprefix("\ufeff")
+    ).removeprefix("﻿")
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
@@ -186,7 +124,7 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     if metadata is None:
         msg = f"Script {redact_url_credentials(package_or_url)} has no PEP 723 inline metadata block."
         raise PipxError(msg)
-    return _Script(_script_app(package_or_url, expected_apps), content, metadata)
+    return _Script(app=_script_app(package_or_url, expected_apps), content=content, metadata=metadata)
 
 
 # a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
@@ -201,7 +139,7 @@ def download_script(url: str) -> str:
     _reject_url_credentials(url)
     try:
         with urlopen(url, timeout=30) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
-            data = response.read(_MAX_SCRIPT_BYTES + 1)
+            data: Final[bytes] = response.read(_MAX_SCRIPT_BYTES + 1)
             _reject_incomplete_script(url, response, data)
             return data.decode(response.headers.get_content_charset() or "utf-8")
     # a body in another encoding than declared or an unknown charset name fails the decode, not the download
@@ -230,7 +168,54 @@ def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, dat
         raise PipxError(msg)
 
 
-def _normalize_requires_python(value: str | list[str] | None) -> str | None:
+def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
+    normalized_text: Final[str] = (
+        (content.read_text(encoding="utf-8") if isinstance(content, Path) else content)
+        .removeprefix("﻿")
+        .replace("\r\n", "\n")
+    )
+    matches: Final[list[re.Match[str]]] = [
+        match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
+    ]
+    if not matches:
+        if any(match.group("type") == "pyproject" for match in _INLINE_METADATA.finditer(normalized_text)):
+            msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
+            raise ValueError(msg)
+        return None
+    if len(matches) > 1:
+        msg = "Multiple `# /// script` metadata blocks found"
+        raise ValueError(msg)
+
+    raw: Final[dict[str, object]] = tomllib.loads(
+        "".join(
+            line[2:] if line.startswith("# ") else line[1:]
+            for line in matches[0].group("content").splitlines(keepends=True)
+        )
+    )
+    dependencies: Final[object] = raw.get("dependencies", [])
+    if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
+        msg = "Inline script `dependencies` must be an array of strings."
+        raise PipxError(msg)
+    from packaging.requirements import (  # ruff:ignore[import-outside-top-level]  # parser slows startup
+        InvalidRequirement,
+        Requirement,
+    )
+
+    normalized: Final[list[str]] = []
+    try:
+        for dependency in dependencies:
+            normalized.append(str(Requirement(dependency)))
+    except InvalidRequirement as error:
+        msg = f"Invalid requirement {redact_url_credentials(dependency)}: {redact_url_credentials(str(error))}"
+        # packaging quotes the requirement in its message, so chaining it would log the credentials with the traceback
+        raise PipxError(msg) from None
+
+    return ScriptMetadata(
+        dependencies=tuple(normalized), requires_python=_normalize_requires_python(raw.get("requires-python"))
+    )
+
+
+def _normalize_requires_python(value: object) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str):
@@ -241,6 +226,19 @@ def _normalize_requires_python(value: str | list[str] | None) -> str | None:
     except InvalidSpecifier as error:
         msg = f"Invalid `requires-python` value {value}: {error}"
         raise PipxError(msg) from error
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ScriptMetadata:
+    dependencies: tuple[str, ...]
+    requires_python: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Script:
+    app: str
+    content: str
+    metadata: ScriptMetadata
 
 
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:

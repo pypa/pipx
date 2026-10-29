@@ -8,8 +8,8 @@ Diagnose and fix common pipx problems, from wrong package versions to broken env
  Wrong package version installed
 ********************************
 
-pipx builds venvs with your default Python, and pip installs the newest release compatible with it. When a package
-drops support for your Python version, pip installs an older release without warning.
+pipx builds venvs with your default Python, and `pip <https://pip.pypa.io/>`__ installs the newest release compatible
+with it. When a package drops support for your Python version, pip installs an older release without warning.
 
 Check which Python pipx uses:
 
@@ -126,8 +126,8 @@ To ignore SSL/TLS errors:
  Check for PIP_* environment variables
 **************************************
 
-Under the pip backend, ``PIP_*`` environment variables change how pipx installs and upgrades packages. If pipx behaves
-strangely on install or upgrade, check for them.
+Under the pip backend, ``PIP_*`` environment variables change how pipx installs and upgrades packages. If an install or
+upgrade does not do what you expect, check for them.
 
 Unix or macOS:
 
@@ -147,9 +147,9 @@ Windows ``cmd``:
 
     $ set PIP_
 
-See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#environment-variables>`_. The uv backend
-ignores ``PIP_*`` and reads uv's own ``UV_*`` variables (for example ``UV_INDEX_URL``) instead; check for those the same
-way.
+See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#environment-variables>`_. The `uv
+<https://github.com/astral-sh/uv>`__ backend ignores ``PIP_*`` and reads uv's own ``UV_*`` variables (for example
+``UV_INDEX_URL``) instead; check for those the same way.
 
 ****************************
  Clear runpip cache warnings
@@ -247,7 +247,7 @@ counterparts) at directories you can write; see :doc:`configure-paths`.
  Debian and Ubuntu issues
 *************************
 
-On Debian, Ubuntu, and derivatives, make sure these packages are installed; Debian systems do not add them by default:
+On Debian, Ubuntu, and derivatives, install these packages, which Debian systems do not add by default:
 
 .. code-block:: console
 

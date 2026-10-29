@@ -13,7 +13,7 @@ if not sys.flags.safe_path and __spec__ and __spec__.parent:
     # imported in place of that module; drop the entry before the next import, unless pipx itself was found through it
     # (cd src && python -m pipx).
     try:
-        _SCRIPT_DIR = (
+        _SCRIPT_DIR: Final[str] = (
             os.getcwd()  # ruff:ignore[os-getcwd]  # no pathlib yet
             if __name__ == "__main__"
             else os.path.dirname(os.path.realpath(sys.argv[0]))  # ruff:ignore[os-path-dirname]  # no pathlib yet
@@ -21,7 +21,7 @@ if not sys.flags.safe_path and __spec__ and __spec__.parent:
     except OSError:
         pass  # Python adds no entry for a working directory that is gone
     else:
-        _PACKAGE_PARENT = os.path.dirname(os.path.dirname(__file__))  # ruff:ignore[os-path-dirname]  # no pathlib yet
+        _PACKAGE_PARENT: Final[str] = os.path.dirname(os.path.dirname(__file__))  # ruff:ignore[os-path-dirname]  # no pathlib yet
         if sys.path[:1] == [_SCRIPT_DIR] != [_PACKAGE_PARENT]:
             del sys.path[0]
 
@@ -45,11 +45,8 @@ if sys.version_info >= (3, 15):
         sys.set_lazy_imports("all")
 
 if not __spec__ or not __spec__.parent:
-    # Running from source. Add pipx's source code to the system
-    # path to allow direct invocation, such as:
-    #   python src/pipx --help
-    pipx_package_source_path = pathlib.Path(pathlib.Path(__file__).parent).parent
-    sys.path.insert(0, str(pipx_package_source_path))
+    # python src/pipx runs this file outside its package, so put src on the path for the import below
+    sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from pipx.main import cli
 

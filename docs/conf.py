@@ -10,13 +10,16 @@ from datetime import UTC, datetime
 from html import escape as html_escape
 from importlib.metadata import version as distribution_version
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import urlsplit
 
 from docutils import nodes
 
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
+    from sphinx.util.typing import ExtensionMetadata
+
+_REPO_ROOT: Final[Path] = Path(__file__).parent.parent
 
 sys.path.insert(0, str(Path(__file__).parent / "_ext"))
 
@@ -64,7 +67,7 @@ html_favicon = "_static/logo.svg"
 # or CI build. Sphinx emits a <link rel="canonical"> per page from this, and the sitemap and OpenGraph tags reuse it.
 html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "https://pipx.pypa.io/latest/")
 
-# sphinx-sitemap reuses html_baseurl; the URL already carries the version segment, so the per-page scheme is just the
+# sphinx-sitemap reuses html_baseurl; the URL already carries the version segment, so the per-page scheme is the bare
 # page path. sphinxext-opengraph and sphinx-notfound-page derive their absolute URLs from the same base.
 sitemap_url_scheme = "{link}"
 ogp_site_url = html_baseurl
@@ -80,7 +83,7 @@ autosectionlabel_maxdepth = 2
 codeautolink_concat_default = True
 
 # The console blocks keep a literal "$ " prompt so Pygments detects the prompt and highlights the command after it
-# (custom.css restyles that glyph). Strip the prompt on copy and drop the output lines, so the clipboard holds just the
+# (custom.css restyles that glyph). Strip the prompt on copy and drop the output lines, so the clipboard holds only the
 # command. The trailing space keeps the match from catching shell variables like $HOME.
 copybutton_prompt_text = "$ "
 copybutton_prompt_is_regexp = False
@@ -103,60 +106,51 @@ autodoc_member_order = "bysource"
 issues_github_path = "pypa/pipx"
 towncrier_draft_autoversion_mode = "draft"
 towncrier_draft_include_empty = True
-towncrier_draft_working_directory = Path(__file__).parent.parent
-
-_GITHUB_BLOB = "https://github.com/pypa/pipx/blob"
-_REPO_ROOT = Path(__file__).parent.parent
+towncrier_draft_working_directory = _REPO_ROOT
 
 
 def linkcode_resolve(domain: str, info: dict[str, str]) -> str | None:
-    """Link a documented Python object to the line range of its source on GitHub."""
     if domain != "py" or not info["module"]:
         return None
     try:
-        module = importlib.import_module(info["module"])
+        target = importlib.import_module(info["module"])
     except ImportError:
         return None
-    obj: object | None = module
     for part in info["fullname"].split("."):
-        obj = getattr(obj, part, None)
+        target = getattr(target, part, None)
     try:
-        target = inspect.unwrap(obj)
-        source_file = inspect.getsourcefile(target)
-        lines, start = inspect.getsourcelines(target)
-        relative = Path(source_file).resolve().relative_to(_REPO_ROOT)
+        unwrapped: Final = inspect.unwrap(target)
+        lines, start = inspect.getsourcelines(unwrapped)
+        relative: Final[Path] = Path(inspect.getsourcefile(unwrapped)).resolve().relative_to(_REPO_ROOT)
     except (TypeError, OSError, ValueError):
         return None
-    ref = os.environ.get("READTHEDOCS_GIT_IDENTIFIER", "main")
-    return f"{_GITHUB_BLOB}/{ref}/{relative.as_posix()}#L{start}-L{start + len(lines) - 1}"
+    ref: Final[str] = os.environ.get("READTHEDOCS_GIT_IDENTIFIER", "main")
+    return f"https://github.com/pypa/pipx/blob/{ref}/{relative.as_posix()}#L{start}-L{start + len(lines) - 1}"
 
 
-_DESCRIPTION_LIMIT = 160
+def setup(app: Sphinx) -> ExtensionMetadata:
+    app.connect("html-page-context", _add_page_description)
+    return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
 def _add_page_description(
-    app: Sphinx,  # ruff:ignore[unused-function-argument]
-    pagename: str,  # ruff:ignore[unused-function-argument]
-    templatename: str,  # ruff:ignore[unused-function-argument]
+    _app: Sphinx,
+    _pagename: str,
+    _templatename: str,
     context: dict[str, Any],
     doctree: nodes.document | None,
 ) -> None:
-    """Give each page a ``<meta name="description">`` from its first paragraph so search results read well."""
+    # a <meta name="description"> from the first paragraph gives search results a readable summary
     if doctree is None:
         return
     for paragraph in doctree.findall(nodes.paragraph):
         if not (text := " ".join(paragraph.astext().split())):
             continue
-        summary = text if len(text) <= _DESCRIPTION_LIMIT else f"{text[: _DESCRIPTION_LIMIT - 1].rstrip()}…"
-        tag = f'<meta name="description" content="{html_escape(summary, quote=True)}" />'
-        context["metatags"] = context.get("metatags", "") + f"\n    {tag}"
+        limit: Final = 160
+        summary: Final[str] = text if len(text) <= limit else f"{text[: limit - 1].rstrip()}…"
+        tag: Final[str] = f'<meta name="description" content="{html_escape(summary, quote=True)}" />'
+        context["metatags"] = f"{context.get('metatags', '')}\n    {tag}"
         return
-
-
-def setup(app: Sphinx) -> dict[str, Any]:
-    """Register the per-page meta description hook."""
-    app.connect("html-page-context", _add_page_description)
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 
 markdown_http_base = os.environ.get("READTHEDOCS_CANONICAL_URL", "")

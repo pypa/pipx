@@ -6,6 +6,7 @@ import logging
 import shutil
 import sys
 from contextlib import contextmanager
+from dataclasses import dataclass
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Final
 
@@ -14,16 +15,14 @@ from pipx.emojis import EMOJI_SUPPORT
 from pipx.fanout import output_is_held
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
+    from collections.abc import Generator
 
 STDERR_IS_TTY: Final[bool] = bool(sys.stderr and sys.stderr.isatty())
 
 CLEAR_LINE: Final[str] = "\033[K"
 EMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
 NONEMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("", ".", "..", "...")
-EMOJI_FRAME_PERIOD: Final[float] = 0.1
-NONEMOJI_FRAME_PERIOD: Final[float] = 1
-MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
+_MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
 
 
 if WINDOWS:
@@ -33,16 +32,9 @@ if WINDOWS:
         _fields_ = (("size", ctypes.c_int), ("visible", ctypes.c_byte))
 
 
-def _env_supports_animation() -> bool:
-    (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
-    return STDERR_IS_TTY and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
-
-
 @contextmanager
 def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[None, None, None]:
-    pipx_logger = logging.getLogger("pipx")
-    handler_level = pipx_logger.handlers[0].level if pipx_logger.handlers else 0
-    if pipx_logger.handlers and handler_level > logging.WARNING:
+    if (handlers := logging.getLogger("pipx").handlers) and handlers[0].level > logging.WARNING:
         yield
         return
 
@@ -56,27 +48,19 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
         yield
         return
 
-    event = Event()
-
-    if EMOJI_SUPPORT:
-        animate_at_beginning_of_line = True
-        symbols = EMOJI_ANIMATION_FRAMES
-        period = EMOJI_FRAME_PERIOD
-    else:
-        animate_at_beginning_of_line = False
-        symbols = NONEMOJI_ANIMATION_FRAMES
-        period = NONEMOJI_FRAME_PERIOD
-
-    thread = Thread(
-        target=print_animation,
-        kwargs={
-            "message": message,
-            "event": event,
-            "symbols": symbols,
-            "delay": delay,
-            "period": period,
-            "animate_at_beginning_of_line": animate_at_beginning_of_line,
-        },
+    event: Final[Event] = Event()
+    thread: Final[Thread] = Thread(
+        target=_print_animation,
+        args=(
+            message,
+            event,
+            delay,
+            _Spinner(
+                frames=EMOJI_ANIMATION_FRAMES if EMOJI_SUPPORT else NONEMOJI_ANIMATION_FRAMES,
+                period=0.1 if EMOJI_SUPPORT else 1,
+                at_line_start=EMOJI_SUPPORT,
+            ),
+        ),
     )
     thread.start()
 
@@ -85,23 +69,19 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
     finally:
         event.set()
         thread.join()
-        clear_line()
+        _clear_line()
 
 
-def print_animation(  # ruff:ignore[too-many-arguments]  # animation state is passed flat to the thread target
-    *,
-    message: str,
-    event: Event,
-    symbols: Sequence[str],
-    delay: float,
-    period: float,
-    animate_at_beginning_of_line: bool,
-) -> None:
-    (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
+def _env_supports_animation() -> bool:
+    return STDERR_IS_TTY and shutil.get_terminal_size(fallback=(0, 0)).columns > _MINIMUM_COLS_ALLOW_ANIMATION
+
+
+def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner) -> None:
+    term_cols: Final[int] = shutil.get_terminal_size(fallback=(9999, 24)).columns
     event.wait(delay)
     while not event.wait(0):
-        for symbol in symbols:
-            if animate_at_beginning_of_line:
+        for symbol in spinner.frames:
+            if spinner.at_line_start:
                 max_message_len = term_cols - len(f"{symbol} ... ")
                 current_line = f"{symbol} {message:.{max_message_len}}"
                 if len(message) > max_message_len:
@@ -110,54 +90,59 @@ def print_animation(  # ruff:ignore[too-many-arguments]  # animation state is pa
                 max_message_len = term_cols - len("... ")
                 current_line = f"{message:.{max_message_len}}{symbol}"
 
-            clear_line()
+            _clear_line()
             sys.stderr.write(current_line)
             sys.stderr.flush()
-            if event.wait(period):
+            if event.wait(spinner.period):
                 break
 
 
-# for Windows pre-ANSI-terminal-support (before Windows 10 TH2 (v1511))
-# https://stackoverflow.com/a/10455937
-def win_cursor(*, visible: bool) -> None:
-    if sys.platform != "win32":  # hello mypy
-        return
-    ci = _CursorInfo()
-    handle = ctypes.windll.kernel32.GetStdHandle(-11)
-    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
-    ci.visible = visible
-    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))
+def _clear_line() -> None:
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Spinner:
+    frames: tuple[str, ...]
+    period: float
+    at_line_start: bool
 
 
 def hide_cursor() -> None:
     if STDERR_IS_TTY:
         if WINDOWS:
-            win_cursor(visible=False)
+            _win_cursor(visible=False)
         else:
             sys.stderr.write("\033[?25l")
             sys.stderr.flush()
 
 
+# Windows consoles before Windows 10 TH2 (v1511) ignore ANSI escapes: https://stackoverflow.com/a/10455937
+def _win_cursor(*, visible: bool) -> None:
+    if sys.platform != "win32":  # narrows the platform so the type checker accepts ctypes.windll
+        return
+    cursor_info: Final[_CursorInfo] = _CursorInfo()
+    handle: Final = ctypes.windll.kernel32.GetStdHandle(-11)
+    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(cursor_info))
+    cursor_info.visible = visible
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(cursor_info))
+
+
 def show_cursor() -> None:
     if STDERR_IS_TTY:
         if WINDOWS:
-            win_cursor(visible=True)
+            _win_cursor(visible=True)
         else:
             sys.stderr.write("\033[?25h")
             sys.stderr.flush()
 
 
-def clear_line() -> None:
-    sys.stderr.write(f"\r{CLEAR_LINE}")
-    sys.stdout.write(f"\r{CLEAR_LINE}")
-
-
 __all__ = [
     "CLEAR_LINE",
     "EMOJI_ANIMATION_FRAMES",
-    "EMOJI_FRAME_PERIOD",
     "NONEMOJI_ANIMATION_FRAMES",
-    "NONEMOJI_FRAME_PERIOD",
+    "STDERR_IS_TTY",
     "animate",
     "hide_cursor",
     "show_cursor",

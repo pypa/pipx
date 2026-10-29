@@ -6,13 +6,13 @@
  Developing for pipx
 *********************
 
-If you are a developer and want users to be able to run
+To let your users run
 
 .. code-block:: console
 
     $ pipx install MY_PACKAGE
 
-make sure you include ``scripts`` in your main table [#main-table]_ in ``pyproject.toml`` or its legacy equivalents for
+include ``scripts`` in your main table [#main-table]_ in ``pyproject.toml`` or its legacy equivalents for
 ``setup.cfg`` and ``setup.py``. pipx also exposes ``gui-scripts`` entry points, which are useful for GUI applications on
 Windows (they launch without opening a console window).
 
@@ -107,8 +107,8 @@ This entry point takes priority over console scripts when present.
 
 With this declaration, ``pipx run my-package`` invokes ``my_package.cli:main`` even if no console script named
 ``my-package`` exists. The `build <https://github.com/pypa/build>`_ package uses this pattern so that ``pipx run build``
-works even though build's console script is named ``pyproject-build``. The uv backend hands ``pipx run build`` to ``uv
-tool run``, which reads console scripts only, so this needs ``--backend pip`` there (see
+works even though ``build`` names its console script ``pyproject-build``. The uv backend hands ``pipx run build`` to
+``uv tool run``, which reads console scripts only, so this needs ``--backend pip`` there (see
 :doc:`../how-to/use-uv-backend`).
 
 Detect a pipx installation
@@ -173,9 +173,10 @@ it exposes apps.
 
         .. warning::
 
-            The ``data-files`` keyword is "discouraged" in the `setuptools documentation
-            <https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration>`_,
-            but there is no alternative when ``man`` pages are a requirement.
+            The `setuptools documentation
+            <https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration>`_
+            calls the ``data-files`` keyword "discouraged", but it has no alternative when you need to ship ``man``
+            pages.
 
     .. tab-item:: pdm-backend
 
@@ -190,8 +191,8 @@ it exposes apps.
               { path = "share/man/man1/*", relative-to = "." },
             ]
 
-The manual page ``manpage.1`` can then be read with ``man manpage`` after installing the package. For a real-world
-example, see `pycowsay's setup.py <https://github.com/cs01/pycowsay/blob/master/setup.py>`_.
+After installing the package, ``man manpage`` opens ``manpage.1``. For a real-world example, see `pycowsay's setup.py
+<https://github.com/cs01/pycowsay/blob/master/setup.py>`_.
 
 Shell completions
 =================
@@ -232,10 +233,10 @@ Declare them through the data files of your build backend, exactly as with man p
 
 See :doc:`../how-to/shell-completions` for how each shell loads these directories.
 
-You can read more about entry points in the `setuptools quickstart
+Read more about entry points in the `setuptools quickstart
 <https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`_.
 
 .. [#main-table]
 
-    This is often the ``[project]`` table, but it might be named differently. Read more in the `PyPUG
+    This is often the ``[project]`` table, but it can have a different name. Read more in the `PyPUG
     <https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#writing-your-pyproject-toml>`_.

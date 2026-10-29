@@ -61,8 +61,8 @@ Other distributions, using ``pip``:
 .. warning::
 
     Distributions that adopt `PEP 668 <https://peps.python.org/pep-0668/>`_ (Ubuntu 23.04+, Debian 12+, Fedora 38+) mark
-    the system Python as externally managed, so ``pip install --user`` fails with ``externally-managed-environment``. Use
-    the distribution package (``apt install pipx``, ``dnf install pipx``). If none exists, install pipx into its own
+    the system Python as externally managed, so ``pip install --user`` fails with ``externally-managed-environment``.
+    Use the distribution package (``apt install pipx``, ``dnf install pipx``). If none exists, install pipx into its own
     virtual environment:
 
     .. code-block:: console

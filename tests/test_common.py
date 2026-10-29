@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths
 from pipx.commands import common
 from pipx.commands.common import (
@@ -34,29 +34,19 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
-    venv_resource_path = tmp_path / "venv_bin"
-    venv_resource_path.mkdir()
-    local_resource_dir = tmp_path / "bin"
-    local_resource_dir.mkdir()
-    loop = local_resource_dir / "recursiveexample"
-    loop.symlink_to(loop.name)
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (loop := local_resource_dir / "recursiveexample").symlink_to("recursiveexample")
 
-    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
-
-    assert loop not in exposed
+    assert loop not in get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
-    venv_resource_path = tmp_path / "venv_bin"
-    venv_resource_path.mkdir()
-    local_resource_dir = tmp_path / "bin"
-    shadow_path = tmp_path / "shadow"
-    shadow_path.mkdir()
-
-    app_path = venv_resource_path / "demo"
+    (shadow_path := tmp_path / "shadow").mkdir()
+    (app_path := tmp_path / "venv_bin" / "demo").parent.mkdir()
     app_path.write_text(
         f"#!{sys.executable}\n"
         "import sys\n"
@@ -66,21 +56,19 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
     )
     app_path.chmod(0o755)
 
-    expose_resources_globally("app", local_resource_dir, [app_path], force=False)
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
-    assert app_path.read_text().splitlines()[0] == f"#!{sys.executable} -E"
-
-    result = subprocess.run(
+    result: Final = subprocess.run(
         [app_path],
         check=True,
         capture_output=True,
         env={**os.environ, "PYTHONPATH": str(shadow_path)},
         text=True,
     )
-    assert result.stdout == "ok\n"
+    assert (app_path.read_text().splitlines()[0], result.stdout) == (f"#!{sys.executable} -E", "ok\n")
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     ("overflow", "separator", "flag"),
     [
@@ -92,8 +80,9 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
 def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     tmp_path: Path, overflow: int, separator: bytes, flag: bytes
 ) -> None:
-    max_shebang_length: Final[int] = 512 if MACOS else 127
-    shebang = b"#!/" + b"x" * (max_shebang_length + overflow - len(b"#!/python -E") - len(separator)) + b"python"
+    shebang: Final[bytes] = (
+        b"#!/" + b"x" * ((512 if MACOS else 127) + overflow - len(b"#!/python -E") - len(separator)) + b"python"
+    )
     (app_path := tmp_path / "demo").write_bytes(shebang + separator)
 
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
@@ -101,7 +90,7 @@ def test_expose_app_scripts_keep_shebang_within_kernel_limit(
     assert app_path.read_bytes() == shebang + flag + separator
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "link", [pytest.param(Path.hardlink_to, id="hard-link"), pytest.param(Path.symlink_to, id="symlink")]
 )
@@ -116,7 +105,7 @@ def test_expose_app_scripts_leave_installer_cache_intact(tmp_path: Path, link: C
     assert (cached_path.read_bytes(), app_path.read_bytes()) == (b"#!/usr/bin/python3\n", b"#!/usr/bin/python3 -E\n")
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_expose_app_scripts_keep_mode_on_shebang_rewrite(tmp_path: Path) -> None:
     (app_path := tmp_path / "demo").write_bytes(b"#!/usr/bin/python3\n")
     app_path.chmod(0o750)
@@ -196,7 +185,7 @@ def test_expose_keeps_names_that_shadow_no_stdlib_module(
     assert (tmp_path / "local" / exposed).exists()
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
     (app_path := tmp_path / "venv" / "demo").parent.mkdir()
     app_path.write_text("#!/bin/sh\n")
@@ -209,7 +198,7 @@ def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
     )
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     ("resource_type", "resource", "exposed"),
     [
@@ -224,22 +213,22 @@ def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
 def test_expose_keeps_link_to_resource_another_venv_is_replacing(
     tmp_path: Path, resource_type: str, resource: str, exposed: str
 ) -> None:
-    (paths.ctx.venvs / "holder").mkdir(parents=True)
-    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    (paths.CTX.venvs / "holder").mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / resource).parent.mkdir(parents=True)
     path.touch()
     (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
-    link.symlink_to(held := paths.ctx.venvs / "holder" / resource)
+    link.symlink_to(held := paths.CTX.venvs / "holder" / resource)
 
     assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([link], held)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_force_replaces_link_to_resource_another_venv_is_replacing(tmp_path: Path) -> None:
-    (paths.ctx.venvs / "holder").mkdir(parents=True)
-    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    (paths.CTX.venvs / "holder").mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
     path.touch()
-    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
+    (link := tmp_path / "tool").symlink_to(paths.CTX.venvs / "holder" / "bin" / "tool")
 
     assert (expose_resources_globally("app", tmp_path, [path], force=True), link.readlink()) == ([], path)
 
@@ -257,15 +246,15 @@ _HELD_RESOURCES: Final[list[ParameterSet]] = [
 ]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(("resource_type", "resource", "exposed", "field"), _HELD_RESOURCES)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_keeps_link_to_resource_its_venv_still_records(
     tmp_path: Path, resource_type: str, resource: str, exposed: str, field: str
 ) -> None:
-    (held := paths.ctx.venvs / "holder" / resource).parent.mkdir(parents=True)
+    (held := paths.CTX.venvs / "holder" / resource).parent.mkdir(parents=True)
     _write_holder_metadata({field: [held]})
-    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / resource).parent.mkdir(parents=True)
     path.touch()
     (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
     link.symlink_to(held)
@@ -274,8 +263,8 @@ def test_expose_keeps_link_to_resource_its_venv_still_records(
 
 
 def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
-    metadata = PipxMetadata(paths.ctx.venvs / "holder", read=False)
-    main_package = replace(metadata.main_package, package="holder", package_or_url="holder")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "holder", read=False)
+    main_package: Final = replace(metadata.main_package, package="holder", package_or_url="holder")
     if injected:
         metadata.main_package = main_package
         metadata.injected_packages = {"extra": replace(main_package, package="extra", **recorded)}
@@ -284,48 +273,48 @@ def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = 
     metadata.write()
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_keeps_link_to_app_an_injected_package_still_records(tmp_path: Path) -> None:
-    (held := paths.ctx.venvs / "holder" / "bin" / "tool").parent.mkdir(parents=True)
+    (held := paths.CTX.venvs / "holder" / "bin" / "tool").parent.mkdir(parents=True)
     _write_holder_metadata({"app_paths": [held]}, injected=True)
-    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
     path.touch()
     (link := tmp_path / "tool").symlink_to(held)
 
     assert (expose_resources_globally("app", tmp_path, [path], force=False), link.readlink()) == ([link], held)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(("resource_type", "resource", "exposed", "field"), _HELD_RESOURCES)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_replaces_link_to_resource_its_venv_dropped(
     tmp_path: Path, resource_type: str, resource: str, exposed: str, field: str
 ) -> None:
-    (paths.ctx.venvs / "holder" / "bin").mkdir(parents=True)
-    _write_holder_metadata({field: [paths.ctx.venvs / "holder" / "bin" / "holder"]})
-    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    (paths.CTX.venvs / "holder" / "bin").mkdir(parents=True)
+    _write_holder_metadata({field: [paths.CTX.venvs / "holder" / "bin" / "holder"]})
+    (path := paths.CTX.venvs / "other" / resource).parent.mkdir(parents=True)
     path.touch()
     (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
-    link.symlink_to(paths.ctx.venvs / "holder" / resource)
+    link.symlink_to(paths.CTX.venvs / "holder" / resource)
 
     assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([], path)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_warns_that_held_link_target_is_missing(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    (paths.ctx.venvs / "holder").mkdir(parents=True)
-    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    (paths.CTX.venvs / "holder").mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
     path.touch()
-    (tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
+    (tmp_path / "tool").symlink_to(paths.CTX.venvs / "holder" / "bin" / "tool")
 
     expose_resources_globally("app", tmp_path, [path], force=False)
 
     assert "which is missing" in " ".join(caplog.text.split())
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "target",
     [
@@ -338,32 +327,28 @@ def test_expose_warns_that_held_link_target_is_missing(tmp_path: Path, caplog: p
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_expose_replaces_left_over_link(tmp_path: Path, target: str) -> None:
-    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    (path := paths.CTX.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
     path.touch()
-    (link := tmp_path / "tool").symlink_to(paths.ctx.venvs.parent / target)
+    (link := tmp_path / "tool").symlink_to(paths.CTX.venvs.parent / target)
 
     assert (expose_resources_globally("app", tmp_path, [path], force=False), link.readlink()) == ([], path)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     capsys.readouterr()
-    venv = Venv(paths.ctx.venvs / "pycowsay")
-    bin_dir = paths.ctx.bin_dir
+    venv: Final[Venv] = Venv(paths.CTX.venvs / "pycowsay")
+    (owned := paths.CTX.bin_dir / "stale-owned").symlink_to(venv.pipx_metadata.main_package.app_paths[0])
+    (replaced := paths.CTX.bin_dir / "stale-replaced").write_text("belongs to the user")
 
-    owned = bin_dir / "stale-owned"
-    owned.symlink_to(venv.pipx_metadata.main_package.app_paths[0])
-    replaced = bin_dir / "stale-replaced"
-    replaced.write_text("belongs to the user")
-
-    remove_stale_venv_resources({owned, replaced}, venv, bin_dir, paths.ctx.man_dir)
+    remove_stale_venv_resources({owned, replaced}, venv, paths.CTX.bin_dir, paths.CTX.man_dir)
 
     assert (owned.exists(), replaced.read_text()) == (False, "belongs to the user")
 
 
-# A binary pipx did not create is parsed as if it were a launcher, so the bytes trailing a stray "#!" reach
+# pipx parses a binary it did not create as if it were a launcher, so the bytes trailing a stray "#!" reach
 # os.fsdecode and stat as an interpreter path. Windows rejects the undecodable one, every platform the NUL.
 @pytest.mark.parametrize(
     "payload",
@@ -376,16 +361,11 @@ def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: Mocker
     # Only copy-based environments read a shebang to establish ownership, so without this the symlink branch
     # short-circuits the scan and the parse under test never runs off Windows.
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
-    venv_resource_path = tmp_path / "venv_bin"
-    venv_resource_path.mkdir()
-    local_resource_dir = tmp_path / "bin"
-    local_resource_dir.mkdir()
-    foreign = local_resource_dir / "foreign.exe"
-    foreign.write_bytes(payload)
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (foreign := local_resource_dir / "foreign.exe").write_bytes(payload)
 
-    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
-
-    assert foreign not in exposed
+    assert foreign not in get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
 
 @pytest.mark.parametrize(
@@ -394,21 +374,17 @@ def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: Mocker
 )
 def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: MockerFixture, owned: bool) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
-    venv_resource_path = tmp_path / "venv_bin"
-    venv_resource_path.mkdir()
-    local_resource_dir = tmp_path / "bin"
-    local_resource_dir.mkdir()
-    elsewhere = tmp_path / "other"
-    elsewhere.mkdir()
-    launcher = local_resource_dir / "myapp"
-    launcher.write_text(f"#!{(venv_resource_path if owned else elsewhere) / 'python'}\n")
+    (venv_resource_path := tmp_path / "venv_bin").mkdir()
+    (local_resource_dir := tmp_path / "bin").mkdir()
+    (elsewhere := tmp_path / "other").mkdir()
+    (launcher := local_resource_dir / "myapp").write_text(
+        f"#!{(venv_resource_path if owned else elsewhere) / 'python'}\n"
+    )
 
-    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
-
-    assert (launcher in exposed) is owned
+    assert (launcher in get_exposed_paths_for_package(venv_resource_path, local_resource_dir)) is owned
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_get_exposed_paths_matches_venv_reached_through_symlinked_dir(tmp_path: Path) -> None:
     (venv_resource_path := tmp_path / "venv_bin").mkdir()
     (alias := tmp_path / "alias").symlink_to(venv_resource_path)
@@ -418,7 +394,7 @@ def test_get_exposed_paths_matches_venv_reached_through_symlinked_dir(tmp_path: 
     assert get_exposed_paths_for_package(alias, local_resource_dir) == {exposed_app}
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_get_exposed_paths_ignores_symlink_into_removed_dir(tmp_path: Path) -> None:
     (venv_resource_path := tmp_path / "venv_bin").mkdir()
     (local_resource_dir := tmp_path / "bin").mkdir()
@@ -454,9 +430,7 @@ def test_get_exposed_paths_matches_copy_by_recorded_source(tmp_path: Path, mocke
     (local_resource_dir := tmp_path / "man1").mkdir()
     (copy := local_resource_dir / "myapp.1").write_text("page")
 
-    exposed = get_exposed_paths_for_package(tmp_path / "missing", local_resource_dir, {"myapp.1": [source]})
-
-    assert exposed == {copy}
+    assert get_exposed_paths_for_package(tmp_path / "missing", local_resource_dir, {"myapp.1": [source]}) == {copy}
 
 
 def test_reuse_resource_dir_scans_skips_copy_removed_after_scan(tmp_path: Path, mocker: MockerFixture) -> None:
@@ -469,7 +443,7 @@ def test_reuse_resource_dir_scans_skips_copy_removed_after_scan(tmp_path: Path, 
     with reuse_resource_dir_scans():
         get_exposed_paths_for_package(tmp_path / "other_venv_man1", local_resource_dir)
         copy.unlink()
-        exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+        exposed: Final[set[Path]] = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     assert exposed == set()
 
@@ -493,15 +467,15 @@ def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: s
     assert add_suffix(name, "@1") == expected
 
 
-@pytest.mark.parametrize(
-    ("backend", "env_backend", "extras", "expected"),
-    [
-        pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
-        pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
-        pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
-        pytest.param(None, "uv", "", "foo-bar-x", id="uv-from-environment"),
-    ],
-)
+_NAME_BY_BACKEND: Final[list[ParameterSet]] = [
+    pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
+    pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
+    pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
+    pytest.param(None, "uv", "", "foo-bar-x", id="uv-from-environment"),
+]
+
+
+@pytest.mark.parametrize(("backend", "env_backend", "extras", "expected"), _NAME_BY_BACKEND)
 def test_package_name_from_spec_reads_static_name_without_building(
     tmp_path: Path, backend: str | None, env_backend: str | None, extras: str, expected: str
 ) -> None:
@@ -520,15 +494,7 @@ def test_package_name_from_spec_reads_static_name_without_building(
     )
 
 
-@pytest.mark.parametrize(
-    ("backend", "env_backend", "extras", "expected"),
-    [
-        pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
-        pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
-        pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
-        pytest.param(None, "uv", "", "foo-bar-x", id="uv-from-environment"),
-    ],
-)
+@pytest.mark.parametrize(("backend", "env_backend", "extras", "expected"), _NAME_BY_BACKEND)
 def test_package_name_from_spec_reads_wheel_metadata_without_installing(
     make_wheel: Callable[[dict[str, str]], Path],
     backend: str | None,
@@ -547,6 +513,20 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
     )
 
 
+@SKIP_IF_WINDOWS
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        pytest.param("https://files.example/acme_tool-1.0-py3-none-any.whl", id="wheel-url"),
+        pytest.param("acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl", id="pep508-wheel-url"),
+        pytest.param("git+https://git.example/acme-tool.git", id="vcs-url"),
+    ],
+)
+@pytest.mark.usefixtures("lookalikes_below_cwd", "probe_venv")
+def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(package_spec: str) -> None:
+    assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False, backend=None) == "acme-tool"
+
+
 @pytest.fixture
 def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Path() collapses the URL's // so each file sits at the relative path one of the URLs below spells
@@ -560,20 +540,6 @@ def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
         '[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n[project]\nname = "other-app"\n',
         encoding="utf-8",
     )
-
-
-@skip_if_windows
-@pytest.mark.parametrize(
-    "package_spec",
-    [
-        pytest.param("https://files.example/acme_tool-1.0-py3-none-any.whl", id="wheel-url"),
-        pytest.param("acme-tool @ https://files.example/acme_tool-1.0-py3-none-any.whl", id="pep508-wheel-url"),
-        pytest.param("git+https://git.example/acme-tool.git", id="vcs-url"),
-    ],
-)
-@pytest.mark.usefixtures("lookalikes_below_cwd", "probe_venv")
-def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(package_spec: str) -> None:
-    assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
 
 
 @pytest.fixture
@@ -590,6 +556,7 @@ def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: Mag
         sys.executable,
         pip_args=["--index-url", "https://mirror.example/simple"],
         verbose=False,
+        backend=None,
     )
 
     probe_venv.return_value.create_venv.assert_called_once_with(
@@ -599,22 +566,13 @@ def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: Mag
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_name_from_spec_builds_setup_py_project(local_extras_project: Path) -> None:
-    assert package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False) == (
-        "repeatme"
+    assert (
+        package_name_from_spec(f"{local_extras_project}[cow]", sys.executable, pip_args=[], verbose=False, backend=None)
+        == "repeatme"
     )
 
 
-@pytest.fixture
-def app_named_before_last_dot(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    dotted_app_wheel: Path,
-) -> None:
-    assert not run_pipx_cli(["install", "--suffix=@1", str(dotted_app_wheel)])
-    # the name pipx 1.17.14 gave the app, with the suffix before the last dot
-    (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
-
-
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("app_named_before_last_dot")
 def test_list_accepts_app_named_before_last_dot(capsys: pytest.CaptureFixture[str]) -> None:
     capsys.readouterr()
@@ -624,7 +582,17 @@ def test_list_accepts_app_named_before_last_dot(capsys: pytest.CaptureFixture[st
     assert "unexpected location" not in capsys.readouterr().out
 
 
-@skip_if_windows
+@pytest.fixture
+def app_named_before_last_dot(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    dotted_app_wheel: Path,
+) -> None:
+    assert not run_pipx_cli(["install", "--suffix=@1", str(dotted_app_wheel)])
+    # the name pipx 1.17.14 gave the app, with the suffix before the last dot
+    (paths.CTX.bin_dir / "tool.12@1").rename(paths.CTX.bin_dir / "tool@1.12")
+
+
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("app_named_before_last_dot")
 def test_expose_warns_when_renaming_app_named_before_last_dot(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["upgrade", "foo-bar-x@1"])
@@ -647,11 +615,30 @@ def test_copied_app_named_before_last_dot_is_removed(
 ) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", "--suffix=@1", str(dotted_app_wheel)])
-    legacy: Final[Path] = (paths.ctx.bin_dir / "tool.12@1").rename(paths.ctx.bin_dir / "tool@1.12")
+    legacy: Final[Path] = (paths.CTX.bin_dir / "tool.12@1").rename(paths.CTX.bin_dir / "tool@1.12")
 
     assert not run_pipx_cli(command)
 
     assert not legacy.exists()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["uninstall", "foo-bar-x@2"], id="uninstall"),
+        pytest.param(["reinstall", "foo-bar-x@2"], id="reinstall"),
+        pytest.param(["unexpose", "foo-bar-x@2"], id="unexpose"),
+    ],
+)
+def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_removal(
+    static_scripts_wheel: Path, command: list[str]
+) -> None:
+    assert not run_pipx_cli(["install", str(static_scripts_wheel)])
+    assert not run_pipx_cli(["install", "--suffix=@2", str(static_scripts_wheel)])
+
+    assert not run_pipx_cli(command)
+
+    assert (paths.CTX.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
 
 
 @pytest.fixture
@@ -672,25 +659,6 @@ def static_scripts_wheel(
     })
 
 
-@pytest.mark.parametrize(
-    "command",
-    [
-        pytest.param(["uninstall", "foo-bar-x@2"], id="uninstall"),
-        pytest.param(["reinstall", "foo-bar-x@2"], id="reinstall"),
-        pytest.param(["unexpose", "foo-bar-x@2"], id="unexpose"),
-    ],
-)
-def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_removal(
-    static_scripts_wheel: Path, command: list[str]
-) -> None:
-    assert not run_pipx_cli(["install", str(static_scripts_wheel)])
-    assert not run_pipx_cli(["install", "--suffix=@2", str(static_scripts_wheel)])
-
-    assert not run_pipx_cli(command)
-
-    assert (paths.ctx.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
-
-
 def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_uninject(
     static_scripts_wheel: Path, empty_project_wheel: Path
 ) -> None:
@@ -700,7 +668,7 @@ def test_copied_static_app_of_unsuffixed_venv_survives_suffixed_uninject(
 
     assert not run_pipx_cli(["uninject", "empty-project@2", "foo-bar-x"])
 
-    assert (paths.ctx.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
+    assert (paths.CTX.bin_dir / "run.cmd").read_text(encoding="utf-8") == "echo static\n"
 
 
 @pytest.mark.parametrize(
@@ -719,4 +687,4 @@ def test_copied_static_app_named_like_another_venvs_legacy_name_survives(
 
     assert not run_pipx_cli(command)
 
-    assert (paths.ctx.bin_dir / "runb.2").read_text(encoding="utf-8") == "echo static\n"
+    assert (paths.CTX.bin_dir / "runb.2").read_text(encoding="utf-8") == "echo static\n"

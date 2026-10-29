@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -26,7 +26,8 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-TEST_DATA_PATH = "./testdata/test_package_specifier"
+_TEST_DATA_PATH: Final[str] = "./testdata/test_package_specifier"
+_ROOT: Final[Path] = Path(__file__).parents[1]
 
 
 @pytest.mark.parametrize(
@@ -162,22 +163,22 @@ def test_replace_index_options(pip_args: list[str], index_args: list[str], expec
 @pytest.mark.parametrize(
     ("package_spec_in", "package_name_out"),
     [
-        ("Black", "black"),
-        ("https://github.com/ambv/black/archive/18.9b0.zip", None),
-        ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
-        ("black-18.9b0-py36-none-any.whl", None),
-        ("black-18.9b0.tar.gz", None),
-        ("black-18.9b0.zip", None),
-        ("black-18.9b0.tar", None),
-        ("black-18.9b0.tgz", None),
-        ("black-18.9b0.tar.bz2", None),
-        ("black-18.9b0.tbz", None),
-        ("black-18.9b0.tar.xz", None),
-        ("black-18.9b0.txz", None),
-        ("black-18.9b0.tlz", None),
-        ("black-18.9b0.tar.lz", None),
-        ("black-18.9b0.tar.lzma", None),
-        ("black-18.9b0.TAR.GZ", None),
+        pytest.param("Black", "black", id="name"),
+        pytest.param("https://github.com/ambv/black/archive/18.9b0.zip", None, id="url"),
+        pytest.param("black @ https://github.com/ambv/black/archive/18.9b0.zip", None, id="pep508-url"),
+        pytest.param("black-18.9b0-py36-none-any.whl", None, id="whl"),
+        pytest.param("black-18.9b0.tar.gz", None, id="tar-gz"),
+        pytest.param("black-18.9b0.zip", None, id="zip"),
+        pytest.param("black-18.9b0.tar", None, id="tar"),
+        pytest.param("black-18.9b0.tgz", None, id="tgz"),
+        pytest.param("black-18.9b0.tar.bz2", None, id="tar-bz2"),
+        pytest.param("black-18.9b0.tbz", None, id="tbz"),
+        pytest.param("black-18.9b0.tar.xz", None, id="tar-xz"),
+        pytest.param("black-18.9b0.txz", None, id="txz"),
+        pytest.param("black-18.9b0.tlz", None, id="tlz"),
+        pytest.param("black-18.9b0.tar.lz", None, id="tar-lz"),
+        pytest.param("black-18.9b0.tar.lzma", None, id="tar-lzma"),
+        pytest.param("black-18.9b0.TAR.GZ", None, id="uppercase-tar-gz"),
     ],
 )
 def test_valid_pypi_name(package_spec_in: str, package_name_out: str | None) -> None:
@@ -202,13 +203,13 @@ def test_parse_specifier_for_install_missing_bare_archive(tmp_path: Path, monkey
 @pytest.mark.parametrize(
     ("package_spec", "installed_spec", "expected"),
     [
-        ("black>=22,<23", "black==22.8.0", True),
-        ("black<22", "black==22.8.0", False),
-        ("Black", "black==22.8.0", True),
-        ("black[colorama]", "black==22.8.0", False),
-        ("black[colorama]", "black[colorama]==22.8.0", True),
-        ("black @ https://example.com/black.whl", "black==22.8.0", False),
-        ("https://example.com/black.whl", "black==22.8.0", False),
+        pytest.param("black>=22,<23", "black==22.8.0", True, id="within-range"),
+        pytest.param("black<22", "black==22.8.0", False, id="outside-range"),
+        pytest.param("Black", "black==22.8.0", True, id="name-case"),
+        pytest.param("black[colorama]", "black==22.8.0", False, id="extra-missing"),
+        pytest.param("black[colorama]", "black[colorama]==22.8.0", True, id="extra-installed"),
+        pytest.param("black @ https://example.com/black.whl", "black==22.8.0", False, id="pep508-url"),
+        pytest.param("https://example.com/black.whl", "black==22.8.0", False, id="url"),
     ],
 )
 def test_package_spec_satisfied(package_spec: str, installed_spec: str, expected: bool) -> None:
@@ -218,23 +219,26 @@ def test_package_spec_satisfied(package_spec: str, installed_spec: str, expected
 @pytest.mark.parametrize(
     ("package_spec_in", "package_name", "package_spec_out"),
     [
-        (
+        pytest.param(
             "https://github.com/ambv/black/archive/18.9b0.zip",
             "black",
             "https://github.com/ambv/black/archive/18.9b0.zip",
+            id="url",
         ),
-        (
+        pytest.param(
             "nox@https://github.com/ambv/black/archive/18.9b0.zip",
             "black",
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
+            id="pep508-url-renamed",
         ),
-        (
+        pytest.param(
             "nox[extra]@https://github.com/ambv/black/archive/18.9b0.zip",
             "black",
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
+            id="pep508-url-extra-renamed",
         ),
-        ("black-18.9b0.tar.xz", "black", "black-18.9b0.tar.xz"),
-        ("Black-18.9b0.TAR.XZ", "black", "Black-18.9b0.TAR.XZ"),
+        pytest.param("black-18.9b0.tar.xz", "black", "black-18.9b0.tar.xz", id="archive"),
+        pytest.param("Black-18.9b0.TAR.XZ", "black", "Black-18.9b0.TAR.XZ", id="uppercase-archive"),
     ],
 )
 def test_fix_package_name(package_spec_in: str, package_name: str, package_spec_out: str) -> None:
@@ -284,302 +288,259 @@ def test_parse_specifier_bare_archive_rejects_non_extras(bare_archive: Path, suf
         parse_specifier_for_metadata(f"{bare_archive.name}[cow]{suffix}")
 
 
-_ROOT = Path(__file__).parents[1]
-
-
 @pytest.mark.parametrize(
-    ("package_spec_in", "package_or_url_correct", "valid_spec"),
+    ("package_spec", "expected"),
     [
-        ("pipx", "pipx", True),
-        ("PiPx_stylized.name", "pipx-stylized-name", True),
-        ("pipx==0.15.0", "pipx==0.15.0", True),
-        ("pipx>=0.15.0", "pipx>=0.15.0", True),
-        ("pipx<=0.15.0", "pipx<=0.15.0", True),
-        ('pipx;python_version>="3.6"', "pipx", True),
-        ('pipx==0.15.0;python_version>="3.6"', "pipx==0.15.0", True),
-        ("pipx[extra1]", "pipx[extra1]", True),
-        ("pipx[extra1, extra2]", "pipx[extra1,extra2]", True),
-        ("src/pipx", str((_ROOT / "src" / "pipx").resolve()), True),
-        (
+        pytest.param("pipx", "pipx", id="name"),
+        pytest.param("PiPx_stylized.name", "pipx-stylized-name", id="normalized-name"),
+        pytest.param("pipx==0.15.0", "pipx==0.15.0", id="pinned"),
+        pytest.param("pipx>=0.15.0", "pipx>=0.15.0", id="lower-bound"),
+        pytest.param("pipx<=0.15.0", "pipx<=0.15.0", id="upper-bound"),
+        pytest.param('pipx;python_version>="3.6"', "pipx", id="marker"),
+        pytest.param('pipx==0.15.0;python_version>="3.6"', "pipx==0.15.0", id="pinned-marker"),
+        pytest.param("pipx[extra1]", "pipx[extra1]", id="extra"),
+        pytest.param("pipx[extra1, extra2]", "pipx[extra1,extra2]", id="extras"),
+        pytest.param("src/pipx", str((_ROOT / "src" / "pipx").resolve()), id="local-path"),
+        pytest.param(
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            True,
+            id="vcs-url",
         ),
-        (
+        pytest.param(
             "nox@git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "nox @ git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            True,
+            id="pep508-vcs-url",
         ),
-        (
+        pytest.param(
             "https://github.com/ambv/black/archive/18.9b0.zip",
             "https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="url",
         ),
-        (
+        pytest.param(
             "black@https://github.com/ambv/black/archive/18.9b0.zip",
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url",
         ),
-        (
+        pytest.param(
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url-spaced",
         ),
-        (
+        pytest.param(
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url-extra",
         ),
-        (
+        pytest.param(
             'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git",
-            True,
-        ),
-        ("path/doesnt/exist", "non-existent-path", False),
-        (
-            "https:/github.com/ambv/black/archive/18.9b0.zip",
-            "URL-syntax-error-slash",
-            False,
+            id="pep508-ssh-url-marker",
         ),
     ],
 )
 def test_parse_specifier_for_metadata(
-    package_spec_in: str,
-    package_or_url_correct: str,
-    valid_spec: bool,
-    monkeypatch: pytest.MonkeyPatch,
-    root: Path,
+    package_spec: str, expected: str, monkeypatch: pytest.MonkeyPatch, root: Path
 ) -> None:
     monkeypatch.chdir(root)
-    if valid_spec:
-        package_or_url = parse_specifier_for_metadata(package_spec_in)
-        assert package_or_url == package_or_url_correct
-    else:
-        # print package_spec_in for info in case no error is raised
-        with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
-            package_or_url = parse_specifier_for_metadata(package_spec_in)
+
+    assert parse_specifier_for_metadata(package_spec) == expected
 
 
 @pytest.mark.parametrize(
-    ("package_spec_in", "package_or_url_correct", "valid_spec"),
+    ("package_spec", "expected"),
     [
-        ("pipx", "pipx", True),
-        ("PiPx_stylized.name", "pipx-stylized-name", True),
-        ("pipx==0.15.0", "pipx", True),
-        ("pipx>=0.15.0", "pipx", True),
-        ("pipx<=0.15.0", "pipx", True),
-        ('pipx;python_version>="3.6"', "pipx", True),
-        ('pipx==0.15.0;python_version>="3.6"', "pipx", True),
-        ("pipx[extra1]", "pipx[extra1]", True),
-        ("pipx[extra1, extra2]", "pipx[extra1,extra2]", True),
-        ("src/pipx", str((_ROOT / "src" / "pipx").resolve()), True),
-        (
+        pytest.param("pipx", "pipx", id="name"),
+        pytest.param("PiPx_stylized.name", "pipx-stylized-name", id="normalized-name"),
+        pytest.param("pipx==0.15.0", "pipx", id="pinned"),
+        pytest.param("pipx>=0.15.0", "pipx", id="lower-bound"),
+        pytest.param("pipx<=0.15.0", "pipx", id="upper-bound"),
+        pytest.param('pipx;python_version>="3.6"', "pipx", id="marker"),
+        pytest.param('pipx==0.15.0;python_version>="3.6"', "pipx", id="pinned-marker"),
+        pytest.param("pipx[extra1]", "pipx[extra1]", id="extra"),
+        pytest.param("pipx[extra1, extra2]", "pipx[extra1,extra2]", id="extras"),
+        pytest.param("src/pipx", str((_ROOT / "src" / "pipx").resolve()), id="local-path"),
+        pytest.param(
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            True,
+            id="vcs-url",
         ),
-        (
+        pytest.param(
             "nox@git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "nox @ git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            True,
+            id="pep508-vcs-url",
         ),
-        (
+        pytest.param(
             "https://github.com/ambv/black/archive/18.9b0.zip",
             "https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="url",
         ),
-        (
+        pytest.param(
             "black@https://github.com/ambv/black/archive/18.9b0.zip",
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url",
         ),
-        (
+        pytest.param(
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url-spaced",
         ),
-        (
+        pytest.param(
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
-            True,
+            id="pep508-url-extra",
         ),
-        (
+        pytest.param(
             'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git",
-            True,
-        ),
-        ("path/doesnt/exist", "non-existent-path", False),
-        (
-            "https:/github.com/ambv/black/archive/18.9b0.zip",
-            "URL-syntax-error-slash",
-            False,
+            id="pep508-ssh-url-marker",
         ),
     ],
 )
 def test_parse_specifier_for_upgrade(
-    package_spec_in: str,
-    package_or_url_correct: str,
-    valid_spec: bool,
-    monkeypatch: pytest.MonkeyPatch,
-    root: Path,
+    package_spec: str, expected: str, monkeypatch: pytest.MonkeyPatch, root: Path
 ) -> None:
     monkeypatch.chdir(root)
-    if valid_spec:
-        package_or_url = parse_specifier_for_upgrade(package_spec_in)
-        assert package_or_url == package_or_url_correct
-    else:
-        # print package_spec_in for info in case no error is raised
-        with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
-            package_or_url = parse_specifier_for_upgrade(package_spec_in)
+
+    assert parse_specifier_for_upgrade(package_spec) == expected
 
 
 @pytest.mark.parametrize(
-    ("package_spec_in", "pip_args_in", "package_spec_expected", "pip_args_expected", "warning_str"),
+    "parse",
     [
-        ('pipx==0.15.0;python_version>="3.6"', [], "pipx==0.15.0", [], None),
-        ("pipx==0.15.0", ["--editable"], "pipx==0.15.0", [], "Ignoring --editable"),
-        (
+        pytest.param(parse_specifier_for_metadata, id="metadata"),
+        pytest.param(parse_specifier_for_upgrade, id="upgrade"),
+    ],
+)
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        pytest.param("path/doesnt/exist", id="missing-path"),
+        pytest.param("https:/github.com/ambv/black/archive/18.9b0.zip", id="url-single-slash"),
+    ],
+)
+def test_parse_specifier_rejects_unparsable_spec(
+    parse: Callable[[str], str], package_spec: str, monkeypatch: pytest.MonkeyPatch, root: Path
+) -> None:
+    monkeypatch.chdir(root)
+
+    with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
+        parse(package_spec)
+
+
+@pytest.mark.parametrize(
+    ("package_spec", "pip_args", "expected", "warning"),
+    [
+        pytest.param(
+            "pipx==0.15.0", ["--editable"], ("pipx==0.15.0", []), "Ignoring --editable", id="editable-requirement"
+        ),
+        pytest.param(
             'pipx==0.15.0;python_version>="3.6"',
             [],
-            "pipx==0.15.0",
-            [],
+            ("pipx==0.15.0", []),
             'Ignoring environment markers (python_version >= "3.6") in package',
+            id="marker",
         ),
-        (
+        pytest.param(
             "pipx==0.15.0",
             ["--no-cache-dir", "--editable"],
-            "pipx==0.15.0",
-            ["--no-cache-dir"],
+            ("pipx==0.15.0", ["--no-cache-dir"]),
             "Ignoring --editable",
+            id="editable-among-other-args",
         ),
-        (
+        pytest.param(
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             ["--editable"],
-            "git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            [],
+            ("git+https://github.com/cs01/nox.git@5ea70723e9e6", []),
             "Ignoring --editable",
+            id="editable-vcs-url",
         ),
-        (
+        pytest.param(
             "https://github.com/ambv/black/archive/18.9b0.zip",
             ["--editable"],
-            "https://github.com/ambv/black/archive/18.9b0.zip",
-            [],
+            ("https://github.com/ambv/black/archive/18.9b0.zip", []),
             "Ignoring --editable",
-        ),
-        (
-            "src/pipx",
-            ["--editable"],
-            str(Path("src/pipx").resolve()),
-            ["--editable"],
-            None,
-        ),
-        (
-            TEST_DATA_PATH + "/local_extras",
-            [],
-            str(Path(TEST_DATA_PATH + "/local_extras").resolve),
-            [],
-            None,
-        ),
-        (
-            TEST_DATA_PATH + "/local_extras[cow]",
-            [],
-            str(Path(TEST_DATA_PATH + "/local_extras").resolve) + "[cow]",
-            [],
-            None,
-        ),
-        (
-            TEST_DATA_PATH + "/local_extras",
-            ["--editable"],
-            str(Path(TEST_DATA_PATH + "/local_extras").resolve),
-            ["--editable"],
-            None,
-        ),
-        (
-            TEST_DATA_PATH + "/local_extras[cow]",
-            ["--editable"],
-            str(Path(TEST_DATA_PATH + "/local_extras").resolve) + "[cow]",
-            ["--editable"],
-            None,
+            id="editable-url",
         ),
     ],
 )
-def test_parse_specifier_for_install(
-    package_spec_in: str,
-    pip_args_in: list[str],
-    package_spec_expected: str,  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
-    pip_args_expected: list[str],  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
-    warning_str: str | None,
-    *,
+def test_parse_specifier_for_install_warns(
+    package_spec: str,
+    pip_args: list[str],
+    expected: tuple[str, list[str]],
+    warning: str,
     caplog: pytest.LogCaptureFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    root: Path,
+) -> None:
+    assert (parse_specifier_for_install(package_spec, pip_args), warning in caplog.text) == (expected, True)
+
+
+@pytest.mark.parametrize(
+    ("package_path", "extras", "pip_args"),
+    [
+        pytest.param("src/pipx", "", ["--editable"], id="editable-path"),
+        pytest.param(f"{_TEST_DATA_PATH}/local_extras", "", [], id="path"),
+        pytest.param(f"{_TEST_DATA_PATH}/local_extras", "[cow]", [], id="path-extras"),
+        pytest.param(f"{_TEST_DATA_PATH}/local_extras", "", ["--editable"], id="editable-dot-path"),
+        pytest.param(f"{_TEST_DATA_PATH}/local_extras", "[cow]", ["--editable"], id="editable-path-extras"),
+    ],
+)
+def test_parse_specifier_for_install_local_path(
+    package_path: str, extras: str, pip_args: list[str], monkeypatch: pytest.MonkeyPatch, root: Path
 ) -> None:
     monkeypatch.chdir(root)
-    parse_specifier_for_install(package_spec_in, pip_args_in)
-    if warning_str is not None:
-        assert warning_str in caplog.text
+
+    assert parse_specifier_for_install(f"{package_path}{extras}", pip_args) == (
+        f"{(root / package_path).resolve()}{extras}",
+        pip_args,
+    )
 
 
 @pytest.mark.parametrize(
     ("pip_args_in", "pip_args_expected"),
     [
-        (
+        pytest.param(
             ["-c", "https://example.com/constraints.txt"],
             ["-c", "https://example.com/constraints.txt"],
+            id="short-separated-url",
         ),
-        (
+        pytest.param(
             ["-chttps://example.com/constraints.txt"],
             ["-chttps://example.com/constraints.txt"],
+            id="short-attached-url",
         ),
-        (
+        pytest.param(
             ["--constraint", "https://example.com/constraints.txt"],
             ["--constraint", "https://example.com/constraints.txt"],
+            id="long-separated-url",
         ),
-        (
+        pytest.param(
             ["--constraint=https://example.com/constraints.txt"],
             ["--constraint=https://example.com/constraints.txt"],
+            id="long-equals-url",
         ),
-        (
-            ["-c", "constraints.txt"],
-            ["-c", str(Path("constraints.txt").resolve())],
+        pytest.param(
+            ["-c", "constraints.txt"], ["-c", str(Path("constraints.txt").resolve())], id="short-separated-path"
         ),
-        (
-            ["-cconstraints.txt"],
-            [f"-c{Path('constraints.txt').resolve()}"],
-        ),
-        (
+        pytest.param(["-cconstraints.txt"], [f"-c{Path('constraints.txt').resolve()}"], id="short-attached-path"),
+        pytest.param(
             ["--constraint=constraints.txt"],
             [f"--constraint={Path('constraints.txt').resolve()}"],
+            id="long-equals-path",
         ),
     ],
-    ids=[
-        "short-separated-url",
-        "short-attached-url",
-        "long-separated-url",
-        "long-equals-url",
-        "short-separated-path",
-        "short-attached-path",
-        "long-equals-path",
-    ],
 )
-def test_parse_specifier_for_install_constraint_args(
-    pip_args_in: list[str],
-    pip_args_expected: list[str],
-) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
-    assert pip_args_out == pip_args_expected
+def test_parse_specifier_for_install_constraint_args(pip_args_in: list[str], pip_args_expected: list[str]) -> None:
+    assert parse_specifier_for_install("pipx", pip_args_in) == ("pipx", pip_args_expected)
 
 
 @pytest.mark.parametrize(
     "package_spec",
     [
-        "git+file:///tmp/project@main",
-        "hg+file:///tmp/project@default",
-        "file:///opt/wheels/demo-1-py3-none-any.whl",
-        "file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc",
-        "file:///C:/wheels/demo-1-py3-none-any.whl",
+        pytest.param("git+file:///tmp/project@main", id="git"),
+        pytest.param("hg+file:///tmp/project@default", id="mercurial"),
+        pytest.param("file:///opt/wheels/demo-1-py3-none-any.whl", id="file"),
+        pytest.param("file:///opt/wheels%20with%20spaces/demo-1.tar.gz#sha256=abc", id="file-quoted-space"),
+        pytest.param("file:///C:/wheels/demo-1-py3-none-any.whl", id="file-windows-drive"),
     ],
-    ids=["git", "mercurial", "file", "file-quoted-space", "file-windows-drive"],
 )
 def test_parse_specifier_for_install_accepts_local_url(package_spec: str) -> None:
     assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
@@ -587,8 +548,11 @@ def test_parse_specifier_for_install_accepts_local_url(package_spec: str) -> Non
 
 @pytest.mark.parametrize(
     "package_spec",
-    ["file:relative.whl", "git+file:relative", "https:/example.com/demo.whl"],
-    ids=["file", "git", "https-single-slash"],
+    [
+        pytest.param("file:relative.whl", id="file"),
+        pytest.param("git+file:relative", id="git"),
+        pytest.param("https:/example.com/demo.whl", id="https-single-slash"),
+    ],
 )
 def test_parse_specifier_for_install_rejects_hostless_relative_url(package_spec: str) -> None:
     with pytest.raises(PipxError, match="Unable to parse package spec"):
@@ -598,51 +562,27 @@ def test_parse_specifier_for_install_rejects_hostless_relative_url(package_spec:
 @pytest.mark.parametrize(
     ("pip_args_in", "pip_args_expected"),
     [
-        (
-            ["-f", "https://example.com/wheels"],
-            ["-f", "https://example.com/wheels"],
+        pytest.param(
+            ["-f", "https://example.com/wheels"], ["-f", "https://example.com/wheels"], id="short-separated-url"
         ),
-        (
-            ["-fhttps://example.com/wheels"],
-            ["-fhttps://example.com/wheels"],
-        ),
-        (
+        pytest.param(["-fhttps://example.com/wheels"], ["-fhttps://example.com/wheels"], id="short-attached-url"),
+        pytest.param(
             ["--find-links", "https://example.com/wheels"],
             ["--find-links", "https://example.com/wheels"],
+            id="long-separated-url",
         ),
-        (
+        pytest.param(
             ["--find-links=https://example.com/wheels"],
             ["--find-links=https://example.com/wheels"],
+            id="long-equals-url",
         ),
-        (
-            ["-f", "wheels"],
-            ["-f", str(Path("wheels").resolve())],
-        ),
-        (
-            ["-fwheels"],
-            [f"-f{Path('wheels').resolve()}"],
-        ),
-        (
-            ["--find-links=wheels"],
-            [f"--find-links={Path('wheels').resolve()}"],
-        ),
-    ],
-    ids=[
-        "short-separated-url",
-        "short-attached-url",
-        "long-separated-url",
-        "long-equals-url",
-        "short-separated-path",
-        "short-attached-path",
-        "long-equals-path",
+        pytest.param(["-f", "wheels"], ["-f", str(Path("wheels").resolve())], id="short-separated-path"),
+        pytest.param(["-fwheels"], [f"-f{Path('wheels').resolve()}"], id="short-attached-path"),
+        pytest.param(["--find-links=wheels"], [f"--find-links={Path('wheels').resolve()}"], id="long-equals-path"),
     ],
 )
-def test_parse_specifier_for_install_find_links_args(
-    pip_args_in: list[str],
-    pip_args_expected: list[str],
-) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
-    assert pip_args_out == pip_args_expected
+def test_parse_specifier_for_install_find_links_args(pip_args_in: list[str], pip_args_expected: list[str]) -> None:
+    assert parse_specifier_for_install("pipx", pip_args_in) == ("pipx", pip_args_expected)
 
 
 @pytest.mark.parametrize(
@@ -670,20 +610,17 @@ def test_parse_specifier_for_install_find_links_args(
     ],
 )
 def test_parse_specifier_for_install_path_option_separated(option: str) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", [option, "file"])
-    assert pip_args_out == [option, str(Path("file").resolve())]
+    assert parse_specifier_for_install("pipx", [option, "file"]) == ("pipx", [option, str(Path("file").resolve())])
 
 
 @pytest.mark.parametrize("option", ["--requirement", "--cert", "--cache-dir"])
 def test_parse_specifier_for_install_path_option_equals(option: str) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", [f"{option}=file"])
-    assert pip_args_out == [f"{option}={Path('file').resolve()}"]
+    assert parse_specifier_for_install("pipx", [f"{option}=file"]) == ("pipx", [f"{option}={Path('file').resolve()}"])
 
 
 @pytest.mark.parametrize("option", ["-r", "-t"])
 def test_parse_specifier_for_install_path_option_attached(option: str) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", [f"{option}file"])
-    assert pip_args_out == [f"{option}{Path('file').resolve()}"]
+    assert parse_specifier_for_install("pipx", [f"{option}file"]) == ("pipx", [f"{option}{Path('file').resolve()}"])
 
 
 @pytest.mark.parametrize(
@@ -696,8 +633,10 @@ def test_parse_specifier_for_install_path_option_attached(option: str) -> None:
     ],
 )
 def test_parse_specifier_for_install_path_option_keeps_value(kept: list[str]) -> None:
-    _, pip_args_out = parse_specifier_for_install("pipx", [*kept, "--log", "file"])
-    assert pip_args_out == [*kept, "--log", str(Path("file").resolve())]
+    assert parse_specifier_for_install("pipx", [*kept, "--log", "file"]) == (
+        "pipx",
+        [*kept, "--log", str(Path("file").resolve())],
+    )
 
 
 @pytest.mark.parametrize(
@@ -705,7 +644,6 @@ def test_parse_specifier_for_install_path_option_keeps_value(kept: list[str]) ->
     [
         pytest.param(b'[project]\nname = "Foo_Bar.X"\n', "Foo_Bar.X", id="static"),
         pytest.param(b'[project]\nname = "demo"\ndynamic = ["version"]\n', "demo", id="other-field-dynamic"),
-        pytest.param(None, None, id="no-pyproject"),
         pytest.param(b"", None, id="no-project-table"),
         pytest.param(b'[project]\nversion = "1"\n', None, id="no-name"),
         pytest.param(b"[project]\nname = 1\n", None, id="name-not-string"),
@@ -716,13 +654,16 @@ def test_parse_specifier_for_install_path_option_keeps_value(kept: list[str]) ->
         pytest.param(b'[project]\nname = "\xff"\n', None, id="not-utf8"),
     ],
 )
-def test_static_project_name(tmp_path: Path, pyproject: bytes | None, expected: str | None) -> None:
-    if pyproject is not None:
-        (tmp_path / "pyproject.toml").write_bytes(
-            b'[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n' + pyproject
-        )
+def test_static_project_name(tmp_path: Path, pyproject: bytes, expected: str | None) -> None:
+    (tmp_path / "pyproject.toml").write_bytes(
+        b'[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n' + pyproject
+    )
 
     assert static_project_name(f"{tmp_path}[extra]") == expected
+
+
+def test_static_project_name_without_pyproject(tmp_path: Path) -> None:
+    assert static_project_name(f"{tmp_path}[extra]") is None
 
 
 @pytest.mark.parametrize(
@@ -807,18 +748,21 @@ def test_wheel_project_name(
     assert wheel_project_name(f"{make_wheel(entries)}[extra]") == expected
 
 
-@pytest.mark.parametrize("content", [pytest.param(b"not a zip", id="not-a-zip"), pytest.param(None, id="missing")])
-def test_wheel_project_name_unreadable(tmp_path: Path, content: bytes | None) -> None:
-    wheel = tmp_path / "foo-1-py3-none-any.whl"
-    if content is not None:
-        wheel.write_bytes(content)
+def test_wheel_project_name_not_a_zip(tmp_path: Path) -> None:
+    (wheel := tmp_path / "foo-1-py3-none-any.whl").write_bytes(b"not a zip")
 
     assert wheel_project_name(str(wheel)) is None
+
+
+def test_wheel_project_name_missing(tmp_path: Path) -> None:
+    assert wheel_project_name(str(tmp_path / "foo-1-py3-none-any.whl")) is None
 
 
 def test_wheel_project_name_ignores_other_archives(
     make_wheel: Callable[[dict[str, str]], Path], tmp_path: Path
 ) -> None:
-    archive = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}).rename(tmp_path / "foo_bar_x-1.zip")
+    archive: Final[Path] = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}).rename(
+        tmp_path / "foo_bar_x-1.zip"
+    )
 
     assert wheel_project_name(str(archive)) is None

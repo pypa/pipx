@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.backends.uv", "pipx.util", "shutil"]
+__lazy_modules__ = ["pipx", "pipx.backends.uv", "pipx.util", "pipx.wrap", "shutil"]
 
 import logging
 import os
@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx import paths
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
-from pipx.emojis import hazard
-from pipx.util import PipxError, exec_app, pipx_wrap, redact_url_credentials
+from pipx.emojis import HAZARD
+from pipx.util import PipxError, exec_app, redact_url_credentials
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -18,21 +19,9 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-_UV_VALUE_FLAG_MAP: Final[dict[str, str]] = {
-    "--extra-index-url": "--extra-index-url",
-    "--find-links": "--find-links",
-    "-f": "-f",
-    "--trusted-host": "--allow-insecure-host",
-}
 _UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
     "--no-binary": ("--no-binary", "--no-binary-package"),
     "--only-binary": ("--no-build", "--no-build-package"),
-}
-_UV_TRANSLATABLE_BOOL_FLAGS: Final[dict[str, str]] = {
-    "--pre": "--prerelease=allow",
-    "--no-cache-dir": "--no-cache",
-    "--upgrade": "--upgrade",
-    "-U": "--upgrade",
 }
 
 
@@ -47,16 +36,16 @@ def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv
     venv_args: list[str],
     use_cache: bool,
     verbose: bool,
-    refresh: bool = False,
-    no_path_check: bool = False,
-    cooldown_days: int | None = None,
+    refresh: bool,
+    no_path_check: bool,
+    cooldown_days: int | None,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
     if not no_path_check and (existing_app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
-                {hazard}  {app} is already on your PATH and installed at
+                {HAZARD}  {app} is already on your PATH and installed at
                 {existing_app_path}. Downloading and running anyway.
                 """,
                 subsequent_indent=" " * 4,
@@ -83,43 +72,31 @@ def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv
     exec_app(cmd)
 
 
-def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv run --script` invocation from the run options
-    *,
-    script_path: Path,
-    venv_dir: Path,
-    app_args: list[str],
-    python: str,
-    pip_args: list[str],
-    venv_args: list[str],
-    use_cache: bool,
-    verbose: bool,
-    refresh: bool = False,
-    dependencies: list[str] | None = None,
-    cooldown_days: int | None = None,
-) -> NoReturn:
-    _reject_venv_args(venv_args)
-    # uv searches for project config from --project, or else from the script's directory, which another account may own
-    cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.ctx.home)]
-    if python:
-        cmd += ["--python", python]
-    if not use_cache:
-        cmd.append("--no-cache")
-    if refresh:
-        cmd.append("--refresh")
-    if verbose:
-        cmd.append("--verbose")
-    for dependency in dependencies or []:
-        cmd += ["--with", dependency]
-    cmd += translate_pip_args_for_uv(pip_args)
-    cmd += UvBackend.cooldown_args(cooldown_days)
-    cmd += [str(script_path), *app_args]
-    exec_app(cmd, env={**os.environ, "VIRTUAL_ENV": str(venv_dir)})
+def _reject_venv_args(venv_args: list[str]) -> None:
+    # uv creates the venv, so accepting these options would ignore the requested behavior
+    if venv_args:
+        msg = (
+            f"{' '.join(map(redact_url_credentials, venv_args))} is not supported by `pipx run` under the uv backend.\n"
+            "Use `pipx run --backend pip` if you need it, or drop it."
+        )
+        raise PipxError(msg)
 
 
 def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
-    """Convert pip arguments, raising PipxError for options uv run cannot represent."""
-    translated: list[str] = []
-    iterator = iter(pip_args)
+    translated_bool_flags: Final[dict[str, str]] = {
+        "--pre": "--prerelease=allow",
+        "--no-cache-dir": "--no-cache",
+        "--upgrade": "--upgrade",
+        "-U": "--upgrade",
+    }
+    value_flags: Final[dict[str, str]] = {
+        "--extra-index-url": "--extra-index-url",
+        "--find-links": "--find-links",
+        "-f": "-f",
+        "--trusted-host": "--allow-insecure-host",
+    }
+    translated: Final[list[str]] = []
+    iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
         if arg in {"-q", "-qq", "--quiet"}:
             continue
@@ -129,7 +106,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
                 "Use `pipx run --backend pip` for editable installs."
             )
             raise PipxError(msg)
-        if (translated_bool := _UV_TRANSLATABLE_BOOL_FLAGS.get(arg)) is not None:
+        if (translated_bool := translated_bool_flags.get(arg)) is not None:
             translated.append(translated_bool)
             continue
         flag, separator, attached_value = arg.partition("=")
@@ -138,7 +115,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
                 _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
             )
             continue
-        if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or _UV_VALUE_FLAG_MAP.get(flag)) is not None:
+        if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
             if separator:
                 translated.append(f"{translated_flag}={attached_value}")
             else:
@@ -150,16 +127,6 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         )
         raise PipxError(msg)
     return translated
-
-
-def _reject_venv_args(venv_args: list[str]) -> None:
-    # uv creates the venv, so accepting these options would ignore the requested behavior.
-    if venv_args:
-        msg = (
-            f"{' '.join(map(redact_url_credentials, venv_args))} is not supported by `pipx run` under the uv backend.\n"
-            "Use `pipx run --backend pip` if you need it, or drop it."
-        )
-        raise PipxError(msg)
 
 
 def _translate_format_control(flag: str, value: str) -> list[str]:
@@ -180,6 +147,39 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
     except StopIteration as exc:
         msg = f"Missing value for {flag!r} in --pip-args."
         raise PipxError(msg) from exc
+
+
+def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv run --script` invocation from the run options
+    *,
+    script_path: Path,
+    venv_dir: Path,
+    app_args: list[str],
+    python: str,
+    pip_args: list[str],
+    venv_args: list[str],
+    use_cache: bool,
+    verbose: bool,
+    refresh: bool,
+    dependencies: list[str],
+    cooldown_days: int | None,
+) -> NoReturn:
+    _reject_venv_args(venv_args)
+    # uv searches for project config from --project, or else from the script's directory, which another account may own
+    cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.CTX.home)]
+    if python:
+        cmd += ["--python", python]
+    if not use_cache:
+        cmd.append("--no-cache")
+    if refresh:
+        cmd.append("--refresh")
+    if verbose:
+        cmd.append("--verbose")
+    for dependency in dependencies:
+        cmd += ["--with", dependency]
+    cmd += translate_pip_args_for_uv(pip_args)
+    cmd += UvBackend.cooldown_args(cooldown_days)
+    cmd += [str(script_path), *app_args]
+    exec_app(cmd, env={**os.environ, "VIRTUAL_ENV": str(venv_dir)})
 
 
 __all__ = [

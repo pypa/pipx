@@ -41,7 +41,7 @@ Install from a VCS URL, an archive, or a local project:
     pipx install https://github.com/psf/black/archive/18.9b0.zip
     pipx install ./path/to/some-project
 
-Install from a PEP 723 script or a lock file:
+Install from a :pep:`723` script or a lock file:
 
 .. code-block:: bash
 
@@ -56,7 +56,7 @@ a different name:
 
     pipx install --app greet ./script.py
 
-Pass arguments through to pip, or install globally for all users:
+Pass arguments through to `pip <https://pip.pypa.io>`_, or install globally for all users:
 
 .. code-block:: bash
 
@@ -89,15 +89,15 @@ Run a local or remote script, with arguments:
     pipx run test.py 1 2 3
     pipx run https://example.com/test.py 1 2 3
 
-A bare filename is ambiguous: pipx runs it as a local file when the file exists, otherwise as a PyPI package. Force the
-interpretation with ``--path`` or ``--spec``:
+A bare filename is ambiguous: pipx runs it as a local file when the file exists, otherwise as a `PyPI
+<https://pypi.org>`_ package. Force the interpretation with ``--path`` or ``--spec``:
 
 .. code-block:: bash
 
     pipx run --path test.py         # always a local file
     pipx run --spec test-py test.py # always a PyPI package
 
-Scripts can declare dependencies with PEP 723 inline metadata; pipx installs them into the temporary environment. See
+Scripts can declare dependencies with :pep:`723` inline metadata; pipx installs them into the temporary environment. See
 :doc:`Run scripts <../how-to/run-scripts>`.
 
 ********
@@ -111,7 +111,7 @@ Add packages to an existing environment, from the command line or a requirements
     pipx inject ptpython requests pendulum
     pipx inject ptpython --requirement useful-packages.txt
 
-The two forms can be combined and repeated:
+You can combine and repeat the two forms:
 
 .. code-block:: bash
 
@@ -154,14 +154,14 @@ Narrow the output or change the format; the package filter works with every form
 
 Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`). Each environment gets the
 venv and pip arguments the snapshot recorded unless you pass your own. A ``--backend`` other than the recorded one skips
-the recorded pip arguments with a warning, since they can hold options only the old backend accepts. Options with an
-exact equivalent are translated instead, so the environment still installs from the recorded index:
+the recorded pip arguments with a warning, since they can hold options only the old backend accepts. pipx translates
+options with an exact equivalent instead, so the environment still installs from the recorded index:
 
 =============================== ======================================================
 pip                             uv
 =============================== ======================================================
 ``--index-url``, ``-i``         ``--default-index``
-``--extra-index-url``           ``--index`` (a ``name=`` prefix is dropped for pip)
+``--extra-index-url``           ``--index`` (pipx drops a ``name=`` prefix for pip)
 ``--find-links``, ``-f``        ``--find-links`` (split on commas for pip)
 ``--no-index``                  ``--no-index``
 ``--pre``                       ``--prerelease allow``
@@ -171,12 +171,14 @@ pip                             uv
 (always picks the best match)   ``--index-strategy unsafe-best-match``
 =============================== ======================================================
 
-pipx translates a pip option recorded as an abbreviation pip accepts, such as ``--index-u``, like its full spelling.
-When a recorded index option has no equivalent, such as a uv ``--index-strategy`` other than ``unsafe-best-match``, an
-``--allow-insecure-host`` URL, or pip's ``--keyring-provider import``, pipx refuses to install that environment rather
-than fall back to PyPI. pip searches every index for the best version, while uv stops at the first index that has the
-package, so a uv ``--index`` moved to pip can pick a newer release from PyPI. Pass ``--pip-args`` to replace the
-recorded options. Up to eight environments install at once, with their output printed in snapshot order:
+pipx translates a ``pip`` option recorded as an abbreviation ``pip`` accepts, such as ``--index-u``, like its full
+spelling. When a recorded index option has no equivalent, such as a `uv <https://docs.astral.sh/uv/>`_
+``--index-strategy`` other than ``unsafe-best-match``, an ``--allow-insecure-host`` URL, or ``pip``'s
+``--keyring-provider import``, pipx refuses to install that environment rather than fall back to ``PyPI``.
+
+``pip`` searches every index for the best version, while ``uv`` stops at the first index that has the package, so a
+``uv`` ``--index`` moved to ``pip`` can pick a newer release from ``PyPI``. Pass ``--pip-args`` to replace the recorded
+options. Up to eight environments install at once, with their output printed in snapshot order:
 
 .. code-block:: console
 
@@ -214,7 +216,7 @@ Upgrade the shared libraries now, instead of waiting for the automatic refresh o
  pin
 *********
 
-Pin an environment so its packages are held at their current versions until you unpin. See :doc:`Pin packages
+Pin an environment so pipx holds its packages at their current versions until you unpin. See :doc:`Pin packages
 <../how-to/pin-packages>`.
 
 Pin only injected packages, leaving the main package upgradable:
@@ -226,7 +228,7 @@ Pin only injected packages, leaving the main package upgradable:
       - poetry-plugin-export <current version>
       - poetry-plugin-app <current version>
 
-Unpin the environment so upgrades resume. Only packages that were pinned are listed:
+Unpin the environment so upgrades resume. The output lists only the packages that were pinned:
 
 .. code-block:: console
 

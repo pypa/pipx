@@ -31,7 +31,7 @@ from pipx.constants import (
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
     MAN_SECTIONS,
 )
-from pipx.emojis import hazard, sleep, stars
+from pipx.emojis import HAZARD, SLEEP, STARS
 from pipx.pipx_metadata_file import PackageInfo
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.util import PipxError, rmdir_via_trash, safe_unlink
@@ -47,13 +47,13 @@ def uninstall_all(
     *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
-    errors: list[OperationError] = []
-    messages: list[OutputMessage] = []
-    packages: list[_UninstalledPackage] = []
+    errors: Final[list[OperationError]] = []
+    messages: Final[list[OutputMessage]] = []
+    packages: Final[list[_UninstalledPackage]] = []
     with reuse_resource_dir_scans():
         for venv_dir in venv_container.iter_venv_dirs():
             with venv_container.venv_lock(venv_dir):
-                result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                result: Final = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             errors.extend(result.errors)
             messages.extend(result.messages)
             packages.extend(result.data.packages)
@@ -78,9 +78,11 @@ def uninstall(
     verbose: bool,
 ) -> OperationResult[UninstallData]:
     if not venv_dir.exists():
-        messages = [OutputMessage(f"Nothing to uninstall for {venv_dir.name} {sleep}")]
+        messages: Final[list[OutputMessage]] = [OutputMessage(text=f"Nothing to uninstall for {venv_dir.name} {SLEEP}")]
         if app := which(venv_dir.name):
-            messages.append(OutputMessage(f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"))
+            messages.append(
+                OutputMessage(text=f"{HAZARD}  Note: '{app}' still exists on your system and is on your PATH")
+            )
         return OperationResult(
             command=("uninstall",),
             data=UninstallData(packages=()),
@@ -95,40 +97,126 @@ def uninstall(
             ),
         )
 
-    venv = Venv(venv_dir, verbose=verbose)
-    package_infos = _get_venv_package_infos(venv)
-    resource_paths = _get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
+    package_infos: Final[tuple[PackageInfo, ...] | None] = get_venv_package_infos(venv)
+    resource_paths = get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
     for man_section in MAN_SECTIONS:
-        resource_paths |= _get_venv_resource_paths(
+        resource_paths |= get_venv_resource_paths(
             "man", venv.man_path / man_section, local_man_dir / man_section, package_infos
         )
     for completion_section in COMPLETION_SECTIONS:
-        resource_paths |= _get_venv_resource_paths(
+        resource_paths |= get_venv_resource_paths(
             "completion",
             venv.man_path.parent / completion_section,
-            paths.ctx.completion_dir / completion_section,
+            paths.CTX.completion_dir / completion_section,
             package_infos,
         )
 
     for path in drop_links_taken_over(drop_copies_claimed_elsewhere(resource_paths, venv.bin_path), venv_dir):
         _remove_resource(path)
 
-    package_info = next(
+    package_info: Final[PackageInfo | None] = next(
         (package_info for package_info in package_infos or () if package_info.package == venv.main_package_name),
         None,
     )
-    package = _UninstalledPackage(
-        environment=venv.name,
-        package=str(package_info.package) if package_info is not None else venv.name,
-        version=None if package_info is None else package_info.package_version or None,
-        location=str(venv.root),
-    )
-    # to reinstall, a venv that lost its record but kept its package looks like one from pipx before 0.15
+    # a removal killed halfway could drop the record but keep the package, which reinstall reads as a venv from pipx
+    # before 0.15
     rmdir_via_trash(venv_dir)
     return OperationResult(
         command=("uninstall",),
-        data=UninstallData(packages=(package,)),
-        messages=(OutputMessage(f"uninstalled {venv.name}! {stars}"),),
+        data=UninstallData(
+            packages=(
+                _UninstalledPackage(
+                    environment=venv.name,
+                    package=str(package_info.package) if package_info is not None else venv.name,
+                    version=None if package_info is None else package_info.package_version or None,
+                    location=str(venv.root),
+                ),
+            )
+        ),
+        messages=(OutputMessage(text=f"uninstalled {venv.name}! {STARS}"),),
+    )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UninstallData(OperationData):
+    packages: tuple[_UninstalledPackage, ...]
+
+
+def get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
+    if venv.pipx_metadata.main_package.package is not None:
+        return tuple(venv.package_metadata.values())
+    if not venv.python_path.is_file():
+        return None
+    try:
+        venv_metadata: Final[VenvMetadata] = venv.get_venv_metadata_for_package(venv.root.name, set())
+    except PipxError as error:
+        # an environment that cannot report its packages is still removable, from the links that point into it
+        _LOGGER.warning("%s  Unable to inspect %s, removing it anyway: %s", HAZARD, venv.name, error)
+        return None
+    return (
+        PackageInfo(
+            package=venv.root.name,
+            package_or_url="",
+            pip_args=[],
+            include_apps=True,
+            include_dependencies=False,
+            apps=venv_metadata.apps,
+            app_paths=venv_metadata.app_paths,
+            apps_of_dependencies=venv_metadata.apps_of_dependencies,
+            app_paths_of_dependencies=venv_metadata.app_paths_of_dependencies,
+            man_pages=venv_metadata.man_pages,
+            man_paths=venv_metadata.man_paths,
+            man_pages_of_dependencies=venv_metadata.man_pages_of_dependencies,
+            man_paths_of_dependencies=venv_metadata.man_paths_of_dependencies,
+            package_version=venv_metadata.package_version,
+            suffix="",
+        ),
+    )
+
+
+def get_venv_resource_paths(
+    resource_type: Literal["app", "man", "completion"],
+    venv_resource_path: Path,
+    local_resource_dir: Path,
+    package_infos: tuple[PackageInfo, ...] | None,
+) -> set[Path]:
+    if package_infos is not None:
+        get_package_resource_paths: Final[Callable[[PackageInfo, Path, Path], set[Path]]] = {
+            "app": get_package_bin_dir_app_paths,
+            "man": get_package_man_paths,
+            "completion": get_package_completion_paths,
+        }[resource_type]
+        return set().union(
+            *(
+                get_package_resource_paths(package_info, venv_resource_path, local_resource_dir)
+                for package_info in package_infos
+            )
+        )
+
+    # without metadata, pipx infers ownership from link targets
+    if not local_resource_dir.is_dir() or not can_symlink(local_resource_dir):
+        return set()
+    return get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+
+
+def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
+
+
+def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
+    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
+
+
+def get_package_completion_paths(
+    package_info: PackageInfo,
+    venv_completion_path: Path,
+    local_completion_dir: Path,
+) -> set[Path]:
+    return get_exposed_paths_for_package(
+        venv_completion_path,
+        local_completion_dir,
+        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
     )
 
 
@@ -141,7 +229,7 @@ def _remove_resource(path: Path) -> None:
         _LOGGER.info("pipx removed resource %s", path)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _UninstalledPackage:
     environment: str
     package: str
@@ -149,109 +237,13 @@ class _UninstalledPackage:
     location: str
 
 
-@dataclass(frozen=True)
-class UninstallData(OperationData):
-    packages: tuple[_UninstalledPackage, ...]
-
-
-def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
-    if venv.pipx_metadata.main_package.package is not None:
-        return tuple(venv.package_metadata.values())
-    if not venv.python_path.is_file():
-        return None
-    try:
-        venv_metadata: Final[VenvMetadata] = venv.get_venv_metadata_for_package(venv.root.name, set())
-    except PipxError as error:
-        # an environment that cannot report its packages is still removable, from the links that point into it
-        _LOGGER.warning("%s  Unable to inspect %s, removing it anyway: %s", hazard, venv.name, error)
-        return None
-    return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
-
-
-def _venv_metadata_to_package_info(  # ruff:ignore[too-many-arguments]  # builds a PackageInfo field-for-field from venv metadata
-    venv_metadata: VenvMetadata,
-    package_name: str,
-    package_or_url: str = "",
-    pip_args: list[str] | None = None,
-    *,
-    include_apps: bool = True,
-    include_dependencies: bool = False,
-    suffix: str = "",
-) -> PackageInfo:
-    if pip_args is None:
-        pip_args = []
-
-    return PackageInfo(
-        package=package_name,
-        package_or_url=package_or_url,
-        pip_args=pip_args,
-        include_apps=include_apps,
-        include_dependencies=include_dependencies,
-        apps=venv_metadata.apps,
-        app_paths=venv_metadata.app_paths,
-        apps_of_dependencies=venv_metadata.apps_of_dependencies,
-        app_paths_of_dependencies=venv_metadata.app_paths_of_dependencies,
-        man_pages=venv_metadata.man_pages,
-        man_paths=venv_metadata.man_paths,
-        man_pages_of_dependencies=venv_metadata.man_pages_of_dependencies,
-        man_paths_of_dependencies=venv_metadata.man_paths_of_dependencies,
-        package_version=venv_metadata.package_version,
-        suffix=suffix,
-    )
-
-
-def _get_venv_resource_paths(
-    resource_type: Literal["app", "man", "completion"],
-    venv_resource_path: Path,
-    local_resource_dir: Path,
-    package_infos: tuple[PackageInfo, ...] | None,
-) -> set[Path]:
-    get_package_resource_paths: Callable[[PackageInfo, Path, Path], set[Path]] = {
-        "app": _get_package_bin_dir_app_paths,
-        "man": _get_package_man_paths,
-        "completion": _get_package_completion_paths,
-    }[resource_type]
-    if package_infos is not None:
-        return set().union(
-            *(
-                get_package_resource_paths(package_info, venv_resource_path, local_resource_dir)
-                for package_info in package_infos
-            )
-        )
-
-    # Without metadata, pipx infers ownership from link targets.
-    if not local_resource_dir.is_dir() or not can_symlink(local_resource_dir):
-        return set()
-    return get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
-
-
-def _get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
-    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
-
-
-def _get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
-    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
-
-
-def _get_package_completion_paths(
-    package_info: PackageInfo,
-    venv_completion_path: Path,
-    local_completion_dir: Path,
-) -> set[Path]:
-    return get_exposed_paths_for_package(
-        venv_completion_path,
-        local_completion_dir,
-        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
-    )
-
-
 __all__ = [
     "UninstallData",
-    "_get_package_bin_dir_app_paths",
-    "_get_package_completion_paths",
-    "_get_package_man_paths",
-    "_get_venv_package_infos",
-    "_get_venv_resource_paths",
+    "get_package_bin_dir_app_paths",
+    "get_package_completion_paths",
+    "get_package_man_paths",
+    "get_venv_package_infos",
+    "get_venv_resource_paths",
     "uninstall",
     "uninstall_all",
 ]

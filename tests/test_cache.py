@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def test_cache_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["cache", "dir"])
 
-    assert capsys.readouterr().out.strip() == str(paths.ctx.venv_cache)
+    assert capsys.readouterr().out.strip() == str(paths.CTX.venv_cache)
 
 
 @pytest.mark.parametrize(
@@ -33,37 +33,29 @@ def test_cache_purge_removes_run_environments(
     count: int,
     expected: str,
 ) -> None:
-    cache_names: Final[tuple[str, ...]] = tuple(f"cache-{index}" for index in range(count))
-    paths.ctx.venv_cache.mkdir(parents=True)
-    for cache_name in cache_names:
-        (paths.ctx.venv_cache / cache_name).mkdir()
+    paths.CTX.venv_cache.mkdir(parents=True)
+    for index in range(count):
+        (paths.CTX.venv_cache / f"cache-{index}").mkdir()
 
     assert not run_pipx_cli(["cache", "purge"])
 
     assert (
         capsys.readouterr().out,
-        tuple(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()),
+        tuple(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()),
     ) == (expected, ())
 
 
-@pytest.mark.parametrize(
-    ("subcommand", "command"),
-    [
-        pytest.param("dir", ["cache", "dir"], id="dir"),
-        pytest.param("purge", ["cache", "purge"], id="purge"),
-    ],
-)
+@pytest.mark.parametrize("subcommand", [pytest.param("dir", id="dir"), pytest.param("purge", id="purge")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_json_reports_the_directory(
     capsys: pytest.CaptureFixture[str],
     subcommand: str,
-    command: str,
 ) -> None:
     assert not run_pipx_cli(["cache", subcommand, "--output", "json"])
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": command,
-        "data": {"directory": str(paths.ctx.venv_cache), "removed": []},
+        "command": ["cache", subcommand],
+        "data": {"directory": str(paths.CTX.venv_cache), "removed": []},
         "pipx_result_version": "1",
         "errors": [],
         "exit_code": 0,

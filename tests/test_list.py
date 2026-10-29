@@ -10,12 +10,13 @@ import sys
 import time
 import zipfile
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
+from filelock import BaseFileLock
 
 from helpers import (
-    PIPX_METADATA_LEGACY_VERSIONS,
+    SKIP_IF_WINDOWS,
     app_name,
     assert_package_metadata,
     create_package_info_ref,
@@ -23,17 +24,12 @@ from helpers import (
     pipx_subprocess_env,
     remove_venv_interpreter,
     run_pipx_cli,
-    skip_if_windows,
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
-from pipx.pipx_metadata_file import (
-    PIPX_INFO_FILENAME,
-    PackageInfo,
-    _json_decoder_object_hook,  # ruff:ignore[import-private-name]  # the decode hook has no public re-export
-)
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, load_spec_file
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -47,11 +43,10 @@ if TYPE_CHECKING:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
-    assert "nothing has been installed with pipx" in captured.err
+    assert "nothing has been installed with pipx" in capsys.readouterr().err
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(not constants.WINDOWS and os.geteuid() == 0, reason="root reads files whatever their mode")
 @pytest.mark.parametrize(
     ("flags", "listed"),
@@ -66,7 +61,7 @@ def test_list_reports_unreadable_metadata_per_environment(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture, flags: list[str], listed: str
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay", PKG["black"]["spec"]])
-    (paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
+    (paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
     capsys.readouterr()
     caplog.clear()
 
@@ -79,15 +74,14 @@ def test_list_reports_unreadable_metadata_per_environment(
 
 
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
-    venv_dir = tmp_path / "venvs" / "example"
-    venv_dir.mkdir(parents=True)
-    venv_container = venv.VenvContainer(venv_dir.parent)
-    lock = mocker.Mock()
-    lock.acquire.side_effect = PermissionError("read-only lock file")
+    (venv_dir := tmp_path / "venvs" / "example").mkdir(parents=True)
+    venv_container: Final[venv.VenvContainer] = venv.VenvContainer(venv_dir.parent)
+    lock: Final = mocker.create_autospec(
+        BaseFileLock, instance=True, **{"acquire.side_effect": PermissionError("read-only lock file")}
+    )
     mocker.patch.object(venv_container, "venv_lock", return_value=lock)
-    list_packages_module = importlib.import_module("pipx.commands.list_packages")
     mocker.patch.object(
-        list_packages_module,
+        importlib.import_module("pipx.commands.list_packages"),
         "get_venv_summary",
         return_value=("package example 1", common.VenvProblems()),
     )
@@ -104,16 +98,14 @@ def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) 
     lock.release.assert_not_called()
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "installed package" in captured.out
+    assert "installed package" in capsys.readouterr().out
 
     assert not run_pipx_cli(["list", "--global"])
-    captured = capsys.readouterr()
-    assert "nothing has been installed with pipx" in captured.err
+    assert "nothing has been installed with pipx" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -121,40 +113,40 @@ def test_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
 
     assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
-    assert "package pycowsay has invalid interpreter" not in captured.err
+    assert "package pycowsay has invalid interpreter" not in capsys.readouterr().err
 
     remove_venv_interpreter("pycowsay")
 
     assert run_pipx_cli(["list"])
-    captured = capsys.readouterr()
-    assert "package pycowsay has invalid interpreter" in captured.err
+    assert "package pycowsay has invalid interpreter" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_suffix(capsys: pytest.CaptureFixture[str]) -> None:
-    suffix = "_x"
+    suffix: Final[str] = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
 
     assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
-    assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
+    assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str | None) -> None:
+def test_list_legacy_venv_without_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay", metadata_version=None)
+
+    assert run_pipx_cli(["list"])
+    assert "package pycowsay has missing internal pipx metadata" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("metadata_version", ["0.1", "0.2", "0.3"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
-    if metadata_version is None:
-        assert run_pipx_cli(["list"])
-        captured = capsys.readouterr()
-        assert "package pycowsay has missing internal pipx metadata" in captured.err
-    else:
-        assert not run_pipx_cli(["list"])
-        captured = capsys.readouterr()
-        assert "package pycowsay 0.0.0.2," in captured.out
+    assert not run_pipx_cli(["list"])
+    assert "package pycowsay 0.0.0.2," in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -170,8 +162,7 @@ def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: 
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
-    venv_dir = paths.ctx.venvs / "broken"
-    venv_dir.mkdir(parents=True)
+    (venv_dir := paths.CTX.venvs / "broken").mkdir(parents=True)
     (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
     assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
 
@@ -179,45 +170,42 @@ def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
 @pytest.mark.parametrize("metadata_version", ["0.1"])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str) -> None:
-    suffix = "_x"
+    suffix: Final[str] = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
     assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
-    assert f"shell completions are exposed at {paths.ctx.completion_dir}" in captured.out
+    assert f"shell completions are exposed at {paths.CTX.completion_dir}" in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_json(capsys: pytest.CaptureFixture[str]) -> None:
-    pipx_venvs_dir = paths.ctx.home / "venvs"
-    venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
+def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    venv_bin_dir: Final[str] = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
-    captured = capsys.readouterr()
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--output", "json"])
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
 
     assert not re.search(r"\S", captured.err)
-    json_parsed = json.loads(captured.out, object_hook=_json_decoder_object_hook)
+    (listed := tmp_path / "list.json").write_text(captured.out, encoding="utf-8")
+    json_parsed: Final = load_spec_file(listed)
 
-    # raises error if not valid json
     assert sorted(json_parsed["venvs"].keys()) == ["pycowsay", "pylint"]
 
-    # pycowsay venv
-    pycowsay_package_ref = create_package_info_ref("pycowsay", "pycowsay", pipx_venvs_dir)
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
-        pycowsay_package_ref,
+        create_package_info_ref("pycowsay", "pycowsay", pipx_venvs_dir),
     )
     assert json_parsed["venvs"]["pycowsay"]["metadata"]["injected_packages"] == {}
 
-    # pylint venv
-    pylint_package_ref = create_package_info_ref(
+    pylint_package_ref: Final[PackageInfo] = create_package_info_ref(
         "pylint",
         "pylint",
         pipx_venvs_dir,
@@ -238,10 +226,9 @@ def test_list_json(capsys: pytest.CaptureFixture[str]) -> None:
         pylint_package_ref,
     )
     assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["black"]
-    black_package_ref = create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False)
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
-        black_package_ref,
+        create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False),
     )
 
 
@@ -249,10 +236,10 @@ def test_list_json(capsys: pytest.CaptureFixture[str]) -> None:
 def test_list_short(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
-    captured = capsys.readouterr()
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--short"])
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
     assert "isort 5.6.4" in captured.out
@@ -266,7 +253,7 @@ def test_list_json_rejects_human_filter(
 ) -> None:
     assert run_pipx_cli(["list", "--output", "json", option]) == 1
 
-    document = json.loads(capsys.readouterr().out)
+    document: Final = json.loads(capsys.readouterr().out)
     assert document["status"] == "error"
     assert "--output json cannot be combined with --short or --pinned" in document["errors"][0]["message"]
 
@@ -279,7 +266,7 @@ def test_list_selected_package_text(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["list", "pycowsay"])
 
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
     assert ("package pycowsay 0.0.0.2," in captured.out, "package isort" in captured.out) == (True, False)
 
 
@@ -364,9 +351,9 @@ def test_list_injected_apps_without_symlinks(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_waits_for_install(tmp_path: Path) -> None:
-    release = tmp_path / "release"
+    release: Final[Path] = tmp_path / "release"
     with _install_paused_under_lock(tmp_path, "slow-app", release) as install:
-        listed = _start_pipx("list", "--short")
+        listed: Final[subprocess.Popen[str]] = _start_pipx("list", "--short")
         # the install cannot progress until release, so a list that honours the lock is still running
         with pytest.raises(subprocess.TimeoutExpired):
             listed.wait(timeout=1)
@@ -385,7 +372,7 @@ def test_list_waits_for_install(tmp_path: Path) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
     with _install_paused_under_lock(tmp_path, "blocked-app", tmp_path / "release") as blocked_install:
-        installed = subprocess.run(
+        installed: Final[subprocess.CompletedProcess[str]] = subprocess.run(
             [
                 sys.executable,
                 "-m",
@@ -399,9 +386,9 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
             text=True,
             check=False,
         )
-        blocked_returncode = blocked_install.poll()
+        blocked_returncode: Final[int | None] = blocked_install.poll()
 
-    assert (installed.returncode, blocked_returncode, (paths.ctx.venvs / "other-app").is_dir()) == (0, None, True), (
+    assert (installed.returncode, blocked_returncode, (paths.CTX.venvs / "other-app").is_dir()) == (0, None, True), (
         installed.stdout,
         installed.stderr,
     )
@@ -409,70 +396,54 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_list_standalone_interpreter(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    def which(_name: str) -> None:
-        return None
-
-    monkeypatch.setattr(shutil, "which", which)
-
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-    target_python = f"{major}.{minor}"
+    monkeypatch.setattr(shutil, "which", lambda _name: None)
 
     assert not run_pipx_cli([
         "install",
         "--fetch-python=missing",
         "--python",
-        target_python,
+        f"{sys.version_info.major}.{sys.version_info.minor}",
         PKG["pycowsay"]["spec"],
     ])
-    captured = capsys.readouterr()
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
 
-    assert "standalone" in captured.out
+    assert "standalone" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    "flags",
+    [
+        pytest.param([], id="default"),
+        pytest.param(["--skip-maintenance"], id="skip-maintenance"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_does_not_trigger_maintenance() -> None:
+def test_list_does_not_trigger_maintenance(flags: list[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    now: Final[float] = time.time()
+    shared_libs.SHARED_LIBS.create(verbose=True, pip_args=[])
+    shared_libs.SHARED_LIBS.has_been_updated_this_run = False
+    os.utime(shared_libs.SHARED_LIBS.pip_path, (now, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    assert shared_libs.SHARED_LIBS.needs_upgrade
 
-    now = time.time()
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
-    shared_libs.shared_libs.has_been_updated_this_run = False
+    run_pipx_cli(["list", *flags])
 
-    access_time = now  # this can be anything
-    os.utime(
-        shared_libs.shared_libs.pip_path,
-        (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
-    )
-    assert shared_libs.shared_libs.needs_upgrade
-    run_pipx_cli(["list"])
-    assert not shared_libs.shared_libs.has_been_updated_this_run
-    assert shared_libs.shared_libs.needs_upgrade
-
-    os.utime(
-        shared_libs.shared_libs.pip_path,
-        (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
-    )
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    assert shared_libs.shared_libs.needs_upgrade
-    run_pipx_cli(["list", "--skip-maintenance"])
-    assert not shared_libs.shared_libs.has_been_updated_this_run
-    assert shared_libs.shared_libs.needs_upgrade
+    assert (shared_libs.SHARED_LIBS.has_been_updated_this_run, shared_libs.SHARED_LIBS.needs_upgrade) == (False, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_pinned_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
-    captured = capsys.readouterr()
+    capsys.readouterr()
 
     assert not run_pipx_cli(["pin", "black"])
     assert not run_pipx_cli(["list", "--pinned"])
 
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
     assert "black 22.8.0" in captured.out
     assert "pycowsay 0.0.0.2" not in captured.out
 
@@ -484,12 +455,11 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
 
     assert not run_pipx_cli(["pin", "isort"])
     assert not run_pipx_cli(["pin", "nox"])
-
-    captured = capsys.readouterr()
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--pinned", "--include-injected"])
 
-    captured = capsys.readouterr()
+    captured: Final = capsys.readouterr()
 
     assert "nox 2023.4.22" in captured.out
     assert "isort 5.6.4" in captured.out
@@ -500,20 +470,21 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
 def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:
     (tmp_path / "fake_venv").mkdir()
     (tmp_path / "fake_venv" / "pyvenv.cfg").touch()
-    fake_venv = venv.Venv(tmp_path / "fake_venv")
-    pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
-    shared_python = shared_libs.shared_libs.python_path
+    fake_venv: Final[venv.Venv] = venv.Venv(tmp_path / "fake_venv")
+    shared_python: Final[Path] = shared_libs.SHARED_LIBS.python_path
     shared_python.parent.mkdir(parents=True)
     shared_python.touch()
 
-    fake_process.register(pip_list_args, returncode=1, stderr="unit test stderr")
+    fake_process.register(
+        [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"], returncode=1, stderr="unit test stderr"
+    )
     fake_process.register([str(shared_python), "-c", "from pip._internal.cli.main import main"])
 
     with pytest.raises(PipxError) as excinfo:
         fake_venv.list_installed_packages()
 
-    # Collapse the wrapping pipx_wrap applies on render so we can assert on substrings.
-    rendered = " ".join(str(excinfo.value).split())
+    # pipx_wrap breaks the message into lines on render
+    rendered: Final[str] = " ".join(str(excinfo.value).split())
     assert "Failed to execute" in rendered
     assert "Process exited with return code 1" in rendered
     assert "unit test stderr" in rendered
@@ -523,17 +494,19 @@ def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess
 def _install_paused_under_lock(
     tmp_path: Path, name: str, release: Path
 ) -> Generator[subprocess.Popen[str], None, None]:
-    entered = tmp_path / f"{name}-entered"
+    entered: Final[Path] = tmp_path / f"{name}-entered"
     # the wheel's .pth imports its module whenever the environment's python starts, and pipx starts it to inspect the
     # new environment while holding the lock
-    pause = (
+    pause: Final[str] = (
         "from pathlib import Path\n"
         "from time import sleep\n"
         f"Path({str(entered)!r}).touch()\n"
         f"while not Path({str(release)!r}).exists():\n"
         "    sleep(0.01)\n"
     )
-    install = _start_pipx("install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance")
+    install: Final[subprocess.Popen[str]] = _start_pipx(
+        "install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance"
+    )
     try:
         while not entered.exists():
             if install.poll() is not None:
@@ -548,8 +521,8 @@ def _install_paused_under_lock(
 
 def _create_wheel(tmp_path: Path, name: str, module_prefix: str = "") -> Path:
     # a prebuilt wheel skips the isolated build a project directory needs, which takes seconds on Windows
-    module = name.replace("-", "_")
-    dist_info = f"{module}-1.dist-info"
+    module: Final[str] = name.replace("-", "_")
+    dist_info: Final[str] = f"{module}-1.dist-info"
     with zipfile.ZipFile(wheel := tmp_path / f"{module}-1-py3-none-any.whl", "w") as archive:
         for path, content in {
             f"{module}.py": f"{module_prefix}def main() -> None:\n    print({name!r})\n",

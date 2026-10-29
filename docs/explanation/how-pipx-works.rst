@@ -4,10 +4,11 @@
 
 .. note::
 
-    This page describes the **pip backend** model, where a shared ``pip`` environment backs every managed venv through a
-    ``.pth`` file. When the **uv backend** is active (the default whenever uv is available, via the ``pipx[uv]`` extra
-    or on ``PATH``) pipx skips the shared environment and uses ``uv venv`` and ``uv pip`` instead; uv-created venvs ship
-    without pip. See :doc:`../how-to/use-uv-backend`.
+    This page describes the **pip backend** model, where a shared `pip <https://pip.pypa.io>`_ environment backs every
+    managed venv through a ``.pth`` file. When the **uv backend** is active (the default whenever `uv
+    <https://docs.astral.sh/uv/>`_ is available, via the ``pipx[uv]`` extra or on ``PATH``) pipx skips the shared
+    environment and uses ``uv venv`` and ``uv pip`` instead; uv-created venvs ship without ``pip``. See
+    :doc:`../how-to/use-uv-backend`.
 
 ***************************
  Installing an application
@@ -15,16 +16,18 @@
 
 ``pipx install PACKAGE`` creates an isolated virtual environment under ``PIPX_HOME`` (for example
 ``~/.local/share/pipx/venvs/black``) and installs the package into it. Under the pip backend pipx creates the venv
-without pip, then creates or reuses a shared environment that holds an up-to-date ``pip`` and links it into the venv
-through a `.pth file <https://docs.python.org/3/library/site.html>`_, so every venv borrows one pip rather than
-installing its own. pipx refreshes that shared pip once it is more than 30 days old, or right away when it is older than
-pip 26.2.2; ``pipx upgrade-shared`` refreshes it immediately. When pip's files are missing from the shared environment,
-pipx rebuilds it before running pip; when a pip command fails because pip no longer imports, pipx rebuilds it and
-retries the command once. Under the uv backend there is no shared environment: ``uv venv`` builds the venv (without pip)
+without ``pip``, then creates or reuses a shared environment that holds an up-to-date ``pip`` and links it into the venv
+through a `.pth file <https://docs.python.org/3/library/site.html>`_, so every venv borrows one ``pip`` rather than
+installing its own. Under the uv backend there is no shared environment: ``uv venv`` builds the venv (without ``pip``)
 and ``uv pip`` installs into it.
 
-Once the package is installed, pipx exposes the application's resources so you can reach them from anywhere. It handles
-three kinds:
+pipx refreshes the shared ``pip`` once it is more than 30 days old, or right away when it is older than ``pip`` 26.2.2;
+``pipx upgrade-shared`` refreshes it immediately. When ``pip``'s files are missing from the shared environment, pipx
+rebuilds it before running ``pip``; when a ``pip`` command fails because ``pip`` no longer imports, pipx rebuilds it and
+retries the command once.
+
+After installing the package, pipx exposes the application's resources so you can reach them from any directory. It
+handles three kinds:
 
 -  console and GUI scripts, into ``PIPX_BIN_DIR`` (default ``~/.local/bin``), for example
    ``~/.local/bin/black`` -> ``~/.local/share/pipx/venvs/black/bin/black``;
@@ -42,7 +45,7 @@ package ships, pipx exposes the new ones and deletes the links or copies of the 
 Adding ``--global`` to any command targets a system-wide location shared by all users instead of your home directory;
 the concrete paths and overrides live in :doc:`../how-to/configure-paths`. It is not available on Windows.
 
-For a ``.py`` script carrying PEP 723 metadata, pipx builds a temporary wheel from the script and its declared
+For a ``.py`` script carrying :pep:`723` metadata, pipx builds a temporary wheel from the script and its declared
 dependencies, installs that wheel like any other package, then records the original path or URL so ``upgrade`` and
 ``reinstall`` can rebuild it.
 
@@ -73,31 +76,33 @@ dependencies, installs that wheel like any other package, then records the origi
 *************************
 
 ``pipx run APP`` executes an application without installing it permanently. Under the pip backend pipx either reuses a
-cached temporary venv or builds a fresh one, then invokes the app. The cache key is a hash of the requirements (the spec
-plus any ``--with`` packages, with local paths made absolute), the ``--python`` value, pip and venv arguments, the
-backend, the cooldown, and the installer's environment variables (``PIP_*``, or ``UV_*`` under the uv backend, in any
-case and with ``-`` or ``_``, as pip reads them). pipx leaves out a short list of variables that cannot change what
-gets installed, such as timeouts, retries, verbosity, progress bars, color and cache directories, so they do not fork
-the cache.
+cached temporary venv or builds a fresh one, then invokes the app.
 
-The key also covers the variables outside those prefixes that pip or uv read, in any case:
+The cache key is a hash of the requirements (the spec plus any ``--with`` packages, with local paths made absolute), the
+``--python`` value, pip and venv arguments, the backend, the cooldown, and the installer's environment variables
+(``PIP_*``, or ``UV_*`` under the uv backend, in any case and with ``-`` or ``_``, as ``pip`` reads them). pipx leaves
+out a short list of variables that cannot change what gets installed, such as timeouts, retries, verbosity, progress
+bars, color and cache directories, so they do not fork the cache.
+
+The key also covers the variables outside those prefixes that ``pip`` or ``uv`` read, in any case:
 
 - config files: ``XDG_CONFIG_HOME``, ``XDG_CONFIG_DIRS``, ``APPDATA``, ``SYSTEMDRIVE``, ``WIN_PD_OVERRIDE_APPDATA``
   and ``WIN_PD_OVERRIDE_COMMON_APPDATA``
 - TLS trust: ``SSL_CERT_FILE``, ``SSL_CERT_DIR``, ``SSL_CLIENT_CERT``, ``REQUESTS_CA_BUNDLE`` and ``CURL_CA_BUNDLE``
 - proxies: ``HTTP_PROXY``, ``HTTPS_PROXY``, ``ALL_PROXY`` and ``NO_PROXY``
 - credentials: ``NETRC``, ``PYTHON_KEYRING_BACKEND``, ``HF_TOKEN``, ``PYX_API_KEY``, ``PYX_AUTH_TOKEN`` and the
-  ``AWS_*`` variables uv reads to sign S3 requests
+  ``AWS_*`` variables ``uv`` reads to sign S3 requests
 
-``HOME`` and ``USERPROFILE`` stay out: another home means another user, whose default pipx home, and so its cache, already
-differs. The values only feed the hash, so tokens and proxy passwords never appear in a cache path or a log line.
+``HOME`` and ``USERPROFILE`` stay out: another home means another user, whose default pipx home, and so its cache,
+already differs. The values only feed the hash, so tokens and proxy passwords never appear in a cache path or a log
+line.
 
-Cached environments expire after 14 days, after which the next run rebuilds against the latest release. Edits to
-``pip.conf`` or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary venv
-borrows the shared pip.
+Cached environments expire after 14 days, after which the next run rebuilds against the latest release. The key leaves
+out edits to ``pip.conf`` or ``uv.toml``, so pass ``--refresh`` after changing them. The temporary venv borrows the
+shared ``pip``.
 
-Under the uv backend pipx usually hands the whole run to ``uv tool run``, which uses uv's own cache. ``pipx run --with
-PKG`` adds extra dependencies to the temporary environment either way.
+Under the uv backend pipx usually hands the whole run to ``uv tool run``, which uses ``uv``'s own cache. ``pipx run
+--with PKG`` adds extra dependencies to the temporary environment either way.
 
 .. mermaid::
 
@@ -182,16 +187,18 @@ installer output.
  Resolving the Python interpreter
 ***********************************
 
-pipx prefers a real system Python and only downloads a standalone build as a fallback. When you pass ``--python``, it
+pipx prefers a real system Python and only downloads a standalone build as a fallback.
+
+When you pass ``--python``, it
 tries the value as a literal path, then as a command on ``PATH``, then as a ``pythonX.Y`` command, then through the
 ``py`` launcher when one is on ``PATH``. Outside Windows pipx asks the launcher only for an ``X`` or ``X.Y`` version,
 the one form the Python Launcher for Unix reads as a version request. Only if every step fails, and
 ``--fetch-python=missing`` is set, does pipx fetch a build from `python-build-standalone
 <https://github.com/astral-sh/python-build-standalone>`_.
-``--fetch-python=always`` skips these steps and downloads directly. The default, ``--fetch-python=never``, keeps pipx
+``--fetch-python=always`` skips these steps and downloads a build. The default, ``--fetch-python=never``, keeps pipx
 offline and errors out instead.
 
-For the authoritative step-by-step order, the ``--fetch-python`` values, and when a downloaded build beats a patched
+For the full step-by-step order, the ``--fetch-python`` values, and when a downloaded build beats a patched
 system Python, see :doc:`../how-to/standalone-python`.
 
 .. mermaid::

@@ -26,7 +26,7 @@ Fedora Linux:
 
     $ sudo dnf upgrade pipx
 
-Windows (Scoop):
+Windows (`Scoop <https://scoop.sh/>`__):
 
 .. code-block:: console
 
@@ -71,9 +71,9 @@ When you installed pipx with ``pip install --user`` and cannot upgrade it as a p
 
 After the `eMudhra/emSign CA incident
 <https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576>`_,
-pip 26.2.2 and certifi 2026.10.19 stopped trusting the compromised root. Upgrade pipx first. Under the pip backend every
-app borrows the shared pip, and pipx replaces a shared pip older than 26.2.2 the next time it installs, upgrades,
-reinstalls, injects or runs an app. To replace it now:
+`pip <https://pip.pypa.io/>`__ 26.2.2 and `certifi <https://pypi.org/project/certifi/>`__ 2026.10.19 stopped trusting
+the compromised root. Upgrade pipx first. Under the pip backend every app borrows the shared pip, and pipx replaces a
+shared pip older than 26.2.2 the next time it installs, upgrades, reinstalls, injects or runs an app. To replace it now:
 
 .. code-block:: console
 
@@ -86,7 +86,7 @@ one:
 
     $ pipx runpip APP install --upgrade "certifi>=2026.10.19"
 
-Under the uv backend pipx runs the ``uv`` from its ``uv`` extra, or the one on your ``PATH``; upgrade that ``uv`` to
+Under the `uv <https://github.com/astral-sh/uv>`__ backend pipx runs the ``uv`` from its ``uv`` extra, or the one on your ``PATH``; upgrade that ``uv`` to
 0.13.4 or later.
 
 **********

@@ -3,9 +3,10 @@
 ######
 
 ``pipx`` installs and runs end-user Python applications in isolated environments. It fills the same role as macOS's
-``brew``, JavaScript's `npx <https://docs.npmjs.com/cli/commands/npx>`_, and Linux's ``apt``. Under the hood it uses
-uv when available and pip otherwise, but unlike either it creates a separate virtual environment for each application,
-so their dependencies never collide and an uninstall leaves nothing behind.
+`brew <https://brew.sh>`_, JavaScript's `npx <https://docs.npmjs.com/cli/commands/npx>`_, and Linux's `apt
+<https://wiki.debian.org/Apt>`_. Under the hood it uses `uv <https://docs.astral.sh/uv/>`_ when available and `pip
+<https://pip.pypa.io>`_ otherwise, but unlike either it creates a separate virtual environment for each application, so
+their dependencies never collide and an uninstall leaves nothing behind.
 
 .. mermaid::
 
@@ -62,16 +63,15 @@ so their dependencies never collide and an uninstall leaves nothing behind.
  pip vs pipx
 *************
 
-pip installs both libraries and applications into whatever environment is active, with no isolation. pipx installs
-only applications, each in its own virtual environment, and exposes their commands on your ``PATH``. You get clean
-uninstalls, zero dependency conflicts between tools, and no ``sudo pip install`` — pipx runs with regular user
-permissions.
+``pip`` installs both libraries and applications into whatever environment is active, with no isolation. pipx
+installs only applications, each in its own virtual environment, exposes their commands on your ``PATH``, and runs with
+regular user permissions, so you never need ``sudo pip install``.
 
 **********************
  Where apps come from
 **********************
 
-pipx pulls packages from `PyPI <https://pypi.org/>`_ by default, but accepts any source pip supports: local
+pipx pulls packages from `PyPI <https://pypi.org/>`_ by default, but accepts any source ``pip`` supports: local
 directories, wheels, and git URLs. Any package that declares `console script entry points
 <https://packaging.python.org/en/latest/specifications/entry-points/>`_ works with pipx.
 `Poetry <https://python-poetry.org/docs/pyproject/#scripts>`_ and `Hatch
@@ -81,8 +81,7 @@ directories, wheels, and git URLs. Any package that declares `console script ent
  Highlights
 ***********
 
-- Install CLI apps into isolated environments with ``pipx install``, so there are no dependency conflicts and uninstalls
-  are clean.
+- Install CLI apps into isolated environments with ``pipx install``.
 - List, upgrade, and uninstall managed apps in one command.
 - Run the latest version of any app in a temporary environment with ``pipx run``, without installing it first.
 
@@ -109,12 +108,11 @@ directories, wheels, and git URLs. Any package that declares `console script ent
  Credits
 *********
 
-pipx was inspired by `pipsi <https://github.com/mitsuhiko/pipsi>`_ and `npx <https://github.com/npm/npx>`_. It was
-created by `Chad Smith <https://github.com/cs01/>`_ and has had lots of help from `contributors
-<https://github.com/pypa/pipx/graphs/contributors>`_. The logo was created by `Ase Morales
-<https://github.com/asemorales>`_.
+pipx was inspired by `pipsi <https://github.com/mitsuhiko/pipsi>`_ and ``npx``. `Chad Smith <https://github.com/cs01/>`_
+created it, with lots of help from `contributors <https://github.com/pypa/pipx/graphs/contributors>`_. `Ase Morales
+<https://github.com/asemorales>`_ designed the logo.
 
-pipx is maintained by a team of volunteers (in alphabetical order):
+A team of volunteers maintains pipx (in alphabetical order):
 
 - `Bernát Gábor <https://github.com/gaborbernat>`_
 - `Henry Schreiner <https://github.com/henryiii>`_

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Final
 
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
@@ -13,9 +14,9 @@ class CustomBuildHook(BuildHookInterface):
         if self.target_name != "wheel":
             return
 
-        root = Path(self.root)
+        root: Final[Path] = Path(self.root)
         (output := root / "build" / "man").mkdir(parents=True, exist_ok=True)
-        source = "\n".join(
+        source: Final[str] = "\n".join(
             line
             for line in (root / "docs" / "man" / "pipx.1.rst").read_text(encoding="utf-8").splitlines()
             if line.strip() != ":orphan:"

@@ -15,15 +15,15 @@ import pytest
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
+    SKIP_IF_WINDOWS,
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
-    skip_if_windows,
 )
 from package_info import PKG
 from pipx import paths
 from pipx.constants import EXIT_CODE_LIST_PROBLEM
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -48,9 +48,10 @@ def test_upgrade_all() -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_none(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
+
     assert not run_pipx_cli(["upgrade-all"])
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert "No packages upgraded after running 'pipx upgrade-all'" in captured.out
+
+    assert "No packages upgraded after running 'pipx upgrade-all'" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -130,27 +131,32 @@ def test_upgrade_all_updates_current_cooldowns(
 
     assert not run_pipx_cli(["upgrade-all", "--include-injected", "--cooldown", "0"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     assert (metadata.main_package.cooldown_days, metadata.injected_packages["black"].cooldown_days) == (0, 0)
 
 
-@pytest.mark.parametrize("injected", [pytest.param(False, id="main"), pytest.param(True, id="injected")])
+@pytest.mark.parametrize(
+    ("setup_commands", "flags"),
+    [
+        pytest.param([["install", PKG["black"]["spec"]]], [], id="main"),
+        pytest.param(
+            [["install", "pycowsay"], ["inject", "pycowsay", PKG["black"]["spec"]]],
+            ["--include-injected"],
+            id="injected",
+        ),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_upgrades_outdated_package(
-    capsys: pytest.CaptureFixture[str],
-    injected: bool,
+    capsys: pytest.CaptureFixture[str], setup_commands: list[list[str]], flags: list[str]
 ) -> None:
-    if injected:
-        assert not run_pipx_cli(["install", "pycowsay"])
-        assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
-    else:
-        assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    for command in setup_commands:
+        assert not run_pipx_cli(command)
     capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade-all", *(["--include-injected"] if injected else [])])
+    assert not run_pipx_cli(["upgrade-all", *flags])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert "upgraded package black from 22.8.0 to " in captured.out
+    assert "upgraded package black from 22.8.0 to " in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -206,8 +212,7 @@ def test_upgrade_all_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade-all", "--quiet"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert not captured.out
-    assert not captured.err
+    assert (captured.out, captured.err) == ("", "")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -217,33 +222,35 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert not captured.err
-    assert json.loads(captured.out) == {
-        "command": ["upgrade-all"],
-        "data": {
-            "packages": [
-                {
-                    "environment": "pycowsay",
-                    "injected": False,
-                    "location": str(paths.ctx.venvs / "pycowsay"),
-                    "package": "pycowsay",
-                    "previous_version": "0.0.0.2",
-                    "status": "unchanged",
-                    "version": "0.0.0.2",
-                    "interpreter": metadata.python_version,
-                    "backend": metadata.backend,
-                    "source": None,
-                }
-            ],
-            "skipped": [],
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": ["upgrade-all"],
+            "data": {
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "injected": False,
+                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "package": "pycowsay",
+                        "previous_version": "0.0.0.2",
+                        "status": "unchanged",
+                        "version": "0.0.0.2",
+                        "interpreter": metadata.python_version,
+                        "backend": metadata.backend,
+                        "source": None,
+                    }
+                ],
+                "skipped": [],
+            },
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
+            "status": "success",
         },
-        "pipx_result_version": "1",
-        "errors": [],
-        "exit_code": 0,
-        "status": "success",
-    }
+        "",
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -263,13 +270,13 @@ def test_upgrade_all_pylock_json(
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     assert (json.loads(capsys.readouterr().out)["data"]["packages"], check.call_count) == (
         [
             {
                 "environment": "pycowsay",
                 "injected": False,
-                "location": str(paths.ctx.venvs / "pycowsay"),
+                "location": str(paths.CTX.venvs / "pycowsay"),
                 "package": "pycowsay",
                 "previous_version": "0.0.0.2",
                 "status": "locked",
@@ -292,26 +299,28 @@ def test_upgrade_all_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["upgrade-all", "--output", "json"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    assert not captured.err
-    assert json.loads(captured.out) == {
-        "command": ["upgrade-all"],
-        "data": {"packages": [], "skipped": []},
-        "errors": [
-            {
-                "code": "package_upgrade_failed",
-                "environment": "pycowsay",
-                "message": (
-                    "Not upgrading pycowsay. It has missing internal pipx metadata.\n"
-                    "It was likely installed using a pipx version before 0.15.0.0.\n"
-                    "Please uninstall and install this package to fix."
-                ),
-                "package": None,
-            }
-        ],
-        "exit_code": 1,
-        "pipx_result_version": "1",
-        "status": "error",
-    }
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": ["upgrade-all"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_upgrade_failed",
+                    "environment": "pycowsay",
+                    "message": (
+                        "Not upgrading pycowsay. It has missing internal pipx metadata.\n"
+                        "It was likely installed using a pipx version before 0.15.0.0.\n"
+                        "Please uninstall and install this package to fix."
+                    ),
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
+            "status": "error",
+        },
+        "",
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -341,9 +350,7 @@ def test_upgrade_all_json_editable_skip(capsys: pytest.CaptureFixture[str], empt
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_all_with_index_args(
-    mocker: MockerFixture,
-) -> None:
+def test_upgrade_all_with_index_args(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     check: Final[MagicMock] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
@@ -358,36 +365,35 @@ def test_upgrade_all_with_index_args(
     ) == (0, 1, True)
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_all_legacy_venv(
-    capsys: pytest.CaptureFixture[str],
-    metadata_version: str | None,
-) -> None:
+def test_upgrade_all_legacy_venv_without_metadata_fails(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay", metadata_version=None)
+    capsys.readouterr()
+
+    assert run_pipx_cli(["upgrade-all"])
+
+    assert "The following package(s) failed to upgrade: pycowsay" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "metadata_version", [version for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_legacy_venv(metadata_version: str) -> None:
     assert run_pipx_cli(["upgrade", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    if metadata_version is None:
-        capsys.readouterr()
-        assert run_pipx_cli(["upgrade-all"])
-        assert "The following package(s) failed to upgrade: pycowsay" in capsys.readouterr().err
-    else:
-        assert not run_pipx_cli(["upgrade-all"])
 
-
-@pytest.fixture
-def outdated_venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
-    for app, spec in (("black", PKG["black"]["spec"]), ("isort", PKG["isort"]["spec"])):
-        assert not run_pipx_cli(["install", "--app", app, spec])
-    capsys.readouterr()
-    return [venv_dir.name for venv_dir in paths.ctx.venvs.iterdir() if venv_dir.is_dir()]
+    assert not run_pipx_cli(["upgrade-all"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
 ) -> None:
-    slow: Final[Path] = paths.ctx.venvs / outdated_venv_names[0]
+    slow: Final[Path] = paths.CTX.venvs / outdated_venv_names[0]
 
     # the backup of an environment with expected apps precedes its upgrade progress line
     def backup(source: Path, destination: Path, *, symlinks: bool) -> Path:
@@ -400,6 +406,14 @@ def test_upgrade_all_prints_progress_in_venv_order(
     assert not run_pipx_cli(["upgrade-all"])
 
     assert re.findall(r"^upgrading ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == outdated_venv_names
+
+
+@pytest.fixture
+def outdated_venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
+    for app, spec in (("black", PKG["black"]["spec"]), ("isort", PKG["isort"]["spec"])):
+        assert not run_pipx_cli(["install", "--app", app, spec])
+    capsys.readouterr()
+    return [venv_dir.name for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir()]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -439,7 +453,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
 def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
-    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / "pipx_metadata.json"
+    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     metadata: Final = json.loads(metadata_file.read_text(encoding="utf-8"))
     metadata["main_package"]["app_paths"] = None
     metadata_file.write_text(json.dumps(metadata), encoding="utf-8")
@@ -452,10 +466,21 @@ def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixt
     } == {"black": "upgraded", "pycowsay": "unchanged"}
 
 
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
+def test_upgrade_all_finishes_upgrade_in_progress_on_first_interrupt(
+    capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]
+) -> None:
+    interrupt_upgrade(1)
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
+
+    assert (exit_code, "upgraded package black from 22.8.0 to " in capsys.readouterr().out) == (1, True)
+
+
 @pytest.fixture
 def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> Callable[[int], None]:
-    """Signal pipx alone as pip starts upgrading the first black venv, as pressing Ctrl-C that many times would."""
-
+    # signal pipx alone as pip starts upgrading the first black venv, as pressing Ctrl-C that many times would
     def patch(presses: int) -> None:
         mocker.patch.object(subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog))
 
@@ -486,19 +511,7 @@ def black_installed(capsys: pytest.CaptureFixture[str]) -> None:
     capsys.readouterr()
 
 
-@skip_if_windows
-@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
-def test_upgrade_all_finishes_upgrade_in_progress_on_first_interrupt(
-    capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]
-) -> None:
-    interrupt_upgrade(1)
-
-    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
-
-    assert (exit_code, "upgraded package black from 22.8.0 to " in capsys.readouterr().out) == (1, True)
-
-
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
 def test_upgrade_all_reports_upgrade_stopped_by_second_interrupt(
     capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]
@@ -510,7 +523,7 @@ def test_upgrade_all_reports_upgrade_stopped_by_second_interrupt(
     assert (exit_code, "Interrupted while upgrading black;" in capsys.readouterr().err) == (1, True)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed")
 def test_upgrade_all_does_not_start_upgrades_after_interrupt(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, interrupt_upgrade: Callable[[int], None]
@@ -526,14 +539,7 @@ def test_upgrade_all_does_not_start_upgrades_after_interrupt(
     assert (exit_code, "Interrupted before upgrading: black" in capsys.readouterr().err) == (1, True)
 
 
-@pytest.fixture
-def unfinished_black(capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]) -> None:
-    interrupt_upgrade(2)
-    assert run_pipx_cli(["upgrade-all"])
-    capsys.readouterr()
-
-
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed", "unfinished_black")
 def test_list_reports_venv_left_unfinished_by_interrupt(capsys: pytest.CaptureFixture[str]) -> None:
     exit_code: Final[int] = run_pipx_cli(["list"])
@@ -544,7 +550,14 @@ def test_list_reports_venv_left_unfinished_by_interrupt(capsys: pytest.CaptureFi
     )
 
 
-@skip_if_windows
+@pytest.fixture
+def unfinished_black(capsys: pytest.CaptureFixture[str], interrupt_upgrade: Callable[[int], None]) -> None:
+    interrupt_upgrade(2)
+    assert run_pipx_cli(["upgrade-all"])
+    capsys.readouterr()
+
+
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "command",
     [
@@ -563,7 +576,7 @@ def test_command_repairs_venv_left_unfinished_by_interrupt(
     assert (run_pipx_cli(["list"]), "interrupted" in capsys.readouterr().err) == (0, False)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "signal_handlers", "black_installed", "unfinished_black")
 def test_upgrade_all_repairs_unfinished_venv_whose_python_is_gone(capsys: pytest.CaptureFixture[str]) -> None:
     remove_venv_interpreter("black")

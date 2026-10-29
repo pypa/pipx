@@ -17,6 +17,8 @@ __lazy_modules__ = [
     "pipx.script",
     "pipx.util",
     "pipx.venv",
+    "pipx.wrap",
+    "re",
 ]
 
 import json
@@ -49,7 +51,7 @@ from pipx.constants import (
     ExitCode,
     FetchPythonOptions,
 )
-from pipx.emojis import hazard, sleep
+from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied, pip_long_option_name, trusted_recorded_pip_args
@@ -67,8 +69,9 @@ from pipx.result import (
     render_result,
 )
 from pipx.script import script_name_from_spec
-from pipx.util import PipxError, pipx_wrap, redact_url_credentials, rmdir
+from pipx.util import PipxError, redact_url_credentials, rmdir
 from pipx.venv import Venv, VenvContainer
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -80,7 +83,6 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-_PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 # value-taking options a recorded snapshot may carry, as their (uv, pip) spellings
 _VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
     **dict.fromkeys(("--default-index", "--index-url", "-i"), ("--default-index", "--index-url")),
@@ -92,7 +94,7 @@ _VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
 }
 
 
-def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-locals, too-many-statements]  # flat install API mirroring the CLI's install options
+def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-statements]  # flat install API mirroring the CLI's install options
     venv_dir: Path | None,
     package_names: list[str] | None,
     package_specs: list[str],
@@ -112,8 +114,8 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     lock_file: Path | None = None,
     suffix: str = "",
     python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
+    backend: str | None,
+    env_backend: str | None,
     exposure_enabled: bool | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
@@ -133,20 +135,20 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     skipped: Final[list[_SkippedInstall]] = []
     failures: Final[list[_FailedInstall]] = []
     try:
-        lock_file, python = _prepare_install(
+        lock_file = _validate_install_options(
             package_specs,
-            python,
-            lock_file,
             expected_apps,
             preinstall_packages,
-            cooldown_days=cooldown_days,
+            lock_file,
+            cooldown_days,
             upgrade=upgrade,
             upgrade_strategy=upgrade_strategy,
         )
+        python = python or get_default_python()
     except PipxError as error:
         return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
 
-    # a lock file already pins every version, so PIPX_COOLDOWN has nothing left to constrain
+    # a lock file already pins every version, leaving PIPX_COOLDOWN nothing to constrain
     resolution_cooldown: Final[int | None] = (
         None if lock_file is not None else _first_cooldown(cooldown_days, env_cooldown_days)
     )
@@ -168,56 +170,46 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
         package_spec, resolution_error = resolution_failure
         return _finish_install(_failed_install_result(package_spec, resolution_error), emit_output=emit_output)
 
-    venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.ctx.venvs)
+    venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.CTX.venvs)
     for package_name, package_spec, package_python in zip(package_names, package_specs, interpreters, strict=False):
         if venv_dir is None:
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
-        environment = venv_dir.name
 
         with venv_lock or venv_container.venv_lock(venv_dir):
-            try:
-                exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
-            except StopIteration:
-                exists = False
-
-            # ``pipx install pip`` always uses pip (uv venvs ship no pip). Override
-            # only the implicit env path; ``--backend uv`` still falls through to
-            # ``assert_not_pip_under_uv`` so an explicit conflict fails loudly.
-            install_backend, install_env_backend = backend, env_backend
-            if canonicalize_name(package_name) == "pip":
-                install_backend = backend or PIP
-                install_env_backend = None
-
+            exists: Final[bool] = venv_dir.exists() and any(venv_dir.iterdir())
+            installs_pip: Final[bool] = canonicalize_name(package_name) == "pip"
             try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole existing-venv resolution
                 venv = Venv(
                     venv_dir,
                     python=package_python,
                     verbose=verbose,
-                    backend=install_backend,
-                    env_backend=install_env_backend,
+                    # `pipx install pip` needs pip, which uv venvs lack; an explicit --backend uv still reaches
+                    # assert_not_pip_under_uv and fails
+                    backend=(backend or PIP) if installs_pip else backend,
+                    env_backend=None if installs_pip else env_backend,
                 )
-                required_apps = tuple(
+                required_apps: Final[tuple[str, ...]] = tuple(
                     dict.fromkeys(
                         expected_apps
                         if replace_expected_apps
                         else expected_apps or venv.pipx_metadata.main_package.expected_apps
                     )
                 )
-                recorded_lock = venv.pipx_metadata.main_package.lock_file
-                required_lock = lock_file if replace_lock else lock_file or recorded_lock
-                required_cooldown = _resolve_cooldown(
+                recorded_lock: Final[Path | None] = venv.pipx_metadata.main_package.lock_file
+                required_lock: Final[Path | None] = lock_file if replace_lock else lock_file or recorded_lock
+                required_cooldown: Final[int | None] = _resolve_cooldown(
                     required_lock,
                     cooldown_days,
                     venv.pipx_metadata.main_package.cooldown_days,
                     modifies_existing=exists and force,
                     env_cooldown_days=env_cooldown_days,
                 )
-                required_exposure = (
+                required_exposure: Final[bool] = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
                 )
-                required_pinned = venv.pipx_metadata.main_package.pinned if pinned is None else pinned
+                required_pinned: Final[bool] = venv.pipx_metadata.main_package.pinned if pinned is None else pinned
                 if exists:
-                    existing = _handle_existing_install(
+                    existing: Final[_ExistingInstall] = _handle_existing_install(
                         venv,
                         package_name,
                         package_spec,
@@ -248,11 +240,13 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                     ):
                         venv.python = str(recorded)
             except PipxError as error:
-                _record_install_failure(failures, messages, environment, error)
+                _record_install_failure(failures, messages, venv_dir.name, error)
                 break
 
-            previous_resource_paths: set[Path] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
-            preserve_existing_venv = exists and (
+            previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
+                venv, local_bin_dir, local_man_dir
+            )
+            preserve_existing_venv: Final[bool] = exists and (
                 preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
             )
             try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
@@ -261,10 +255,10 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
                         rmdir(venv_dir)
                         venv = Venv(venv_dir, python=venv.python, verbose=verbose, backend=venv.backend_name)
-                    build = _EnvironmentBuild(
+                    build: Final[_EnvironmentBuild] = _EnvironmentBuild(
                         venv_args=venv_args,
                         pip_args=pip_args,
-                        override_shared=canonicalize_name(package_name) == "pip",
+                        override_shared=installs_pip,
                         exposure_enabled=required_exposure,
                         preinstall_packages=preinstall_packages,
                         package_name=package_name,
@@ -301,6 +295,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         )
                     )
             except (Exception, KeyboardInterrupt) as error:
+                # any failure, an interrupt included, rolls back a new environment; pipx reports only a PipxError
                 if not exists:
                     venv.remove_venv()
                 if not isinstance(error, PipxError):
@@ -326,27 +321,88 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     )
 
 
-def _prepare_install(  # ruff:ignore[too-many-arguments]  # forwards the flat install option set to validation
-    package_specs: list[str],
-    python: str | None,
-    lock_file: Path | None,
+def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates the flat set of install options together
+    package_specs: Sequence[str],
     expected_apps: Sequence[str],
     preinstall_packages: Sequence[str] | None,
-    *,
+    lock_file: Path | None,
     cooldown_days: int | None,
+    *,
     upgrade: bool,
     upgrade_strategy: str | None,
-) -> tuple[Path | None, str]:
-    lock_file = _validate_install_options(
-        package_specs,
-        expected_apps,
-        preinstall_packages,
-        lock_file,
-        cooldown_days,
-        upgrade=upgrade,
-        upgrade_strategy=upgrade_strategy,
+) -> Path | None:
+    if upgrade_strategy is not None and not upgrade:
+        msg = "--upgrade-strategy requires --upgrade"
+        raise PipxError(msg)
+    if expected_apps and len(package_specs) != 1:
+        msg = "--app accepts one package spec"
+        raise PipxError(msg)
+    if lock_file is None:
+        return None
+    if len(package_specs) != 1:
+        msg = "--lock accepts one package spec"
+        raise PipxError(msg)
+    if preinstall_packages:
+        msg = "--lock cannot be combined with --preinstall"
+        raise PipxError(msg)
+    if upgrade:
+        msg = "--lock cannot be combined with --upgrade; use --force to apply a new lock"
+        raise PipxError(msg)
+    if cooldown_days is not None:
+        msg = "--lock cannot be combined with --cooldown"
+        raise PipxError(msg)
+    lock_file = lock_file.expanduser().resolve()
+    if not re.fullmatch(r"pylock(?:\.[^.]+)?\.toml", lock_file.name):
+        msg = "Lock files must be named pylock.toml or pylock.<name>.toml"
+        raise PipxError(msg)
+    if not lock_file.is_file():
+        msg = f"Lock file does not exist: {lock_file}"
+        raise PipxError(msg)
+    return lock_file
+
+
+def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
+    if not emit_output:
+        return result
+    if result.errors:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
+
+
+def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
+    return OperationResult(
+        command=("install",),
+        data=InstallData(packages=(), skipped=()),
+        messages=(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        exit_code=ExitCode(1),
+        errors=(
+            OperationError(
+                code="package_install_failed",
+                message=_error_report(error),
+                environment=redact_url_credentials(environment),
+            ),
+        ),
     )
-    return lock_file, python or get_default_python()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InstallData(OperationData):
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+
+
+def _error_report(error: PipxError) -> str:
+    # a JSON consumer reads only the envelope, which needs the installer's reason the terminal showed beside it
+    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+
+
+def _first_cooldown(*candidates: int | None) -> int | None:
+    return next((candidate for candidate in candidates if candidate is not None), None)
 
 
 def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the flat resolver context for each spec
@@ -410,92 +466,24 @@ def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the f
     return resolved, None, interpreters
 
 
-def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates the flat set of install options together
-    package_specs: Sequence[str],
-    expected_apps: Sequence[str],
-    preinstall_packages: Sequence[str] | None,
-    lock_file: Path | None,
-    cooldown_days: int | None,
+def _supported_python(
+    constraint: SpecifierSet,
     *,
-    upgrade: bool,
-    upgrade_strategy: str | None,
-) -> Path | None:
-    if upgrade_strategy is not None and not upgrade:
-        msg = "--upgrade-strategy requires --upgrade"
-        raise PipxError(msg)
-    if expected_apps and len(package_specs) != 1:
-        msg = "--app accepts one package spec"
-        raise PipxError(msg)
-    if lock_file is None:
-        return None
-    if len(package_specs) != 1:
-        msg = "--lock accepts one package spec"
-        raise PipxError(msg)
-    if preinstall_packages:
-        msg = "--lock cannot be combined with --preinstall"
-        raise PipxError(msg)
-    if upgrade:
-        msg = "--lock cannot be combined with --upgrade; use --force to apply a new lock"
-        raise PipxError(msg)
-    if cooldown_days is not None:
-        msg = "--lock cannot be combined with --cooldown"
-        raise PipxError(msg)
-    lock_file = lock_file.expanduser().resolve()
-    if not _PYLOCK_NAME_RE.fullmatch(lock_file.name):
-        msg = "Lock files must be named pylock.toml or pylock.<name>.toml"
-        raise PipxError(msg)
-    if not lock_file.is_file():
-        msg = f"Lock file does not exist: {lock_file}"
-        raise PipxError(msg)
-    return lock_file
-
-
-def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
-    return OperationResult(
-        command=("install",),
-        data=InstallData(packages=(), skipped=()),
-        messages=(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-        exit_code=ExitCode(1),
-        errors=(
-            OperationError(
-                code="package_install_failed",
-                message=_error_report(error),
-                environment=redact_url_credentials(environment),
-            ),
-        ),
-    )
-
-
-def _record_install_failure(
-    failures: list[_FailedInstall],
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
     messages: list[OutputMessage],
-    environment: str,
-    error: PipxError,
-) -> None:
-    failures.append(_FailedInstall(environment, _error_report(error)))
-    messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
-
-
-def _error_report(error: PipxError) -> str:
-    # the envelope is all a JSON consumer reads, so it keeps the installer's reason the terminal showed beside it
-    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
-
-
-def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
-    if not emit_output:
-        return result
-    if result.errors:
-        render_messages(
-            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
-            quiet=0,
+) -> str:
+    if python_flag_passed:
+        msg = (
+            f"The Python you named does not satisfy {str(constraint)!r}, which this package requires. "
+            f"Name one that does, or leave --python out and let pipx choose."
         )
-        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
-    render_result(result, output=OutputFormat.HUMAN, quiet=0)
-    return result
-
-
-def _first_cooldown(*candidates: int | None) -> int | None:
-    return next((candidate for candidate in candidates if candidate is not None), None)
+        raise PipxError(msg)
+    interpreter: Final[str] = interpreter_for(constraint, fetch_python)
+    messages.append(
+        OutputMessage(text=f"This package needs Python {constraint}, so pipx used {interpreter}.", notice=True)
+    )
+    return interpreter
 
 
 def _resolve_cooldown(
@@ -537,7 +525,7 @@ def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the
     if not reinstall and force and python_flag_passed:
         messages.append(
             OutputMessage(
-                pipx_wrap(
+                text=pipx_wrap(
                     f"""
                     --python is ignored when --force is passed.
                     If you want to reinstall {package_name} with {python},
@@ -547,7 +535,7 @@ def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the
             )
         )
     if force:
-        messages.append(OutputMessage(f"Installing to existing venv {venv.name!r}"))
+        messages.append(OutputMessage(text=f"Installing to existing venv {venv.name!r}"))
         return _ExistingInstall(
             continue_install=True,
             packages=(),
@@ -571,14 +559,16 @@ def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the
         return _ExistingInstall(
             continue_install=False,
             packages=(_installed_package(venv, package_name),) if reason is None else (),
-            skipped=(_SkippedInstall(venv.name, package_name, reason),) if reason is not None else (),
+            skipped=(_SkippedInstall(environment=venv.name, package=package_name, reason=reason),)
+            if reason is not None
+            else (),
             messages=tuple(messages),
         )
 
-    installed_version = venv.pipx_metadata.main_package.package_version
+    installed_version: Final[str] = venv.pipx_metadata.main_package.package_version
     messages.append(
         OutputMessage(
-            pipx_wrap(
+            text=pipx_wrap(
                 f"""
                 {venv.name!r}{f" ({installed_version})" if installed_version else ""} already seems to be installed. Not
                 modifying existing installation in '{venv.root}'.
@@ -592,9 +582,17 @@ def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the
     return _ExistingInstall(
         continue_install=False,
         packages=(),
-        skipped=(_SkippedInstall(venv.name, package_name, "already-installed"),),
+        skipped=(_SkippedInstall(environment=venv.name, package=package_name, reason="already-installed"),),
         messages=tuple(messages),
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ExistingInstall:
+    continue_install: bool
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+    messages: tuple[OutputMessage, ...]
 
 
 def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat upgrade context for one existing venv
@@ -613,34 +611,31 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
     package_metadata = venv.pipx_metadata.main_package
     installed_version: Final[str] = package_metadata.package_version
     if package_metadata.lock_file is not None:
-        validate_expected_apps(venv, package_name, expected_apps)
-        _record_expected_apps(venv, expected_apps)
-        return "locked", (OutputMessage(locked_package_message(venv.name)),)
-    if package_spec_satisfied(
+        skip = ("locked", locked_package_message(venv.name))
+    elif package_spec_satisfied(
         package_spec,
         package_name,
         installed_version,
         package_metadata.package_or_url or package_name,
     ):
+        skip = (
+            "already-satisfied",
+            f"{package_name} {installed_version} already satisfies {redact_url_credentials(package_spec)}",
+        )
+    elif package_metadata.pinned:
+        skip = ("pinned", f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
+    else:
+        skip = None
+    if skip is not None:
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
-        return "already-satisfied", (
-            OutputMessage(
-                f"{package_name} {installed_version} already satisfies {redact_url_credentials(package_spec)}"
-            ),
-        )
-    if package_metadata.pinned:
-        validate_expected_apps(venv, package_name, expected_apps)
-        _record_expected_apps(venv, expected_apps)
-        return "pinned", (
-            OutputMessage(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it."),
-        )
+        reason, message = skip
+        return reason, (OutputMessage(text=message),)
 
     with preserve_venv(venv.root, enabled=bool(expected_apps)):
         main_pip_args: Final[list[str]] = pip_args or trusted_recorded_pip_args(package_metadata.pip_args, venv.root)
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
         venv.upgrade_packaging_libraries(main_pip_args)
-        upgrade_only = [f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None
         previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
         venv.upgrade_package(
             package_name,
@@ -651,7 +646,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
             include_apps=package_metadata.include_apps,
             is_main_package=True,
             suffix=package_metadata.suffix,
-            upgrade_only_pip_args=upgrade_only,
+            upgrade_only_pip_args=[f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None,
             expected_apps=expected_apps,
             cooldown_days=cooldown_days,
         )
@@ -662,7 +657,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
             remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
     return None, (
         OutputMessage(
-            pipx_wrap(
+            text=pipx_wrap(
                 f"""
                 upgraded package {venv.name} from {installed_version} to
                 {package_metadata.package_version} (location: {venv.root!s})
@@ -692,6 +687,115 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstalledPackage:
+    environment: str
+    package: str
+    version: str
+    location: str
+    interpreter: str | None
+    backend: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedInstall:
+    environment: str
+    package: str
+    reason: str
+
+
+def _record_install_failure(
+    failures: list[_FailedInstall],
+    messages: list[OutputMessage],
+    environment: str,
+    error: PipxError,
+) -> None:
+    failures.append(_FailedInstall(environment=environment, error=_error_report(error)))
+    messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedInstall:
+    environment: str
+    error: str
+
+
+# holds everything needed to fill a venv, letting pipx repeat it when the first interpreter turns out unsupported
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _EnvironmentBuild:
+    venv_args: list[str]
+    pip_args: list[str]
+    override_shared: bool
+    exposure_enabled: bool
+    preinstall_packages: list[str] | None
+    package_name: str
+    package_spec: str
+    force_reinstall: bool
+    include_dependencies: bool
+    include_resources_from: Sequence[str]
+    suffix: str
+    expected_apps: tuple[str, ...]
+    lock_file: Path | None
+    cooldown_days: int | None
+    pinned: bool
+
+    def run(self, venv: Venv) -> VenvMetadata:
+        venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
+        venv.pipx_metadata.exposure_enabled = self.exposure_enabled
+        venv.pipx_metadata.environment = venv.root.name
+        # pipx writes the record last; a kill before it must not leave what looks like a pre-0.15 environment
+        with marked_unfinished(venv.root):
+            for dependency in self.preinstall_packages or []:
+                venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
+            return venv.install_package(
+                package_name=self.package_name,
+                package_or_url=self.package_spec,
+                pip_args=self.pip_args,
+                install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
+                include_dependencies=self.include_dependencies,
+                include_resources_from=self.include_resources_from,
+                include_apps=True,
+                is_main_package=True,
+                suffix=self.suffix,
+                expected_apps=self.expected_apps,
+                lock_file=self.lock_file,
+                cooldown_days=self.cooldown_days,
+                pinned=self.pinned,
+            )
+
+
+def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context around the interpreter retry
+    venv: Venv,
+    build: _EnvironmentBuild,
+    *,
+    venv_dir: Path,
+    venv_backup: VenvBackup,
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
+    verbose: bool,
+    messages: list[OutputMessage],
+) -> Venv:
+    try:
+        # uv installs onto an interpreter above the package's upper bound, so ask the metadata as well
+        constraint = build.run(venv).unsupported_python
+    except IncompatiblePythonError as error:
+        constraint = error.constraint
+    if constraint is None:
+        return venv
+
+    interpreter: Final[str] = _supported_python(
+        constraint,
+        fetch_python=fetch_python,
+        python_flag_passed=python_flag_passed,
+        messages=messages,
+    )
+    venv_backup.remove_venv()
+    # the rebuild deletes the recorded backend; resolving it again could switch installer and index
+    rebuilt: Final[Venv] = Venv(venv_dir, python=interpreter, verbose=verbose, backend=venv.backend_name)
+    build.run(rebuilt)
+    return rebuilt
+
+
 def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mirrors the CLI's flat install-all option set
     spec_metadata_file: Path,
     local_bin_dir: Path,
@@ -702,22 +806,22 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
     *,
     verbose: bool,
     force: bool,
-    backend: str | None = None,
-    env_backend: str | None = None,
-    cooldown_days: int | None = None,
-    python_flag_passed: bool = False,
+    backend: str | None,
+    env_backend: str | None,
+    cooldown_days: int | None,
+    python_flag_passed: bool,
 ) -> ExitCode:
     venvs_metadata: Final[list[PipxMetadata]] = []
     malformed: PipxError | None = None
     try:
-        for venv_metadata in extract_venv_metadata(spec_metadata_file):
+        for venv_metadata in _extract_venv_metadata(spec_metadata_file):
             venvs_metadata.append(venv_metadata)
     except PipxError as error:
-        # installing one by one reached a malformed entry only after the entries before it, so install those first
+        # a one-by-one install reached a malformed entry only after the entries before it; install those first
         if not venvs_metadata:
             raise
         malformed = error
-    venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venvs)
+    venv_container: Final[VenvContainer] = VenvContainer(paths.CTX.venvs)
     with expose_shared_resources_in_order(venvs_metadata, local_bin_dir, local_man_dir):
         outcomes: Final[list[tuple[str, bool]]] = fan_out(
             [
@@ -745,12 +849,42 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
         raise malformed
     if not any(succeeded for _, succeeded in outcomes):
         print(  # ruff:ignore[print]  # user-facing CLI output
-            f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}"
+            f"No packages installed after running 'pipx install-all {spec_metadata_file}' {SLEEP}"
         )
     if failed := [environment for environment, succeeded in outcomes if not succeeded]:
         msg = f"The following package(s) failed to install: {', '.join(failed)}"
         raise PipxError(msg)
     return EXIT_CODE_OK
+
+
+def _extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
+    try:
+        spec: Final = load_spec_file(spec_metadata_file)
+    except OSError as exc:
+        msg = f"Unable to read the spec metadata file {spec_metadata_file}: {exc.strerror}"
+        raise PipxError(msg) from exc
+    except (json.decoder.JSONDecodeError, UnicodeDecodeError) as exc:
+        msg = f"The spec metadata file {spec_metadata_file} is not valid JSON."
+        raise PipxError(msg) from exc
+
+    if not isinstance(spec, dict) or not isinstance(venvs_metadata_dict := spec.get("venvs", {}), dict):
+        msg = f"The spec metadata file {spec_metadata_file} is invalid."
+        raise PipxError(msg)
+    if not venvs_metadata_dict:
+        msg = f"No packages found in the spec metadata file {spec_metadata_file}."
+        raise PipxError(msg)
+
+    for package_path_name, entry in venvs_metadata_dict.items():
+        venv_metadata = PipxMetadata(paths.CTX.venvs.joinpath(package_path_name), read=False)
+        try:
+            venv_metadata.from_dict(entry["metadata"])
+        except KeyError as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is missing {exc}."
+            raise PipxError(msg) from exc
+        except (AttributeError, TypeError) as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is malformed: {exc}"
+            raise PipxError(msg) from exc
+        yield venv_metadata
 
 
 def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat install-all option set for one venv
@@ -772,7 +906,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     main_package: Final[PackageInfo] = venv_metadata.main_package
     venv_dir: Final[Path] = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
     interpreter: Final[str | None] = (
-        python if python_flag_passed else get_python_interpreter(venv_metadata.source_interpreter) or python
+        python if python_flag_passed else _get_python_interpreter(venv_metadata.source_interpreter) or python
     )
     packages: Final[list[PackageInfo]] = [main_package, *venv_metadata.injected_packages.values()]
     try:
@@ -782,16 +916,16 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
             else _translate_recorded_pip_args(venv_metadata, packages, backend)
         )
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
-            package_cooldown = _resolve_cooldown(
+            package_cooldown: Final[int | None] = _resolve_cooldown(
                 main_package.lock_file,
                 cooldown_days,
                 main_package.cooldown_days,
                 modifies_existing=False,
             )
-            installed = install(
+            installed: Final[OperationResult[InstallData]] = install(
                 venv_dir,
                 None,
-                [generate_package_spec(main_package)],
+                [_generate_package_spec(main_package)],
                 local_bin_dir,
                 local_man_dir,
                 interpreter,
@@ -822,7 +956,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
             ):
                 inject(
                     venv_dir=venv_dir,
-                    package_specs=[generate_package_spec(inject_package)],
+                    package_specs=[_generate_package_spec(inject_package)],
                     requirement_files=[],
                     pip_args=inject_pip_args,
                     verbose=verbose,
@@ -831,13 +965,31 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
                     include_resources_from=inject_package.include_resources_from,
                     force=force,
                     suffix=inject_package.suffix == main_package.suffix,
-                    cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
+                    cooldown_days=_first_cooldown(cooldown_days, inject_package.cooldown_days),
                     pinned=inject_package.pinned,
                 )
     except PipxError as error:
         print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return venv_dir.name, False
     return venv_dir.name, True
+
+
+def _get_python_interpreter(source_interpreter: Path | None) -> str | None:
+    if source_interpreter is None:
+        return None
+    if source_interpreter.is_file():
+        return str(source_interpreter)
+
+    print(  # ruff:ignore[print]  # user-facing CLI output
+        pipx_wrap(
+            f"""
+            The exported python interpreter '{source_interpreter}' is ignored
+            as not found.
+            """
+        )
+    )
+
+    return None
 
 
 def _translate_recorded_pip_args(
@@ -859,7 +1011,7 @@ def _translate_recorded_pip_args(
         )
         _LOGGER.warning(
             "%s  Ignoring pip args recorded for the %s backend of %s: %s%s",
-            hazard,
+            HAZARD,
             venv_metadata.backend,
             environment,
             " ".join(dropped),
@@ -913,14 +1065,6 @@ def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> 
     return translated, dropped
 
 
-def _expand_pip_abbreviation(argument: str) -> str:
-    # pip accepts any unambiguous prefix of a long option, so a pip recording can hold --index-u for --index-url
-    flag, separator, value = argument.partition("=")
-    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
-        return argument
-    return f"{name}{separator}{value}"
-
-
 def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
     flag, _, value = argument.partition("=") if argument.startswith("--") else (argument[:2], "", argument[2:])
     if flag not in _VALUE_OPTION_SPELLINGS:
@@ -928,39 +1072,15 @@ def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
     return flag, value or next(arguments, "")
 
 
-def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
-    try:
-        spec: Final = load_spec_file(spec_metadata_file)
-    except OSError as exc:
-        msg = f"Unable to read the spec metadata file {spec_metadata_file}: {exc.strerror}"
-        raise PipxError(msg) from exc
-    except (json.decoder.JSONDecodeError, UnicodeDecodeError) as exc:
-        msg = f"The spec metadata file {spec_metadata_file} is not valid JSON."
-        raise PipxError(msg) from exc
-
-    if not isinstance(spec, dict) or not isinstance(venvs_metadata_dict := spec.get("venvs", {}), dict):
-        msg = f"The spec metadata file {spec_metadata_file} is invalid."
-        raise PipxError(msg)
-    if not venvs_metadata_dict:
-        msg = f"No packages found in the spec metadata file {spec_metadata_file}."
-        raise PipxError(msg)
-
-    for package_path_name, entry in venvs_metadata_dict.items():
-        venv_dir = paths.ctx.venvs.joinpath(package_path_name)
-        venv_metadata = PipxMetadata(venv_dir, read=False)
-        try:
-            venv_metadata.from_dict(entry["metadata"])
-        except KeyError as exc:
-            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is missing {exc}."
-            raise PipxError(msg) from exc
-        except (AttributeError, TypeError) as exc:
-            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is malformed: {exc}"
-            raise PipxError(msg) from exc
-        yield venv_metadata
+def _expand_pip_abbreviation(argument: str) -> str:
+    # pip accepts any unambiguous prefix of a long option: a pip recording can hold --index-u for --index-url
+    flag, separator, value = argument.partition("=")
+    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
+        return argument
+    return f"{name}{separator}{value}"
 
 
-def generate_package_spec(package_info: PackageInfo) -> str:
-    """Generate more precise package spec from package info."""
+def _generate_package_spec(package_info: PackageInfo) -> str:
     if not package_info.package_or_url:
         msg = f"A package spec is not available for {package_info.package}"
         raise PipxError(msg)
@@ -970,187 +1090,8 @@ def generate_package_spec(package_info: PackageInfo) -> str:
     return package_info.package_or_url
 
 
-def get_python_interpreter(
-    source_interpreter: Path | None,
-) -> str | None:
-    """Get appropriate python interpreter."""
-    if source_interpreter is None:
-        return None
-    if source_interpreter.is_file():
-        return str(source_interpreter)
-
-    print(  # ruff:ignore[print]  # user-facing CLI output
-        pipx_wrap(
-            f"""
-            The exported python interpreter '{source_interpreter}' is ignored
-            as not found.
-            """
-        )
-    )
-
-    return None
-
-
-@dataclass(frozen=True)
-class _InstalledPackage:
-    environment: str
-    package: str
-    version: str
-    location: str
-    interpreter: str | None
-    backend: str
-
-
-@dataclass(frozen=True)
-class _SkippedInstall:
-    environment: str
-    package: str
-    reason: str
-
-
-@dataclass(frozen=True)
-class _FailedInstall:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True)
-class _ExistingInstall:
-    continue_install: bool
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-    messages: tuple[OutputMessage, ...]
-
-
-@dataclass(frozen=True)
-class InstallData(OperationData):
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-
-
-@dataclass(frozen=True)
-class _EnvironmentBuild:
-    """Everything needed to fill a venv, so pipx can do it twice when the first interpreter turns out unsupported."""
-
-    venv_args: list[str]
-    pip_args: list[str]
-    override_shared: bool
-    exposure_enabled: bool
-    preinstall_packages: list[str] | None
-    package_name: str
-    package_spec: str
-    force_reinstall: bool
-    include_dependencies: bool
-    include_resources_from: Sequence[str]
-    suffix: str
-    expected_apps: tuple[str, ...]
-    lock_file: Path | None
-    cooldown_days: int | None
-    pinned: bool
-
-    def run(self, venv: Venv) -> VenvMetadata:
-        venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
-        venv.pipx_metadata.exposure_enabled = self.exposure_enabled
-        venv.pipx_metadata.environment = venv.root.name
-        # the record is written last, so a kill before it must not leave what looks like a pre-0.15 environment
-        with marked_unfinished(venv.root):
-            for dependency in self.preinstall_packages or []:
-                venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
-            return venv.install_package(
-                package_name=self.package_name,
-                package_or_url=self.package_spec,
-                pip_args=self.pip_args,
-                install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
-                include_dependencies=self.include_dependencies,
-                include_resources_from=self.include_resources_from,
-                include_apps=True,
-                is_main_package=True,
-                suffix=self.suffix,
-                expected_apps=self.expected_apps,
-                lock_file=self.lock_file,
-                cooldown_days=self.cooldown_days,
-                pinned=self.pinned,
-            )
-
-
-def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context around the interpreter retry
-    venv: Venv,
-    build: _EnvironmentBuild,
-    *,
-    venv_dir: Path,
-    venv_backup: VenvBackup,
-    fetch_python: FetchPythonOptions,
-    python_flag_passed: bool,
-    verbose: bool,
-    messages: list[OutputMessage],
-) -> Venv:
-    try:
-        # uv installs onto an interpreter above the package's upper bound, so ask the metadata as well
-        constraint = build.run(venv).unsupported_python
-    except IncompatiblePythonError as error:
-        constraint = error.constraint
-    if constraint is None:
-        return venv
-
-    venv = _rebuild_on_supported_python(
-        venv_dir=venv_dir,
-        venv_backup=venv_backup,
-        constraint=constraint,
-        fetch_python=fetch_python,
-        python_flag_passed=python_flag_passed,
-        verbose=verbose,
-        # the rebuild deletes the recorded backend; resolving it again could switch installer and index
-        backend=venv.backend_name,
-        messages=messages,
-    )
-    build.run(venv)
-    return venv
-
-
-def _supported_python(
-    constraint: SpecifierSet,
-    *,
-    fetch_python: FetchPythonOptions,
-    python_flag_passed: bool,
-    messages: list[OutputMessage],
-) -> str:
-    if python_flag_passed:
-        msg = (
-            f"The Python you named does not satisfy {str(constraint)!r}, which this package requires. "
-            f"Name one that does, or leave --python out and let pipx choose."
-        )
-        raise PipxError(msg)
-    interpreter: Final[str] = interpreter_for(constraint, fetch_python)
-    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}.", notice=True))
-    return interpreter
-
-
-def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context to a fresh venv
-    *,
-    venv_dir: Path,
-    venv_backup: VenvBackup,
-    constraint: SpecifierSet,
-    fetch_python: FetchPythonOptions,
-    python_flag_passed: bool,
-    verbose: bool,
-    backend: str,
-    messages: list[OutputMessage],
-) -> Venv:
-    interpreter: Final[str] = _supported_python(
-        constraint,
-        fetch_python=fetch_python,
-        python_flag_passed=python_flag_passed,
-        messages=messages,
-    )
-    venv_backup.remove_venv()
-    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend)
-
-
 __all__ = [
     "InstallData",
-    "extract_venv_metadata",
-    "generate_package_spec",
-    "get_python_interpreter",
     "install",
     "install_all",
 ]

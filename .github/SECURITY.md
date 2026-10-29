@@ -9,15 +9,17 @@
 
 ## Reporting a Vulnerability
 
-**Do not open a public issue for a security problem.** Use GitHub's private vulnerability reporting through
-[the advisory form](https://github.com/pypa/pipx/security/advisories/new), or the
+**Do not open a public issue for a security problem.** Use
+[GitHub's private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)
+through [the advisory form](https://github.com/pypa/pipx/security/advisories/new), or the
 [Tidelift security contact](https://tidelift.com/security), which coordinates the fix and disclosure with us.
 
 ## Scope
 
 pipx turns what its user asks for into installer and interpreter runs: package specs, recorded metadata, manifests and
-configuration become `pip`, `uv` and `python` invocations, and the resulting environments expose commands on `PATH`. The
-boundary this policy cares about is between the user who runs pipx and everyone else.
+configuration become [`pip`](https://pip.pypa.io), [`uv`](https://docs.astral.sh/uv/) and `python` invocations, and the
+resulting environments expose commands on `PATH`. The boundary this policy cares about is between the user who runs pipx
+and everyone else.
 
 pipx trusts the invoking user and everything they control or choose: the command line, environment variables, pipx, pip
 and uv configuration, `PIPX_HOME` and the metadata in it, the packages, URLs, manifests, snapshots and lock files they
@@ -39,9 +41,9 @@ they install; that is how Python packaging works and not a pipx vulnerability.
 
 - An attacker who already controls the user's command line, environment, configuration, `PIPX_HOME` or executables.
 - A malicious or compromised package, package index, manifest or repository the user chose to use. Report malware on
-    PyPI to [PyPI security](https://pypi.org/security/).
-- Behavior that pip, uv or CPython document and that pipx uses as documented. Report those to the project that owns
-    them; pipx mitigates where it can.
+    [PyPI](https://pypi.org) to [PyPI security](https://pypi.org/security/).
+- Behavior that `pip`, `uv` or [CPython](https://github.com/python/cpython) document and that pipx uses as documented.
+    Report those to the project that owns them; pipx mitigates where it can.
 - Credentials that appear only in the user's own terminal output.
 - Test code, unreleased code on `main`, and Python versions pipx no longer supports.
 

@@ -1,43 +1,34 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-PRINT_COLOR = bool(sys.stdout and sys.stdout.isatty())
+_PRINT_COLOR: Final[bool] = bool(sys.stdout and sys.stdout.isatty())
 
-if sys.platform == "win32" and PRINT_COLOR:
+if sys.platform == "win32" and _PRINT_COLOR:
     # colorama, a Windows-only dependency, wraps the console so the ANSI escapes below render on legacy terminals
     import colorama
 
     colorama.init()
 
 
-class _Colors:
-    header = "\033[95m"
-    blue = "\033[94m"
-    green = "\033[92m"
-    yellow = "\033[93m"
-    red = "\033[91m"
-    bold = "\033[1m"
-    cyan = "\033[96m"
-    underline = "\033[4m"
-    end = "\033[0m"
+def _colorizer(start: str) -> Callable[[str], str]:
+    def colorize(text: str) -> str:
+        return f"{start}{text}\033[0m" if _PRINT_COLOR else text
+
+    return colorize
 
 
-def mkcolorfunc(style: str) -> Callable[[str], str]:
-    def stylize_text(x: str) -> str:
-        if PRINT_COLOR:
-            return f"{style}{x}{_Colors.end}"
-        return x
-
-    return stylize_text
+BOLD: Final[Callable[[str], str]] = _colorizer("\033[1m")
+RED: Final[Callable[[str], str]] = _colorizer("\033[91m")
+GREEN: Final[Callable[[str], str]] = _colorizer("\033[92m")
 
 
-bold = mkcolorfunc(_Colors.bold)
-red = mkcolorfunc(_Colors.red)
-blue = mkcolorfunc(_Colors.cyan)
-cyan = mkcolorfunc(_Colors.blue)
-green = mkcolorfunc(_Colors.green)
+__all__ = [
+    "BOLD",
+    "GREEN",
+    "RED",
+]

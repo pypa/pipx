@@ -2,7 +2,7 @@
  Tutorials
 ###########
 
-Step-by-step lessons that take you from zero to productive with pipx. Start at the top if you are new.
+Step-by-step lessons that walk you through pipx's everyday commands. Start at the top if you are new.
 
 .. note::
 

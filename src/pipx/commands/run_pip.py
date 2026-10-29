@@ -10,7 +10,7 @@ __lazy_modules__ = [
 ]
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
@@ -23,21 +23,20 @@ if TYPE_CHECKING:
     from pipx.constants import ExitCode
 
 
-def _updated_main_package_pip_args(
-    existing_pip_args: list[str], runpip_args: list[str], *, editable: bool
-) -> list[str]:
-    pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
-    # the new spec was resolved on the indexes this command named, so upgrade and reinstall must ask the same ones;
-    # pip read relative paths from the caller's directory, while a recorded relative path is read against the venv
-    if index_args := extract_index_options(runpip_args):
-        pip_args = replace_index_options(pip_args, absolute_path_pip_args(index_args, Path.cwd()))
-    if editable:
-        pip_args.append("--editable")
-    return pip_args
+def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
+    if not venv.python_path.exists():
+        msg = f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
+        raise PipxError(msg)
+    venv.verbose = True
+    exit_code: Final[ExitCode] = venv.run_pip_get_exit_code(pip_args)
+    if exit_code == 0:
+        _sync_main_package_metadata_after_runpip_install(venv, pip_args)
+    return exit_code
 
 
 def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[str]) -> None:
-    main_package = venv.pipx_metadata.main_package
+    main_package: Final = venv.pipx_metadata.main_package
     if main_package.package is None:
         return
 
@@ -66,17 +65,17 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
         return
 
 
-def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
-    """Returns pipx exit code."""
-    venv = Venv(venv_dir, verbose=verbose)
-    if not venv.python_path.exists():
-        msg = f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
-        raise PipxError(msg)
-    venv.verbose = True
-    exit_code = venv.run_pip_get_exit_code(pip_args)
-    if exit_code == 0:
-        _sync_main_package_metadata_after_runpip_install(venv, pip_args)
-    return exit_code
+def _updated_main_package_pip_args(
+    existing_pip_args: list[str], runpip_args: list[str], *, editable: bool
+) -> list[str]:
+    pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
+    # pip resolved the new spec on the indexes this command named, so upgrade and reinstall must ask the same ones; it
+    # read relative paths from the caller's directory, while pipx reads a recorded relative path against the venv
+    if index_args := extract_index_options(runpip_args):
+        pip_args = replace_index_options(pip_args, absolute_path_pip_args(index_args, Path.cwd()))
+    if editable:
+        pip_args.append("--editable")
+    return pip_args
 
 
 __all__ = [

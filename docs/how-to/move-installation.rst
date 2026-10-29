@@ -69,7 +69,7 @@ Current default location: ``%LOCALAPPDATA%\pipx\pipx``.
     Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
     pipx reinstall-all
 
-To move it from git-bash or WSL instead, follow the macOS/Linux steps and set ``NEW_LOCATION`` to the Windows path.
+To move it from Git Bash or WSL instead, follow the macOS/Linux steps and set ``NEW_LOCATION`` to the Windows path.
 
 **********
  Verify it
