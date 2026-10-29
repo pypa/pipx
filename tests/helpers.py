@@ -230,10 +230,12 @@ def remove_venv_interpreter(venv_name: str) -> None:
 SKIP_IF_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(WIN, reason="This behavior is undefined on Windows")
 
 
-def write_wheel(directory: Path, name: str, version: str, requires: tuple[str, ...] = ()) -> Path:
+def write_wheel(
+    directory: Path, name: str, version: str, requires: tuple[str, ...] = (), *, module_code: str = ""
+) -> Path:
     dist_info: Final[str] = f"{name}-{version}.dist-info"
     members: Final[dict[str, str]] = {
-        f"{name}.py": f"VERSION = {version!r}\n",
+        f"{name}.py": f"{module_code}VERSION = {version!r}\n",
         f"{dist_info}/METADATA": "".join([
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n",
             *(f"Requires-Dist: {requirement}\n" for requirement in requires),
