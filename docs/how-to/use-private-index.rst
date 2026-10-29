@@ -26,7 +26,9 @@ pipx records these options and passes them again on ``pipx upgrade`` and ``pipx 
 install`` that reinstalls the main package with index options (``--index-url``, ``--extra-index-url``, ``--find-links``,
 ``--trusted-host``, ``--no-index``, or uv's ``--default-index``, ``--index``, ``--index-strategy``,
 ``--allow-insecure-host``, ``--keyring-provider``) replaces the recorded ones with them; without index options the
-record stays.
+record stays. pipx resolves a relative ``--find-links`` (``-f``) path against the directory you ran ``runpip`` from and
+records the absolute path, so after ``pipx runpip my-package install --no-index -f ./wheels my-package`` a later upgrade
+or reinstall reads the same ``wheels`` directory from wherever you start it.
 
 Under the uv backend, pipx passes ``--index-url`` (``-i``) to uv as ``--default-index``, so it replaces a default index
 set through ``UV_DEFAULT_INDEX`` or a ``default = true`` ``[[index]]`` entry. uv still searches indexes added through

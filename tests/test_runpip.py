@@ -152,3 +152,26 @@ def test_runpip_resolves_relative_paths_in_working_directory(
     assert not run_pipx_cli(["runpip", "empty-project", "install", "-r", "requirements.txt"])
 
     assert "repeatme" in Venv(paths.ctx.venvs / "empty-project").list_installed_packages()
+
+
+@pytest.mark.parametrize(
+    "find_links_args",
+    [
+        pytest.param(("-f", "wheels"), id="short"),
+        pytest.param(("-fwheels",), id="short-attached"),
+        pytest.param(("--find-links", "./wheels"), id="long"),
+        pytest.param(("--find-links=wheels",), id="long-attached"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_runpip_relative_find_links_survive_reinstall(
+    empty_project_wheel: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, find_links_args: tuple[str, ...]
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
+    (wheels := tmp_path / "wheels").mkdir()
+    shutil.copy2(empty_project_wheel, wheels)
+    monkeypatch.chdir(tmp_path)
+    assert not run_pipx_cli(["runpip", "empty-project", "install", "--no-index", *find_links_args, "empty-project"])
+    monkeypatch.chdir(paths.ctx.home)
+
+    assert not run_pipx_cli(["reinstall", "empty-project"])
