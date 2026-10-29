@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -21,12 +22,14 @@ from pipx.commands.common import (
     reuse_resource_dir_scans,
 )
 from pipx.constants import MACOS
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from _pytest.mark.structures import ParameterSet
     from pytest_mock import MockerFixture
 
 
@@ -237,6 +240,87 @@ def test_expose_force_replaces_link_to_resource_another_venv_is_replacing(tmp_pa
     (link := tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
 
     assert (expose_resources_globally("app", tmp_path, [path], force=True), link.readlink()) == ([], path)
+
+
+_HELD_RESOURCES: Final[list[ParameterSet]] = [
+    pytest.param("app", "bin/tool", "tool", "app_paths", id="app"),
+    pytest.param("man", "share/man/man1/tool.1", "man1/tool.1", "man_paths", id="man"),
+    pytest.param(
+        "completion",
+        "share/bash-completion/completions/tool",
+        "bash-completion/completions/tool",
+        "completion_paths",
+        id="completion",
+    ),
+]
+
+
+def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
+    metadata = PipxMetadata(paths.ctx.venvs / "holder", read=False)
+    main_package = replace(metadata.main_package, package="holder", package_or_url="holder")
+    if injected:
+        metadata.main_package = main_package
+        metadata.injected_packages = {"extra": replace(main_package, package="extra", **recorded)}
+    else:
+        metadata.main_package = replace(main_package, **recorded)
+    metadata.write()
+
+
+@skip_if_windows
+@pytest.mark.parametrize(("resource_type", "resource", "exposed", "field"), _HELD_RESOURCES)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_keeps_link_to_resource_its_venv_still_records(
+    tmp_path: Path, resource_type: str, resource: str, exposed: str, field: str
+) -> None:
+    (held := paths.ctx.venvs / "holder" / resource).parent.mkdir(parents=True)
+    _write_holder_metadata({field: [held]})
+    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(held)
+
+    assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([link], held)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_keeps_link_to_app_an_injected_package_still_records(tmp_path: Path) -> None:
+    (held := paths.ctx.venvs / "holder" / "bin" / "tool").parent.mkdir(parents=True)
+    _write_holder_metadata({"app_paths": [held]}, injected=True)
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / "tool").symlink_to(held)
+
+    assert (expose_resources_globally("app", tmp_path, [path], force=False), link.readlink()) == ([link], held)
+
+
+@skip_if_windows
+@pytest.mark.parametrize(("resource_type", "resource", "exposed", "field"), _HELD_RESOURCES)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_replaces_link_to_resource_its_venv_dropped(
+    tmp_path: Path, resource_type: str, resource: str, exposed: str, field: str
+) -> None:
+    (paths.ctx.venvs / "holder" / "bin").mkdir(parents=True)
+    _write_holder_metadata({field: [paths.ctx.venvs / "holder" / "bin" / "holder"]})
+    (path := paths.ctx.venvs / "other" / resource).parent.mkdir(parents=True)
+    path.touch()
+    (link := tmp_path / exposed).parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(paths.ctx.venvs / "holder" / resource)
+
+    assert (expose_resources_globally(resource_type, tmp_path, [path], force=False), link.readlink()) == ([], path)
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_warns_that_held_link_target_is_missing(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    (paths.ctx.venvs / "holder").mkdir(parents=True)
+    (path := paths.ctx.venvs / "other" / "bin" / "tool").parent.mkdir(parents=True)
+    path.touch()
+    (tmp_path / "tool").symlink_to(paths.ctx.venvs / "holder" / "bin" / "tool")
+
+    expose_resources_globally("app", tmp_path, [path], force=False)
+
+    assert "which is missing" in " ".join(caplog.text.split())
 
 
 @skip_if_windows
