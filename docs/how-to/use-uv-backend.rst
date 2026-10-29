@@ -78,7 +78,10 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
   ``PIPX_HOME`` and each of its parents up to the filesystem root. With the default ``PIPX_HOME`` under your home
   directory those parents belong to you or to root. If ``PIPX_HOME`` (or ``PIPX_GLOBAL_HOME``) sits below a directory
   other accounts can write, such as ``/tmp`` or a group-writable share, any of them can place a ``uv.toml`` there that
-  steers pipx's uv calls; keep it in a directory only you can write.
+  steers pipx's uv calls; keep it in a directory only you can write. A ``--project`` or ``--directory`` in
+  ``--pip-args`` applies to that command only and is not recorded. A ``--config-file`` is recorded, and on POSIX a later
+  ``upgrade`` or ``reinstall`` refuses to replay it when another account can change the file. See :doc:`Metadata
+  <../reference/metadata>`.
 
 ************
  Limitations

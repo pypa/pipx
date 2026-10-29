@@ -513,12 +513,10 @@ def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument
 
 
 def install_specs(install_args: list[str]) -> list[tuple[str, bool]]:
-    """Return each requirement the arguments of an install command name, and whether it is an editable one."""
     specs: Final[list[tuple[str, bool]]] = []
     for argument in _parse_pip_args(install_args):
-        if argument.name in {"-e", "--editable"}:
-            if argument.value is not None:
-                specs.append((argument.value, True))
+        if argument.name in {"-e", "--editable"} and argument.value is not None:
+            specs.append((argument.value, True))
         elif not argument.name.startswith("-"):
             specs.append((argument.name, False))
     return specs
@@ -551,7 +549,6 @@ def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
 
 
 def changeable_recorded_source(pip_args: list[str], venv_dir: Path) -> str | None:
-    """Describe the first recorded source or verification option that another account can change, if any."""
     for argument in _parse_pip_args(pip_args):
         if (location := _changeable_source(argument, venv_dir)) is not None:
             recorded: Final[str] = " ".join(map(redact_url_credentials, argument.tokens))

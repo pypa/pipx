@@ -467,9 +467,11 @@ def test_list_outdated_refuses_find_links_others_can_change(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "",
-        (f"pycowsay: refusing to check pycowsay for updates through the recorded --find-links {shared}: another "
-        f"account can change {shared}, and with it the versions reported. Move the file or directory to a place "
-        "only you and root can change.\n"),
+        (
+            f"pycowsay: refusing to check pycowsay for updates through the recorded --find-links {shared}: another "
+            f"account can change {shared}, and with it the versions reported. Move the file or directory to a place "
+            "only you and root can change.\n"
+        ),
         0,
     )
 
