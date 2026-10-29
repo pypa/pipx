@@ -1112,8 +1112,12 @@ def test_run_script_interrupted_venv_creation_expires_cache(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_run_package_install_failure_expires_cache() -> None:
-    command = ["run", "--backend", "pip", "--pip-args=--no-index", "--spec", "pipx-missing-package", "missing-app"]
+def test_run_package_install_failure_expires_cache(root: Path) -> None:
+    # the find links carry a current pip: when this test builds the session's shared libs, a bare --no-index would
+    # fail their pip reinstall and leave the base interpreter's bundled pip for later tests on this worker
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    command = ["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]
 
     assert run_pipx_cli(command) == 1
 
