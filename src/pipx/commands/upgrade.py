@@ -508,6 +508,7 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
     selected: Final[set[str]] = (
         set(package_names) if packages_to_upgrade is None else set(package_names).intersection(packages_to_upgrade)
     )
+    # checked before the cooldown write and the first upgrade, so a refused source changes nothing
     selected_pip_args: Final[dict[str, list[str]]] = {
         package_name: main_pip_args
         if package_name == venv.main_package_name

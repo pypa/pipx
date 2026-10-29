@@ -128,44 +128,7 @@ _PIP_LONG_FLAGS: Final[frozenset[str]] = frozenset({
     "--verbose",
     "--version",
 })
-# uv pip install's own long options, recorded for a uv environment; uv takes no abbreviations, and these full names must
-# not be read as one of pip's, such as --index for --index-url
-_LONG_VALUE_OPTIONS: Final[frozenset[str]] = _PIP_LONG_VALUE_OPTIONS | {
-    "--allow-insecure-host",
-    "--build-constraints",
-    "--color",
-    "--config-file",
-    "--config-setting",
-    "--config-settings-package",
-    "--constraints",
-    "--default-index",
-    "--directory",
-    "--exclude",
-    "--exclude-newer",
-    "--exclude-newer-package",
-    "--excludes",
-    "--extra",
-    "--fork-strategy",
-    "--index",
-    "--index-strategy",
-    "--link-mode",
-    "--no-build-isolation-package",
-    "--no-editable-package",
-    "--no-sources-package",
-    "--output-format",
-    "--override",
-    "--overrides",
-    "--prerelease",
-    "--prerelease-package",
-    "--project",
-    "--python-platform",
-    "--reinstall-package",
-    "--requirements",
-    "--resolution",
-    "--torch-backend",
-    "--upgrade-group",
-    "--upgrade-package",
-}
+# uv pip install's own flags, recorded for a uv environment
 _LONG_FLAGS: Final[frozenset[str]] = _PIP_LONG_FLAGS | {
     "--all-extras",
     "--check",
@@ -190,9 +153,6 @@ _LONG_FLAGS: Final[frozenset[str]] = _PIP_LONG_FLAGS | {
     "--system",
     "--system-certs",
 }
-# pip's and uv's short options; neither assigns a letter differently
-_SHORT_VALUE_OPTIONS: Final[frozenset[str]] = frozenset("bcefiprtCP")
-_SHORT_FLAGS: Final[frozenset[str]] = frozenset("hnqvIUV")
 # a later upgrade or reinstall replays what pipx records, possibly as root, so a one-shot input or an output location
 # recorded here would be read or written again after its directory has changed hands
 _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
@@ -227,34 +187,8 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--constraints",
     "--find-links",
 })
-_PIP_PATH_OPTIONS: Final[frozenset[str]] = _PIP_ONE_SHOT_OPTIONS | _PIP_SOURCE_PATH_OPTIONS
-# index options whose value can be a local directory; pip reads uv's --extra as --extra-index-url
-_PIP_INDEX_URL_OPTIONS: Final[frozenset[str]] = frozenset({
-    "-i",
-    "--default-index",
-    "--extra",
-    "--extra-index-url",
-    "--index",
-    "--index-url",
-    "--pypi-url",
-})
 # pip writes --report - to stdout
 _PIP_STDOUT_VALUE: Final[str] = "-"
-# pip's and uv's spellings, since a uv environment records options as uv pip install accepts them
-_PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
-    "-f",
-    "-i",
-    "--allow-insecure-host",
-    "--default-index",
-    "--extra-index-url",
-    "--find-links",
-    "--index",
-    "--index-strategy",
-    "--index-url",
-    "--keyring-provider",
-    "--pypi-url",
-    "--trusted-host",
-})
 
 
 @dataclass(frozen=True)
@@ -264,10 +198,8 @@ class ParsedPackage:
     valid_local_path: str | None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _PipArgument:
-    """One argument as pip reads it: an option under its full name with its value, or any other token as given."""
-
     name: str
     value: str | None = None
     # "=" or "" when the value shares the option's token, None when the value is a token of its own
@@ -451,102 +383,19 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
     return package_or_url, absolute_path_pip_args(pip_args, Path.cwd())
 
 
-def recordable_pip_args(pip_args: list[str]) -> list[str]:
-    return _render(_without_one_shot(_parse_pip_args(pip_args)))
-
-
-def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
-    # the record's installer ran in the venv root, so a relative path resolves there, never against the caller's
-    # working directory, which another account may control
-    return _render(_absolute_paths(_without_one_shot(_parse_pip_args(pip_args)), venv_dir))
-
-
-def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
-    """Return the pip args recorded for ``venv_dir``, refusing a source or certificate another account can change."""
-    for argument in _parse_pip_args(pip_args):
-        if (location := _changeable_source(argument, venv_dir)) is not None:
-            recorded = " ".join(map(redact_url_credentials, argument.tokens))
-            msg = (
-                f"{venv_dir.name}: refusing to replay the recorded {recorded}: another account can change {location}, "
-                "and with it what gets installed. Move the file or directory to a place only you and root can change, "
-                "or pass the options again with --pip-args to use them for this run."
-            )
-            # a wrapped line would split a long path
-            raise PipxError(msg, wrap_message=False)
-    return pip_args
-
-
 def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
     return _render(_absolute_paths(_parse_pip_args(pip_args), base))
-
-
-def _parse_pip_args(pip_args: list[str]) -> list[_PipArgument]:
-    """Read pip args as pip's optparse does, so recording, replay and index handling all see the same options."""
-    parsed: Final[list[_PipArgument]] = []
-    arguments: Final[Iterator[str]] = iter(pip_args)
-    for argument in arguments:
-        if argument.startswith("--"):
-            parsed.append(_long_option(argument, arguments))
-        elif argument.startswith("-") and argument != "-":
-            parsed.extend(_short_options(argument, arguments))
-        else:
-            parsed.append(_PipArgument(argument))
-    return parsed
-
-
-def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
-    spelled, separator, value = argument.partition("=")
-    if (name := _long_option_name(spelled)) is None or (separator and name in _LONG_FLAGS):
-        # pip rejects an unknown or ambiguous option, and a value given to a flag, so keep those as typed
-        return _PipArgument(argument)
-    if name in _LONG_FLAGS:
-        return _PipArgument(name)
-    if separator:
-        return _PipArgument(name, value, separator)
-    return _PipArgument(name, next(arguments, None))
-
-
-def _long_option_name(spelled: str) -> str | None:
-    if spelled in _LONG_VALUE_OPTIONS or spelled in _LONG_FLAGS:
-        return spelled
-    # pip, through optparse, takes any unambiguous prefix of its own long options
-    match [option for option in _PIP_LONG_VALUE_OPTIONS | _PIP_LONG_FLAGS if option.startswith(spelled)]:
-        case [option]:
-            return option
-        case _:
-            return None
-
-
-def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument]:
-    # optparse reads -qr FILE as -q -r FILE: flags up to the first option taking a value, which takes the rest
-    for index, letter in enumerate(argument[1:], start=1):
-        if letter in _SHORT_FLAGS:
-            continue
-        if letter not in _SHORT_VALUE_OPTIONS:
-            return [_PipArgument(argument)]
-        flags: list[_PipArgument] = [_PipArgument(argument[:index])] if index > 1 else []
-        name = f"-{letter}"
-        if not (attached := argument[index + 1 :]):
-            return [*flags, _PipArgument(name, next(arguments, None))]
-        if attached.startswith("="):
-            # uv reads -f=DIR as -f DIR while pip reads the value =DIR, so give both the same separate value
-            return [*flags, _PipArgument(name, attached[1:])]
-        return [*flags, _PipArgument(name, attached, "")]
-    return [_PipArgument(argument)]
 
 
 def _render(arguments: Iterable[_PipArgument]) -> list[str]:
     return [token for argument in arguments for token in argument.tokens]
 
 
-def _without_one_shot(arguments: list[_PipArgument]) -> list[_PipArgument]:
-    return [argument for argument in arguments if argument.name not in _PIP_ONE_SHOT_OPTIONS]
-
-
 def _absolute_paths(arguments: list[_PipArgument], base: Path) -> list[_PipArgument]:
     return [
         replace(argument, value=_absolute_path_value(argument.value, base))
-        if argument.value is not None and argument.name in _PIP_PATH_OPTIONS
+        if argument.value is not None
+        and (argument.name in _PIP_ONE_SHOT_OPTIONS or argument.name in _PIP_SOURCE_PATH_OPTIONS)
         else argument
         for argument in arguments
     ]
@@ -558,14 +407,145 @@ def _absolute_path_value(value: str, base: Path) -> str:
     return str((base / Path(value).expanduser()).resolve())
 
 
+def _parse_pip_args(pip_args: list[str]) -> list[_PipArgument]:
+    # read as pip's optparse does, so recording, replay and index handling all see the same options
+    parsed: Final[list[_PipArgument]] = []
+    arguments: Final[Iterator[str]] = iter(pip_args)
+    for argument in arguments:
+        if argument.startswith("--"):
+            parsed.append(_long_option(argument, arguments))
+        elif argument.startswith("-") and argument != "-":
+            parsed.extend(_short_options(argument, arguments))
+        else:
+            parsed.append(_PipArgument(name=argument))
+    return parsed
+
+
+def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
+    spelled, separator, value = argument.partition("=")
+    if (name := _long_option_name(spelled)) is None or (separator and name in _LONG_FLAGS):
+        # pip rejects an unknown or ambiguous option, and a value given to a flag, so keep those as typed
+        return _PipArgument(name=argument)
+    if name in _LONG_FLAGS:
+        return _PipArgument(name=name)
+    if separator:
+        return _PipArgument(name=name, value=value, separator=separator)
+    return _PipArgument(name=name, value=next(arguments, None))
+
+
+def _long_option_name(spelled: str) -> str | None:
+    # uv's own options taking a value; uv takes no abbreviations, and its full names must not be read as one of pip's,
+    # such as --index for --index-url
+    uv_value_options: Final[frozenset[str]] = frozenset({
+        "--allow-insecure-host",
+        "--build-constraints",
+        "--color",
+        "--config-file",
+        "--config-setting",
+        "--config-settings-package",
+        "--constraints",
+        "--default-index",
+        "--directory",
+        "--exclude",
+        "--exclude-newer",
+        "--exclude-newer-package",
+        "--excludes",
+        "--extra",
+        "--fork-strategy",
+        "--index",
+        "--index-strategy",
+        "--link-mode",
+        "--no-build-isolation-package",
+        "--no-editable-package",
+        "--no-sources-package",
+        "--output-format",
+        "--override",
+        "--overrides",
+        "--prerelease",
+        "--prerelease-package",
+        "--project",
+        "--python-platform",
+        "--reinstall-package",
+        "--requirements",
+        "--resolution",
+        "--torch-backend",
+        "--upgrade-group",
+        "--upgrade-package",
+    })
+    if spelled in _PIP_LONG_VALUE_OPTIONS or spelled in uv_value_options or spelled in _LONG_FLAGS:
+        return spelled
+    # pip, through optparse, takes any unambiguous prefix of its own long options
+    match [option for option in _PIP_LONG_VALUE_OPTIONS | _PIP_LONG_FLAGS if option.startswith(spelled)]:
+        case [option]:
+            return option
+        case _:
+            return None
+
+
+def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument]:
+    # optparse reads -qr FILE as -q -r FILE: flags up to the first option taking a value, which takes the rest; pip's
+    # and uv's short options together, as neither assigns a letter differently
+    for index, letter in enumerate(argument[1:], start=1):
+        if letter in "hnqvIUV":
+            continue
+        if letter not in "bcefiprtCP":
+            return [_PipArgument(name=argument)]
+        flags: Final[list[_PipArgument]] = [_PipArgument(name=argument[:index])] if index > 1 else []
+        name: Final[str] = f"-{letter}"
+        if not (attached := argument[index + 1 :]):
+            return [*flags, _PipArgument(name=name, value=next(arguments, None))]
+        if attached.startswith("="):
+            # uv reads -f=DIR as -f DIR while pip reads the value =DIR, so give both the same separate value
+            return [*flags, _PipArgument(name=name, value=attached[1:])]
+        return [*flags, _PipArgument(name=name, value=attached, separator="")]
+    return [_PipArgument(name=argument)]
+
+
+def recordable_pip_args(pip_args: list[str]) -> list[str]:
+    return _render(_without_one_shot(_parse_pip_args(pip_args)))
+
+
+def _without_one_shot(arguments: list[_PipArgument]) -> list[_PipArgument]:
+    return [argument for argument in arguments if argument.name not in _PIP_ONE_SHOT_OPTIONS]
+
+
+def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    # the record's installer ran in the venv root, so a relative path resolves there, never against the caller's
+    # working directory, which another account may control
+    return _render(_absolute_paths(_without_one_shot(_parse_pip_args(pip_args)), venv_dir))
+
+
+def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    for argument in _parse_pip_args(pip_args):
+        if (location := _changeable_source(argument, venv_dir)) is not None:
+            recorded: Final[str] = " ".join(map(redact_url_credentials, argument.tokens))
+            msg = (
+                f"{venv_dir.name}: refusing to replay the recorded {recorded}: another account can change {location}, "
+                "and with it what gets installed. Move the file or directory to a place only you and root can change, "
+                "or pass the options again with --pip-args to use them for this run."
+            )
+            # a wrapped line would split a long path
+            raise PipxError(msg, wrap_message=False)
+    return pip_args
+
+
 def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
     if argument.value is None:
         return None
     if argument.name in _PIP_SOURCE_PATH_OPTIONS:
         # uv splits a --find-links value on commas, pip takes it whole
         values: set[str] = {argument.value, *argument.value.split(",")}
-    elif argument.name in _PIP_INDEX_URL_OPTIONS:
-        # uv takes a named index as name=url
+    elif argument.name in {
+        "-i",
+        "--default-index",
+        "--extra",
+        "--extra-index-url",
+        "--index",
+        "--index-url",
+        "--pypi-url",
+    }:
+        # index options whose value can be a local directory, with pip reading uv's --extra as --extra-index-url; uv
+        # takes a named index as name=url
         name, separator, url = argument.value.partition("=")
         values = {argument.value, url} if separator and re.fullmatch(r"[A-Za-z0-9._-]+", name) else {argument.value}
     else:
@@ -799,15 +779,29 @@ def replace_index_options(pip_args: list[str], index_args: list[str]) -> list[st
 
 
 def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
+    # pip's and uv's spellings, since a uv environment records options as uv pip install accepts them
+    value_options: Final[frozenset[str]] = frozenset({
+        "-f",
+        "-i",
+        "--allow-insecure-host",
+        "--default-index",
+        "--extra-index-url",
+        "--find-links",
+        "--index",
+        "--index-strategy",
+        "--index-url",
+        "--keyring-provider",
+        "--pypi-url",
+        "--trusted-host",
+    })
     index_args: list[str] = []
     other_args: list[str] = []
     for argument in _parse_pip_args(pip_args):
-        if argument.name in _PIP_INDEX_VALUE_OPTIONS and argument.value is None:
+        if argument.name in value_options and argument.value is None:
             msg = f"Missing value for {argument.name!r} in --pip-args."
             raise PipxError(msg)
-        (index_args if argument.name in _PIP_INDEX_VALUE_OPTIONS | {"--no-index"} else other_args).extend(
-            argument.tokens
-        )
+        is_index: bool = argument.name in value_options or argument.name == "--no-index"
+        (index_args if is_index else other_args).extend(argument.tokens)
     return index_args, other_args
 
 

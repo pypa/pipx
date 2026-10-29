@@ -161,12 +161,15 @@ def test_extract_index_options_reads_spelling(pip_args: list[str], expected: lis
     assert extract_index_options(pip_args) == expected
 
 
-def test_replayable_pip_args_drops_one_shot_option(tmp_path: Path) -> None:
-    assert replayable_pip_args(["-r", "requirements.txt", "--no-compile"], tmp_path) == ["--no-compile"]
-
-
-def test_replayable_pip_args_drops_clustered_one_shot_option(tmp_path: Path) -> None:
-    assert replayable_pip_args(["-qr", "requirements.txt"], tmp_path) == ["-q"]
+@pytest.mark.parametrize(
+    ("pip_args", "expected"),
+    [
+        pytest.param(["-r", "requirements.txt", "--no-compile"], ["--no-compile"], id="separated"),
+        pytest.param(["-qr", "requirements.txt"], ["-q"], id="clustered"),
+    ],
+)
+def test_replayable_pip_args_drops_one_shot_option(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
+    assert replayable_pip_args(pip_args, tmp_path) == expected
 
 
 def test_replayable_pip_args_resolves_relative_path_against_venv(tmp_path: Path) -> None:
@@ -243,15 +246,16 @@ def test_trusted_recorded_pip_args_refuses_local_index_others_can_change(shared_
 
 
 @skip_if_windows
-def test_trusted_recorded_pip_args_refuses_missing_path_in_sticky_dir(sticky_dir: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "pip_args",
+    [
+        pytest.param(["-c", "{sticky}/constraints.txt"], id="missing-path"),
+        pytest.param(["--find-links", "{sticky}"], id="the-directory-itself"),
+    ],
+)
+def test_trusted_recorded_pip_args_refuses_sticky_dir(sticky_dir: Path, tmp_path: Path, pip_args: list[str]) -> None:
     with pytest.raises(PipxError, match=re.escape(f"another account can change {sticky_dir},")):
-        trusted_recorded_pip_args(["-c", str(sticky_dir / "constraints.txt")], tmp_path)
-
-
-@skip_if_windows
-def test_trusted_recorded_pip_args_refuses_world_writable_find_links_dir(sticky_dir: Path, tmp_path: Path) -> None:
-    with pytest.raises(PipxError, match=re.escape(f"another account can change {sticky_dir},")):
-        trusted_recorded_pip_args(["--find-links", str(sticky_dir)], tmp_path)
+        trusted_recorded_pip_args([argument.format(sticky=sticky_dir) for argument in pip_args], tmp_path)
 
 
 @skip_if_windows
