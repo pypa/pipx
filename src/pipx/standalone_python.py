@@ -12,7 +12,6 @@ __lazy_modules__ = [
     "re",
     "shutil",
     "tarfile",
-    "tempfile",
     "urllib.request",
 ]
 
@@ -26,7 +25,6 @@ import platform
 import re
 import shutil
 import tarfile
-import tempfile
 import time
 import urllib.error
 from functools import partial
@@ -113,9 +111,12 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
 
         full_version, (download_link, digest) = resolve_python_version(python_version)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            archive: Final[Path] = Path(tempdir) / f"python-{full_version}.tar.gz"
-            download_dir: Final[Path] = Path(tempdir) / "download"
+        # unpack next to install_dir rather than in the system temp dir: from a tmpfs /tmp or another btrfs subvolume,
+        # moving the build into place copies all of it and splits its hard links into separate files
+        staging_dir: Final[Path] = _fresh_staging_dir(install_dir)
+        try:
+            archive: Final[Path] = staging_dir / f"python-{full_version}.tar.gz"
+            download_dir: Final[Path] = staging_dir / "download"
 
             _download(full_version, download_link, archive)
             _unpack(full_version, archive, download_dir, digest)
@@ -123,6 +124,8 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
             # is fully extracted do we swap it into place, so a failed download or unpack never destroys a working
             # interpreter
             _install_atomically(download_dir / "python", install_dir)
+        finally:
+            shutil.rmtree(staging_dir, ignore_errors=True)
 
     return str(installed_python)
 
@@ -132,6 +135,18 @@ def _version_lock(install_dir: Path) -> BaseFileLock:
 
     install_dir.parent.mkdir(parents=True, exist_ok=True)
     return FileLock(install_dir.with_name(f".{install_dir.name}.lock"))
+
+
+def _fresh_staging_dir(install_dir: Path) -> Path:
+    # the dot prefix hides a fetch in progress from interpreter list, prune and upgrade; under the version lock anything
+    # already at this name is a crashed fetch's leftover
+    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    # owner-only like a system temp dir, and exist_ok=False so a directory created at this name since the cleanup fails
+    # the fetch instead of being unpacked into
+    staging_dir.mkdir(mode=0o700)
+    return staging_dir
 
 
 def resolve_python_version(requested_version: str) -> tuple[str, tuple[str, str]]:
@@ -368,22 +383,17 @@ def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -
 
 
 def _install_atomically(source: Path, install_dir: Path) -> None:
-    install_dir.parent.mkdir(parents=True, exist_ok=True)
-    # stage on the same filesystem as install_dir so the swap-in is an atomic rename rather than a mid-copy window
-    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
     backup_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.previous")
-    for leftover in (staging_dir, backup_dir):
-        if leftover.exists():
-            shutil.rmtree(leftover)
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir)
 
-    shutil.move(str(source), str(staging_dir))
     if replaced_existing := install_dir.exists():
-        Path(install_dir).replace(backup_dir)
+        install_dir.replace(backup_dir)
     try:
-        Path(staging_dir).replace(install_dir)
+        source.replace(install_dir)
     except OSError:
         if replaced_existing:
-            Path(backup_dir).replace(install_dir)
+            backup_dir.replace(install_dir)
         raise
     if replaced_existing:
         shutil.rmtree(backup_dir, ignore_errors=True)
