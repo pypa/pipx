@@ -8,7 +8,7 @@ from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx import paths
-from pipx.backends.uv import UvBackend, resolve_uv_binary
+from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
 from pipx.emojis import hazard
 from pipx.util import PipxError, exec_app, pipx_wrap, redact_url_credentials
 
@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _UV_VALUE_FLAG_MAP: Final[dict[str, str]] = {
-    # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
-    "--index-url": "--default-index",
-    "-i": "--default-index",
     "--extra-index-url": "--extra-index-url",
     "--find-links": "--find-links",
     "-f": "-f",
@@ -141,7 +138,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
                 _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
             )
             continue
-        if (translated_flag := _UV_VALUE_FLAG_MAP.get(flag)) is not None:
+        if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or _UV_VALUE_FLAG_MAP.get(flag)) is not None:
             if separator:
                 translated.append(f"{translated_flag}={attached_value}")
             else:

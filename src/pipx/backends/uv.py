@@ -30,6 +30,8 @@ if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+# uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
+PIP_TO_UV_INDEX_FLAGS: Final[dict[str, str]] = dict.fromkeys(("--index-url", "-i"), "--default-index")
 
 
 def _load_uv_bin_finder() -> Callable[[], str] | None:
@@ -351,11 +353,10 @@ def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
 
 
 def _default_index_args(pip_args: list[str]) -> list[str]:
-    # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
     return [
-        f"--default-index{separator}{value}"
-        if flag in {"--index-url", "-i"}
-        else f"--default-index={arg[2:]}"
+        f"{PIP_TO_UV_INDEX_FLAGS[flag]}{separator}{value}"
+        if flag in PIP_TO_UV_INDEX_FLAGS
+        else f"{PIP_TO_UV_INDEX_FLAGS['-i']}={arg[2:]}"
         if arg.startswith("-i")
         else arg
         for arg in pip_args
@@ -364,6 +365,7 @@ def _default_index_args(pip_args: list[str]) -> list[str]:
 
 
 __all__ = [
+    "PIP_TO_UV_INDEX_FLAGS",
     "UvBackend",
     "find_uv_binary",
     "resolve_uv_binary",
