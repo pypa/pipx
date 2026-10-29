@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
 from threading import Thread
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NoReturn
 from unittest import mock
 
 import pytest
@@ -32,6 +32,7 @@ from package_info import PKG
 from pipx import paths, shared_libs, util
 from pipx.commands.run import run_package
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.venv import VenvContainer
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -798,6 +799,20 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
     run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
 
     assert out.read_text() == "ran"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocker: MockerFixture) -> None:
+    def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
+        # raises Timeout while held; exec_app waits for the script on Windows, so the lock would outlive the handover
+        with VenvContainer(paths.ctx.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
+            raise SystemExit(0)
+
+    mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text("# /// script\n# dependencies = []\n# ///\n")
+
+    run_pipx_cli_exit(["run", "--backend", "uv", str(script)], assert_exit=0)
 
 
 @pytest.mark.parametrize(
