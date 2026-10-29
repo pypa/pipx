@@ -29,34 +29,28 @@ if TYPE_CHECKING:
     from collections.abc import Collection, Iterable
     from pathlib import Path
 
+    from pipx.options import ListOptions
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def list_packages(  # ruff:ignore[too-many-arguments]  # one keyword per CLI list flag
-    venv_container: VenvContainer,
-    venv_dirs: Collection[Path],
-    *,
-    include_injected: bool,
-    json_format: bool,
-    short_format: bool,
-    pinned_only: bool,
-) -> ExitCode:
+def list_packages(venv_container: VenvContainer, venv_dirs: Collection[Path], options: ListOptions) -> ExitCode:
     if not venv_dirs:
         print(  # ruff:ignore[print]  # user-facing CLI output
             f"nothing has been installed with pipx {SLEEP}", file=sys.stderr
         )
 
     locked_venv_dirs: Final = venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True)
-    if json_format:
+    if options.json_format:
         all_venv_problems = _list_json(locked_venv_dirs)
-    elif short_format:
+    elif options.short_format:
         all_venv_problems = _list_short(locked_venv_dirs)
-    elif pinned_only:
-        all_venv_problems = _list_pinned(locked_venv_dirs, include_injected=include_injected)
+    elif options.pinned_only:
+        all_venv_problems = _list_pinned(locked_venv_dirs, include_injected=options.include_injected)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
-        all_venv_problems = _list_text(locked_venv_dirs, str(venv_container), include_injected=include_injected)
+        all_venv_problems = _list_text(locked_venv_dirs, str(venv_container), include_injected=options.include_injected)
 
     _log_venv_problems(all_venv_problems)
 

@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import importlib
 import os
 import subprocess
 import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
-
-import pipx.commands
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -105,12 +102,3 @@ def _startup_imports(root: Path, options: list[str], env: dict[str, str]) -> set
         text=True,
     )
     return {line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")}
-
-
-def test_commands_package_resolves_reexport_from_submodule() -> None:
-    assert pipx.commands.install_all is importlib.import_module("pipx.commands.install").install_all
-
-
-def test_commands_package_rejects_unknown_attribute() -> None:
-    with pytest.raises(AttributeError, match="has no attribute 'missing'"):
-        _ = pipx.commands.missing

@@ -17,7 +17,8 @@ from docutils.writers.manpage import Writer
 
 from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
-from pipx import backends, main, paths
+from pipx import main, paths
+from pipx.backends import registry
 from pipx.main import (
     _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     build_parser,
@@ -27,7 +28,9 @@ from pipx.main import (
     parse_pipx_args,
     prog_name,
 )
-from pipx.util import PipxError, redact_url_credentials
+from pipx.options import BackendOptions
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.version import version
 
 if TYPE_CHECKING:
@@ -320,16 +323,16 @@ class _FetchPythonEnv(Protocol):
 def fetch_python_env(monkeypatch: pytest.MonkeyPatch) -> _FetchPythonEnv:
     # pipx reads these variables at import, so patch the values main parsed from them
     def apply(invalid: bool, fetch_python_raw: str | None, missing_raw: str | None) -> None:
-        monkeypatch.setattr(main, "FETCH_PYTHON_INVALID", invalid)
-        monkeypatch.setattr(main, "FETCH_PYTHON_RAW", fetch_python_raw)
-        monkeypatch.setattr(main, "FETCH_MISSING_PYTHON_RAW", missing_raw)
+        monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", invalid)
+        monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
+        monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
 
     return apply
 
 
 def test_cli_rejects_invalid_env_cooldown(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setattr(main, "COOLDOWN_INVALID", True)
-    monkeypatch.setattr(main, "COOLDOWN_RAW", "garbage")
+    monkeypatch.setattr(main, "_COOLDOWN_INVALID", True)
+    monkeypatch.setattr(main, "_COOLDOWN_RAW", "garbage")
 
     assert run_pipx_cli(["list"])
 
@@ -519,9 +522,9 @@ def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None
 @pytest.mark.parametrize(
     "patches",
     [
-        pytest.param({"COOLDOWN_INVALID": True, "COOLDOWN_RAW": "abc"}, id="cooldown"),
-        pytest.param({"MAX_LOGS_INVALID": True, "MAX_LOGS_RAW": "x"}, id="max-logs"),
-        pytest.param({"FETCH_PYTHON_INVALID": True}, id="fetch-python"),
+        pytest.param({"_COOLDOWN_INVALID": True, "_COOLDOWN_RAW": "abc"}, id="cooldown"),
+        pytest.param({"_MAX_LOGS_INVALID": True, "_MAX_LOGS_RAW": "x"}, id="max-logs"),
+        pytest.param({"_FETCH_PYTHON_INVALID": True}, id="fetch-python"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -558,7 +561,7 @@ def test_json_output_reports_rejected_arguments_in_envelope(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
-    mocker.patch("pipx.backends.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
 
     assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
@@ -570,7 +573,7 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
 def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
     find_uv_binary: Final[MagicMock] = mocker.patch(
-        "pipx.backends.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
+        "pipx.backends.registry.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
     )
 
     assert not run_pipx_cli(["list"])
@@ -584,23 +587,23 @@ def test_validate_backend_silent_on_env_uv_missing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     # diagnostic commands (`pipx environment`, `pipx list`) must keep working without a startup warning that the later
-    # UvBackend.__init__ error would contradict; patch both the source and the package re-export, as either one left
+    # UvBackend.__init__ error would contradict; patch both the source and the registry lookup, as either one left
     # unpatched would find uv
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
 
-    _validate_backend_available(cli_backend=None, env_backend="uv")
+    _validate_backend_available(BackendOptions(env="uv"))
 
     assert not any("uv" in rec.message.lower() for rec in caplog.records)
 
 
 def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
     with pytest.raises(PipxError, match="uv' executable could not be found"):
-        _validate_backend_available(cli_backend="uv", env_backend=None)
+        _validate_backend_available(BackendOptions(cli="uv"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

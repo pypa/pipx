@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.util"]
+__lazy_modules__ = ["pipx.trash"]
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 from pipx.result import OperationData, OperationResult, OutputMessage
-from pipx.util import rmdir
+from pipx.trash import rmdir
 
 if TYPE_CHECKING:
     from pipx.venv import VenvContainer

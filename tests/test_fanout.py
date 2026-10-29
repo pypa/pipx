@@ -23,7 +23,7 @@ from pipx.fanout import (
     output_is_held,
     stopping_children_on_signals,
 )
-from pipx.util import run_subprocess
+from pipx.subprocess_runner import run_subprocess
 
 if TYPE_CHECKING:
     from pathlib import Path
