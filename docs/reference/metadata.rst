@@ -77,15 +77,15 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
         Options naming a one-shot input or an output location (``-r``/``--requirement``,
         ``--requirements-from-script``, ``--group``, ``--report``, ``--log``, ``--log-file``, ``--local-log``,
         ``--cache-dir``, ``-t``/``--target``, ``--prefix``, ``--root`` and ``--src``) apply only to the command they
-        were given on, so pipx neither stores nor replays them. The same goes for uv's ``--directory`` and
-        ``--project``, which would move uv's configuration search away from ``PIPX_HOME``.
+        were given on, so pipx neither stores nor replays them.
 
         On POSIX, a replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
         ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, uv's ``--config-file``,
-        ``--overrides``/``--override`` or ``--excludes``/``--exclude``, or ``file://`` or local-path index URL names a
-        path another account could change, because it or a directory above it is writable by others or owned by
-        another user. The record stays as it is; passing the options again with ``--pip-args`` uses them for that run.
-        ``pipx list --outdated`` reports such an environment as failed rather than checking it against that path.
+        ``--project``, ``--directory``, ``--overrides``/``--override`` or ``--excludes``/``--exclude``, or ``file://``
+        or local-path index URL names a path another account could change, because it or a directory above it is
+        writable by others or owned by another user. The record stays as it is; passing the options again with
+        ``--pip-args`` uses them for that run. ``pipx list --outdated`` reports such an environment as failed rather
+        than checking it against that path.
     - - ``include_dependencies``
       - Whether apps and man pages from all dependencies are exposed.
     - - ``include_resources_from``

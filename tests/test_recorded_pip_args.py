@@ -28,8 +28,6 @@ ONE_SHOT_OPTIONS: Final[list[str]] = [
     "--requirements",
     "--requirements-from-script",
     "--group",
-    "--directory",
-    "--project",
     "-t",
     "--target",
     "--root",
@@ -144,6 +142,8 @@ def test_recordable_pip_args_spells_out_option(pip_args: list[str], expected: li
         pytest.param(["-qf", "wheels"], ["-q", "-f", "{base}{sep}wheels"], id="clustered"),
         pytest.param(["--find-l=wheels"], ["--find-links={base}{sep}wheels"], id="abbreviated"),
         pytest.param(["-vc", "c.txt"], ["-v", "-c", "{base}{sep}c.txt"], id="clustered-constraint"),
+        pytest.param(["--project", "proj"], ["--project", "{base}{sep}proj"], id="uv-project"),
+        pytest.param(["--directory=work"], ["--directory={base}{sep}work"], id="uv-directory"),
     ],
 )
 def test_absolute_path_pip_args_resolves_spelling(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
@@ -169,15 +169,13 @@ def test_extract_index_options_reads_spelling(pip_args: list[str], expected: lis
     [
         pytest.param(["-r", "requirements.txt", "--no-compile"], ["--no-compile"], id="separated"),
         pytest.param(["-qr", "requirements.txt"], ["-q"], id="clustered"),
-        pytest.param(["--project", "/shared", "--no-compile"], ["--no-compile"], id="uv-project"),
-        pytest.param(["--directory=/shared"], [], id="uv-directory"),
     ],
 )
 def test_replayable_pip_args_drops_one_shot_option(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
     assert replayable_pip_args(pip_args, tmp_path) == expected
 
 
-@pytest.mark.parametrize("option", ["--cert", "--config-file", "--overrides", "--excludes"])
+@pytest.mark.parametrize("option", ["--cert", "--config-file", "--overrides", "--excludes", "--project", "--directory"])
 def test_replayable_pip_args_resolves_relative_path_against_venv(tmp_path: Path, option: str) -> None:
     assert replayable_pip_args([option, "file"], tmp_path) == [option, str((tmp_path / "file").resolve())]
 
@@ -223,6 +221,8 @@ def test_replayable_pip_args_keeps_value_without_local_path(tmp_path: Path, kept
         pytest.param(["--override", "{shared}/o.txt"], "--override {shared}/o.txt", id="uv-override"),
         pytest.param(["--excludes", "{shared}/x.txt"], "--excludes {shared}/x.txt", id="uv-excludes"),
         pytest.param(["--exclude", "{shared}/x.txt"], "--exclude {shared}/x.txt", id="uv-exclude"),
+        pytest.param(["--project", "{shared}"], "--project {shared}", id="uv-project"),
+        pytest.param(["--directory={shared}/work"], "--directory={shared}/work", id="uv-directory"),
     ],
 )
 def test_trusted_recorded_pip_args_refuses_source_others_can_change(

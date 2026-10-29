@@ -154,16 +154,13 @@ _LONG_FLAGS: Final[frozenset[str]] = _PIP_LONG_FLAGS | {
     "--system-certs",
 }
 # a later upgrade or reinstall replays what pipx records, possibly as root, so a one-shot input or an output location
-# recorded here would be read or written again after its directory has changed hands; uv's --directory and --project
-# would also move its configuration search away from the PIPX_HOME that pipx points it at
+# recorded here would be read or written again after its directory has changed hands
 _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
     "-r",
     "--requirement",
     "--requirements",
     "--requirements-from-script",
     "--group",
-    "--directory",
-    "--project",
     "-t",
     "--target",
     "--root",
@@ -178,7 +175,8 @@ _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
     "--local-log",
     "--cache-dir",
 })
-# recorded options naming what to install from, what to trust or how to resolve, by file or directory
+# recorded options naming what to install from, what to trust or where uv reads its configuration, by file or
+# directory
 _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "-b",
     "-c",
@@ -190,11 +188,13 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--config-file",
     "--constraint",
     "--constraints",
+    "--directory",
     "--exclude",
     "--excludes",
     "--find-links",
     "--override",
     "--overrides",
+    "--project",
 })
 # pip writes --report - to stdout
 _PIP_STDOUT_VALUE: Final[str] = "-"
