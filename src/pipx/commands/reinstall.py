@@ -12,6 +12,7 @@ __lazy_modules__ = [
     "pipx.commands.transaction",
     "pipx.commands.uninstall",
     "pipx.fanout",
+    "pipx.package_specifier",
     "pipx.pipx_metadata_file",
     "pipx.util",
     "pipx.venv",
@@ -53,6 +54,7 @@ from pipx.constants import (
 )
 from pipx.emojis import error, sleep, stars
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
+from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
@@ -222,7 +224,13 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         )
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-    venv.check_upgrade_shared_libs(pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose)
+    # checked before the backup, so a refused source leaves the environment as it was
+    main_pip_args: Final[list[str]] = trusted_recorded_pip_args(venv.pipx_metadata.main_package.pip_args, venv_dir)
+    injected_pip_args: Final[dict[str, list[str]]] = {
+        name: trusted_recorded_pip_args(package.pip_args, venv_dir)
+        for name, package in venv.pipx_metadata.injected_packages.items()
+    }
+    venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package_or_url is not None:
         package_or_url = venv.pipx_metadata.main_package.package_or_url
@@ -252,7 +260,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 local_bin_dir,
                 local_man_dir,
                 python,
-                venv.pipx_metadata.main_package.pip_args,
+                main_pip_args,
                 venv.pipx_metadata.venv_args,
                 verbose=verbose,
                 force=True,
@@ -281,7 +289,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                     venv_dir,
                     injected_name,
                     _require_injected_url(injected_package, venv.name),
-                    injected_package.pip_args,
+                    injected_pip_args[injected_name],
                     verbose=verbose,
                     include_apps=injected_package.include_apps,
                     include_dependencies=injected_package.include_dependencies,

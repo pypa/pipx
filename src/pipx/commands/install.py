@@ -52,7 +52,7 @@ from pipx.constants import (
 from pipx.emojis import hazard, sleep
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.package_specifier import package_spec_satisfied
+from pipx.package_specifier import package_spec_satisfied, trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
 from pipx.result import (
@@ -637,7 +637,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         )
 
     with preserve_venv(venv.root, enabled=bool(expected_apps)):
-        main_pip_args: Final[list[str]] = pip_args or package_metadata.pip_args
+        main_pip_args: Final[list[str]] = pip_args or trusted_recorded_pip_args(package_metadata.pip_args, venv.root)
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
         venv.upgrade_packaging_libraries(main_pip_args)
         upgrade_only = [f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None
@@ -777,7 +777,7 @@ def _install_spec_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat 
     packages: Final[list[PackageInfo]] = [main_package, *venv_metadata.injected_packages.values()]
     try:
         package_pip_args: Final[list[list[str]]] = (
-            [pip_args or package.pip_args for package in packages]
+            [pip_args or trusted_recorded_pip_args(package.pip_args, venv_dir) for package in packages]
             if pip_args or backend in {None, venv_metadata.backend}
             else _translate_recorded_pip_args(venv_metadata, packages, backend)
         )
@@ -846,7 +846,8 @@ def _translate_recorded_pip_args(
     # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
     environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}"
     translations: Final[list[tuple[list[str], list[str]]]] = [
-        _translate_pip_args(package.pip_args, backend, environment) for package in packages
+        _translate_pip_args(trusted_recorded_pip_args(package.pip_args, venv_metadata.venv_dir), backend, environment)
+        for package in packages
     ]
     if dropped := list(
         dict.fromkeys(" ".join(map(redact_url_credentials, other)) for _, other in translations if other)

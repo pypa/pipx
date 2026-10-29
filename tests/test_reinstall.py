@@ -26,7 +26,7 @@ from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.commands import common
 from pipx.commands import reinstall as reinstall_module
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.util import redact_url_credentials
 
 if TYPE_CHECKING:
@@ -57,6 +57,45 @@ def test_reinstall_resolves_recorded_relative_find_links_in_venv(
     assert not run_pipx_cli(["reinstall", "pycowsay"])
 
     assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
+
+
+@pytest.fixture
+def shared_find_links(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    shared: Final[Path] = tmp_path.resolve() / "shared"
+    shared.mkdir()
+    shared.chmod(0o777)
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared / "wheels")])
+    metadata.write()
+    return shared
+
+
+@skip_if_windows
+def test_reinstall_refuses_recorded_find_links_writable_by_others(
+    shared_find_links: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    capsys.readouterr()
+
+    assert run_pipx_cli(["reinstall", "pycowsay"])
+
+    assert (
+        f"another account can change {shared_find_links}, and with it what gets installed." in capsys.readouterr().err
+    )
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("shared_find_links")
+def test_reinstall_keeps_environment_of_refused_find_links() -> None:
+    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    recorded: Final[bytes] = metadata_file.read_bytes()
+
+    run_pipx_cli(["reinstall", "pycowsay"])
+
+    assert metadata_file.read_bytes() == recorded
 
 
 @pytest.mark.skipif(sys.version_info < (3, 15), reason="lazy imports require Python 3.15")
