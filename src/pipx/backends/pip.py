@@ -1,33 +1,45 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["json", "packaging.version", "pipx.shared_libs", "pipx.util"]
+__lazy_modules__ = [
+    "json",
+    "packaging.version",
+    "pipx",
+    "pipx.redact",
+    "pipx.shared_libs",
+    "pipx.subprocess_runner",
+    "pipx.trash",
+    "pipx.util",
+    "re",
+]
 
 import json
 import logging
+import re
+import sys
+from threading import Lock
 from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
+from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.redact import redact_command_line
 from pipx.shared_libs import SHARED_LIBS
-from pipx.util import (
-    PipxError,
-    get_site_packages,
-    get_venv_paths,
-    run_subprocess,
-    safe_unlink,
-    subprocess_post_check,
-    subprocess_post_check_handle_pip_error,
-)
+from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
+from pipx.trash import safe_unlink
+from pipx.util import PipxError, get_venv_paths, open_owner_only
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
+    from re import Pattern
     from subprocess import CompletedProcess
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+# Windows appends by seeking to the end and then writing, so fan-out tasks appending at once overwrite each other
+_ERROR_LOG_LOCK: Final[Lock] = Lock()
 
 
 class PipBackend(Backend):
@@ -246,6 +258,126 @@ class PipBackend(Backend):
         )
 
 
+def subprocess_post_check_handle_pip_error(
+    completed_process: CompletedProcess[str],
+    tool_name: str = "pip",
+    *,
+    streamed: bool,
+) -> None:
+    if not completed_process.returncode:
+        return
+    _LOGGER.info("%r failed", redact_command_line(completed_process.args))
+    if paths.CTX.log_file is None:
+        msg = "Pipx internal error: No log_file present."
+        raise PipxError(msg)
+    error_file: Final[Path] = paths.CTX.log_file.parent / f"{paths.CTX.log_file.stem}_{tool_name}_errors.log"
+    upper_label: Final[str] = tool_name.upper()
+    # the fan-out tasks of an -all command append their failures to the same file at once
+    with _ERROR_LOG_LOCK, open(error_file, "a", encoding="utf-8", opener=open_owner_only) as error_fh:
+        error_fh.write(
+            f"{upper_label} STDOUT\n----------\n{completed_process.stdout or ''}"
+            f"\n{upper_label} STDERR\n----------\n{completed_process.stderr or ''}"
+        )
+
+    _LOGGER.error(
+        "Fatal error from %s prevented installation. Full %s output in file:\n    %s", tool_name, tool_name, error_file
+    )
+    # the pip output analyser's patterns do not match uv's error format, so pipx shows uv's stderr as is, and either
+    # tool skips its error lines once the user saw them streamed live
+    if tool_name == "pip":
+        _analyze_pip_output(completed_process.stdout, completed_process.stderr, streamed=streamed)
+    elif not streamed and (
+        uv_errors := [line for line in (completed_process.stderr or "").splitlines() if line.strip()]
+    ):
+        print("\nErrors from uv install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        for line in uv_errors:
+            print(f"    {line}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+
+
+def _analyze_pip_output(pip_stdout: str, pip_stderr: str, *, streamed: bool) -> None:
+    failed_build_stdout: list[str] = []
+    last_collecting_dep: str | None = None
+    # stdout carries these lines only when pip runs without -q
+    for line in pip_stdout.split("\n"):
+        if failed_match := re.search(r"Failed to build\s+(\S.+)$", line):
+            failed_build_stdout = failed_match.group(1).strip().split()
+        if collecting_match := re.search(r"^\s*Collecting\s+(\S+)", line):
+            last_collecting_dep = collecting_match.group(1)
+
+    # most useful first, each beside a pip line it catches
+    relevant_searches: Final[dict[str, Pattern[str]]] = {
+        # Package cairo was not found in the pkg-config search path.
+        "not_found": re.compile(r"not (?:be )?found", re.IGNORECASE),
+        # unable to execute 'gcc': No such file or directory
+        "no_such": re.compile(r"no such", re.IGNORECASE),
+        # Exception: Unable to find OpenSSL >= 1.0 headers. (Looked here: ...
+        "exception_error": re.compile(r"(Exception|Error):\s*\S+"),
+        # LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
+        "fatal_error": re.compile(r"fatal error", re.IGNORECASE),
+        # ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/...
+        "conflict_": re.compile(r"conflict", re.IGNORECASE),
+        # error: can't copy 'lib\ansible\module_utils\ansible_release.py': doesn't exist ...
+        "error_": re.compile(
+            r"error:"
+            r"(?!.+Command errored out)"
+            r"(?!.+failed building wheel for)"
+            r"(?!.+could not build wheels? for)"
+            r"(?!.+failed to build one or more wheels)"
+            r".+[^:]$",
+            re.IGNORECASE,
+        ),
+    }
+
+    relevants_saved: Final[dict[str, str]] = {}
+    failed_build_stderr: Final[set[str]] = set()
+    for line in pip_stderr.split("\n"):
+        if failed_build_match := re.search(r"Failed to build\s+(?!one or more packages)(\S+)", line):
+            failed_build_stderr.add(failed_build_match.group(1))
+
+        for category, pattern in relevant_searches.items():
+            if pattern.search(line):
+                relevants_saved.setdefault(line.strip(), category)
+                break
+
+    _log_failed_builds(failed_build_stdout, failed_build_stderr, last_collecting_dep)
+
+    if relevants_saved and not streamed:
+        print("\nErrors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+
+        print_categories: Final[list[str]] = list(relevant_searches)
+        relevants_saved_filtered = list(relevants_saved)
+        max_relevant_errors: Final[int] = 10
+        while len(print_categories) > 1 and len(relevants_saved_filtered) > max_relevant_errors:
+            print_categories.pop(-1)
+            relevants_saved_filtered = [
+                line for line, category in relevants_saved.items() if category in print_categories
+            ]
+
+        for line in relevants_saved_filtered:
+            print(f"    {line}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+
+
+def _log_failed_builds(
+    failed_build_stdout: list[str],
+    failed_build_stderr: set[str],
+    last_collecting_dep: str | None,
+) -> None:
+    if failed_build_stdout:
+        failed_to_build_str = "\n    ".join(failed_build_stdout)
+        plural_str = "s" if len(failed_build_stdout) > 1 else ""
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip failed to build package%s:\n    %s", plural_str, failed_to_build_str)
+    elif failed_build_stderr:
+        failed_to_build_str = "\n    ".join(failed_build_stderr)
+        plural_str = "s" if len(failed_build_stderr) > 1 else ""
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip failed to build package%s:\n    %s", plural_str, failed_to_build_str)
+    elif last_collecting_dep is not None:
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip failed while processing package:\n    %s", last_collecting_dep)
+
+
 __all__ = [
     "PipBackend",
+    "subprocess_post_check_handle_pip_error",
 ]

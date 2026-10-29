@@ -29,7 +29,7 @@ from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
-from pipx.util import redact_url_credentials
+from pipx.redact import redact_url_credentials
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -453,7 +453,7 @@ def test_install_env_cooldown(
     cli_args: list[str],
     expected_days: int,
 ) -> None:
-    monkeypatch.setattr(main, "COOLDOWN", 7)
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
 
     assert not run_pipx_cli([
         "install",
@@ -472,7 +472,7 @@ def test_install_env_cooldown(
 def test_install_env_cooldown_opted_out_by_flag(
     package_cache_dir: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(main, "COOLDOWN", 7)
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
 
     assert not run_pipx_cli([
         "install",
@@ -496,7 +496,7 @@ def test_install_env_cooldown_outranks_recorded(
     assert not run_pipx_cli(["install", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     caplog.clear()
 
-    monkeypatch.setattr(main, "COOLDOWN", 3)
+    monkeypatch.setattr(main, "_COOLDOWN", 3)
     assert not run_pipx_cli(["install", "--backend", "pip", "--force", pip_args, PKG["pycowsay"]["spec"]])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
@@ -665,7 +665,7 @@ def test_install_rejects_cooldown_for_recorded_pylock(
 def test_install_env_cooldown_ignored_for_pylock(
     make_pylock: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(main, "COOLDOWN", 7)
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
 
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])

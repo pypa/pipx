@@ -10,8 +10,10 @@ __lazy_modules__ = [
     "pipx.commands.expose",
     "pipx.commands.install",
     "pipx.commands.uninstall",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.util",
     "shutil",
     "subprocess",
@@ -38,8 +40,10 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.options import ExposureOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import (
     OperationData,
     OperationError,
@@ -48,25 +52,17 @@ from pipx.result import (
     OutputMessage,
     OutputStream,
 )
-from pipx.util import PipxError, redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from typing import TypeIs
 
+    from pipx.options import SyncOptions
     from pipx.venv import VenvContainer
 
 
-def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards the full install context for each tool
-    manifest_file: Path,
-    venv_container: VenvContainer,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    *,
-    verbose: bool,
-    prune: bool,
-    backend: str | None,
-    env_backend: str | None,
+def sync_manifest(
+    manifest_file: Path, venv_container: VenvContainer, options: SyncOptions
 ) -> OperationResult[ManifestData]:
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
@@ -80,35 +76,38 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
             was_exposed: Final[bool] = existed and recorded.exposure_enabled
             try:
                 if was_exposed:
-                    unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
                 # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
                 with force_replaces_only(()):
                     outcome: Final = install(
                         venv_dir,
                         [tool.package_name],
                         [tool.package],
-                        local_bin_dir,
-                        local_man_dir,
-                        python,
-                        trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
-                        recorded.venv_args,
-                        verbose=verbose,
-                        force=existed,
-                        reinstall=False,
-                        include_dependencies=tool.include_dependencies,
-                        include_resources_from=tool.include_resources_from,
-                        preinstall_packages=None,
-                        expected_apps=tool.apps,
-                        lock_file=tool.lock_file,
-                        suffix=tool.suffix,
-                        backend=backend,
-                        env_backend=env_backend,
-                        exposure_enabled=tool.expose,
-                        preserve_existing=True,
-                        replace_expected_apps=True,
-                        replace_lock=True,
+                        InstallOptions(
+                            local_bin_dir=options.local_bin_dir,
+                            local_man_dir=options.local_man_dir,
+                            python=options.python,
+                            pip_args=trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
+                            venv_args=recorded.venv_args,
+                            verbose=options.verbose,
+                            force=existed,
+                            reinstall=False,
+                            exposure=ExposureOptions(
+                                include_dependencies=tool.include_dependencies,
+                                include_resources_from=tool.include_resources_from,
+                                suffix=tool.suffix,
+                            ),
+                            preinstall_packages=None,
+                            expected_apps=tool.apps,
+                            lock_file=tool.lock_file,
+                            backend=options.backend,
+                            exposure_enabled=tool.expose,
+                            preserve_existing=True,
+                            replace_expected_apps=True,
+                            replace_lock=True,
+                            emit_output=False,
+                        ),
                         venv_lock=venv_lock,
-                        emit_output=False,
                     )
                 error_message = outcome.errors[0].message if outcome.errors else None
             except PipxError as error:
@@ -116,22 +115,26 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
             except (Exception, KeyboardInterrupt):
                 # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
                 if was_exposed:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
                 raise
             # install returns a failed result rather than raising when it does not render, so check both
             if error_message is not None:
                 failures.append(_FailedTool(environment=tool.environment, error=error_message))
                 messages.append(OutputMessage(text=error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
             else:
                 synced.append(tool.environment)
                 # install links the main package alone, while unexpose also dropped the links of injected packages
                 if existed and tool.expose:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
 
-    if prune and not failures:
-        messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose=verbose))
+    if options.prune and not failures:
+        messages.extend(
+            _prune_environments(
+                manifest, venv_container, options.local_bin_dir, options.local_man_dir, verbose=options.verbose
+            )
+        )
     return OperationResult(
         command=("manifest", "sync"),
         data=ManifestData(environments=tuple(synced), locks=()),

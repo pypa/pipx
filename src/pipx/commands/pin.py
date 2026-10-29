@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.utils", "pipx.venv"]
+__lazy_modules__ = ["packaging.utils", "pipx.options", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -11,6 +11,7 @@ from packaging.utils import canonicalize_name
 from pipx.colors import BOLD
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
+from pipx.options import ExposureOptions
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 
@@ -127,11 +128,8 @@ def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pi
         package_name=str(package.package),
         package_or_url=str(package.package_or_url),
         pip_args=package.pip_args,
-        include_dependencies=package.include_dependencies,
-        include_resources_from=package.include_resources_from,
-        include_apps=package.include_apps,
+        exposure=ExposureOptions.recorded(package),
         is_main_package=is_main_package,
-        suffix=package.suffix,
         pinned=pinned,
     )
 
