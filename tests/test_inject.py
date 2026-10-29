@@ -13,7 +13,6 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from helpers import (
-    PACKAGE_CACHE_DIR_NAME,
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     mock_legacy_venv,
@@ -642,12 +641,11 @@ def test_force_inject_keeps_main_package_a_plugin_depends_on(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_inherits_cooldown(
-    root: Path,
+    package_cache_dir: Path,
     empty_project_wheel: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     caplog.clear()
 

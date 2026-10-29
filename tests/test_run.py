@@ -348,13 +348,12 @@ def test_run_does_not_mark_cache_as_installation(mocker: MockerFixture) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_cooldown_separates_cache(
-    root: Path,
+    package_cache_dir: Path,
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
 
     run_pipx_cli_exit(
         ["run", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"], "hello"],
@@ -978,7 +977,7 @@ def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_script_cooldown(
-    root: Path,
+    package_cache_dir: Path,
     tmp_path: Path,
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
@@ -999,7 +998,6 @@ def test_run_script_cooldown(
         ).strip(),
         encoding="utf-8",
     )
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     run_pipx_cli_exit(
         [
@@ -1008,7 +1006,7 @@ def test_run_script_cooldown(
             "pip",
             "--cooldown",
             "7",
-            f"--pip-args=--no-index --find-links={find_links}",
+            f"--pip-args=--no-index --find-links={package_cache_dir}",
             script.as_uri(),
         ],
         assert_exit=0,
@@ -1187,11 +1185,10 @@ def test_run_script_interrupted_venv_creation_expires_cache(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_run_package_install_failure_expires_cache(root: Path) -> None:
+def test_run_package_install_failure_expires_cache(package_cache_dir: Path) -> None:
     # the find links carry a current pip: when this test builds the session's shared libs, a bare --no-index would
     # fail their pip reinstall and leave the base interpreter's bundled pip for later tests on this worker
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
 
     assert run_pipx_cli(["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]) == 1
 
@@ -1496,13 +1493,12 @@ def test_run_with() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_with_cooldown(
-    root: Path,
+    package_cache_dir: Path,
     empty_project_wheel: Path,
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     run_pipx_cli_exit(
         [
@@ -1513,7 +1509,7 @@ def test_run_with_cooldown(
             "7",
             "--with",
             str(empty_project_wheel),
-            f"--pip-args=--no-index --find-links={find_links}",
+            f"--pip-args=--no-index --find-links={package_cache_dir}",
             PKG["pycowsay"]["spec"],
             "hello",
         ],

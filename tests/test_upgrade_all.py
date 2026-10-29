@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
 import pytest
 
 from helpers import (
-    PACKAGE_CACHE_DIR_NAME,
     PIPX_METADATA_LEGACY_VERSIONS,
     mock_legacy_venv,
     remove_venv_interpreter,
@@ -117,11 +116,10 @@ def test_upgrade_all_does_not_copy_current_environment(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_updates_current_cooldowns(
-    root: Path,
+    package_cache_dir: Path,
     mocker: MockerFixture,
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", PKG["black"]["spec"]])
     mocker.patch(

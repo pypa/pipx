@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 from filelock import AcquireReturnProxy, FileLock
 
-from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli, skip_if_windows
+from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
@@ -449,10 +449,10 @@ def test_runpip_skips_rebuild_when_another_process_repaired_shared_pip(
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_install_cooldown_applies_to_new_shared_pip(root: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_install_cooldown_applies_to_new_shared_pip(package_cache_dir: Path, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("INFO")
     # pip filters an index by its upload-time metadata, which the test index lacks; local files pass the filter
-    pip_args: Final[str] = f"--no-index --find-links={root / '.pipx_tests' / 'package_cache' / PACKAGE_CACHE_DIR_NAME}"
+    pip_args: Final[str] = f"--no-index --find-links={package_cache_dir}"
 
     assert not run_pipx_cli(["install", "--backend", "pip", "--cooldown", "7", f"--pip-args={pip_args}", "pycowsay"])
 

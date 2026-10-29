@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
+from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -33,15 +33,14 @@ if TYPE_CHECKING:
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
-    root: Path,
+    package_cache_dir: Path,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     make_pylock: Callable[[str, str], Path],
     install_all_args: list[str],
     expected_cooldown: int,
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--app", "pycowsay", "--lock", str(lock_file), "pycowsay"])
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["black"]["spec"]])
@@ -377,7 +376,7 @@ def test_install_all_warning_redacts_index_credentials(
 )
 def test_install_all_translates_recorded_pip_args_for_another_backend(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
     make_backend_snapshot: Callable[[str, str], Path],
-    root: Path,
+    package_cache_dir: Path,
     tmp_path: Path,
     credentialed_index_url: str,
     recorded_backend: str,
@@ -387,7 +386,7 @@ def test_install_all_translates_recorded_pip_args_for_another_backend(  # ruff:i
     (constraints := tmp_path / "constraints.txt").write_text("pycowsay\n", encoding="utf-8")
     values: Final[dict[str, str]] = {
         "url": credentialed_index_url,
-        "links": str(root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME),
+        "links": str(package_cache_dir),
         "constraints": str(constraints),
     }
     spec_file: Final[Path] = make_backend_snapshot(recorded_backend, recorded_args.format(**values))
