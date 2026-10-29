@@ -10,7 +10,7 @@ import pytest
 
 from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from pipx import paths, pipx_metadata_file
-from pipx.backends import UV, Backend
+from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError, redact_url_credentials

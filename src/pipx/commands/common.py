@@ -7,7 +7,8 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.backends",
+    "pipx.backends._base",
+    "pipx.backends.registry",
     "pipx.fanout",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -45,7 +46,8 @@ import userpath
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.backends import PIP, env_default_backend, resolve_backend_name
+from pipx.backends._base import PIP
+from pipx.backends.registry import env_default_backend, resolve_backend_name
 from pipx.colors import BOLD, RED
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import HAZARD, STARS

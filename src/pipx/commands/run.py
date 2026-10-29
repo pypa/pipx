@@ -9,7 +9,8 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.backends",
+    "pipx.backends._base",
+    "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.run_uv",
     "pipx.options",
@@ -44,7 +45,8 @@ from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.backends import UV, resolve_backend_name
+from pipx.backends._base import UV
+from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions

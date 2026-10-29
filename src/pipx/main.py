@@ -11,7 +11,8 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.backends",
+    "pipx.backends._base",
+    "pipx.backends.registry",
     "pipx.commands.environment",
     "pipx.commands.transaction",
     "pipx.fanout",
@@ -53,7 +54,8 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backends import KNOWN_BACKENDS, UV, env_default_backend, get_backend, resolve_backend_name
+from pipx.backends._base import KNOWN_BACKENDS, UV
+from pipx.backends.registry import env_default_backend, get_backend, resolve_backend_name
 from pipx.colors import BOLD, GREEN
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.commands.transaction import empty_trash

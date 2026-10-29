@@ -5,7 +5,8 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.backends",
+    "pipx.backends._base",
+    "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.package_specifier",
@@ -27,7 +28,8 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.backends import UV, assert_not_pip_under_uv
+from pipx.backends._base import UV
+from pipx.backends.registry import assert_not_pip_under_uv
 from pipx.colors import BOLD
 from pipx.commands.common import (
     get_expected_venv_resource_paths,
