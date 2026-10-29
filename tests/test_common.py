@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from helpers import SKIP_IF_WINDOWS, WIN, run_pipx_cli
 from pipx import paths
 from pipx.commands import common
 from pipx.commands.common import (
@@ -419,7 +419,13 @@ def test_get_exposed_paths_matches_copied_launcher_with_quoted_interpreter(
 @pytest.mark.parametrize(
     ("exec_line", "owned"),
     [
-        pytest.param("'''exec' {python} \"$0\" \"$@\"", True, id="pip-unquoted"),
+        pytest.param(
+            "'''exec' {python} \"$0\" \"$@\"",
+            True,
+            id="pip-unquoted",
+            # sh reads a backslash outside quotes as an escape, so an unquoted Windows path cannot round-trip
+            marks=pytest.mark.skipif(WIN, reason="pip and uv write the sh trampoline only on POSIX"),
+        ),
         pytest.param('\'\'\'exec\' "{python}" "$0" "$@"', True, id="pip-double-quoted"),
         pytest.param("'''exec' '{python}' \"$0\" \"$@\"", True, id="uv-single-quoted"),
         pytest.param("'''exec' '{python}", False, id="unbalanced-quote"),
