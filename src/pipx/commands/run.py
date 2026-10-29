@@ -636,12 +636,47 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
             },
         )
     )
+    # pip and uv (or requests, keyring and platformdirs for them) also read these, and each can change which config file
+    # loads, which server answers, which certificate is trusted or which credentials are sent. HOME and USERPROFILE
+    # locate config files too, but another home means another user, whose default pipx home already differs.
+    tool_env: Final = {
+        "ALL_PROXY",
+        "APPDATA",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_CONFIG_FILE",
+        "AWS_DEFAULT_REGION",
+        "AWS_PROFILE",
+        "AWS_REGION",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_SHARED_CREDENTIALS_FILE",
+        "CURL_CA_BUNDLE",
+        "HF_TOKEN",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "NETRC",
+        "NO_PROXY",
+        "PYTHON_KEYRING_BACKEND",
+        "PYX_API_KEY",
+        "PYX_AUTH_TOKEN",
+        "REQUESTS_CA_BUNDLE",
+        "SSL_CERT_DIR",
+        "SSL_CERT_FILE",
+        "SSL_CLIENT_CERT",
+        "SYSTEMDRIVE",
+        "WIN_PD_OVERRIDE_APPDATA",
+        "WIN_PD_OVERRIDE_COMMON_APPDATA",
+        "XDG_CONFIG_DIRS",
+        "XDG_CONFIG_HOME",
+    }
     installer_env: Final = sorted(
         (name, value)
         for name, value in os.environ.items()
-        if (normalized := name.upper().replace("-", "_")).startswith(prefix) and normalized not in unkeyed
+        if ((normalized := name.upper().replace("-", "_")).startswith(prefix) and normalized not in unkeyed)
+        or normalized in tool_env
     )
-    # Preserve list and field boundaries so different invocations cannot reuse the same digest input.
+    # Preserve list and field boundaries so different invocations cannot reuse the same digest input. Only the truncated
+    # digest leaves this function, so proxy URLs and tokens in the environment never reach the cache path or the logs.
     digest: Final = hashlib.sha256(
         json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
     )
