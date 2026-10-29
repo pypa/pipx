@@ -28,7 +28,7 @@ from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
-from pipx.interpreter import get_default_python, pyvenv_home
+from pipx.interpreter import get_default_python, read_pyvenv_cfg
 from pipx.package_specifier import absolute_path_pip_args
 from pipx.util import (
     PipxError,
@@ -167,7 +167,7 @@ class _SharedLibs:
             return True
 
         # a missing or unreadable pyvenv.cfg gives no evidence against the venv
-        if (home := pyvenv_home(python_path.parent.parent / "pyvenv.cfg")) and not (
+        if (home := read_pyvenv_cfg(python_path.parent.parent / "pyvenv.cfg").get("home")) and not (
             original_python := Path(home) / "python.exe"
         ).is_file():
             _LOGGER.info("Shared libs venv references a missing Python interpreter: %s", original_python)

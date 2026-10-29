@@ -510,17 +510,26 @@ def test_interpreter_quiet_says_nothing(
 
 
 @pytest.mark.parametrize(
-    "pyvenv_cfg",
+    ("pyvenv_cfg", "expected"),
     [
-        pytest.param(b"home = {missing}\n", id="home-without-interpreter"),
-        pytest.param(b"version = 3.14.0\n", id="no-home"),
-        pytest.param(b"home = \xff\n", id="undecodable"),
+        pytest.param(b"home = {base_dir}\n", "python3", id="home"),
+        pytest.param(b"home = {missing}\nexecutable = {base_dir}/python3.14\n", "python3.14", id="executable"),
+        pytest.param(b"home = {missing}\n", None, id="home-without-interpreter"),
+        pytest.param(b"version = 3.14.0\n", None, id="no-home"),
+        pytest.param(b"home = \xff\n", None, id="undecodable"),
     ],
 )
-def test_recordable_interpreter_without_base_interpreter_is_none(tmp_path: Path, pyvenv_cfg: bytes) -> None:
+def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, expected: str | None) -> None:
+    (base_dir := tmp_path / "base").mkdir()
+    for name in ("python3", "python3.14"):
+        (base_dir / name).touch()
     (bootstrap := tmp_path / "bootstrap").mkdir()
-    (bootstrap / "pyvenv.cfg").write_bytes(pyvenv_cfg.replace(b"{missing}", str(tmp_path / "missing").encode()))
+    (bootstrap / "pyvenv.cfg").write_bytes(
+        pyvenv_cfg.replace(b"{base_dir}", str(base_dir).encode()).replace(
+            b"{missing}", str(tmp_path / "missing").encode()
+        )
+    )
     (bin_dir := bootstrap / "bin").mkdir()
     (python := bin_dir / "python3").touch()
 
-    assert recordable_interpreter(python) is None
+    assert recordable_interpreter(python) == (None if expected is None else base_dir / expected)

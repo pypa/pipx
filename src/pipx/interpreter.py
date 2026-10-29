@@ -231,22 +231,26 @@ def _resolve_python(python: str) -> str:
 def recordable_interpreter(python: Path) -> Path | None:
     # an interpreter inside a virtual environment, such as an activated bootstrap's python3, goes away with that
     # environment, and whoever creates the path again decides what install-all runs from a snapshot; the new
-    # environment runs on the base interpreter, and pyvenv.cfg names it by the link Homebrew keeps across patch upgrades
+    # environment runs on the base interpreter instead
     if not (pyvenv_cfg := python.parent.parent / "pyvenv.cfg").is_file():
         return python
-    if (home := pyvenv_home(pyvenv_cfg)) is None or not (base := Path(home) / python.name).is_file():
-        return None
-    return base
+    config: Final[dict[str, str]] = read_pyvenv_cfg(pyvenv_cfg)
+    # home keeps the directory the base interpreter ran from, such as a link that survives patch upgrades; executable,
+    # resolved and written by venv since 3.11, covers a home without this name, as a macOS framework build has no python
+    candidates: Final[list[Path]] = [Path(home) / python.name] if (home := config.get("home")) else []
+    if executable := config.get("executable"):
+        candidates.append(Path(executable))
+    return next((candidate for candidate in candidates if candidate.is_file()), None)
 
 
-def pyvenv_home(pyvenv_cfg: Path) -> str | None:
+def read_pyvenv_cfg(pyvenv_cfg: Path) -> dict[str, str]:
     config: Final[ConfigParser] = ConfigParser()
     try:
         # pyvenv.cfg has no section header, which ConfigParser requires
         config.read_string(f"[DEFAULT]\n{pyvenv_cfg.read_text(encoding='utf-8')}")
     except (OSError, UnicodeDecodeError, ConfigParserError):
-        return None
-    return config.get("DEFAULT", "home", fallback=None)
+        return {}
+    return dict(config["DEFAULT"])
 
 
 __all__ = [
@@ -257,6 +261,6 @@ __all__ = [
     "get_default_python",
     "get_default_python_spec",
     "has_venv",
-    "pyvenv_home",
+    "read_pyvenv_cfg",
     "recordable_interpreter",
 ]

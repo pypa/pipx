@@ -41,7 +41,7 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``source_interpreter``
       - Path to the interpreter used to create the environment, or ``null``. For an interpreter inside another
         virtual environment, such as an activated bootstrap's ``python3``, pipx records the base interpreter that
-        environment's ``pyvenv.cfg`` names, or ``null`` when that has no interpreter of the same name.
+        environment's ``pyvenv.cfg`` names, or ``null`` when it names none that exists.
     - - ``venv_args``
       - Extra arguments passed when the venv was created. pipx records only ``--system-site-packages``, and drops
         any other value with a warning when it reads the file.
