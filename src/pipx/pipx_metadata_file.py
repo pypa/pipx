@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
-from pipx.package_specifier import absolute_path_pip_args
+from pipx.package_specifier import replayable_pip_args
 from pipx.util import PipxError, pipx_wrap, redact_url_credentials
 
 if TYPE_CHECKING:
@@ -334,9 +334,7 @@ class PipxMetadata:
         self.read_metadata_version = input_dict.get("pipx_metadata_version")
 
     def _package_info(self, data: _RawPackageInfo) -> PackageInfo:
-        # The record's installer ran in the venv root, so a relative path resolves there, never against the caller's
-        # working directory, which another account may control
-        return replace(PackageInfo(**data), pip_args=absolute_path_pip_args(data["pip_args"], self.venv_dir))
+        return replace(PackageInfo(**data), pip_args=replayable_pip_args(data["pip_args"], self.venv_dir))
 
     def _validate_before_write(self) -> None:
         if (

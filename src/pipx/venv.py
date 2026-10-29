@@ -52,6 +52,7 @@ from pipx.package_specifier import (
     package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
+    recordable_pip_args,
     valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
@@ -702,7 +703,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
-            pip_args=pip_args,
+            pip_args=recordable_pip_args(pip_args),
             include_apps=include_apps,
             include_dependencies=include_dependencies,
             include_resources_from=included_dependencies,
