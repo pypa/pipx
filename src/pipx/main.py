@@ -60,22 +60,12 @@ from pipx.colors import BOLD, GREEN
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.commands.transaction import empty_trash
 from pipx.constants import (
-    COOLDOWN,
-    COOLDOWN_INVALID,
-    COOLDOWN_RAW,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
-    FETCH_MISSING_PYTHON_RAW,
-    FETCH_PYTHON,
-    FETCH_PYTHON_INVALID,
-    FETCH_PYTHON_RAW,
-    MAX_LOGS_INVALID,
-    MAX_LOGS_RAW,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
     FetchPythonOptions,
-    compute_max_logs,
 )
 from pipx.emojis import HAZARD
 from pipx.fanout import stopping_children_on_signals
@@ -486,7 +476,7 @@ def _add_python_options(parser: argparse.ArgumentParser) -> None:
         "--fetch-python",
         type=FetchPythonOptions,
         choices=list(FetchPythonOptions),
-        default=FETCH_PYTHON,
+        default=_FETCH_PYTHON,
         help=(
             f"When to fetch a standalone Python build from python-build-standalone. "
             f"'{FetchPythonOptions.ALWAYS}' always downloads (ignores any system Python); "
@@ -1843,9 +1833,51 @@ def _cmd_environment(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
     return environment(value=args.value)
 
 
+_COMPLETION_INSTRUCTIONS: Final[str] = """
+If you encountered register-python-argcomplete command not found error,
+or if you are using zipapp, run
+
+    pipx install argcomplete
+
+before running any of the following commands.
+
+Add the appropriate command to your shell's config file
+so that it is run on startup. You will likely have to restart
+or re-login for the autocompletion to start working.
+
+bash:
+    eval "$(register-python-argcomplete pipx)"
+
+zsh:
+    To activate completions in zsh, first make sure compinit is marked for
+    autoload and run autoload:
+
+    autoload -U compinit && compinit
+
+    Afterwards you can enable completions for pipx:
+
+    eval "$(register-python-argcomplete pipx)"
+
+    NOTE: If your version of argcomplete is earlier than v3, you may need to
+    have bashcompinit enabled in zsh by running:
+
+    autoload -U bashcompinit
+    bashcompinit
+
+
+tcsh:
+    eval `register-python-argcomplete --shell tcsh pipx`
+
+fish:
+    # Not required to be in the config file, only run once
+    register-python-argcomplete --shell fish pipx >~/.config/fish/completions/pipx.fish
+
+"""
+
+
 def _cmd_completions(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
     del args, ctx
-    print(constants.COMPLETION_INSTRUCTIONS)  # ruff:ignore[print]  # user-facing CLI output
+    print(textwrap.dedent(_COMPLETION_INSTRUCTIONS))  # ruff:ignore[print]  # user-facing CLI output
     return ExitCode(0)
 
 
@@ -1911,12 +1943,61 @@ def _setup(args: argparse.Namespace) -> None:
         )
 
 
+_FETCH_MISSING_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
+_FETCH_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_PYTHON")
+
+
+def _compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tuple[FetchPythonOptions, bool]:
+    fetch_missing: Final[bool] = (missing_raw or "").strip().lower() not in {"", "0", "false", "f", "no", "n", "off"}
+    raw: Final[str] = python_raw or (
+        FetchPythonOptions.MISSING.value if fetch_missing else FetchPythonOptions.NEVER.value
+    )
+    try:
+        return FetchPythonOptions(raw), False
+    except ValueError:
+        return FetchPythonOptions.NEVER, True
+
+
+_FETCH_PYTHON, _FETCH_PYTHON_INVALID = _compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
+
+_COOLDOWN_RAW: Final[str | None] = os.environ.get("PIPX_COOLDOWN")
+
+
+def _compute_cooldown(raw: str | None) -> tuple[int | None, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return None, False
+    try:
+        days: Final[int] = int(stripped)
+    except ValueError:
+        return None, True
+    return (days, False) if days >= 0 else (None, True)
+
+
+_COOLDOWN, _COOLDOWN_INVALID = _compute_cooldown(_COOLDOWN_RAW)
+
+
+_MAX_LOGS_RAW: Final[str | None] = os.environ.get("PIPX_MAX_LOGS")
+
+
+def _compute_max_logs(raw: str | None) -> tuple[int, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return 10, False
+    try:
+        logs: Final[int] = int(stripped)
+    except ValueError:
+        return 10, True
+    return (logs, False) if logs >= 0 else (10, True)
+
+
+_MAX_LOGS_INVALID: Final[bool] = _compute_max_logs(_MAX_LOGS_RAW)[1]
+
+
 def _validate_fetch_python() -> None:
-    if FETCH_PYTHON_INVALID:
+    if _FETCH_PYTHON_INVALID:
         msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
         raise PipxError(msg)
-    if FETCH_MISSING_PYTHON_RAW is not None:
-        if FETCH_PYTHON_RAW is not None:
+    if _FETCH_MISSING_PYTHON_RAW is not None:
+        if _FETCH_PYTHON_RAW is not None:
             msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
             raise PipxError(msg)
         print(  # ruff:ignore[print]  # user-facing CLI output
@@ -1927,14 +2008,14 @@ def _validate_fetch_python() -> None:
 
 
 def _validate_cooldown() -> None:
-    if COOLDOWN_INVALID:
-        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {COOLDOWN_RAW!r}."
+    if _COOLDOWN_INVALID:
+        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
         raise PipxError(msg)
 
 
 def _validate_max_logs() -> None:
-    if MAX_LOGS_INVALID:
-        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {MAX_LOGS_RAW!r}."
+    if _MAX_LOGS_INVALID:
+        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
         raise PipxError(msg)
 
 
@@ -1979,7 +2060,7 @@ def _open_log_file(pipx_log_dir: Path) -> TextIOWrapper:
         pipx_log_dir.chmod(0o700)
     log_stream: Final[TextIOWrapper] = _create_log_file(pipx_log_dir)
     # the validator's parser lets a blank PIPX_MAX_LOGS fall back to the default, where int() would fail on it
-    _rotate_logs(Path(log_stream.name), compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
+    _rotate_logs(Path(log_stream.name), _compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
     return log_stream
 
 
@@ -2144,7 +2225,7 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         spec=spec,
         backend=backend,
         cooldown=CooldownOptions(
-            cli_days=getattr(args, "cooldown", None), env_days=COOLDOWN if "cooldown" in args else None
+            cli_days=getattr(args, "cooldown", None), env_days=_COOLDOWN if "cooldown" in args else None
         ),
     )
     with (
