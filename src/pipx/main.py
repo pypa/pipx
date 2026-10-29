@@ -77,7 +77,19 @@ from pipx.interpreter import (
     get_default_python,
     get_default_python_spec,
 )
-from pipx.options import BackendOptions, CooldownOptions, ExposureOptions
+from pipx.options import (
+    BackendOptions,
+    CooldownOptions,
+    ExposureOptions,
+    InjectOptions,
+    InstallOptions,
+    ListOptions,
+    ReinstallOptions,
+    RunOptions,
+    SyncOptions,
+    UninjectOptions,
+    UpgradeOptions,
+)
 from pipx.package_specifier import valid_pypi_name
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
@@ -598,29 +610,31 @@ def _cmd_install(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         None,
         None,
         args.package_spec,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        force=args.force,
-        upgrade=args.upgrade,
-        reinstall=False,
-        exposure=ExposureOptions(
-            include_dependencies=args.include_deps,
-            include_resources_from=args.include_resources_from,
-            suffix=args.suffix,
+        InstallOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            force=args.force,
+            upgrade=args.upgrade,
+            reinstall=False,
+            exposure=ExposureOptions(
+                include_dependencies=args.include_deps,
+                include_resources_from=args.include_resources_from,
+                suffix=args.suffix,
+            ),
+            preinstall_packages=args.preinstall,
+            expected_apps=args.app or (),
+            lock_file=args.lock,
+            python_flag_passed=ctx.python_flag_passed,
+            fetch_python=ctx.fetch_python,
+            backend=ctx.backend,
+            upgrade_strategy=args.upgrade_strategy,
+            cooldown=ctx.cooldown,
+            emit_output=False,
         ),
-        preinstall_packages=args.preinstall,
-        expected_apps=args.app or (),
-        lock_file=args.lock,
-        python_flag_passed=ctx.python_flag_passed,
-        fetch_python=ctx.fetch_python,
-        backend=ctx.backend,
-        upgrade_strategy=args.upgrade_strategy,
-        cooldown=ctx.cooldown,
-        emit_output=False,
     )
 
 
@@ -653,16 +667,18 @@ def _cmd_install_all(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
 
     return install_all(
         args.spec_metadata_file,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        force=args.force,
-        backend=ctx.backend,
-        cooldown=ctx.cooldown,
-        python_flag_passed=ctx.python_flag_passed,
+        InstallOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            force=args.force,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+            python_flag_passed=ctx.python_flag_passed,
+        ),
     )
 
 
@@ -714,10 +730,12 @@ def _cmd_uninject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationR
         return uninject(
             venv_dir,
             args.dependencies,
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
-            leave_deps=args.leave_deps,
-            verbose=ctx.verbose,
+            UninjectOptions(
+                local_bin_dir=paths.CTX.bin_dir,
+                local_man_dir=paths.CTX.man_dir,
+                leave_deps=args.leave_deps,
+                verbose=ctx.verbose,
+            ),
         )
 
 
@@ -795,16 +813,18 @@ def _cmd_inject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRes
             venv_dir,
             args.dependencies,
             args.requirements,
-            ctx.pip_args,
-            verbose=ctx.verbose,
-            include_apps=args.include_apps,
-            include_dependencies=args.include_deps,
-            include_resources_from=args.include_resources_from,
-            force=args.force,
-            suffix=args.with_suffix,
-            backend=ctx.backend,
-            cooldown_days=ctx.cooldown.days,
-            emit_output=False,
+            InjectOptions(
+                pip_args=ctx.pip_args,
+                verbose=ctx.verbose,
+                include_apps=args.include_apps,
+                include_dependencies=args.include_deps,
+                include_resources_from=args.include_resources_from,
+                force=args.force,
+                with_suffix=args.with_suffix,
+                backend=ctx.backend,
+                cooldown_days=ctx.cooldown.days,
+                emit_output=False,
+            ),
         )
 
 
@@ -965,16 +985,18 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
 
     return upgrade(
         _venv_dirs(args, ctx),
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        include_injected=args.include_injected,
-        force=args.force,
-        install=args.install,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        cooldown=ctx.cooldown,
+        UpgradeOptions(
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            include_injected=args.include_injected,
+            force=args.force,
+            install=args.install,
+            python_flag_passed=ctx.python_flag_passed,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+        ),
     )
 
 
@@ -1025,14 +1047,16 @@ def _cmd_upgrade_all(args: argparse.Namespace, ctx: _DispatchContext) -> Operati
 
     return upgrade_all(
         ctx.venv_container,
-        verbose=ctx.verbose,
-        include_injected=args.include_injected,
-        skip=ctx.skip_list,
-        force=args.force,
-        pip_args=ctx.pip_args,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        cooldown=ctx.cooldown,
+        UpgradeOptions(
+            verbose=ctx.verbose,
+            include_injected=args.include_injected,
+            skip=ctx.skip_list,
+            force=args.force,
+            pip_args=ctx.pip_args,
+            python_flag_passed=ctx.python_flag_passed,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+        ),
     )
 
 
@@ -1183,16 +1207,19 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
     with ctx.venv_container.venv_lock(venv_dir) as venv_lock:
         from pipx.commands.reinstall import reinstall
 
-        return reinstall(
-            venv_dir=venv_dir,
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
-            python=ctx.python,
-            verbose=ctx.verbose,
-            python_flag_passed=ctx.python_flag_passed,
-            backend=ctx.backend,
-            venv_lock=venv_lock,
-        )
+        return reinstall(venv_dir, _reinstall_options(ctx), venv_lock=venv_lock)
+
+
+def _reinstall_options(ctx: _DispatchContext) -> ReinstallOptions:
+    return ReinstallOptions(
+        local_bin_dir=paths.CTX.bin_dir,
+        local_man_dir=paths.CTX.man_dir,
+        python=ctx.python,
+        verbose=ctx.verbose,
+        python_flag_passed=ctx.python_flag_passed,
+        backend=ctx.backend,
+        skip=ctx.skip_list,
+    )
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1227,16 +1254,7 @@ def _cmd_reinstall_all(args: argparse.Namespace, ctx: _DispatchContext) -> Opera
     del args
     from pipx.commands.reinstall import reinstall_all
 
-    return reinstall_all(
-        ctx.venv_container,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        skip=ctx.skip_list,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-    )
+    return reinstall_all(ctx.venv_container, _reinstall_options(ctx))
 
 
 def _add_health(
@@ -1289,16 +1307,7 @@ def _add_repair(
 def _cmd_repair(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResult[RepairData]:
     from pipx.commands.health import repair
 
-    return repair(
-        ctx.venv_container,
-        _selected_venv_dirs(args, ctx),
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-    )
+    return repair(ctx.venv_container, _selected_venv_dirs(args, ctx), _reinstall_options(ctx))
 
 
 def _add_list(
@@ -1351,10 +1360,12 @@ def _cmd_list(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode | Ope
     return list_packages(
         ctx.venv_container,
         venv_dirs,
-        include_injected=args.include_injected,
-        json_format=output is OutputFormat.JSON,
-        short_format=args.short,
-        pinned_only=args.pinned,
+        ListOptions(
+            include_injected=args.include_injected,
+            json_format=output is OutputFormat.JSON,
+            short_format=args.short,
+            pinned_only=args.pinned,
+        ),
     )
 
 
@@ -1529,12 +1540,14 @@ def _cmd_sync(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResul
     return sync_manifest(
         args.manifest,
         ctx.venv_container,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        prune=args.prune,
-        backend=ctx.backend,
+        SyncOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            verbose=ctx.verbose,
+            prune=args.prune,
+            backend=ctx.backend,
+        ),
     )
 
 
@@ -1642,24 +1655,26 @@ def _cmd_run(args: argparse.Namespace, ctx: _DispatchContext) -> NoReturn:
     from pipx.commands.run import run
 
     run(
-        app=args.app_with_args[0],
+        args.app_with_args[0],
+        RunOptions(
+            dependencies=args.with_,
+            app_args=args.app_with_args[1:],
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            is_path=args.path,
+            pypackages=args.pypackages,
+            verbose=ctx.verbose,
+            use_cache=not args.no_cache,
+            refresh=args.refresh,
+            no_path_check=args.no_path_check,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+            python_args=args.python_args,
+            python_flag_passed=ctx.python_flag_passed,
+            fetch_python=ctx.fetch_python,
+        ),
         spec=ctx.spec,
-        dependencies=args.with_,
-        app_args=args.app_with_args[1:],
-        python=ctx.python,
-        pip_args=ctx.pip_args,
-        venv_args=ctx.venv_args,
-        is_path=args.path,
-        pypackages=args.pypackages,
-        verbose=ctx.verbose,
-        use_cache=not args.no_cache,
-        refresh=args.refresh,
-        no_path_check=args.no_path_check,
-        backend=ctx.backend,
-        cooldown=ctx.cooldown,
-        python_args=args.python_args,
-        python_flag_passed=ctx.python_flag_passed,
-        fetch_python=ctx.fetch_python,
     )
 
 

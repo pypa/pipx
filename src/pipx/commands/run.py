@@ -40,6 +40,7 @@ import sys
 import tempfile
 import urllib.parse
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
@@ -52,7 +53,7 @@ from pipx.backends._base import UV
 from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
+from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
@@ -66,9 +67,10 @@ from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
+    from collections.abc import Generator
 
-    from pipx.options import BackendOptions, CooldownOptions
+    from pipx.constants import FetchPythonOptions
+    from pipx.options import RunOptions
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -77,27 +79,7 @@ _RUN_KEY_FILENAME: Final[str] = ".run-key"
 _RUN_KEY_BYTES: Final[int] = 32
 
 
-def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
-    *,
-    app: str,
-    spec: str | None,
-    dependencies: list[str],
-    app_args: list[str],
-    python: str,
-    pip_args: list[str],
-    venv_args: list[str],
-    is_path: bool,
-    pypackages: bool,
-    verbose: bool,
-    use_cache: bool,
-    python_args: list[str],
-    refresh: bool,
-    no_path_check: bool,
-    backend: BackendOptions,
-    cooldown: CooldownOptions,
-    python_flag_passed: bool,
-    fetch_python: FetchPythonOptions,
-) -> NoReturn:
+def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
     requirement_name: Final[str] = _requirement_name(app)
     package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
     # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
@@ -106,69 +88,32 @@ def run(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` CLI o
 
     # the resolved backend only picks the route, uv tool run or a venv; the venv still gets the CLI and environment
     # values apart, so it attributes the backend to the right source
-    resolved_backend, _ = resolve_backend_name(cli_value=backend.cli, env_value=backend.env)
+    resolved_backend, _ = resolve_backend_name(cli_value=options.backend.cli, env_value=options.backend.env)
     # uv cannot discover inferred app names or pipx.run entry points before installing the package
     use_uvx: Final[bool] = (
         resolved_backend == UV
-        and not pypackages
-        and not python_args
+        and not options.pypackages
+        and not options.python_args
         and not infer_app_name
         and _can_use_uvx_for_spec(app, spec)
     )
 
-    if spec is None and (content := maybe_script_content(app, is_path=is_path)) is not None:
+    if spec is None and (content := maybe_script_content(app, is_path=options.is_path)) is not None:
         _run_script(
             content,
-            app_args,
-            python,
-            pip_args,
-            venv_args,
-            verbose=verbose,
-            use_cache=use_cache,
-            refresh=refresh,
-            backend=backend,
+            options,
             resolved_backend=resolved_backend,
             script_source=Path(app) if isinstance(content, Path) else None,
-            dependencies=dependencies,
-            cooldown_days=cooldown.days,
-            python_args=python_args,
-            python_flag_passed=python_flag_passed,
-            fetch_python=fetch_python,
         )
     elif use_uvx:
-        run_via_uv_tool_run(
-            app=package_name if spec is None else app,
-            package_or_url=spec if spec is not None else app,
-            dependencies=dependencies,
-            app_args=app_args,
-            python=python,
-            pip_args=pip_args,
-            venv_args=venv_args,
-            use_cache=use_cache,
-            refresh=refresh,
-            verbose=verbose,
-            no_path_check=no_path_check,
-            cooldown_days=cooldown.days,
-        )
+        run_via_uv_tool_run(package_name if spec is None else app, spec if spec is not None else app, options)
     else:
         run_package(
             package_name,
             spec if spec is not None else app,
-            dependencies,
-            app_args,
-            python,
-            pip_args=pip_args,
-            venv_args=venv_args,
-            pypackages=pypackages,
-            verbose=verbose,
-            use_cache=use_cache,
-            refresh=refresh,
+            options,
             infer_app_name=infer_app_name,
-            backend=backend,
             resolved_backend=resolved_backend,
-            no_path_check=no_path_check,
-            cooldown_days=cooldown.days,
-            python_args=python_args,
         )
 
 
@@ -223,25 +168,14 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
     return None
 
 
-def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` script options; a struct would only relocate them
+def _run_script(
     content: str | Path,
-    app_args: list[str],
-    python: str,
-    pip_args: list[str],
-    venv_args: list[str],
+    options: RunOptions,
     *,
-    verbose: bool,
-    use_cache: bool,
-    python_args: list[str],
-    refresh: bool,
-    backend: BackendOptions,
     resolved_backend: str,
     script_source: Path | None,
-    dependencies: list[str],
-    cooldown_days: int | None,
-    python_flag_passed: bool,
-    fetch_python: FetchPythonOptions,
 ) -> NoReturn:
+    dependencies: Final[list[str]] = options.dependencies
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
@@ -262,40 +196,40 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
 
     # uv treats the --python pipx hands it as an explicit request and runs a script on it even when requires-python
     # rules it out, so pipx settles the interpreter for both backends
-    if metadata is not None and metadata.requires_python is not None:
-        python = _interpreter_for_script(
-            metadata.requires_python, python, fetch_python, python_flag_passed=python_flag_passed
+    python: Final[str] = (
+        options.python
+        if metadata is None or metadata.requires_python is None
+        else _interpreter_for_script(
+            metadata.requires_python,
+            options.python,
+            options.fetch_python,
+            python_flag_passed=options.python_flag_passed,
         )
+    )
+    cooldown_days: Final[int | None] = options.cooldown.days
 
-    if resolved_backend == UV and requirements is not None and not python_args:
+    if resolved_backend == UV and requirements is not None and not options.python_args:
         if script_source is not None:
             # uv keys its own script environment on the path alone and reuses it while it satisfies the script, so a
             # changed index or cooldown, or --refresh, would keep running what an earlier request installed
-            venv_dir = _get_temporary_venv_path(
+            script_venv_dir: Final[Path] = _get_temporary_venv_path(
                 ["--script", str(script_source.resolve())],
                 python,
-                pip_args,
-                venv_args,
+                options.pip_args,
+                options.venv_args,
                 UV,
                 cooldown_days=cooldown_days,
             )
-            with _locked_venv_cache(venv_dir):
-                _prepare_venv_cache(Venv(venv_dir, backend=backend), None, use_cache=use_cache, refresh=refresh)
+            with _locked_venv_cache(script_venv_dir):
+                _prepare_venv_cache(
+                    Venv(script_venv_dir, backend=options.backend),
+                    None,
+                    use_cache=options.use_cache,
+                    refresh=options.refresh,
+                )
             # on Windows exec_app waits for the script, so holding the lock across it would block every concurrent run
             # of this script, including one the script starts itself; uv locks the environment while it syncs
-            run_script_via_uv_run(
-                script_path=script_source,
-                venv_dir=venv_dir,
-                app_args=app_args,
-                python=python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                refresh=refresh,
-                dependencies=dependencies,
-                cooldown_days=cooldown_days,
-            )
+            run_script_via_uv_run(script_source, script_venv_dir, replace(options, python=python))
         # URL and named-pipe content has no path on disk to hand to ``uv run --script``
         _LOGGER.warning(
             pipx_wrap(
@@ -310,35 +244,35 @@ def _run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
         )
 
     if not requirements:
-        _exec_script(Path(python), content, app_args, python_args)
+        _exec_script(Path(python), content, options.app_args, options.python_args)
 
     # keyed on the requirements rather than the script name, so scripts that need the same packages share one
     # environment; read_script_metadata normalizes them so spacing differences do not split the cache
-    pip_args = absolute_path_pip_args(pip_args, Path.cwd())
-    venv_dir = _get_temporary_venv_path(
+    pip_args: Final[list[str]] = absolute_path_pip_args(options.pip_args, Path.cwd())
+    venv_dir: Final[Path] = _get_temporary_venv_path(
         requirements,
         python,
         pip_args,
-        venv_args,
+        options.venv_args,
         resolved_backend,
         cooldown_days=cooldown_days,
     )
     with _locked_venv_cache(venv_dir):
-        venv = Venv(venv_dir, backend=backend)
-        _prepare_venv_cache(venv, None, use_cache=use_cache, refresh=refresh)
+        venv = Venv(venv_dir, backend=options.backend)
+        _prepare_venv_cache(venv, None, use_cache=options.use_cache, refresh=options.refresh)
         if venv_dir.exists():
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
-            venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend)
-            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+            venv = Venv(venv_dir, python=python, verbose=options.verbose, backend=options.backend)
+            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=options.verbose)
             try:
-                venv.create_venv(venv_args, pip_args)
+                venv.create_venv(options.venv_args, pip_args)
                 venv.install_unmanaged_packages(requirements, pip_args, cooldown_days=cooldown_days)
             except (OSError, PipxError, KeyboardInterrupt):
                 # expire the cache so the next run reinstalls the requirements instead of reusing a broken venv
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
                 raise
-        _exec_script(venv.python_path, content, app_args, python_args)
+        _exec_script(venv.python_path, content, options.app_args, options.python_args)
 
 
 def _interpreter_for_script(
@@ -559,27 +493,15 @@ def _exec_script(
         exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
-def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` options; a struct would only relocate them
+def run_package(
     app: str,
     package_or_url: str,
-    dependencies: list[str],
-    app_args: list[str],
-    python: str,
+    options: RunOptions,
     *,
-    pip_args: list[str],
-    venv_args: list[str],
-    pypackages: bool,
-    verbose: bool,
-    use_cache: bool,
-    python_args: list[str],
-    refresh: bool,
     infer_app_name: bool,
-    backend: BackendOptions,
     resolved_backend: str,
-    no_path_check: bool,
-    cooldown_days: int | None,
 ) -> NoReturn:
-    if not no_path_check and (app_path := which(app)):
+    if not options.no_path_check and (app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -594,12 +516,12 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
 
     pypackage_bin_path: Final[Path] = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        if python_args:
+        if options.python_args:
             msg = "--python-args cannot run applications from __pypackages__."
             raise PipxError(msg)
         _LOGGER.info("Using app in local __pypackages__ directory at '%s'", pypackage_bin_path)
-        run_pypackage_bin(pypackage_bin_path, app_args)
-    if pypackages:
+        run_pypackage_bin(pypackage_bin_path, options.app_args)
+    if options.pypackages:
         msg = f"""
             '--pypackages' flag was passed, but '{pypackage_bin_path}' was
             not found. See https://github.com/cs01/pythonloc to learn how to
@@ -613,42 +535,30 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
     venv_dir: Final[Path] = _get_temporary_venv_path(
         [
             str(script) if (script := local_script(spec)) is not None else resolve_local_path(spec)
-            for spec in (package_or_url, *dependencies)
+            for spec in (package_or_url, *options.dependencies)
         ],
-        python,
-        absolute_path_pip_args(pip_args, Path.cwd()),
-        venv_args,
+        options.python,
+        absolute_path_pip_args(options.pip_args, Path.cwd()),
+        options.venv_args,
         resolved_backend,
-        cooldown_days=cooldown_days,
+        cooldown_days=options.cooldown.days,
     )
 
     with _locked_venv_cache(venv_dir):
-        venv = Venv(venv_dir, backend=backend)
+        venv = Venv(venv_dir, backend=options.backend)
         if infer_app_name and (cached := venv.pipx_metadata.main_package).package is not None:
             # repeat ``_prepare_venv``'s sole-script fallback, else the cache check below misses and rebuilds the venv
             app, app_filename = _app_names(cached.apps[0] if len(cached.apps) == 1 else cached.package)
-        _prepare_venv_cache(venv, venv.bin_path / app_filename, use_cache=use_cache, refresh=refresh)
+        _prepare_venv_cache(venv, venv.bin_path / app_filename, use_cache=options.use_cache, refresh=options.refresh)
 
         if venv.has_app(app, app_filename):
             _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
             _LOGGER.info("venv location is %s", venv_dir)
             venv, app, app_filename = _prepare_venv(
-                venv_dir,
-                package_or_url,
-                app,
-                app_filename,
-                python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                use_cache=use_cache,
-                verbose=verbose,
-                infer_app_name=infer_app_name,
-                backend=backend,
-                cooldown_days=cooldown_days,
-                dependencies=dependencies,
+                venv_dir, package_or_url, (app, app_filename), options, infer_app_name=infer_app_name
             )
-        venv.run_app(app, app_filename, app_args, python_args=python_args)
+        venv.run_app(app, app_filename, options.app_args, python_args=options.python_args)
 
 
 def _app_names(app: str) -> tuple[str, str]:
@@ -660,24 +570,18 @@ def _app_names(app: str) -> tuple[str, str]:
     return name, app_filename
 
 
-def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/install option set for one temporary venv
+def _prepare_venv(
     venv_dir: Path,
     package_or_url: str,
-    app: str,
-    app_filename: str,
-    python: str,
+    app_names: tuple[str, str],
+    options: RunOptions,
     *,
-    pip_args: list[str],
-    venv_args: list[str],
-    use_cache: bool,
-    verbose: bool,
     infer_app_name: bool,
-    backend: BackendOptions,
-    cooldown_days: int | None,
-    dependencies: Sequence[str],
 ) -> tuple[Venv, str, str]:
-    venv: Final[Venv] = Venv(venv_dir, python=python, verbose=verbose, backend=backend)
-    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+    app, app_filename = app_names
+    pip_args: Final[list[str]] = options.pip_args
+    venv: Final[Venv] = Venv(venv_dir, python=options.python, verbose=options.verbose, backend=options.backend)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=options.verbose)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
@@ -685,27 +589,27 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
         # a spec without a distribution name costs a throwaway venv here, so resolve it on the requested backend
         package_name = package_name_from_spec(
             package_or_url,
-            python,
+            options.python,
             pip_args=pip_args,
-            verbose=verbose,
-            backend=backend,
-            cooldown_days=cooldown_days,
+            verbose=options.verbose,
+            backend=options.backend,
+            cooldown_days=options.cooldown.days,
         )
 
     if infer_app_name:
         app, app_filename = _app_names(package_name)
 
     try:
-        venv.create_venv(venv_args, pip_args, override_shared=package_name == "pip")
+        venv.create_venv(options.venv_args, pip_args, override_shared=package_name == "pip")
         venv.install_package(
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
             exposure=ExposureOptions(),
             is_main_package=True,
-            cooldown_days=cooldown_days,
+            cooldown_days=options.cooldown.days,
             # resolved with the app so a pin or cap on one of its dependencies takes effect
-            extra_requirements=dependencies,
+            extra_requirements=options.dependencies,
         )
     except (OSError, PipxError, KeyboardInterrupt):
         # a half-built venv has no record of its backend, so the next run must start from scratch; a missing app below
@@ -730,7 +634,7 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
             )
             raise PipxError(msg, wrap_message=False)
 
-    if not use_cache:
+    if not options.use_cache:
         # the next run's cache sweep removes a venv built without the cache
         (venv_dir / _VENV_EXPIRED_FILENAME).touch()
 

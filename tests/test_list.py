@@ -29,6 +29,7 @@ from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
+from pipx.options import ListOptions
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, load_spec_file
 from pipx.util import PipxError
 
@@ -89,10 +90,7 @@ def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) 
     assert not list_packages(
         venv_container,
         [venv_dir],
-        include_injected=False,
-        json_format=False,
-        short_format=False,
-        pinned_only=False,
+        ListOptions(include_injected=False, json_format=False, short_format=False, pinned_only=False),
     )
 
     lock.release.assert_not_called()

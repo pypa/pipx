@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
@@ -8,6 +9,8 @@ import pytest
 
 from pipx import paths, subprocess_runner
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
+from pipx.constants import FetchPythonOptions
+from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
 
@@ -24,43 +27,36 @@ def fake_uv(mocker: MockerFixture) -> Path:
     return binary
 
 
+_RUN_OPTIONS: Final[RunOptions] = RunOptions(
+    app_args=[],
+    dependencies=[],
+    python="",
+    pip_args=[],
+    venv_args=[],
+    is_path=False,
+    pypackages=False,
+    verbose=False,
+    use_cache=True,
+    python_args=[],
+    refresh=False,
+    no_path_check=False,
+    backend=DEFAULT_BACKEND_OPTIONS,
+    cooldown=CooldownOptions(),
+    python_flag_passed=False,
+    fetch_python=FetchPythonOptions.NEVER,
+)
+
+
 @pytest.fixture
 def tool_run(mocker: MockerFixture) -> partial[NoReturn]:
     mocker.patch("pipx.commands.run_uv.which", autospec=True, return_value=None)
-    return partial(
-        run_via_uv_tool_run,
-        app="black",
-        package_or_url="black",
-        dependencies=[],
-        app_args=[],
-        python="",
-        pip_args=[],
-        venv_args=[],
-        use_cache=True,
-        verbose=False,
-        refresh=False,
-        no_path_check=False,
-        cooldown_days=None,
-    )
+    return partial(run_via_uv_tool_run, "black", "black")
 
 
 @pytest.fixture
 def script_run(tmp_path: Path) -> partial[NoReturn]:
     (script := tmp_path / "demo.py").write_text("print('hi')\n")
-    return partial(
-        run_script_via_uv_run,
-        script_path=script,
-        venv_dir=tmp_path / "venv",
-        app_args=[],
-        python="",
-        pip_args=[],
-        venv_args=[],
-        use_cache=True,
-        verbose=False,
-        refresh=False,
-        dependencies=[],
-        cooldown_days=None,
-    )
+    return partial(run_script_via_uv_run, script, tmp_path / "venv")
 
 
 @pytest.fixture
@@ -85,7 +81,14 @@ def test_run_via_uv_tool_run_basic(
     cooldown_args: list[str],
 ) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        tool_run(app_args=["--check"], python="python3.12", cooldown_days=cooldown_days)
+        tool_run(
+            replace(
+                _RUN_OPTIONS,
+                app_args=["--check"],
+                python="python3.12",
+                cooldown=CooldownOptions(cli_days=cooldown_days),
+            )
+        )
 
     assert exec_mock.call_args.args[0] == [
         str(fake_uv),
@@ -100,19 +103,21 @@ def test_run_via_uv_tool_run_basic(
     ]
 
 
-def test_run_via_uv_tool_run_threads_spec_and_with(
-    exec_mock: MagicMock, fake_uv: Path, tool_run: partial[NoReturn]
-) -> None:
+@pytest.mark.usefixtures("tool_run")
+def test_run_via_uv_tool_run_threads_spec_and_with(exec_mock: MagicMock, fake_uv: Path) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        tool_run(
-            app="rope",
-            package_or_url="git+https://example.com/rope.git",
-            dependencies=["rich", "click"],
-            app_args=["--version"],
-            python="python3.12",
-            pip_args=["--index-url", "https://example.com/simple", "--pre"],
-            use_cache=False,
-            verbose=True,
+        run_via_uv_tool_run(
+            "rope",
+            "git+https://example.com/rope.git",
+            replace(
+                _RUN_OPTIONS,
+                dependencies=["rich", "click"],
+                app_args=["--version"],
+                python="python3.12",
+                pip_args=["--index-url", "https://example.com/simple", "--pre"],
+                use_cache=False,
+                verbose=True,
+            ),
         )
 
     assert exec_mock.call_args.args[0] == [
@@ -143,7 +148,7 @@ def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
     exec_mock: MagicMock, tool_run: partial[NoReturn]
 ) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        tool_run()
+        tool_run(_RUN_OPTIONS)
 
     assert "--from" not in exec_mock.call_args.args[0]
 
@@ -151,7 +156,7 @@ def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
 @pytest.mark.usefixtures("fake_uv")
 def test_run_via_uv_tool_run_refreshes_cache(exec_mock: MagicMock, tool_run: partial[NoReturn]) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        tool_run(refresh=True)
+        tool_run(replace(_RUN_OPTIONS, refresh=True))
 
     assert "--refresh" in exec_mock.call_args.args[0]
 
@@ -171,7 +176,14 @@ def test_run_script_via_uv_run_uses_uv_run_script(
     cooldown_args: list[str],
 ) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        script_run(app_args=["--quiet"], python="python3.12", cooldown_days=cooldown_days)
+        script_run(
+            replace(
+                _RUN_OPTIONS,
+                app_args=["--quiet"],
+                python="python3.12",
+                cooldown=CooldownOptions(cli_days=cooldown_days),
+            )
+        )
 
     assert exec_mock.call_args.args[0] == [
         str(fake_uv),
@@ -183,7 +195,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
         "--python",
         "python3.12",
         *cooldown_args,
-        str(script_run.keywords["script_path"]),
+        str(script_run.args[0]),
         "--quiet",
     ]
 
@@ -191,7 +203,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
 @pytest.mark.usefixtures("fake_uv")
 def test_run_script_via_uv_run_refreshes_cache(exec_mock: MagicMock, script_run: partial[NoReturn]) -> None:
     with pytest.raises(RuntimeError, match="exec"):
-        script_run(refresh=True)
+        script_run(replace(_RUN_OPTIONS, refresh=True))
 
     assert "--refresh" in exec_mock.call_args.args[0]
 
@@ -214,7 +226,7 @@ def test_run_script_via_uv_run_refreshes_cache(exec_mock: MagicMock, script_run:
 @pytest.mark.usefixtures("fake_uv", "exec_mock")
 def test_run_via_uv_tool_run_rejects_venv_args(tool_run: partial[NoReturn], venv_arg: str, expected: str) -> None:
     with pytest.raises(PipxError) as error:
-        tool_run(venv_args=[venv_arg])
+        tool_run(replace(_RUN_OPTIONS, venv_args=[venv_arg]))
 
     assert str(error.value).startswith(expected)
 

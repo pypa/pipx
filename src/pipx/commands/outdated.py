@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx.constants import ExitCode
-from pipx.options import DEFAULT_BACKEND_OPTIONS
+from pipx.options import OutdatedOptions
 from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError
@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Sequence
     from pathlib import Path
 
-    from pipx.options import BackendOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 
@@ -38,9 +37,7 @@ def list_outdated(
     include_injected: bool,
 ) -> OperationResult[OutdatedData]:
     data: Final[OutdatedData] = inspect_outdated(
-        venv_container,
-        include_injected=include_injected,
-        venv_dirs=venv_dirs,
+        venv_container, OutdatedOptions(include_injected=include_injected), venv_dirs=venv_dirs
     )
     messages: Final[list[OutputMessage]] = [
         OutputMessage(
@@ -74,30 +71,18 @@ def list_outdated(
     )
 
 
-def inspect_outdated(  # ruff:ignore[too-many-arguments]  # forwards the full outdated-check context down the parallel fan-out
-    venv_container: VenvContainer,
-    *,
-    include_injected: bool,
-    upgradable_only: bool = False,
-    pip_args: Sequence[str] = (),
-    skip: Collection[str] = (),
-    backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
-    venv_dirs: Collection[Path] | None = None,
+def inspect_outdated(
+    venv_container: VenvContainer, options: OutdatedOptions, *, venv_dirs: Collection[Path] | None = None
 ) -> OutdatedData:
     selected_venv_dirs: Final[tuple[Path, ...]] = tuple(
         sorted(
             venv_dir
             for venv_dir in (venv_container.iter_venv_dirs() if venv_dirs is None else venv_dirs)
-            if venv_dir.name not in skip
+            if venv_dir.name not in options.skip
         )
     )
     checks: Final[tuple[_EnvironmentOutdated, ...]] = _list_environments_outdated(
-        venv_container,
-        selected_venv_dirs,
-        include_injected=include_injected,
-        upgradable_only=upgradable_only,
-        pip_args=pip_args,
-        backend=backend,
+        venv_container, selected_venv_dirs, options
     )
     packages: Final[tuple[_OutdatedPackage, ...]] = tuple(
         sorted(
@@ -125,24 +110,13 @@ def inspect_outdated(  # ruff:ignore[too-many-arguments]  # forwards the full ou
     )
 
 
-def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards the shared outdated-check context to each worker
-    venv_container: VenvContainer,
-    venv_dirs: tuple[Path, ...],
-    *,
-    include_injected: bool,
-    upgradable_only: bool,
-    pip_args: Sequence[str],
-    backend: BackendOptions,
+def _list_environments_outdated(
+    venv_container: VenvContainer, venv_dirs: tuple[Path, ...], options: OutdatedOptions
 ) -> tuple[_EnvironmentOutdated, ...]:
     if not venv_dirs:
         return ()
     check: Final[Callable[[Path], _EnvironmentOutdated]] = partial(
-        _list_environment_outdated,
-        venv_container,
-        include_injected=include_injected,
-        upgradable_only=upgradable_only,
-        pip_args=pip_args,
-        backend=backend,
+        _list_environment_outdated, venv_container, options=options
     )
     if len(venv_dirs) == 1:
         return (check(venv_dirs[0]),)
@@ -150,23 +124,17 @@ def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards 
         return tuple(executor.map(check, venv_dirs))
 
 
-def _list_environment_outdated(  # ruff:ignore[too-many-arguments]  # forwards the shared outdated-check context for one venv
-    venv_container: VenvContainer,
-    venv_dir: Path,
-    *,
-    include_injected: bool,
-    upgradable_only: bool,
-    pip_args: Sequence[str],
-    backend: BackendOptions,
+def _list_environment_outdated(
+    venv_container: VenvContainer, venv_dir: Path, options: OutdatedOptions
 ) -> _EnvironmentOutdated:
     with venv_container.venv_lock(venv_dir):
         if not venv_dir.is_dir():
             return _EnvironmentOutdated()
         return _list_venv_outdated(
-            Venv(venv_dir, backend=backend),
-            include_injected=include_injected,
-            upgradable_only=upgradable_only,
-            pip_args=pip_args,
+            Venv(venv_dir, backend=options.backend),
+            include_injected=options.include_injected,
+            upgradable_only=options.upgradable_only,
+            pip_args=options.pip_args,
         )
 
 

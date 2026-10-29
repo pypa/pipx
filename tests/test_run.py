@@ -31,7 +31,8 @@ from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli, w
 from package_info import PKG
 from pipx import paths, shared_libs, subprocess_runner
 from pipx.commands.run import maybe_script_content, run_package
-from pipx.options import DEFAULT_BACKEND_OPTIONS
+from pipx.constants import FetchPythonOptions
+from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.venv import VenvContainer
 
@@ -1552,21 +1553,26 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
             run_package(
                 "pycowsay",
                 "pycowsay",
-                dependencies,
-                [],
-                "python3",
-                pip_args=pip_args,
-                venv_args=venv_args,
-                pypackages=False,
-                verbose=False,
-                use_cache=True,
-                python_args=[],
-                refresh=False,
+                RunOptions(
+                    app_args=[],
+                    dependencies=dependencies,
+                    python="python3",
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    is_path=False,
+                    pypackages=False,
+                    verbose=False,
+                    use_cache=True,
+                    python_args=[],
+                    refresh=False,
+                    no_path_check=True,
+                    backend=DEFAULT_BACKEND_OPTIONS,
+                    cooldown=CooldownOptions(),
+                    python_flag_passed=False,
+                    fetch_python=FetchPythonOptions.NEVER,
+                ),
                 infer_app_name=False,
-                backend=DEFAULT_BACKEND_OPTIONS,
                 resolved_backend="pip",
-                no_path_check=True,
-                cooldown_days=None,
             )
         return lock.call_args.args[0]
 

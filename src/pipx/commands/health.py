@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from pipx.options import BackendOptions
+    from pipx.options import ReinstallOptions
     from pipx.venv import VenvContainer
 
 
@@ -106,16 +106,8 @@ class HealthData(OperationData):
     environments: tuple[_EnvironmentHealth, ...]
 
 
-def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reinstall context to every broken environment
-    venv_container: VenvContainer,
-    venv_dirs: Iterable[Path],
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    *,
-    verbose: bool,
-    python_flag_passed: bool,
-    backend: BackendOptions,
+def repair(
+    venv_container: VenvContainer, venv_dirs: Iterable[Path], options: ReinstallOptions
 ) -> OperationResult[RepairData]:
     failures: Final[list[_FailedRepair]] = []
     messages: Final[list[OutputMessage]] = []
@@ -132,16 +124,7 @@ def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reins
                 error = environment.error or "environment is missing"
             else:
                 try:
-                    reinstall(
-                        venv_dir=venv_dir,
-                        local_bin_dir=local_bin_dir,
-                        local_man_dir=local_man_dir,
-                        python=python,
-                        verbose=verbose,
-                        python_flag_passed=python_flag_passed,
-                        backend=backend,
-                        venv_lock=venv_lock,
-                    )
+                    reinstall(venv_dir, options, venv_lock=venv_lock)
                 except PipxError as reinstall_error:
                     error = str(reinstall_error)
                 else:

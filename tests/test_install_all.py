@@ -129,7 +129,9 @@ def test_install_all_selects_interpreter(
     spec_file, recorded = recorded_snapshot
     install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
     assert not run_pipx_cli(["install-all", str(spec_file), *python_arg])
-    assert Path(install.call_args.args[5]).resolve() == (recorded if use_recorded else Path(sys.executable).resolve())
+    assert Path(install.call_args.args[3].python).resolve() == (
+        recorded if use_recorded else Path(sys.executable).resolve()
+    )
 
 
 @pytest.fixture

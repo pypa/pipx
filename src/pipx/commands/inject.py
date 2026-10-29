@@ -40,7 +40,7 @@ from pipx.commands.common import (
 from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
-from pipx.options import DEFAULT_BACKEND_OPTIONS, ExposureOptions
+from pipx.options import ExposureOptions
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
 from pipx.redact import redact_url_credentials
 from pipx.result import (
@@ -59,32 +59,20 @@ from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator
 
-    from pipx.options import BackendOptions
+    from pipx.options import InjectOptions
     from pipx.pipx_metadata_file import PackageInfo
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject resolves the full package/venv context inline; a struct would only relocate it
+def inject_dep(
     venv_dir: Path,
     package_name: str | None,
     package_spec: str,
-    pip_args: list[str],
-    *,
-    verbose: bool,
-    include_apps: bool,
-    include_dependencies: bool,
-    include_resources_from: Sequence[str],
-    force: bool,
-    force_reinstall: bool = True,
-    suffix: bool,
-    backend: BackendOptions,
-    cooldown_days: int | None,
-    pinned: bool | None,
-    emit_output: bool,
+    options: InjectOptions,
 ) -> OperationResult[InjectionData]:
     _LOGGER.debug("Injecting package %s", redact_url_credentials(package_spec))
 
@@ -96,7 +84,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             """
         raise PipxError(msg)
 
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend)
+    venv: Final[Venv] = Venv(venv_dir, verbose=options.verbose, backend=options.backend)
     if not venv.package_metadata:
         msg = f"""
             Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
@@ -111,18 +99,19 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             f"Update {lock_file} and run `pipx reinstall {venv.name}`."
         )
         raise PipxError(msg)
-    if cooldown_days is None:
-        cooldown_days = venv.pipx_metadata.main_package.cooldown_days
-    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+    cooldown_days: Final[int | None] = (
+        venv.pipx_metadata.main_package.cooldown_days if options.cooldown_days is None else options.cooldown_days
+    )
+    venv.check_upgrade_shared_libs(pip_args=options.pip_args, verbose=options.verbose)
 
     # the spec can be anything pip installs, such as a VCS URL or an archive, so only resolving it gives the name
     if package_name is None:
         package_name = package_name_from_spec(
             package_spec,
             os.fspath(venv.python_path),
-            pip_args=pip_args,
-            verbose=verbose,
-            backend=replace(backend, cli=venv.backend_name),
+            pip_args=options.pip_args,
+            verbose=options.verbose,
+            backend=replace(options.backend, cli=venv.backend_name),
             cooldown_days=cooldown_days,
         )
 
@@ -130,7 +119,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     assert_not_pip_under_uv(canonicalize_name(package_name), venv.backend_name)
 
     is_main_package: Final[bool] = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
-    already_installed: Final[bool] = not force and venv.has_package(package_name)
+    already_installed: Final[bool] = not options.force and venv.has_package(package_name)
     main_spec: Final[str | None] = (
         _main_spec_with_extras(venv, package_spec) if already_installed and is_main_package else None
     )
@@ -155,27 +144,31 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                     ),
                 ),
             ),
-            emit_output=emit_output,
+            emit_output=options.emit_output,
         )
 
     package_spec = main_spec or package_spec
-    if is_main_package:
-        main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
-        pip_args = pip_args or trusted_recorded_pip_args(main_package.pip_args, venv_dir)
-        include_dependencies = main_package.include_dependencies
-        include_resources_from = main_package.include_resources_from
-        include_apps = main_package.include_apps
-        venv_suffix = main_package.suffix
-        pinned = main_package.pinned
-    elif suffix:
-        venv_suffix = venv.package_metadata[venv.main_package_name].suffix
-    else:
-        venv_suffix = ""
+    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
+    pip_args: Final[list[str]] = (
+        options.pip_args or trusted_recorded_pip_args(main_package.pip_args, venv_dir)
+        if is_main_package
+        else options.pip_args
+    )
+    exposure: Final[ExposureOptions] = (
+        ExposureOptions.recorded(main_package)
+        if is_main_package
+        else ExposureOptions(
+            include_apps=options.include_apps,
+            include_dependencies=options.include_dependencies,
+            include_resources_from=options.include_resources_from,
+            suffix=venv.package_metadata[venv.main_package_name].suffix if options.with_suffix else "",
+        )
+    )
     # pip's --force-reinstall covers the whole resolution, so it also refetches the main package by name from this
     # package's index when this package depends on it; uv can limit the reinstall to this package
     reinstall_args: Final[list[str] | None] = (
         (["--reinstall-package", package_name] if venv.backend_name == UV else ["--force-reinstall"])
-        if force and force_reinstall and venv.has_package(package_name)
+        if options.force and options.force_reinstall and venv.has_package(package_name)
         else None
     )
     previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
@@ -184,7 +177,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     messages: Final[list[OutputMessage]] = []
     # like install, a package without the apps --include-apps asked for leaves the venv as it was
     with (
-        preserve_venv(venv_dir, enabled=include_apps or bool(include_resources_from)),
+        preserve_venv(venv_dir, enabled=exposure.include_apps or bool(exposure.include_resources_from)),
         marked_unfinished(venv_dir),
     ):
         package_name = _install_under_installed_name(
@@ -193,19 +186,14 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                 package_or_url=package_spec,
                 pip_args=pip_args,
                 install_only_pip_args=reinstall_args,
-                exposure=ExposureOptions(
-                    include_apps=include_apps,
-                    include_dependencies=include_dependencies,
-                    include_resources_from=include_resources_from,
-                    suffix=venv_suffix,
-                ),
+                exposure=exposure,
                 is_main_package=is_main_package,
-                pinned=pinned,
+                pinned=main_package.pinned if is_main_package else options.pinned,
                 cooldown_days=cooldown_days,
             ),
             package_name,
         )
-        if include_apps:
+        if exposure.include_apps:
             messages.extend(
                 run_post_install_actions(
                     venv,
@@ -213,7 +201,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
                     paths.CTX.bin_dir,
                     paths.CTX.man_dir,
                     venv_dir,
-                    force=force,
+                    force=options.force,
                     previous_resource_paths=previous_resource_paths,
                 ),
             )
@@ -241,7 +229,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             ),
             messages=tuple(messages),
         ),
-        emit_output=emit_output,
+        emit_output=options.emit_output,
     )
 
 
@@ -291,22 +279,11 @@ def _install_under_installed_name(install: Callable[[str], VenvMetadata], packag
     return package_name
 
 
-def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's flat CLI-facing option set
+def inject(
     venv_dir: Path,
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
-    pip_args: list[str],
-    *,
-    verbose: bool,
-    include_apps: bool,
-    include_dependencies: bool,
-    include_resources_from: Sequence[str],
-    force: bool,
-    suffix: bool,
-    backend: BackendOptions = DEFAULT_BACKEND_OPTIONS,
-    cooldown_days: int | None,
-    pinned: bool | None = None,
-    emit_output: bool = True,
+    options: InjectOptions,
 ) -> OperationResult[InjectionData]:
     package_set: Final[set[str]] = set(package_specs)
     for filename in requirement_files:
@@ -323,32 +300,22 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 exit_code=EXIT_CODE_INJECT_ERROR,
                 errors=(OperationError(code="package_inject_failed", message=error, environment=venv_dir.name),),
             ),
-            emit_output=emit_output,
+            emit_output=options.emit_output,
         )
     _LOGGER.info("Injecting packages: %r", [redact_url_credentials(package) for package in packages])
 
+    dependency_options: Final[InjectOptions] = replace(
+        options,
+        include_apps=options.include_apps or options.include_dependencies or bool(options.include_resources_from),
+        emit_output=False,
+    )
     changed: Final[list[InjectionPackage]] = []
     errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     skipped: Final[list[_InjectionSkip]] = []
     for dependency in packages:
         try:
-            result: OperationResult[InjectionData] = inject_dep(
-                venv_dir,
-                package_name=None,
-                package_spec=dependency,
-                pip_args=pip_args,
-                verbose=verbose,
-                include_apps=include_apps or include_dependencies or bool(include_resources_from),
-                include_dependencies=include_dependencies,
-                include_resources_from=include_resources_from,
-                force=force,
-                suffix=suffix,
-                backend=backend,
-                cooldown_days=cooldown_days,
-                pinned=pinned,
-                emit_output=False,
-            )
+            result: OperationResult[InjectionData] = inject_dep(venv_dir, None, dependency, dependency_options)
         except PipxError as error:
             errors.append(
                 OperationError(
@@ -373,7 +340,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
             errors=tuple(errors),
             succeeded=bool(changed or skipped),
         ),
-        emit_output=emit_output,
+        emit_output=options.emit_output,
     )
 
 

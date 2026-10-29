@@ -40,7 +40,7 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.options import ExposureOptions
+from pipx.options import ExposureOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.redact import redact_url_credentials
@@ -57,21 +57,16 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from typing import TypeIs
 
-    from pipx.options import BackendOptions
+    from pipx.options import SyncOptions
     from pipx.venv import VenvContainer
 
 
-def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards the full install context for each tool
-    manifest_file: Path,
-    venv_container: VenvContainer,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    *,
-    verbose: bool,
-    prune: bool,
-    backend: BackendOptions,
+def sync_manifest(
+    manifest_file: Path, venv_container: VenvContainer, options: SyncOptions
 ) -> OperationResult[ManifestData]:
+    local_bin_dir: Final[Path] = options.local_bin_dir
+    local_man_dir: Final[Path] = options.local_man_dir
+    verbose: Final[bool] = options.verbose
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
     messages: Final[list[OutputMessage]] = []
@@ -91,29 +86,31 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                         venv_dir,
                         [tool.package_name],
                         [tool.package],
-                        local_bin_dir,
-                        local_man_dir,
-                        python,
-                        trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
-                        recorded.venv_args,
-                        verbose=verbose,
-                        force=existed,
-                        reinstall=False,
-                        exposure=ExposureOptions(
-                            include_dependencies=tool.include_dependencies,
-                            include_resources_from=tool.include_resources_from,
-                            suffix=tool.suffix,
+                        InstallOptions(
+                            local_bin_dir=local_bin_dir,
+                            local_man_dir=local_man_dir,
+                            python=options.python,
+                            pip_args=trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
+                            venv_args=recorded.venv_args,
+                            verbose=verbose,
+                            force=existed,
+                            reinstall=False,
+                            exposure=ExposureOptions(
+                                include_dependencies=tool.include_dependencies,
+                                include_resources_from=tool.include_resources_from,
+                                suffix=tool.suffix,
+                            ),
+                            preinstall_packages=None,
+                            expected_apps=tool.apps,
+                            lock_file=tool.lock_file,
+                            backend=options.backend,
+                            exposure_enabled=tool.expose,
+                            preserve_existing=True,
+                            replace_expected_apps=True,
+                            replace_lock=True,
+                            emit_output=False,
                         ),
-                        preinstall_packages=None,
-                        expected_apps=tool.apps,
-                        lock_file=tool.lock_file,
-                        backend=backend,
-                        exposure_enabled=tool.expose,
-                        preserve_existing=True,
-                        replace_expected_apps=True,
-                        replace_lock=True,
                         venv_lock=venv_lock,
-                        emit_output=False,
                     )
                 error_message = outcome.errors[0].message if outcome.errors else None
             except PipxError as error:
@@ -135,7 +132,7 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                 if existed and tool.expose:
                     expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
 
-    if prune and not failures:
+    if options.prune and not failures:
         messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose=verbose))
     return OperationResult(
         command=("manifest", "sync"),

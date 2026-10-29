@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
+    from pipx.options import RunOptions
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
@@ -35,23 +37,9 @@ _UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
 }
 
 
-def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv tool run` invocation from the run options
-    *,
-    app: str,
-    package_or_url: str,
-    dependencies: list[str],
-    app_args: list[str],
-    python: str,
-    pip_args: list[str],
-    venv_args: list[str],
-    use_cache: bool,
-    verbose: bool,
-    refresh: bool,
-    no_path_check: bool,
-    cooldown_days: int | None,
-) -> NoReturn:
-    _reject_venv_args(venv_args)
-    if not no_path_check and (existing_app_path := which(app)):
+def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> NoReturn:
+    _reject_venv_args(options.venv_args)
+    if not options.no_path_check and (existing_app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -65,20 +53,20 @@ def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv
     cmd: list[str] = [str(resolve_uv_binary()), "tool", "run"]
     if package_or_url and package_or_url != app:
         cmd += ["--from", package_or_url]
-    if python:
-        cmd += ["--python", python]
-    for dependency in dependencies:
+    if options.python:
+        cmd += ["--python", options.python]
+    for dependency in options.dependencies:
         cmd += ["--with", dependency]
-    if not use_cache:
+    if not options.use_cache:
         cmd.append("--no-cache")
-    if refresh:
+    if options.refresh:
         cmd.append("--refresh")
-    if verbose:
+    if options.verbose:
         cmd.append("--verbose")
-    cmd += translate_pip_args_for_uv(pip_args)
-    cmd += UvBackend.cooldown_args(cooldown_days)
+    cmd += translate_pip_args_for_uv(options.pip_args)
+    cmd += UvBackend.cooldown_args(options.cooldown.days)
     # without the separator uv reads an app name that starts with a dash as one of its own options
-    cmd += ["--", app, *app_args]
+    cmd += ["--", app, *options.app_args]
     exec_app(cmd)
 
 
@@ -159,36 +147,23 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
         raise PipxError(msg) from exc
 
 
-def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv run --script` invocation from the run options
-    *,
-    script_path: Path,
-    venv_dir: Path,
-    app_args: list[str],
-    python: str,
-    pip_args: list[str],
-    venv_args: list[str],
-    use_cache: bool,
-    verbose: bool,
-    refresh: bool,
-    dependencies: list[str],
-    cooldown_days: int | None,
-) -> NoReturn:
-    _reject_venv_args(venv_args)
+def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions) -> NoReturn:
+    _reject_venv_args(options.venv_args)
     # uv searches for project config from --project, or else from the script's directory, which another account may own
     cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.CTX.home)]
-    if python:
-        cmd += ["--python", python]
-    if not use_cache:
+    if options.python:
+        cmd += ["--python", options.python]
+    if not options.use_cache:
         cmd.append("--no-cache")
-    if refresh:
+    if options.refresh:
         cmd.append("--refresh")
-    if verbose:
+    if options.verbose:
         cmd.append("--verbose")
-    for dependency in dependencies:
+    for dependency in options.dependencies:
         cmd += ["--with", dependency]
-    cmd += translate_pip_args_for_uv(pip_args)
-    cmd += UvBackend.cooldown_args(cooldown_days)
-    cmd += [str(script_path), *app_args]
+    cmd += translate_pip_args_for_uv(options.pip_args)
+    cmd += UvBackend.cooldown_args(options.cooldown.days)
+    cmd += [str(script_path), *options.app_args]
     exec_app(cmd, env={**os.environ, "VIRTUAL_ENV": str(venv_dir)})
 
 
