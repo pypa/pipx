@@ -414,7 +414,8 @@ def test_get_exposed_paths_matches_copied_launcher_with_quoted_interpreter(
     assert get_exposed_paths_for_package(venv_resource_path, local_resource_dir) == {launcher}
 
 
-# pip and uv start a launcher this way when the interpreter path is too long for a shebang or holds a space
+# off Windows, pip and uv start a launcher this way when the interpreter path is too long for a shebang or holds a space
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     ("exec_line", "owned"),
     [
