@@ -132,19 +132,23 @@ def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: 
         assignment = f'export PATH={quoted_location}:"$PATH"' if prepend else f'export PATH="$PATH":{quoted_location}'
         contents = f'case ":$PATH:" in *:{quoted_location}:*) ;; *) {assignment} ;; esac\n'
 
-    existing: Final[str] = config_file.read_text(encoding="utf-8") if config_file.exists() else ""
-    if not force and existing == contents:
-        print(  # ruff:ignore[print]  # user-facing CLI output
-            pipx_wrap(f"{location} is already in the system PATH configuration.", subsequent_indent=" " * 4)
-        )
-        return False
-    # the name alone does not make the file pipx's: an administrator may keep other settings in it
-    if not force and existing and not _written_by_pipx(existing):
-        msg = (
-            f"{config_file} holds content pipx did not write, so pipx left it alone. Add {location} to PATH there "
-            "yourself, or pass --force to replace the file."
-        )
-        raise PipxError(msg)
+    if not force:
+        try:
+            existing = config_file.read_text(encoding="utf-8") if config_file.exists() else ""
+        except UnicodeDecodeError:  # pipx writes UTF-8, so undecodable bytes came from someone else
+            existing = None
+        if existing == contents:
+            print(  # ruff:ignore[print]  # user-facing CLI output
+                pipx_wrap(f"{location} is already in the system PATH configuration.", subsequent_indent=" " * 4)
+            )
+            return False
+        # the name alone does not make the file pipx's: an administrator may keep other settings in it
+        if existing is None or (existing and not _written_by_pipx(existing)):
+            msg = (
+                f"{config_file} holds content pipx did not write, so pipx left it alone. Add {location} to PATH "
+                "there yourself, or pass --force to replace the file."
+            )
+            raise PipxError(msg)
 
     if dry_run:
         print(  # ruff:ignore[print]  # user-facing CLI output
