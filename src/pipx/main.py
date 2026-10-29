@@ -1574,9 +1574,9 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             since they can reuse the cached Virtual Environment.
 
             In support of PEP 582 'run' will use apps found in a local __pypackages__
-            directory, if present. This behavior is experimental, and acts
-            as a companion tool to pythonloc. It may be modified or
-            removed in the future. See https://github.com/cs01/pythonloc.
+            directory, if present. This behavior is experimental and is a
+            companion tool to pythonloc. pipx may change or remove it
+            in a future release. See https://github.com/cs01/pythonloc.
             """
         ),
         parents=[shared_parser],

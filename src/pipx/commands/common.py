@@ -461,8 +461,8 @@ def _symlink_package_resource(
             pipx_wrap(
                 f"""
                 {HAZARD}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx expected
-                {path!s} and leaves the file unchanged.
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx leaves it in
+                place instead of linking it to {path!s}.
                 """,
                 subsequent_indent=" " * 4,
             )

@@ -98,7 +98,9 @@ def prune_interpreters(
             continue
         rmdir(interpreter, safe_rm=True)
         removed.append(interpreter.name)
-    report = "\n".join(["Removed:", *(f" - Python {name}" for name in removed)]) if removed else "Nothing to remove"
+    report: Final[str] = (
+        "\n".join(["Removed:", *(f" - Python {name}" for name in removed)]) if removed else "Nothing to remove"
+    )
     return OperationResult(
         command=("interpreter", "prune"),
         data=InterpreterData(interpreters=(), removed=tuple(removed), upgraded=()),
