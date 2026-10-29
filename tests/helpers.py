@@ -285,8 +285,10 @@ def write_wheel(directory: Path, name: str, version: str, requires: tuple[str, .
     dist_info: Final[str] = f"{name}-{version}.dist-info"
     members: Final[dict[str, str]] = {
         f"{name}.py": f"VERSION = {version!r}\n",
-        f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
-        + "".join(f"Requires-Dist: {requirement}\n" for requirement in requires),
+        f"{dist_info}/METADATA": "".join([
+            f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n",
+            *(f"Requires-Dist: {requirement}\n" for requirement in requires),
+        ]),
         f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
         f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {name}:VERSION\n",
     }

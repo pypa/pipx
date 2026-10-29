@@ -189,7 +189,7 @@ the backend output beside its log, as ``cmd_<timestamp>_pip_errors.log`` or ``cm
 
 On POSIX systems the log directory is readable by its owner only (``0700``) and every log file is ``0600``, because the
 logs record the full command line, including the arguments ``pipx run`` and ``pipx exec`` pass to the application. pipx
-tightens a log directory left with a wider mode by an older release; one owned by another account keeps its mode.
+tightens a log directory that an older release left with a wider mode; one owned by another account keeps its mode.
 
 pipx keeps the logs of the last 10 commands, counting the one that is running, and separately the last 10 error logs.
 Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest command's log stays, because a failing

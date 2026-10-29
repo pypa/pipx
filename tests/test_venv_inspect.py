@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -12,6 +12,8 @@ from helpers import skip_if_windows
 from pipx import venv_inspect
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from pytest_mock import MockerFixture
 
 
@@ -99,9 +101,9 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
 
 
 def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, mocker: MockerFixture) -> None:
-    site_packages = tmp_path / "site-packages"
+    site_packages: Final[Path] = tmp_path / "site-packages"
     _write_dist_info(site_packages, "root-package")
-    later = tmp_path / "base-site-packages" / "root_package-99.dist-info"
+    later: Final[Path] = tmp_path / "base-site-packages" / "root_package-99.dist-info"
     later.mkdir(parents=True)
     (later / "METADATA").write_text("Name: root-package\nVersion: 99\n", encoding="utf-8")
     mocker.patch.object(
@@ -111,7 +113,9 @@ def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, m
         return_value=([str(site_packages), str(later.parent)], {"python_full_version": "3.10.0"}, "3.10.0"),
     )
 
-    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
+    result: Final = venv_inspect.inspect_venv(
+        "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man"
+    )
 
     assert result.package_version == "1.0"
 
@@ -147,28 +151,39 @@ def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, ta
 
 
 @pytest.fixture
-def editable_project(tmp_path: Path, mocker: MockerFixture) -> Path:
-    project = tmp_path / "project"
+def editable_project(root_package_venv: Path) -> Path:
+    project: Final[Path] = root_package_venv / "project"
     (project / "man").mkdir(parents=True)
     (project / "man" / "inside.1").touch()
-    (tmp_path / "outside.1").touch()
-    site_packages = tmp_path / "site-packages"
-    _write_dist_info(site_packages, "root-package")
-    (site_packages / "root-package-1.0.dist-info" / "direct_url.json").write_text(
-        json.dumps({"url": project.as_uri(), "dir_info": {"editable": True}}), encoding="utf-8"
+    (root_package_venv / "outside.1").touch()
+    _write_root_metadata(
+        root_package_venv, {"direct_url.json": json.dumps({"url": project.as_uri(), "dir_info": {"editable": True}})}
     )
+    return project
+
+
+@pytest.fixture
+def root_package_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
+    site_packages: Final[Path] = tmp_path / "lib" / "site-packages"
+    _write_dist_info(site_packages, "root-package")
+    (tmp_path / "bin").mkdir()
     mocker.patch.object(
         venv_inspect,
         "fetch_info_in_venv",
         autospec=True,
         return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
     )
-    return project
+    return tmp_path
+
+
+def _write_root_metadata(venv: Path, files: Mapping[str, str]) -> None:
+    for name, content in files.items():
+        (venv / "lib" / "site-packages" / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
 
 
 def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
     (project / "setup.cfg").write_text(f"[options.data_files]\nshare/man/man1 =\n    {source}\n", encoding="utf-8")
-    venv = project.parent
+    venv: Final[Path] = project.parent
     return venv_inspect.inspect_venv(
         "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
     ).man_pages
@@ -268,98 +283,69 @@ def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_ven
 def test_inspect_venv_reads_installed_files_only_without_record(
     other_app_venv: Path, metadata_files: dict[str, str], expected: list[str]
 ) -> None:
-    for name, content in metadata_files.items():
-        (other_app_venv / "lib" / "site-packages" / "root-package-1.0.dist-info" / name).write_text(
-            content, encoding="utf-8"
-        )
+    _write_root_metadata(other_app_venv, metadata_files)
 
     assert _inspect_root_package(other_app_venv).apps == expected
 
 
-@skip_if_windows
-def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(other_app_venv: Path) -> None:
-    site_packages = other_app_venv / "lib" / "site-packages"
-    (site_packages / "root-package-1.0.dist-info" / "installed-files.txt").write_text(
-        "loop\n../../bin/other\n", encoding="utf-8"
-    )
-    (loop := site_packages / "loop").symlink_to(loop)
-
-    assert _inspect_root_package(other_app_venv).apps == ["other"]
-
-
 @pytest.fixture
-def other_app_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
-    site_packages = tmp_path / "lib" / "site-packages"
-    _write_dist_info(site_packages, "root-package")
-    (tmp_path / "bin").mkdir()
-    (tmp_path / "bin" / "other").touch()
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
-    )
-    return tmp_path
+def other_app_venv(root_package_venv: Path) -> Path:
+    (root_package_venv / "bin" / "other").touch()
+    return root_package_venv
 
 
 def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
     return venv_inspect.inspect_venv("root-package", set(), venv / "bin", venv / "python", venv / "man")
 
 
+@skip_if_windows
+def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(other_app_venv: Path) -> None:
+    _write_root_metadata(other_app_venv, {"installed-files.txt": "loop\n../../bin/other\n"})
+    (loop := other_app_venv / "lib" / "site-packages" / "loop").symlink_to(loop)
+
+    assert _inspect_root_package(other_app_venv).apps == ["other"]
+
+
 @pytest.mark.parametrize(
-    ("record", "expected"),
+    ("metadata_files", "expected"),
     [
-        pytest.param(None, ["planted"], id="legacy-without-record"),
-        pytest.param("root-package-1.0.dist-info/entry_points.txt,,\n", ["planted"], id="record-lists-entry-points"),
-        pytest.param("root_package/__init__.py,,\n", [], id="record-without-entry-points"),
+        pytest.param({}, ["planted"], id="legacy-without-record"),
+        pytest.param(
+            {"RECORD": "root-package-1.0.dist-info/entry_points.txt,,\n"}, ["planted"], id="record-lists-entry-points"
+        ),
+        pytest.param({"RECORD": "root_package/__init__.py,,\n"}, [], id="record-without-entry-points"),
     ],
 )
 def test_inspect_venv_reads_entry_points_only_when_record_lists_them(
-    tmp_path: Path, mocker: MockerFixture, record: str | None, expected: list[str]
+    root_package_venv: Path, metadata_files: dict[str, str], expected: list[str]
 ) -> None:
-    site_packages = tmp_path / "lib" / "site-packages"
-    _write_dist_info(site_packages, "root-package")
-    dist_info = site_packages / "root-package-1.0.dist-info"
-    (dist_info / "entry_points.txt").write_text("[console_scripts]\nplanted = helper:main\n", encoding="utf-8")
-    if record is not None:
-        (dist_info / "RECORD").write_text(record, encoding="utf-8")
-    (tmp_path / "bin").mkdir()
-    (tmp_path / "bin" / "planted").touch()
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+    _write_root_metadata(
+        root_package_venv, {"entry_points.txt": "[console_scripts]\nplanted = helper:main\n", **metadata_files}
     )
+    (root_package_venv / "bin" / "planted").touch()
 
-    result = venv_inspect.inspect_venv("root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man")
-
-    assert result.apps == expected
+    assert _inspect_root_package(root_package_venv).apps == expected
 
 
-def test_inspect_venv_ignores_resources_that_name_no_file(tmp_path: Path, mocker: MockerFixture) -> None:
-    site_packages = tmp_path / "lib" / "site-packages"
-    _write_dist_info(site_packages, "root-package")
-    dist_info = site_packages / "root-package-1.0.dist-info"
-    (dist_info / "entry_points.txt").write_text(
-        "[console_scripts]\napp = root:main\n.. = root:main\n../lib = root:main\n", encoding="utf-8"
-    )
-    sections = ("bin", "share/man/man1", "share/bash-completion/completions")
-    (dist_info / "RECORD").write_text(
-        "".join(f"../../{section}/{name},,\n" for section in sections for name in ("app", "..")), encoding="utf-8"
+def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Path) -> None:
+    sections: Final = ("bin", "share/man/man1", "share/bash-completion/completions")
+    _write_root_metadata(
+        root_package_venv,
+        {
+            "entry_points.txt": "[console_scripts]\napp = root:main\n.. = root:main\n../lib = root:main\n",
+            "RECORD": "".join(f"../../{section}/{name},,\n" for section in sections for name in ("app", "..")),
+        },
     )
     for section in sections:
-        (tmp_path / section).mkdir(parents=True)
-        (tmp_path / section / "app").touch()
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
-    )
+        (root_package_venv / section).mkdir(parents=True, exist_ok=True)
+        (root_package_venv / section / "app").touch()
 
-    result = venv_inspect.inspect_venv(
-        "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "share" / "man"
+    result: Final = venv_inspect.inspect_venv(
+        "root-package",
+        set(),
+        root_package_venv / "bin",
+        root_package_venv / "python",
+        root_package_venv / "share" / "man",
     )
 
     assert (result.apps, [Path(page) for page in result.man_pages], [Path(c) for c in result.completions]) == (

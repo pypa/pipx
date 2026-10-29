@@ -115,10 +115,10 @@ and installs the listed packages before running:
     $ pipx run test.py pipx
     1.9.0
 
-pipx caches an environment keyed to the script's dependency list. Changing the dependencies builds a fresh one. Under the
-uv backend a local script's environment is keyed to the script's path instead, and uv syncs the dependencies into it on
-each run. Under both backends a changed ``--python``, ``--pip-args`` or ``--cooldown`` also builds a fresh one, and
-``--refresh`` rebuilds it.
+pipx caches an environment keyed to the script's dependency list. Changing the dependencies builds a fresh one. Under
+the uv backend pipx keys a local script's environment to the script's path instead, and uv syncs the dependencies into
+it on each run. Under both backends a changed ``--python``, ``--pip-args`` or ``--cooldown`` also builds a fresh one,
+and ``--refresh`` rebuilds it.
 
 When the block sets ``requires-python``, pipx keeps the default Python if it satisfies the constraint and otherwise
 looks for an interpreter that does, the same way ``pipx install`` does (see :doc:`standalone-python`). An explicit

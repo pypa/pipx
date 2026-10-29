@@ -76,11 +76,11 @@ dependencies, installs that wheel like any other package, then records the origi
 cached temporary venv or builds a fresh one, then invokes the app. The cache key is a hash of the requirements (the spec
 plus any ``--with`` packages, with local paths made absolute), the ``--python`` value, pip and venv arguments, the
 backend, the cooldown, and the installer's environment variables (``PIP_*``, or ``UV_*`` under the uv backend, in any
-case and with ``-`` or ``_``, as pip reads them). A short list of variables that cannot change what gets installed,
-such as timeouts, retries, verbosity, progress bars, color and cache directories, is left out so they do not fork the
-cache. Cached environments expire after 14 days, after which the next run rebuilds against the latest release. Edits to
-``pip.conf`` or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary venv
-borrows the shared pip.
+case and with ``-`` or ``_``, as pip reads them). pipx leaves out a short list of variables that cannot change what
+gets installed, such as timeouts, retries, verbosity, progress bars, color and cache directories, so they do not fork
+the cache. Cached environments expire after 14 days, after which the next run rebuilds against the latest release.
+Edits to ``pip.conf`` or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary
+venv borrows the shared pip.
 
 Under the uv backend pipx usually hands the whole run to ``uv tool run``, which uses uv's own cache. ``pipx run --with
 PKG`` adds extra dependencies to the temporary environment either way.
@@ -170,8 +170,8 @@ installer output.
 
 pipx prefers a real system Python and only downloads a standalone build as a fallback. When you pass ``--python``, it
 tries the value as a literal path, then as a command on ``PATH``, then as a ``pythonX.Y`` command, then through the
-``py`` launcher when one is on ``PATH``. Outside Windows the launcher is asked only for an ``X`` or ``X.Y`` version, the
-only form the Python Launcher for Unix reads as a version request. Only if every step fails, and
+``py`` launcher when one is on ``PATH``. Outside Windows pipx asks the launcher only for an ``X`` or ``X.Y`` version,
+the one form the Python Launcher for Unix reads as a version request. Only if every step fails, and
 ``--fetch-python=missing`` is set, does pipx fetch a build from `python-build-standalone
 <https://github.com/astral-sh/python-build-standalone>`_.
 ``--fetch-python=always`` skips these steps and downloads directly. The default, ``--fetch-python=never``, keeps pipx

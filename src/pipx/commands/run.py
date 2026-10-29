@@ -501,7 +501,7 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
-    dependencies: Sequence[str] = (),
+    dependencies: Sequence[str],
 ) -> tuple[Venv, str, str]:
     venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)

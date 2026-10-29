@@ -77,26 +77,21 @@ def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: 
 
 
 @pytest.mark.parametrize(
-    ("start", "holds_pipx", "expected"),
+    ("start", "pipx_copies", "expected"),
     [
-        pytest.param(["launcher"], False, (0, ""), id="console-script"),
-        pytest.param(["-m", "pipx"], False, (0, ""), id="module"),
-        pytest.param(["-m", "pipx"], True, (1, "shadowed"), id="module-found-in-working-directory"),
+        pytest.param(["launcher"], [], (0, ""), id="console-script"),
+        pytest.param(["-m", "pipx"], [], (0, ""), id="module"),
+        pytest.param(["-m", "pipx"], ["pipx"], (1, "shadowed"), id="module-found-in-working-directory"),
     ],
 )
 def test_startup_drops_search_path_entry_python_adds(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    start: list[str],
-    *,
-    holds_pipx: bool,
-    expected: tuple[int, str],
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, start: list[str], pipx_copies: list[str], expected: tuple[int, str]
 ) -> None:
     monkeypatch.delenv("PYTHONSAFEPATH", raising=False)
     (tmp_path / "launcher").write_text("import sys\nfrom pipx.__main__ import cli\nsys.exit(cli())\n")
     (tmp_path / "platformdirs.py").write_text("raise SystemExit('shadowed')\n")
-    if holds_pipx:
-        shutil.copytree(Path(main.__file__).parent, tmp_path / "pipx")
+    for copy in pipx_copies:
+        shutil.copytree(Path(main.__file__).parent, tmp_path / copy)
 
     result = subprocess.run(
         [sys.executable, *start, "environment", "--value", "PIPX_BIN_DIR"],

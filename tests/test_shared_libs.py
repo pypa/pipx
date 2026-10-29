@@ -24,6 +24,7 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
@@ -292,54 +293,39 @@ def test_install_failure_with_working_pip_keeps_shared_libs() -> None:
     assert (return_code, sentinel.exists()) == (1, True)
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_shared_libs_upgrade_enforces_pip_floor(
-    mocker: MockerFixture,
-) -> None:
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    run_subprocess = mocker.patch(
-        "pipx.shared_libs.run_subprocess",
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
-
+def test_shared_libs_upgrade_enforces_pip_floor(upgrade_subprocess: MagicMock) -> None:
     shared_libs.shared_libs.upgrade(pip_args=["pip==20"], verbose=True, raises=True)
 
-    install_command = run_subprocess.call_args.args[0]
-    run_subprocess.assert_called_once()
+    install_command: Final = upgrade_subprocess.call_args.args[0]
+    upgrade_subprocess.assert_called_once()
     assert "pip==20" in install_command
     assert "pip >= 26.2.2" in install_command
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_shared_libs_upgrade_runs_pip_in_shared_root(mocker: MockerFixture) -> None:
+@pytest.fixture
+def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> MagicMock:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
     shared_libs.shared_libs.create(verbose=True, pip_args=[])
     shared_libs.shared_libs.has_been_updated_this_run = False
-    run_subprocess = mocker.patch(
+    return mocker.patch(
         "pipx.shared_libs.run_subprocess",
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
+
+def test_shared_libs_upgrade_runs_pip_in_shared_root(upgrade_subprocess: MagicMock) -> None:
     shared_libs.shared_libs.upgrade(pip_args=["--find-links", "wheels"], verbose=True, raises=True)
 
-    assert run_subprocess.call_args.kwargs["run_dir"] == str(shared_libs.shared_libs.root)
+    assert upgrade_subprocess.call_args.kwargs["run_dir"] == str(shared_libs.shared_libs.root)
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_upgrade_resolves_relative_cert_against_cwd(
-    mocker: MockerFixture, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    upgrade_subprocess: MagicMock, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    run_subprocess = mocker.patch(
-        "pipx.shared_libs.run_subprocess",
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
     monkeypatch.chdir(tmp_path)
 
     shared_libs.shared_libs.upgrade(pip_args=["--cert=ca.pem"], verbose=True, raises=True)
 
-    assert f"--cert={(tmp_path / 'ca.pem').resolve()}" in run_subprocess.call_args.args[0]
+    assert f"--cert={(tmp_path / 'ca.pem').resolve()}" in upgrade_subprocess.call_args.args[0]
 
 
 @pytest.mark.usefixtures("shared_pip_layout")
@@ -481,19 +467,11 @@ def test_install_cooldown_applies_to_new_shared_pip(root: Path, caplog: pytest.L
     ]
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(mocker: MockerFixture) -> None:
-    shared_libs.shared_libs.create(verbose=True, pip_args=[])
-    shared_libs.shared_libs.has_been_updated_this_run = False
-    run_subprocess = mocker.patch(
-        "pipx.shared_libs.run_subprocess",
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
-
+def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(upgrade_subprocess: MagicMock) -> None:
     with shared_libs.shared_pip_cooldown(7):
         shared_libs.shared_libs.upgrade(pip_args=[], verbose=True, raises=True)
 
-    assert [call.args[0][5:] for call in run_subprocess.call_args_list] == [
+    assert [call.args[0][5:] for call in upgrade_subprocess.call_args_list] == [
         ["install", "--upgrade", "--uploaded-prior-to", "P7D", "pip >= 26.2.2"]
     ]
 

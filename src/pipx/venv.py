@@ -152,7 +152,6 @@ class VenvContainer:
             yield entry
 
     def get_venv_dir(self, package_name: str) -> Path:
-        """Return the expected venv path for given `package_name`."""
         venv_dir: Final[Path] = self._root.joinpath(canonicalize_name(package_name))
         # an empty name is the store itself, a separator reaches into another venv and an absolute path leaves the store
         if venv_dir.parent != self._root:
@@ -569,7 +568,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         pip_args: list[str],
         cooldown_days: int | None = None,
     ) -> None:
-        """Install packages in the venv, but do not record them in the metadata."""
         _LOGGER.info("Installing %s", package_descr := ", ".join(map(redact_url_credentials, requirements)))
         with animate(f"installing {package_descr}", do_animation=self.do_animation), self.pipx_metadata.preserved():
             process = self.backend.install(
@@ -907,8 +905,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 capture_stdout=False,
                 capture_stderr=False,
                 verbose=self.verbose,
-                # the user wrote these arguments for their own directory, so relative paths must not name
-                # venv-root files
+                # the user wrote these for their working directory, so relative paths must not name venv-root files
                 in_working_dir=True,
             )
         if process.returncode:

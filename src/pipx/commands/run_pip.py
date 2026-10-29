@@ -168,24 +168,6 @@ _LONG_FLAGS: Final[frozenset[str]] = frozenset({
 })
 
 
-def _takes_value(arg: str) -> bool:
-    if arg in _OPTIONS_WITH_VALUE:
-        return True
-    if not arg.startswith("--") or "=" in arg or arg in _LONG_FLAGS:
-        return False
-    candidates = {option for option in _OPTIONS_WITH_VALUE | _LONG_FLAGS if option.startswith(arg)}
-    return bool(candidates) and candidates <= _OPTIONS_WITH_VALUE
-
-
-def _abbreviates_editable(option: str) -> bool:
-    # pip reads --edit as --editable, and recording its path as a plain spec would drop the editable install on upgrade
-    return (
-        option.startswith("--")
-        and "--editable".startswith(option)
-        and not any(known.startswith(option) for known in _OPTIONS_WITH_VALUE | _LONG_FLAGS)
-    )
-
-
 def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     if not pip_args or pip_args[0] != "install":
         return []
@@ -215,6 +197,24 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
         index += 1
 
     return specs
+
+
+def _abbreviates_editable(option: str) -> bool:
+    # pip reads --edit as --editable, and recording its path as a plain spec would drop the editable install on upgrade
+    return (
+        option.startswith("--")
+        and "--editable".startswith(option)
+        and not any(known.startswith(option) for known in _OPTIONS_WITH_VALUE | _LONG_FLAGS)
+    )
+
+
+def _takes_value(arg: str) -> bool:
+    if arg in _OPTIONS_WITH_VALUE:
+        return True
+    if not arg.startswith("--") or "=" in arg or arg in _LONG_FLAGS:
+        return False
+    candidates = {option for option in _OPTIONS_WITH_VALUE | _LONG_FLAGS if option.startswith(arg)}
+    return bool(candidates) and candidates <= _OPTIONS_WITH_VALUE
 
 
 def _updated_main_package_pip_args(

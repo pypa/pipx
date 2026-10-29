@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn
 from unittest.mock import Mock
 
 import pytest
@@ -26,6 +26,7 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
@@ -437,8 +438,8 @@ def test_fetch_python_non_version_keeps_pipx_home(
     monkeypatch: pytest.MonkeyPatch, python_version: str, fetch_python: FetchPythonOptions
 ) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
-    cache_dir = pipx.paths.ctx.standalone_python_cachedir
-    kept = [cache_dir / "3.98", cache_dir.parent / "venvs" / "app"]
+    cache_dir: Final[Path] = pipx.paths.ctx.standalone_python_cachedir
+    kept: Final[list[Path]] = [cache_dir / "3.98", cache_dir.parent / "venvs" / "app"]
     for directory in kept:
         directory.mkdir(parents=True)
 
@@ -453,7 +454,7 @@ def test_fetch_python_missing_keeps_directory_named_by_path(
     monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
 ) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
-    project = tmp_path_factory.mktemp("project")
+    project: Final[Path] = tmp_path_factory.mktemp("project")
 
     with pytest.raises(InterpreterResolutionError, match="python-build-standalone"):
         find_python_interpreter(str(project), fetch_python=FetchPythonOptions.MISSING)
@@ -479,6 +480,7 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+@pytest.mark.usefixtures("unix_py_launcher_on_path")
 @pytest.mark.parametrize(
     "python_version",
     [
@@ -490,17 +492,21 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
 def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
     mocker: MockerFixture, python_version: str
 ) -> None:
-    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
-    launcher = mocker.patch.object(subprocess, "run", autospec=True)
+    launcher: Final[MagicMock] = mocker.patch.object(subprocess, "run", autospec=True)
 
     with pytest.raises(InterpreterResolutionError, match="found in PATH"):
         find_python_interpreter(python_version)
     launcher.assert_not_called()
 
 
-@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
-def test_find_python_interpreter_asks_unix_py_launcher_for_minor_version(mocker: MockerFixture) -> None:
+@pytest.fixture
+def unix_py_launcher_on_path(mocker: MockerFixture) -> None:
     mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+
+
+@pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
+@pytest.mark.usefixtures("unix_py_launcher_on_path")
+def test_find_python_interpreter_asks_unix_py_launcher_for_minor_version(mocker: MockerFixture) -> None:
     mocker.patch.object(
         subprocess,
         "run",

@@ -28,6 +28,7 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from unittest.mock import MagicMock
 
     from _pytest.mark.structures import ParameterSet
     from pytest_mock import MockerFixture
@@ -167,8 +168,8 @@ def test_expose_refuses_app_named_like_shadowed_module(
 ) -> None:
     (resource_path := tmp_path / "venv" / resource).parent.mkdir(parents=True)
     resource_path.write_text("")
-    app_path = tmp_path / "venv" / "bin" / Path(resource).relative_to("bin").parts[0]
     (tmp_path / "local").mkdir()
+    app_path: Final[Path] = tmp_path / "venv" / "bin" / Path(resource).relative_to("bin").parts[0]
 
     expose_resources_globally("app", tmp_path / "local", [app_path], force=False, suffix=suffix)
 
@@ -202,9 +203,10 @@ def test_expose_force_keeps_directory_in_place_of_app(tmp_path: Path) -> None:
     (kept := tmp_path / "bin" / "demo" / "keep").parent.mkdir(parents=True)
     kept.touch()
 
-    collisions = expose_resources_globally("app", tmp_path / "bin", [app_path], force=True)
-
-    assert (collisions, kept.exists()) == ([kept.parent], True)
+    assert (expose_resources_globally("app", tmp_path / "bin", [app_path], force=True), kept.exists()) == (
+        [kept.parent],
+        True,
+    )
 
 
 @skip_if_windows
@@ -549,8 +551,8 @@ def test_package_name_from_spec_reads_wheel_metadata_without_installing(
 def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Path() collapses the URL's // so each file sits at the relative path one of the URLs below spells
     monkeypatch.chdir(tmp_path)
-    for wheel in ("https:/files.example", "acme-tool @ https:/files.example"):
-        (directory := tmp_path / wheel).mkdir(parents=True)
+    for url_prefix in ("https:/files.example", "acme-tool @ https:/files.example"):
+        (directory := tmp_path / url_prefix).mkdir(parents=True)
         with zipfile.ZipFile(directory / "acme_tool-1.0-py3-none-any.whl", "w") as archive:
             archive.writestr("x-0.dist-info/METADATA", "Name: other-app\n")
     (project := tmp_path / "git+https:/git.example/acme-tool.git").mkdir(parents=True)
@@ -569,20 +571,20 @@ def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
         pytest.param("git+https://git.example/acme-tool.git", id="vcs-url"),
     ],
 )
-@pytest.mark.usefixtures("lookalikes_below_cwd")
-def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(
-    mocker: MockerFixture, package_spec: str
-) -> None:
-    venv = mocker.patch.object(common, "Venv", autospec=True)
-    venv.return_value.install_package_no_deps.return_value = "acme-tool"
-
+@pytest.mark.usefixtures("lookalikes_below_cwd", "probe_venv")
+def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(package_spec: str) -> None:
     assert package_name_from_spec(package_spec, sys.executable, pip_args=[], verbose=False) == "acme-tool"
 
 
-def test_package_name_from_spec_creates_probe_venv_with_pip_args(mocker: MockerFixture) -> None:
-    venv = mocker.patch.object(common, "Venv", autospec=True)
+@pytest.fixture
+def probe_venv(mocker: MockerFixture) -> MagicMock:
+    venv: Final[MagicMock] = mocker.patch.object(common, "Venv", autospec=True)
+    # Python 3.11's create_autospec drops a return value passed as a keyword for a child method
     venv.return_value.install_package_no_deps.return_value = "acme-tool"
+    return venv
 
+
+def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: MagicMock) -> None:
     package_name_from_spec(
         "https://files.example/acme_tool-1.0-py3-none-any.whl",
         sys.executable,
@@ -590,7 +592,7 @@ def test_package_name_from_spec_creates_probe_venv_with_pip_args(mocker: MockerF
         verbose=False,
     )
 
-    venv.return_value.create_venv.assert_called_once_with(
+    probe_venv.return_value.create_venv.assert_called_once_with(
         venv_args=[], pip_args=["--index-url", "https://mirror.example/simple"]
     )
 

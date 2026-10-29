@@ -617,7 +617,6 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
 
 
 def _local_source(package_metadata: PackageInfo) -> str | None:
-    """The install source when it is a local path/URL rather than an index name, else None."""
     if package_metadata.package_or_url is not None and valid_pypi_name(package_metadata.package_or_url) is None:
         return redact_url_credentials(package_metadata.package_or_url)
     return None

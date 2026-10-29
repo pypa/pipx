@@ -243,10 +243,10 @@ def test_install_all_leaves_directory_named_in_recorded_venv_args(
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--json"])
+    spec: Final = json.loads(capsys.readouterr().out)
     other_dir: Final[Path] = tmp_path / "documents"
     other_dir.mkdir()
     (other_dir / "notes.txt").write_text("keep", encoding="utf-8")
-    spec = json.loads(capsys.readouterr().out)
     spec["venvs"]["pycowsay"]["metadata"]["venv_args"] = ["--clear", str(other_dir)]
     spec_file: Final[Path] = tmp_path / "pipx.json"
     spec_file.write_text(json.dumps(spec), encoding="utf-8")

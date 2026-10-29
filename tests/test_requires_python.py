@@ -195,23 +195,28 @@ def project_excluding_this_python(make_needs_project: Callable[[str], Path]) -> 
     return make_needs_project(f"<{sys.version_info.major}.{sys.version_info.minor}")
 
 
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param(
+            "uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "older_python", "capsys")
+def test_install_moves_to_a_python_the_package_supports(wheel_excluding_this_python: Path, backend: str) -> None:
+    assert not run_pipx_cli(["install", "--backend", backend, str(wheel_excluding_this_python)])
+
+    recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
+    assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
 @pytest.fixture
 def wheel_excluding_this_python(project_excluding_this_python: Path, tmp_path: Path) -> Path:
     # installing the source tree builds it in an isolated environment on each Python pipx tries, which takes long enough
     # on the free-threaded CI runner to hit the timeout
     return make_wheel_in(project_excluding_this_python / "pyproject.toml", tmp_path).file
-
-
-@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
-@pytest.mark.usefixtures("pipx_temp_env", "older_python", "capsys")
-def test_install_moves_to_a_python_the_package_supports(wheel_excluding_this_python: Path, backend: str) -> None:
-    if backend == "uv" and shutil.which("uv") is None:
-        pytest.skip("uv binary not on PATH")
-
-    assert not run_pipx_cli(["install", "--backend", backend, str(wheel_excluding_this_python)])
-
-    recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
-    assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
 @pytest.mark.usefixtures("older_python", "capsys")
@@ -321,7 +326,7 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
     project: Final[Path] = make_needs_project(f">={MINIMUM_PYTHON_VERSION}")
     assert not run_pipx_cli(["install", "--backend", "pip", str(project)])
     venv_dir: Final[Path] = paths.ctx.venvs / "needs-older"
-    recorded: Final[str] = (venv_dir / "pipx_metadata.json").read_text()
+    recorded: Final[str] = (metadata_file := venv_dir / "pipx_metadata.json").read_text()
     (marker := venv_dir / "marker").touch()
     pyproject: Final[Path] = project / "pyproject.toml"
     text: Final[str] = pyproject.read_text().replace(
@@ -331,7 +336,7 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
 
     assert run_pipx_cli(["install", "--force", str(project)])
 
-    assert (marker.exists(), (venv_dir / "pipx_metadata.json").read_text()) == (True, recorded)
+    assert (marker.exists(), metadata_file.read_text()) == (True, recorded)
 
 
 @pytest.mark.parametrize(

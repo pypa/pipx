@@ -25,7 +25,7 @@ REINSTALL_BACKUP_SUFFIX: Final[str] = "-pipx-reinstall"
 
 
 @contextmanager
-def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -> Generator[VenvBackup, None, None]:
+def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -> Generator[VenvBackup]:
     backup: Final[VenvBackup] = VenvBackup(venv_dir, enabled=enabled)
     if enabled and copy_upfront:
         backup.copy()

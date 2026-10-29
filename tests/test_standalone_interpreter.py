@@ -26,7 +26,7 @@ from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Iterable, Iterator
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
@@ -174,15 +174,12 @@ def test_early_python_311_stays_inside_through_archive_links(
 ) -> None:
     # Python 3.11.0-3.11.3 lack tarfile's data filter too; its stand-in must follow the links unpacked before a member
     monkeypatch.delattr(tarfile, "data_filter")
-    victim = tmp_path / "victim"
-    archive = io.BytesIO()
+    victim: Final[Path] = tmp_path / "victim"
+    archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
         python_tar.addfile(tarfile.TarInfo("python/bin/python3"), io.BytesIO())
         # on its own this link is fine, it points at the download directory
-        for name, kind, linkname in ((f"{_DEEP_DIR}/up", tarfile.SYMTYPE, "/".join([".."] * 13)), *links):
-            member = tarfile.TarInfo(name)
-            member.type, member.linkname = kind, linkname
-            python_tar.addfile(member)
+        _add_links(python_tar, [(f"{_DEEP_DIR}/up", tarfile.SYMTYPE, "/".join([".."] * 13)), *links])
         python_tar.addfile(tarfile.TarInfo(f"{way_out}{victim}"), io.BytesIO())
     published_darwin_release[1](archive.getvalue())
 
@@ -192,6 +189,13 @@ def test_early_python_311_stays_inside_through_archive_links(
     assert not victim.exists()
 
 
+def _add_links(python_tar: tarfile.TarFile, links: Iterable[tuple[str, bytes, str]]) -> None:
+    for name, kind, linkname in links:
+        member = tarfile.TarInfo(name)
+        member.type, member.linkname = kind, linkname
+        python_tar.addfile(member)
+
+
 @skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_early_python_311_keeps_links_inside_archive(
@@ -199,24 +203,27 @@ def test_early_python_311_keeps_links_inside_archive(
     published_darwin_release: tuple[Path, Callable[[bytes], None]],
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
-    archive = io.BytesIO()
+    archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
         python_tar.addfile(tarfile.TarInfo("python/bin/python3.99"), io.BytesIO())
-        for name, kind, linkname in (
-            ("python/bin/python3", tarfile.SYMTYPE, "python3.99"),
-            ("python/bin/python", tarfile.SYMTYPE, "../bin/python3"),
-            ("python/lib/python3.99", tarfile.LNKTYPE, "python/bin/python3.99"),
-        ):
-            member = tarfile.TarInfo(name)
-            member.type, member.linkname = kind, linkname
-            python_tar.addfile(member)
+        _add_links(
+            python_tar,
+            [
+                ("python/bin/python3", tarfile.SYMTYPE, "python3.99"),
+                ("python/bin/python", tarfile.SYMTYPE, "../bin/python3"),
+                ("python/lib/python3.99", tarfile.LNKTYPE, "python/bin/python3.99"),
+            ],
+        )
     published_darwin_release[1](archive.getvalue())
 
-    python_path = Path(standalone_python.download_python_build_standalone("3.99"))
+    python_path: Final[Path] = Path(standalone_python.download_python_build_standalone("3.99"))
 
-    assert (python_path.is_symlink(), python_path.resolve().name) == (True, "python3.99")
-    assert (python_path.parent / "python").resolve() == python_path.resolve()
-    assert (python_path.parents[1] / "lib" / "python3.99").stat().st_nlink == 2
+    assert (
+        python_path.is_symlink(),
+        python_path.resolve().name,
+        (python_path.parent / "python").resolve(),
+        (python_path.parents[1] / "lib" / "python3.99").stat().st_nlink,
+    ) == (True, "python3.99", python_path.resolve(), 2)
 
 
 def _python_archive_bytes() -> bytes:
@@ -321,8 +328,8 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
 ) -> None:
     _, publish = published_darwin_release
     publish(_python_archive_bytes())
-    real_move = shutil.move
-    concurrent: list[Future[str]] = []
+    real_move: Final = shutil.move
+    concurrent: Final[list[Future[str]]] = []
 
     def move_into_staging(source: str, destination: str) -> str:
         # start the second fetch while the first one is moving its build into the staging directory
@@ -332,10 +339,10 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
                 concurrent[0].result(timeout=0.2)
         return real_move(source, destination)
 
-    moves = mocker.patch.object(shutil, "move", side_effect=move_into_staging)
+    moves: Final = mocker.patch.object(shutil, "move", side_effect=move_into_staging)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
-        python_path = standalone_python.download_python_build_standalone("3.99")
+        python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
     assert (concurrent[0].result(), moves.call_count, Path(python_path).is_file()) == (python_path, 1, True)
 
@@ -673,7 +680,7 @@ def test_prune_unused_standalone_interpreters(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.CaptureFixture[str]) -> None:
-    staging_dir = paths.ctx.standalone_python_cachedir / ".3.99.incoming"
+    staging_dir: Final[Path] = paths.ctx.standalone_python_cachedir / ".3.99.incoming"
     staging_dir.mkdir(parents=True)
 
     assert not run_pipx_cli(["interpreter", "prune"])

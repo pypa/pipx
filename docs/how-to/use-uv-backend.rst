@@ -75,10 +75,11 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
   (``/etc/uv/uv.toml``), and a ``UV_CONFIG_FILE``, but no project config from your working directory or the script's
   directory. pipx sets ``UV_PROJECT`` (``--project`` for ``uv run --script``) to ``PIPX_HOME``, replacing any
   ``UV_PROJECT`` you set, so uv looks for a ``uv.toml`` or a ``pyproject.toml`` with a ``[tool.uv]`` table in
-  ``PIPX_HOME`` and each of its parents up to the filesystem root. With the default ``PIPX_HOME`` under your home
-  directory those parents belong to you or to root. If ``PIPX_HOME`` (or ``PIPX_GLOBAL_HOME``) sits below a directory
-  other accounts can write, such as ``/tmp`` or a group-writable share, any of them can place a ``uv.toml`` there that
-  steers pipx's uv calls; keep it in a directory only you can write.
+  ``PIPX_HOME`` and each of its parents up to the filesystem root.
+- With the default ``PIPX_HOME`` under your home directory, the parents uv searches for project config belong to you
+  or to root. If ``PIPX_HOME`` (or ``PIPX_GLOBAL_HOME``) sits below a directory other accounts can write, such as
+  ``/tmp`` or a group-writable share, any of them can place a ``uv.toml`` there that steers pipx's uv calls; keep it in
+  a directory only you can write.
 
 ************
  Limitations

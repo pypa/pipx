@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+    from pipx.constants import ExitCode
+
 
 @pytest.fixture
 def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv, tuple[Path, Path], MagicMock]:
@@ -82,15 +84,6 @@ def test_install_records_the_venv_python_version(backend: str) -> None:
 _CREDENTIALED_REQUIREMENT: Final[str] = "helper @ http://u:s3cr3ttok@127.0.0.1:9/helper-1.0-py3-none-any.whl"
 
 
-@pytest.fixture
-def venv_failing_install(tmp_path: Path, mocker: MockerFixture) -> Venv:
-    (tmp_path / "demo").mkdir()
-    (tmp_path / "demo" / "pyvenv.cfg").touch()
-    venv: Final[Venv] = Venv(tmp_path / "demo")
-    mocker.patch.object(venv.backend, "install", autospec=True, return_value=subprocess.CompletedProcess([], 1, "", ""))
-    return venv
-
-
 def test_install_unmanaged_packages_error_hides_url_credentials(venv_failing_install: Venv) -> None:
     with pytest.raises(PipxError) as error:
         venv_failing_install.install_unmanaged_packages([_CREDENTIALED_REQUIREMENT], [])
@@ -98,6 +91,15 @@ def test_install_unmanaged_packages_error_hides_url_credentials(venv_failing_ins
     assert (
         " ".join(str(error.value).split()) == f"Error installing {redact_url_credentials(_CREDENTIALED_REQUIREMENT)}."
     )
+
+
+@pytest.fixture
+def venv_failing_install(tmp_path: Path, mocker: MockerFixture) -> Venv:
+    (root := tmp_path / "demo").mkdir()
+    (root / "pyvenv.cfg").touch()
+    venv: Final[Venv] = Venv(root)
+    mocker.patch.object(venv.backend, "install", autospec=True, return_value=subprocess.CompletedProcess([], 1, "", ""))
+    return venv
 
 
 def test_install_unmanaged_packages_logs_without_url_credentials(
@@ -130,7 +132,7 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
     ],
 )
 def test_venv_without_pyvenv_cfg_refuses_installer(
-    operation: Callable[[Venv], object], tmp_path: Path, mocker: MockerFixture
+    operation: Callable[[Venv], set[str] | ExitCode | None], tmp_path: Path, mocker: MockerFixture
 ) -> None:
     backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
     mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
