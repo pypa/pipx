@@ -91,6 +91,10 @@ def test_recordable_pip_args_drops_trailing_one_shot_option() -> None:
         pytest.param(["--loc=/shared/pip.log"], [], id="abbreviated-local-log"),
         pytest.param(["--rep", "/shared/report.json"], [], id="abbreviated-report"),
         pytest.param(["--cache-d", "/shared/cache"], [], id="abbreviated-cache-dir"),
+        pytest.param(["--requirem", "/shared/req.txt"], [], id="ambiguous-requirement"),
+        pytest.param(["--requiremen=/shared/req.txt"], [], id="ambiguous-requirement-equals"),
+        pytest.param(["--requir", "/shared/req.txt"], [], id="ambiguous-requirement-short"),
+        pytest.param(["--ro", "/shared/root"], [], id="ambiguous-root"),
     ],
 )
 def test_recordable_pip_args_drops_one_shot_spelling(pip_args: list[str], expected: list[str]) -> None:
@@ -110,7 +114,7 @@ def test_recordable_pip_args_drops_one_shot_spelling(pip_args: list[str], expect
         pytest.param(["--index", "https://index.example/simple"], id="uv-index"),
         pytest.param(["--extra", "dev"], id="uv-extra"),
         pytest.param(["-vv", "--pre"], id="flag-cluster"),
-        pytest.param(["--requir", "requirements.txt"], id="ambiguous-prefix"),
+        pytest.param(["--no-b", ":all:"], id="ambiguous-prefix"),
         pytest.param(["--no-deps=yes"], id="flag-with-value"),
         pytest.param(["-x"], id="unknown-short"),
     ],
@@ -169,6 +173,7 @@ def test_extract_index_options_reads_spelling(pip_args: list[str], expected: lis
     [
         pytest.param(["-r", "requirements.txt", "--no-compile"], ["--no-compile"], id="separated"),
         pytest.param(["-qr", "requirements.txt"], ["-q"], id="clustered"),
+        pytest.param(["--requirem", "requirements.txt", "--no-compile"], ["--no-compile"], id="ambiguous-prefix"),
     ],
 )
 def test_replayable_pip_args_drops_one_shot_option(tmp_path: Path, pip_args: list[str], expected: list[str]) -> None:
@@ -213,6 +218,7 @@ def test_replayable_pip_args_keeps_value_without_local_path(tmp_path: Path, kept
         pytest.param(["--find-l", "{shared}/wheels"], "--find-links {shared}/wheels", id="abbreviated"),
         pytest.param(["--constr", "{shared}/c.txt"], "--constraint {shared}/c.txt", id="abbreviated-constraint"),
         pytest.param(["--cert", "{shared}/ca.pem"], "--cert {shared}/ca.pem", id="cert"),
+        pytest.param(["--con", "{shared}/c.txt"], "--con {shared}/c.txt", id="ambiguous-constraint"),
         pytest.param(["-b", "{shared}/c.txt"], "-b {shared}/c.txt", id="uv-build-constraints"),
         pytest.param(["-f", "{venv}/wheels,{shared}/wheels"], "-f {venv}/wheels,{shared}/wheels", id="uv-comma"),
         pytest.param(["--config-file", "{shared}/uv.toml"], "--config-file {shared}/uv.toml", id="uv-config-file"),

@@ -265,7 +265,7 @@ def _validate_install_options(package_specs: Sequence[str], options: InstallOpti
         raise PipxError(msg)
     lock_file: Final[Path] = options.lock_file.expanduser().resolve()
     if not re.fullmatch(r"pylock(?:\.[^.]+)?\.toml", lock_file.name):
-        msg = "Lock files must be named pylock.toml or pylock.<name>.toml"
+        msg = f"Rename the lock file {lock_file.name!r} to pylock.toml or pylock.<name>.toml"
         raise PipxError(msg)
     if not lock_file.is_file():
         msg = f"Lock file does not exist: {lock_file}"
@@ -418,8 +418,8 @@ def _handle_existing_install(
             OutputMessage(
                 text=pipx_wrap(
                     f"""
-                    --python is ignored when --force is passed.
-                    If you want to reinstall {package_name} with {python},
+                    pipx ignores --python when you pass --force.
+                    To reinstall {package_name} with {python},
                     run `pipx reinstall {venv.name} --python {python}` instead.
                     """
                 )
@@ -450,7 +450,7 @@ def _handle_existing_install(
         OutputMessage(
             text=pipx_wrap(
                 f"""
-                {venv.name!r}{f" ({installed_version})" if installed_version else ""} already seems to be installed. Not
+                {venv.name!r}{f" ({installed_version})" if installed_version else ""} is already installed. Not
                 modifying existing installation in '{venv.root}'.
                 Pass '--force' to force installation, or use
                 'pipx upgrade {venv.name}' to upgrade.
