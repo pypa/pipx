@@ -12,8 +12,8 @@ Hold an installation at its current version so upgrades skip it until you unpin.
 
     $ pipx pin black
 
-Pinned environments are skipped by ``pipx upgrade`` and ``pipx upgrade-all``, so the app and its dependencies keep their
-versions until you unpin. ``pipx reinstall`` refuses a pinned environment, and ``pipx reinstall-all`` reports it as an
+``pipx upgrade`` and ``pipx upgrade-all`` skip pinned environments, so the app and its dependencies keep their versions
+until you unpin. ``pipx reinstall`` refuses a pinned environment, and ``pipx reinstall-all`` reports it as an
 error. ``pipx install --force`` and ``pipx inject --force`` keep a package pinned, even when they install a different
 version.
 

@@ -22,29 +22,10 @@ from pipx.fanout import fan_out
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
-TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 41, 2))
-
-
-def check_animate_output(
-    monkeypatch: pytest.MonkeyPatch,
-    test_string: str,
-    frame_strings: list[str],
-    frames_to_test: int,
-) -> None:
-    # draining capsys while the animation thread writes loses a frame written between the read and the truncation
-    stderr: Final[io.StringIO] = io.StringIO()
-    monkeypatch.setattr(sys, "stderr", stderr)
-    expected_string = "".join(frame_strings)
-    chars_to_test = len("".join(frame_strings[:frames_to_test]))
-    deadline = default_timer() + 5
-
-    with pipx.animate.animate(test_string, do_animation=True):
-        while default_timer() < deadline and len(stderr.getvalue()) < chars_to_test:
-            time.sleep(0.01)
-
-    assert stderr.getvalue()[:chars_to_test] == expected_string[:chars_to_test]
+_TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 41, 2))
 
 
 def test_delay_suppresses_output(
@@ -54,19 +35,16 @@ def test_delay_suppresses_output(
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setenv("COLUMNS", "80")
 
-    test_string = "asdf"
-
-    # The delay boundary requires elapsed time before checking for an early frame.
-    with pipx.animate.animate(test_string, do_animation=True, delay=0.9):
+    # stays inside the 0.9 s delay, so no frame may appear yet
+    with pipx.animate.animate("asdf", do_animation=True, delay=0.9):
         time.sleep(0.5)
-    captured = capsys.readouterr()
-    assert test_string not in captured.err
+
+    assert "asdf" not in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
     ("cursor_control", "escape_sequence"),
-    [(hide_cursor, "\033[?25l"), (show_cursor, "\033[?25h")],
-    ids=["hide", "show"],
+    [pytest.param(hide_cursor, "\033[?25l", id="hide"), pytest.param(show_cursor, "\033[?25h", id="show")],
 )
 def test_cursor_control_uses_ansi(
     capsys: pytest.CaptureFixture[str],
@@ -83,10 +61,10 @@ def test_cursor_control_uses_ansi(
 
 
 def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
-    animation_clear_started = threading.Event()
-    main_clear_started = threading.Event()
-    writes: list[str] = []
-    clear = f"\r{CLEAR_LINE}"
+    animation_clear_started: Final[threading.Event] = threading.Event()
+    main_clear_started: Final[threading.Event] = threading.Event()
+    writes: Final[list[str]] = []
+    clear: Final[str] = f"\r{CLEAR_LINE}"
 
     def record_write(text: str) -> int:
         if text == clear:
@@ -98,8 +76,7 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
         writes.append(text)
         return len(text)
 
-    stderr = mocker.MagicMock(write=mocker.Mock(side_effect=record_write))
-    mocker.patch.object(pipx.animate.sys, "stderr", stderr)
+    mocker.patch.object(pipx.animate.sys, "stderr", mocker.MagicMock(write=mocker.Mock(side_effect=record_write)))
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", True)
     monkeypatch.setenv("COLUMNS", "80")
@@ -113,61 +90,71 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
 @pytest.mark.parametrize(
     ("env_columns", "expected_frame_message"),
     [
-        (45, f"{TEST_STRING_40_CHAR:.{45 - 6}}..."),
-        (46, f"{TEST_STRING_40_CHAR}"),
-        (47, f"{TEST_STRING_40_CHAR}"),
+        pytest.param(45, f"{_TEST_STRING_40_CHAR:.{45 - 6}}...", id="truncated"),
+        pytest.param(46, _TEST_STRING_40_CHAR, id="exact"),
+        pytest.param(47, _TEST_STRING_40_CHAR, id="spare-column"),
     ],
-    ids=["truncated", "exact", "spare-column"],
 )
 def test_line_lengths_emoji(
     monkeypatch: pytest.MonkeyPatch,
+    check_animate_output: Callable[[list[str], int], None],
     env_columns: int,
     expected_frame_message: str,
 ) -> None:
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", True)
-
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
-    frames_to_test = 4
-    frame_strings = [f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES]
-    check_animate_output(monkeypatch, TEST_STRING_40_CHAR, frame_strings, frames_to_test)
+    check_animate_output([f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES], 4)
+
+
+@pytest.fixture
+def check_animate_output(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[str], int], None]:
+    def check(frame_strings: list[str], frames_to_test: int) -> None:
+        # draining capsys while the animation thread writes loses a frame written between the read and the truncation
+        stderr: Final[io.StringIO] = io.StringIO()
+        monkeypatch.setattr(sys, "stderr", stderr)
+        chars_to_test: Final[int] = len("".join(frame_strings[:frames_to_test]))
+        deadline: Final[float] = default_timer() + 5
+
+        with pipx.animate.animate(_TEST_STRING_40_CHAR, do_animation=True):
+            while default_timer() < deadline and len(stderr.getvalue()) < chars_to_test:
+                time.sleep(0.01)
+
+        assert stderr.getvalue()[:chars_to_test] == "".join(frame_strings)[:chars_to_test]
+
+    return check
 
 
 @pytest.mark.parametrize(
     ("env_columns", "expected_frame_message"),
     [
-        (43, f"{TEST_STRING_40_CHAR:.{43 - 4}}"),
-        (44, f"{TEST_STRING_40_CHAR}"),
-        (45, f"{TEST_STRING_40_CHAR}"),
+        pytest.param(43, f"{_TEST_STRING_40_CHAR:.{43 - 4}}", id="truncated"),
+        pytest.param(44, _TEST_STRING_40_CHAR, id="exact"),
+        pytest.param(45, _TEST_STRING_40_CHAR, id="spare-column"),
     ],
-    ids=["truncated", "exact", "spare-column"],
 )
 def test_line_lengths_no_emoji(
     monkeypatch: pytest.MonkeyPatch,
+    check_animate_output: Callable[[list[str], int], None],
     env_columns: int,
     expected_frame_message: str,
 ) -> None:
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", False)
-
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
-    frames_to_test = 2
-    frame_strings = [f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES]
-
-    check_animate_output(
-        monkeypatch,
-        TEST_STRING_40_CHAR,
-        frame_strings,
-        frames_to_test,
-    )
+    check_animate_output([f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES], 2)
 
 
 @pytest.mark.parametrize(
     ("env_columns", "supports_tty"),
-    [(0, True), (8, True), (16, True), (17, False)],
-    ids=["zero-columns", "narrow-terminal", "threshold", "not-tty"],
+    [
+        pytest.param(0, True, id="zero-columns"),
+        pytest.param(8, True, id="narrow-terminal"),
+        pytest.param(16, True, id="threshold"),
+        pytest.param(17, False, id="not-tty"),
+    ],
 )
 def test_env_no_animate(
     capsys: pytest.CaptureFixture[str],
@@ -178,15 +165,11 @@ def test_env_no_animate(
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", supports_tty)
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
-    expected_string = f"{TEST_STRING_40_CHAR}...\n"
-
-    with pipx.animate.animate(TEST_STRING_40_CHAR, do_animation=True):
+    with pipx.animate.animate(_TEST_STRING_40_CHAR, do_animation=True):
         pass
 
-    captured = capsys.readouterr()
-
-    assert not captured.out
-    assert captured.err == expected_string
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", f"{_TEST_STRING_40_CHAR}...\n")
 
 
 def test_animate_skips_spinner_of_task_waiting_its_turn(

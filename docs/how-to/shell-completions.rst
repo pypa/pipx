@@ -55,7 +55,8 @@ bash and fish read their directories without further help. zsh needs the directo
  Ship completions from your package
 ***********************************
 
-Install completion scripts through your build backend's data files. With setuptools:
+Install completion scripts through your build backend's data files. With `setuptools
+<https://setuptools.pypa.io/>`__:
 
 .. code-block:: python
 

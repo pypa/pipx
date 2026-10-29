@@ -4,8 +4,9 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -31,23 +32,20 @@ _SKIP_ON_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
 )
 def test_self_managed_value_is_discovered(
     self_managed_installation: _SelfManagedInstallation,
+    environment_value: Callable[[_SelfManagedInstallation, str, Mapping[str, str]], Path],
     name: str,
     attribute: str,
 ) -> None:
-    assert _get_environment_value(self_managed_installation, name) == getattr(self_managed_installation, attribute)
+    assert environment_value(self_managed_installation, name, {}) == getattr(self_managed_installation, attribute)
 
 
 @_SKIP_ON_WINDOWS
-def test_self_managed_explicit_environment_wins(self_managed_installation: _SelfManagedInstallation) -> None:
-    explicit_home = self_managed_installation.home.parent / "explicit"
-    assert (
-        _get_environment_value(
-            self_managed_installation,
-            "PIPX_HOME",
-            {"PIPX_HOME": str(explicit_home)},
-        )
-        == explicit_home
-    )
+def test_self_managed_explicit_environment_wins(
+    self_managed_installation: _SelfManagedInstallation,
+    environment_value: Callable[[_SelfManagedInstallation, str, Mapping[str, str]], Path],
+) -> None:
+    explicit_home: Final[Path] = self_managed_installation.home.parent / "explicit"
+    assert environment_value(self_managed_installation, "PIPX_HOME", {"PIPX_HOME": str(explicit_home)}) == explicit_home
 
 
 @_SKIP_ON_WINDOWS
@@ -60,18 +58,20 @@ def test_self_managed_explicit_environment_wins(self_managed_installation: _Self
 )
 def test_self_managed_moved_value_is_discovered(
     self_managed_installation: _SelfManagedInstallation,
+    environment_value: Callable[[_SelfManagedInstallation, str, Mapping[str, str]], Path],
     name: str,
     attribute: str,
 ) -> None:
-    moved_home = self_managed_installation.home.parent.parent / "moved"
+    moved_home: Final[Path] = self_managed_installation.home.parent.parent / "moved"
     self_managed_installation.home.rename(moved_home)
-    moved_installation = self_managed_installation._replace(
+    moved_installation: Final[_SelfManagedInstallation] = replace(
+        self_managed_installation,
         home=moved_home,
         bin_dir=moved_home / "bin",
         venv=moved_home / "venvs" / "pipx",
         executable=moved_home / "bin" / "pipx",
     )
-    assert _get_environment_value(moved_installation, name) == getattr(moved_installation, attribute)
+    assert environment_value(moved_installation, name, {}) == getattr(moved_installation, attribute)
 
 
 @_SKIP_ON_WINDOWS
@@ -91,65 +91,63 @@ def test_self_managed_moved_value_is_discovered(
 )
 def test_self_managed_venv_script_does_not_set_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
-    tmp_path: Path,
+    linked_home: Path,
+    discover: Callable[[Path, str], dict[str, str]],
     venv_script: Callable[[_SelfManagedInstallation, Path], Path],
 ) -> None:
-    (linked_home := tmp_path / "home-link").symlink_to(self_managed_installation.home)
-    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable=str(venv_script(self_managed_installation, linked_home)),
+    assert "PIPX_BIN_DIR" not in discover(
+        self_managed_installation.venv, str(venv_script(self_managed_installation, linked_home))
     )
 
 
 @_SKIP_ON_WINDOWS
 def test_self_managed_linked_home_sets_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
-    tmp_path: Path,
+    linked_home: Path,
+    discover: Callable[[Path, str], dict[str, str]],
 ) -> None:
-    (linked_home := tmp_path / "home-link").symlink_to(self_managed_installation.home)
-    assert discover_self_managed_environment(
-        prefix=linked_home / "venvs" / "pipx",
-        executable=str(self_managed_installation.executable),
-    )["PIPX_BIN_DIR"] == str(self_managed_installation.bin_dir)
+    assert discover(linked_home / "venvs" / "pipx", str(self_managed_installation.executable))["PIPX_BIN_DIR"] == str(
+        self_managed_installation.bin_dir
+    )
 
 
 @_SKIP_ON_WINDOWS
 def test_self_managed_executable_on_path_sets_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
+    discover: Callable[[Path, str], dict[str, str]],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("PATH", f"{self_managed_installation.bin_dir}{os.pathsep}{os.environ['PATH']}")
-    assert discover_self_managed_environment(prefix=self_managed_installation.venv, executable="pipx")[
-        "PIPX_BIN_DIR"
-    ] == str(self_managed_installation.bin_dir)
+    assert discover(self_managed_installation.venv, "pipx")["PIPX_BIN_DIR"] == str(self_managed_installation.bin_dir)
 
 
 @_SKIP_ON_WINDOWS
 def test_self_managed_missing_executable_does_not_set_bin_dir(
     self_managed_installation: _SelfManagedInstallation,
+    discover: Callable[[Path, str], dict[str, str]],
 ) -> None:
-    assert "PIPX_BIN_DIR" not in discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable="pipx-command-that-does-not-exist",
-    )
+    assert "PIPX_BIN_DIR" not in discover(self_managed_installation.venv, "pipx-command-that-does-not-exist")
 
 
 @_SKIP_ON_WINDOWS
-@pytest.mark.parametrize("through_symlink", [pytest.param(False, id="direct"), pytest.param(True, id="symlink")])
+@pytest.mark.parametrize(
+    "global_home",
+    [
+        pytest.param(lambda installation, _linked_home: installation.home, id="direct"),
+        pytest.param(lambda _installation, linked_home: linked_home, id="symlink"),
+    ],
+)
 def test_self_managed_global_home_keeps_default_paths(
     self_managed_installation: _SelfManagedInstallation,
+    linked_home: Path,
+    discover: Callable[[Path, str], dict[str, str]],
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    through_symlink: bool,
+    global_home: Callable[[_SelfManagedInstallation, Path], Path],
 ) -> None:
-    global_home = self_managed_installation.home
-    if through_symlink:
-        (global_home := tmp_path / "global-link").symlink_to(self_managed_installation.home)
-    monkeypatch.setenv("PIPX_GLOBAL_HOME", str(global_home))
-    assert discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable=str(self_managed_installation.executable),
-    ) == {"PIPX_DEFAULT_PYTHON": str(self_managed_installation.source_interpreter)}
+    monkeypatch.setenv("PIPX_GLOBAL_HOME", str(global_home(self_managed_installation, linked_home)))
+    assert discover(self_managed_installation.venv, str(self_managed_installation.executable)) == {
+        "PIPX_DEFAULT_PYTHON": str(self_managed_installation.source_interpreter)
+    }
 
 
 @_SKIP_ON_WINDOWS
@@ -162,6 +160,7 @@ def test_self_managed_global_home_keeps_default_paths(
 )
 def test_self_managed_default_python_not_backing_the_venv_is_ignored(
     self_managed_installation: _SelfManagedInstallation,
+    discover: Callable[[Path, str], dict[str, str]],
     tmp_path: Path,
     recorded: Callable[[Path], Path],
 ) -> None:
@@ -173,31 +172,27 @@ def test_self_managed_default_python_not_backing_the_venv_is_ignored(
         encoding="utf-8",
     )
 
-    assert discover_self_managed_environment(
-        prefix=self_managed_installation.venv,
-        executable=str(self_managed_installation.executable),
-    ) == {"PIPX_HOME": str(self_managed_installation.home), "PIPX_BIN_DIR": str(self_managed_installation.bin_dir)}
+    assert discover(self_managed_installation.venv, str(self_managed_installation.executable)) == {
+        "PIPX_HOME": str(self_managed_installation.home),
+        "PIPX_BIN_DIR": str(self_managed_installation.bin_dir),
+    }
 
 
 def test_self_managed_windows_is_ignored(
     self_managed_installation: _SelfManagedInstallation,
+    discover: Callable[[Path, str], dict[str, str]],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(os, "name", "nt")
-    assert (
-        discover_self_managed_environment(
-            prefix=self_managed_installation.venv,
-            executable=str(self_managed_installation.executable),
-        )
-        == {}
-    )
+    assert discover(self_managed_installation.venv, str(self_managed_installation.executable)) == {}
 
 
 @_SKIP_ON_WINDOWS
-def test_self_managed_missing_metadata_is_ignored(tmp_path: Path) -> None:
-    venv = tmp_path / "pipx" / "venvs" / "pipx"
-    venv.mkdir(parents=True)
-    assert discover_self_managed_environment(prefix=venv, executable="pipx") == {}
+def test_self_managed_missing_metadata_is_ignored(
+    tmp_path: Path, discover: Callable[[Path, str], dict[str, str]]
+) -> None:
+    (venv := tmp_path / "pipx" / "venvs" / "pipx").mkdir(parents=True)
+    assert discover(venv, "pipx") == {}
 
 
 @_SKIP_ON_WINDOWS
@@ -210,47 +205,61 @@ def test_self_managed_missing_metadata_is_ignored(tmp_path: Path) -> None:
 )
 def test_self_managed_invalid_metadata_is_ignored(
     self_managed_installation: _SelfManagedInstallation,
+    discover: Callable[[Path, str], dict[str, str]],
     metadata: list[None] | dict[str, dict[str, str]],
 ) -> None:
     (self_managed_installation.venv / PIPX_INFO_FILENAME).write_text(json.dumps(metadata), encoding="utf-8")
-    assert (
-        discover_self_managed_environment(
-            prefix=self_managed_installation.venv,
-            executable=str(self_managed_installation.executable),
+    assert discover(self_managed_installation.venv, str(self_managed_installation.executable)) == {}
+
+
+@pytest.fixture
+def discover(monkeypatch: pytest.MonkeyPatch) -> Callable[[Path, str], dict[str, str]]:
+    def run(prefix: Path, executable: str) -> dict[str, str]:
+        with monkeypatch.context() as patch:
+            patch.setattr(sys, "prefix", str(prefix))
+            patch.setattr(sys, "argv", [executable])
+            return discover_self_managed_environment()
+
+    return run
+
+
+@pytest.fixture
+def environment_value() -> Callable[[_SelfManagedInstallation, str, Mapping[str, str]], Path]:
+    def run(installation: _SelfManagedInstallation, name: str, overrides: Mapping[str, str]) -> Path:
+        code: Final[str] = (
+            "import sys; "
+            f"sys.prefix = {str(installation.venv)!r}; "
+            f"sys.argv = [{str(installation.executable)!r}]; "
+            "from pipx.commands.environment import environment; "
+            f"raise SystemExit(environment({name!r}))"
         )
-        == {}
-    )
+        env: Final[dict[str, str]] = {
+            key: value
+            for key, value in os.environ.items()
+            if key not in {"PIPX_HOME", "PIPX_BIN_DIR", "PIPX_DEFAULT_PYTHON"}
+        }
+        return Path(
+            subprocess.run(
+                [sys.executable, "-c", code], env={**env, **overrides}, capture_output=True, text=True, check=True
+            ).stdout.strip()
+        )
+
+    return run
 
 
-def _get_environment_value(
-    installation: _SelfManagedInstallation,
-    name: str,
-    overrides: Mapping[str, str] | None = None,
-) -> Path:
-    code = (
-        "import sys; "
-        f"sys.prefix = {str(installation.venv)!r}; "
-        f"sys.argv = [{str(installation.executable)!r}]; "
-        "from pipx.commands.environment import environment; "
-        f"raise SystemExit(environment({name!r}))"
-    )
-    env = os.environ.copy()
-    for env_name in ("PIPX_HOME", "PIPX_BIN_DIR", "PIPX_DEFAULT_PYTHON"):
-        env.pop(env_name, None)
-    if overrides is not None:
-        env.update(overrides)
-    result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
-    return Path(result.stdout.strip())
+@pytest.fixture
+def linked_home(self_managed_installation: _SelfManagedInstallation, tmp_path: Path) -> Path:
+    (link := tmp_path / "home-link").symlink_to(self_managed_installation.home)
+    return link
 
 
 @pytest.fixture
 def self_managed_installation(tmp_path: Path) -> _SelfManagedInstallation:
-    home = tmp_path / "custom" / "pipx"
-    venv = home / "venvs" / "pipx"
+    home: Final[Path] = tmp_path / "custom" / "pipx"
+    venv: Final[Path] = home / "venvs" / "pipx"
     (venv / "bin").mkdir(parents=True)
     (venv / "bin" / "pipx").touch(mode=0o755)
-    source_interpreter = tmp_path / "python-custom"
-    source_interpreter.touch(mode=0o755)
+    (source_interpreter := tmp_path / "python-custom").touch(mode=0o755)
     (venv / "bin" / "python").symlink_to(source_interpreter)
     (venv / PIPX_INFO_FILENAME).write_text(
         json.dumps({
@@ -259,14 +268,15 @@ def self_managed_installation(tmp_path: Path) -> _SelfManagedInstallation:
         }),
         encoding="utf-8",
     )
-    bin_dir = home / "bin"
-    bin_dir.mkdir()
-    executable = bin_dir / "pipx"
-    executable.symlink_to(Path("../venvs/pipx/bin/pipx"))
-    return _SelfManagedInstallation(home, bin_dir, venv, executable, source_interpreter)
+    (bin_dir := home / "bin").mkdir()
+    (executable := bin_dir / "pipx").symlink_to(Path("../venvs/pipx/bin/pipx"))
+    return _SelfManagedInstallation(
+        home=home, bin_dir=bin_dir, venv=venv, executable=executable, source_interpreter=source_interpreter
+    )
 
 
-class _SelfManagedInstallation(NamedTuple):
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SelfManagedInstallation:
     home: Path
     bin_dir: Path
     venv: Path

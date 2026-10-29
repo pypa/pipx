@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows, write_wheel
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, SKIP_IF_WINDOWS, mock_legacy_venv, run_pipx_cli, write_wheel
 from pipx import paths
 from pipx.commands import uninstall as uninstall_module
 from pipx.util import rmdir_via_trash
@@ -29,7 +29,7 @@ def test_uninstall_all_legacy_venv(metadata_version: str | None) -> None:
     assert not run_pipx_cli(["uninstall-all"])
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninstall_all_keeps_an_app_name_taken_over_while_it_runs(mocker: MockerFixture, tmp_path: Path) -> None:
     assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "alpha", "1"))])
@@ -39,8 +39,8 @@ def test_uninstall_all_keeps_an_app_name_taken_over_while_it_runs(mocker: Mocker
     def remove_then_take_over_the_remaining_names(path: Path) -> None:
         # uninstall-all scans the bin directory once, so the later venvs act on what it held before this takeover
         rmdir_via_trash(path)
-        for name in {"alpha", "beta"} & {entry.name for entry in paths.ctx.venvs.iterdir()}:
-            (app := paths.ctx.bin_dir / name).unlink()
+        for name in {"alpha", "beta"} & {entry.name for entry in paths.CTX.venvs.iterdir()}:
+            (app := paths.CTX.bin_dir / name).unlink()
             app.symlink_to(other)
 
     mocker.patch.object(
@@ -49,4 +49,4 @@ def test_uninstall_all_keeps_an_app_name_taken_over_while_it_runs(mocker: Mocker
 
     assert not run_pipx_cli(["uninstall-all"])
 
-    assert [path.resolve() for path in paths.ctx.bin_dir.iterdir()] == [other.resolve()]
+    assert [path.resolve() for path in paths.CTX.bin_dir.iterdir()] == [other.resolve()]

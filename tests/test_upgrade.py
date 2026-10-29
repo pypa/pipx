@@ -11,18 +11,18 @@ from dataclasses import replace
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from socketserver import ThreadingTCPServer
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
+    SKIP_IF_WINDOWS,
     app_name,
     drop_extra_app,
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
-    skip_if_windows,
     unwrap_log_text,
     write_wheel,
 )
@@ -39,19 +39,27 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
+@pytest.mark.parametrize(
+    "scope", [pytest.param([], id="user"), pytest.param(["--global"], id="global", marks=SKIP_IF_WINDOWS)]
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["upgrade", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "Package is not installed" in captured.err
+def test_upgrade_not_installed_fails(capsys: pytest.CaptureFixture[str], scope: list[str]) -> None:
+    assert run_pipx_cli(["upgrade", *scope, "pycowsay"])
 
-    assert not run_pipx_cli(["install", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "installed package pycowsay" in captured.out
+    assert "Package is not installed" in capsys.readouterr().err
 
-    assert not run_pipx_cli(["upgrade", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "pycowsay is already at latest version" in captured.out
+
+@pytest.mark.parametrize(
+    "scope", [pytest.param([], id="user"), pytest.param(["--global"], id="global", marks=SKIP_IF_WINDOWS)]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_reports_latest_version(capsys: pytest.CaptureFixture[str], scope: list[str]) -> None:
+    assert not run_pipx_cli(["install", *scope, "pycowsay"])
+    assert "installed package pycowsay" in capsys.readouterr().out
+
+    assert not run_pipx_cli(["upgrade", *scope, "pycowsay"])
+
+    assert "pycowsay is already at latest version" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -92,7 +100,7 @@ def test_upgrade_refreshes_shared_pip_only_when_due(  # ruff:ignore[too-many-pos
 
     assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
 
-    assert (shared_libs.shared_libs.pip_path.stat().st_mtime != last_upgrade) is refreshed
+    assert (shared_libs.SHARED_LIBS.pip_path.stat().st_mtime != last_upgrade) is refreshed
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -102,14 +110,16 @@ def test_upgrade_records_relative_find_links_as_absolute(tmp_path: Path, monkeyp
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--pip-args=--find-links wheels"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    assert metadata.main_package.pip_args == ["--find-links", str((tmp_path / "wheels").resolve())]
+    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == [
+        "--find-links",
+        str((tmp_path / "wheels").resolve()),
+    ]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
-    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
     metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
     metadata.write()
@@ -120,21 +130,7 @@ def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, m
     assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
 
 
-@pytest.fixture
-def recorded_find_links(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    tmp_path: Path,
-) -> Path:
-    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
-    wheels: Final[Path] = tmp_path.resolve() / "wheels"
-    wheels.mkdir()
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(wheels)])
-    metadata.write()
-    return wheels
-
-
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(sys.platform != "win32" and os.geteuid() == 0, reason="root owns the files it creates")
 def test_upgrade_refuses_recorded_find_links_owned_by_another_account(
     recorded_find_links: Path, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
@@ -150,10 +146,23 @@ def test_upgrade_refuses_recorded_find_links_owned_by_another_account(
     ) in capsys.readouterr().err
 
 
-@skip_if_windows
+@pytest.fixture
+def recorded_find_links(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    (wheels := tmp_path.resolve() / "wheels").mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(wheels)])
+    metadata.write()
+    return wheels
+
+
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(sys.platform != "win32" and os.geteuid() == 0, reason="root owns the files it creates")
 def test_upgrade_keeps_metadata_of_refused_find_links(recorded_find_links: Path, mocker: MockerFixture) -> None:
-    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     recorded: Final[bytes] = metadata_file.read_bytes()
     mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1)
 
@@ -165,27 +174,13 @@ def test_upgrade_keeps_metadata_of_refused_find_links(recorded_find_links: Path,
 def test_upgrade_replays_recorded_find_links_owned_by_user(recorded_find_links: Path) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
-    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == [
+    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == [
         "--find-links",
         str(recorded_find_links),
     ]
 
 
-@pytest.fixture
-def recorded_uv_project(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    tmp_path: Path,
-) -> Path:
-    assert not run_pipx_cli(["install", "--backend", "uv", "pycowsay"])
-    project: Final[Path] = tmp_path.resolve() / "project"
-    project.mkdir()
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    metadata.main_package = replace(metadata.main_package, pip_args=["--project", str(project)])
-    metadata.write()
-    return project
-
-
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 def test_upgrade_refuses_recorded_uv_project_writable_by_others(
     recorded_uv_project: Path, capsys: pytest.CaptureFixture[str]
@@ -201,10 +196,23 @@ def test_upgrade_refuses_recorded_uv_project_writable_by_others(
     ) in capsys.readouterr().err
 
 
-@skip_if_windows
+@pytest.fixture
+def recorded_uv_project(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    assert not run_pipx_cli(["install", "--backend", "uv", "pycowsay"])
+    (project := tmp_path.resolve() / "project").mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--project", str(project)])
+    metadata.write()
+    return project
+
+
+@SKIP_IF_WINDOWS
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 def test_upgrade_keeps_metadata_of_refused_uv_project(recorded_uv_project: Path) -> None:
-    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     recorded: Final[bytes] = metadata_file.read_bytes()
     recorded_uv_project.chmod(0o777)
 
@@ -217,19 +225,18 @@ def test_upgrade_keeps_metadata_of_refused_uv_project(recorded_uv_project: Path)
 def test_upgrade_replays_recorded_uv_project_owned_by_user(recorded_uv_project: Path) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
-    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == ["--project", str(recorded_uv_project)]
+    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == ["--project", str(recorded_uv_project)]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_refuses_recorded_file_index_url_writable_by_others(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
-    shared: Final[Path] = tmp_path.resolve() / "shared"
-    shared.mkdir()
+    (shared := tmp_path.resolve() / "shared").mkdir()
     shared.chmod(0o777)
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     metadata.main_package = replace(metadata.main_package, pip_args=["--index-url", (shared / "simple").as_uri()])
     metadata.write()
     capsys.readouterr()
@@ -249,13 +256,10 @@ def test_upgrade_inline_script(inline_script: Path) -> None:
 
     assert not run_pipx_cli(["upgrade", "greet"])
 
-    process: Final[subprocess.CompletedProcess[str]] = subprocess.run(
-        [paths.ctx.bin_dir / app_name("greet")],
-        check=True,
-        capture_output=True,
-        text=True,
+    assert (
+        subprocess.run([paths.CTX.bin_dir / app_name("greet")], check=True, capture_output=True, text=True).stdout
+        == "upgraded\n"
     )
-    assert process.stdout == "upgraded\n"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -278,7 +282,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -288,7 +292,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "location": str(paths.CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
@@ -322,13 +326,13 @@ def test_upgrade_skips_pylock(
     capsys: pytest.CaptureFixture[str],
     command: list[str],
 ) -> None:
-    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
     capsys.readouterr()
 
     assert not run_pipx_cli(command)
 
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
     assert (
         "Not upgrading locked package pycowsay. Update its lock file and run `pipx reinstall pycowsay`."
         in unwrap_log_text(capsys.readouterr().out),
@@ -337,69 +341,52 @@ def test_upgrade_skips_pylock(
     ) == (True, "0.0.0.2", lock_file.resolve())
 
 
-@skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_global(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["upgrade", "--global", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "Package is not installed" in captured.err
+def test_upgrade_legacy_venv_without_metadata_fails(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay", metadata_version=None)
+    capsys.readouterr()
 
-    assert not run_pipx_cli(["install", "--global", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "installed package pycowsay" in captured.out
+    assert run_pipx_cli(["upgrade", "pycowsay"])
 
-    assert not run_pipx_cli(["upgrade", "--global", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "pycowsay is already at latest version" in captured.out
+    assert "Not upgrading pycowsay. It has missing internal pipx metadata." in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
+@pytest.mark.parametrize(
+    "metadata_version", [version for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None]
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str | None) -> None:
+def test_upgrade_legacy_venv(metadata_version: str) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    captured = capsys.readouterr()
-    if metadata_version is None:
-        assert run_pipx_cli(["upgrade", "pycowsay"])
-        captured = capsys.readouterr()
-        assert "Not upgrading pycowsay. It has missing internal pipx metadata." in captured.err
-    else:
-        assert not run_pipx_cli(["upgrade", "pycowsay"])
-        captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "pycowsay"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_suffix() -> None:
-    name = "pycowsay"
-    suffix = "_a"
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_a"])
 
-    assert not run_pipx_cli(["install", name, f"--suffix={suffix}"])
-    assert run_pipx_cli(["upgrade", f"{name}"])
-    assert not run_pipx_cli(["upgrade", f"{name}{suffix}"])
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+    assert not run_pipx_cli(["upgrade", "pycowsay_a"])
 
 
-@pytest.mark.parametrize("metadata_version", ["0.1"])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_suffix_legacy_venv(metadata_version: str) -> None:
-    name = "pycowsay"
-    suffix = "_a"
+def test_upgrade_suffix_legacy_venv() -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_a"])
+    mock_legacy_venv("pycowsay_a", metadata_version="0.1")
 
-    assert not run_pipx_cli(["install", name, f"--suffix={suffix}"])
-    mock_legacy_venv(f"{name}{suffix}", metadata_version=metadata_version)
-    assert run_pipx_cli(["upgrade", f"{name}"])
-    assert not run_pipx_cli(["upgrade", f"{name}{suffix}"])
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+    assert not run_pipx_cli(["upgrade", "pycowsay_a"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_specifier(capsys: pytest.CaptureFixture[str]) -> None:
-    name = "isort"
-    pkg_spec = PKG[name]["spec"]
-    initial_version = pkg_spec.split("==")[-1]
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
 
-    assert not run_pipx_cli(["install", f"{pkg_spec}"])
-    assert not run_pipx_cli(["upgrade", f"{name}"])
-    captured = capsys.readouterr()
-    assert f"upgraded package {name} from {initial_version} to" in captured.out
+    assert not run_pipx_cli(["upgrade", "isort"])
+
+    assert f"upgraded package isort from {PKG['isort']['spec'].split('==')[-1]} to" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -407,23 +394,17 @@ def test_upgrade_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None
     assert not run_pipx_cli(["install", "pycowsay"])
     remove_venv_interpreter("pycowsay")
 
-    result = run_pipx_cli(["upgrade", "pycowsay"])
-    assert result != 0, "upgrade should fail when Python interpreter is missing"
-    captured = capsys.readouterr()
-    assert "invalid python interpreter" in captured.err
-    assert "pipx reinstall-all" in captured.err
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+
+    err: Final[str] = capsys.readouterr().err
+    assert ("invalid python interpreter" in err, "pipx reinstall-all" in err) == (True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_reports_corrupt_package(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_upgrade_reports_corrupt_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    metadata_path: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
-    metadata: Final[dict[str, dict[str, str | None]]] = cast(
-        "dict[str, dict[str, str | None]]",
-        json.loads(metadata_path.read_text(encoding="utf-8")),
-    )
+    metadata_path: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata: Final[dict[str, dict[str, str | None]]] = json.loads(metadata_path.read_text(encoding="utf-8"))
     metadata["main_package"]["package_or_url"] = None
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
     capsys.readouterr()
@@ -434,9 +415,7 @@ def test_upgrade_reports_corrupt_package(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_ignores_venv_args_without_install(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+def test_upgrade_ignores_venv_args_without_install(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     caplog.clear()
 
@@ -447,47 +426,54 @@ def test_upgrade_ignores_venv_args_without_install(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_editable(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
-    empty_project_path_as_string = empty_project.as_posix()
-    assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
+    assert not run_pipx_cli(["install", "--editable", empty_project.as_posix(), "--force"])
+
     assert not run_pipx_cli(["upgrade", "--editable", "empty_project"])
-    captured = capsys.readouterr()
-    upgrade_out = " ".join(captured.out.split())  # pipx_wrap reflows messages across lines
-    assert "empty-project is unchanged at version" in upgrade_out
-    assert "installed from the local source" in upgrade_out
-    assert "no package index was checked" in upgrade_out
+
+    upgrade_out: Final[str] = " ".join(capsys.readouterr().out.split())  # pipx_wrap reflows messages across lines
+    assert (
+        "empty-project is unchanged at version" in upgrade_out,
+        "installed from the local source" in upgrade_out,
+        "no package index was checked" in upgrade_out,
+    ) == (True, True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_local_path_does_not_claim_latest(
-    capsys: pytest.CaptureFixture[str],
-    empty_project: Path,
-) -> None:
-    """Regression test for https://github.com/pypa/pipx/issues/2040
-
-    Upgrading a local-path install must not claim the package is at the
-    *latest* version: no index was ever consulted.
-    """
+def test_upgrade_local_path_does_not_claim_latest(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
+    # https://github.com/pypa/pipx/issues/2040: pipx consulted no index, so it cannot know the version is the latest
     assert not run_pipx_cli(["install", str(empty_project.resolve())])
     capsys.readouterr()
 
     assert not run_pipx_cli(["upgrade", "empty_project"])
-    captured = capsys.readouterr()
-    upgrade_out = " ".join(captured.out.split())  # pipx_wrap reflows messages across lines
-    assert "is already at latest version" not in upgrade_out
-    assert "empty-project is unchanged at version" in upgrade_out
-    assert "no package index was checked" in upgrade_out
-    assert "pipx install --force empty-project" in upgrade_out
+
+    upgrade_out: Final[str] = " ".join(capsys.readouterr().out.split())  # pipx_wrap reflows messages across lines
+    assert (
+        "is already at latest version" in upgrade_out,
+        "empty-project is unchanged at version" in upgrade_out,
+        "no package index was checked" in upgrade_out,
+        "pipx install --force empty-project" in upgrade_out,
+    ) == (False, True, True, True)
 
 
+@pytest.mark.parametrize(
+    ("flags", "injected_upgraded"),
+    [
+        pytest.param(["--include-injected"], True, id="include-injected"),
+        pytest.param([], False, id="main-package-only"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
+def test_upgrade_include_injected(
+    capsys: pytest.CaptureFixture[str], flags: list[str], injected_upgraded: bool
+) -> None:
     assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
-    captured = capsys.readouterr()
-    assert not run_pipx_cli(["upgrade", "--include-injected", "isort"])
-    captured = capsys.readouterr()
-    assert "upgraded package isort" in captured.out
-    assert "upgraded package black" in captured.out
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", *flags, "isort"])
+
+    out: Final[str] = capsys.readouterr().out
+    assert ("upgraded package isort" in out, "upgraded package black" in out) == (True, injected_upgraded)
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
@@ -506,7 +492,7 @@ def test_upgrade_uv_keeps_pinned_injected_dependency(tmp_path: Path) -> None:
 
     assert not run_pipx_cli(["upgrade", "tool"])
 
-    assert sorted(path.name for path in (paths.ctx.venvs / "tool").rglob("plug-*.dist-info")) == ["plug-1.5.dist-info"]
+    assert sorted(path.name for path in (paths.CTX.venvs / "tool").rglob("plug-*.dist-info")) == ["plug-1.5.dist-info"]
 
 
 @pytest.mark.parametrize(
@@ -528,7 +514,7 @@ def test_upgrade_removes_dropped_app(
     assert not run_pipx_cli(["list"])
 
     assert (
-        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        sorted(path.name for path in paths.CTX.bin_dir.iterdir()),
         "empty-project-extra" in capsys.readouterr().out,
     ) == ([app_name("empty-project")], False)
 
@@ -546,17 +532,15 @@ def test_upgrade_include_injected_removes_dropped_app(
     assert not run_pipx_cli(["list", "--include-injected"])
 
     assert (
-        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        sorted(path.name for path in paths.CTX.bin_dir.iterdir()),
         "empty-project-extra" in capsys.readouterr().out,
     ) == ([app_name("empty-project"), app_name("pycowsay")], False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_include_injected_with_suffix_keeps_package_name() -> None:
-    # Regression: upgrading rewrites the injected record under the name pipx keys
-    # it by, so re-appending the environment suffix there renamed the package on
-    # every run ("black" -> "black@1" -> "black@1@1") until `pipx uninject` could
-    # no longer name it.
+    # upgrading rewrites the injected record under the name pipx keys it by; re-appending the environment suffix there
+    # renamed the package on every run ("black" -> "black@1" -> "black@1@1") until `pipx uninject` could not name it
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
     assert not run_pipx_cli(["inject", "pycowsay@1", PKG["black"]["spec"], "--with-suffix"])
     assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay@1"])
@@ -565,107 +549,85 @@ def test_upgrade_include_injected_with_suffix_keeps_package_name() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_no_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
-    assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
-    captured = capsys.readouterr()
-    assert not run_pipx_cli(["upgrade", "isort"])
-    captured = capsys.readouterr()
-    assert "upgraded package isort" in captured.out
-    assert "upgraded package black" not in captured.out
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_install_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay", "--install"])
-    captured = capsys.readouterr()
-    assert "installed package pycowsay" in captured.out
+
+    assert "installed package pycowsay" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_install_missing_honors_specifier(capsys: pytest.CaptureFixture[str]) -> None:
-    pkg_spec = PKG["isort"]["spec"]
+    pkg_spec: Final[str] = PKG["isort"]["spec"]
+
     assert not run_pipx_cli(["upgrade", pkg_spec, "--install"])
-    captured = capsys.readouterr()
-    assert f"installed package isort {pkg_spec.split('==')[-1]}" in captured.out
+
+    assert f"installed package isort {pkg_spec.split('==')[-1]}" in capsys.readouterr().out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_multiple(capsys: pytest.CaptureFixture[str]) -> None:
-    name = "isort"
-    pkg_spec = PKG[name]["spec"]
-    initial_version = pkg_spec.split("==")[-1]
-    assert not run_pipx_cli(["install", pkg_spec])
-
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     assert not run_pipx_cli(["install", "pycowsay"])
 
-    assert not run_pipx_cli(["upgrade", name, "pycowsay"])
-    captured = capsys.readouterr()
-    assert f"upgraded package {name} from {initial_version} to" in captured.out
-    assert "pycowsay is already at latest version" in captured.out
+    assert not run_pipx_cli(["upgrade", "isort", "pycowsay"])
+
+    out: Final[str] = capsys.readouterr().out
+    assert (
+        f"upgraded package isort from {PKG['isort']['spec'].split('==')[-1]} to" in out,
+        "pycowsay is already at latest version" in out,
+    ) == (True, True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_absolute_path(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
     assert run_pipx_cli(["upgrade", "--verbose", str(empty_project.resolve())])
-    captured = capsys.readouterr()
-    assert "Package cannot be a URL" not in captured.err
+
+    assert "Package cannot be a URL" not in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_with_extras(capsys: pytest.CaptureFixture[str]) -> None:
-    """Test that upgrading a package with extras in the name works correctly.
-
-    Regression test for https://github.com/pypa/pipx/issues/925
-    """
+    # https://github.com/pypa/pipx/issues/925
     assert not run_pipx_cli(["install", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "installed package pycowsay" in captured.out
+    assert "installed package pycowsay" in capsys.readouterr().out
 
     assert not run_pipx_cli(["upgrade", "pycowsay[test_extra]"])
-    captured = capsys.readouterr()
-    assert "pycowsay is already at latest version" in captured.out
-    assert "Package is not installed" not in captured.err
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert ("pycowsay is already at latest version" in captured.out, "Package is not installed" in captured.err) == (
+        True,
+        False,
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_preserves_included_dependency(local_extras_wheel: Path) -> None:
-    package: Final[str] = f"{local_extras_wheel}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
+    assert not run_pipx_cli(["install", f"{local_extras_wheel}[tools]", "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["upgrade", "repeatme"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "repeatme").main_package
     assert (
         metadata.include_resources_from,
-        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
-        (paths.ctx.bin_dir / app_name("black")).exists(),
+        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (paths.CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
 
 
 @pytest.mark.parametrize(
-    ("upgrade_args", "expected_args", "unexpected_args"),
+    ("upgrade_args", "expected_args"),
     [
-        pytest.param([], ["--no-cache-dir"], [], id="preserves_stored"),
-        pytest.param(["--pip-args=--no-deps"], ["--no-deps"], ["--no-cache-dir"], id="cli_overrides_stored"),
+        pytest.param([], ["--no-cache-dir"], id="preserves_stored"),
+        pytest.param(["--pip-args=--no-deps"], ["--no-deps"], id="cli_overrides_stored"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_pip_args(
-    upgrade_args: list[str],
-    expected_args: list[str],
-    unexpected_args: list[str],
-) -> None:
+def test_upgrade_pip_args(upgrade_args: list[str], expected_args: list[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--pip-args=--no-cache-dir"])
 
     assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
 
-    pipx_venvs_dir = paths.ctx.home / "venvs"
-    metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
-    for arg in expected_args:
-        assert arg in metadata.main_package.pip_args
-    for arg in unexpected_args:
-        assert arg not in metadata.main_package.pip_args
+    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == expected_args
 
 
 @pytest.mark.parametrize(
@@ -697,7 +659,7 @@ def test_upgrade_cooldown(
 
     assert not run_pipx_cli(command)
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     assert (
         "--uploaded-prior-to P7D" in caplog.text,
         "--uploaded-prior-to P5D" in caplog.text,
@@ -712,7 +674,7 @@ def test_upgrade_injected_uses_stored_pip_args(empty_project_wheel: Path) -> Non
 
     assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay"])
 
-    metadata = PipxMetadata(paths.ctx.home / "venvs" / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
     assert (metadata.main_package.pip_args, metadata.injected_packages["empty-project"].pip_args) == (
         ["--no-cache-dir"],
         ["--no-compile"],
@@ -723,12 +685,13 @@ def test_upgrade_injected_uses_stored_pip_args(empty_project_wheel: Path) -> Non
 def test_upgrade_install_json_stays_pure(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay", "--install", "--output", "json"])
 
-    captured = capsys.readouterr()
-    document = json.loads(captured.out)  # the internal install must not print human text before this
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    # parsing fails if the internal install printed human text ahead of the document
+    document: Final = json.loads(captured.out)
     assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_suffix_removes_link_named_before_the_last_dot(make_wheel: Callable[[dict[str, str]], Path]) -> None:
     wheel: Final[Path] = make_wheel({
@@ -740,11 +703,11 @@ def test_upgrade_suffix_removes_link_named_before_the_last_dot(make_wheel: Calla
     })
     assert not run_pipx_cli(["install", "--suffix=@1", str(wheel)])
     # the name pipx 1.17.14 gave the link, with the suffix before the last dot
-    (paths.ctx.bin_dir / "tool3@1.12").symlink_to(paths.ctx.venvs / "foo-bar-x@1" / "bin" / "tool3.12")
+    (paths.CTX.bin_dir / "tool3@1.12").symlink_to(paths.CTX.venvs / "foo-bar-x@1" / "bin" / "tool3.12")
 
     assert not run_pipx_cli(["upgrade", "foo-bar-x@1"])
 
-    assert sorted(path.name for path in paths.ctx.bin_dir.iterdir()) == ["tool3.12@1"]
+    assert sorted(path.name for path in paths.CTX.bin_dir.iterdir()) == ["tool3.12@1"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -790,4 +753,4 @@ def test_upgrade_ignores_pip_config_shipped_by_wheel(make_wheel: Callable[[dict[
 
     assert not run_pipx_cli(["upgrade", "foo-bar-x"])
 
-    assert not (paths.ctx.venvs / "escaped").exists()
+    assert not (paths.CTX.venvs / "escaped").exists()

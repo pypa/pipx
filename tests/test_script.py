@@ -7,9 +7,8 @@ from zipfile import ZipFile
 
 import pytest
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx.script import (
-    _MAX_SCRIPT_BYTES,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     ScriptMetadata,
     download_script,
     installable_script,
@@ -35,14 +34,14 @@ def test_read_script_metadata() -> None:
 """
     )
 
-    assert metadata == ScriptMetadata(("requests>=2",), ">=3.10")
+    assert metadata == ScriptMetadata(dependencies=("requests>=2",), requires_python=">=3.10")
 
 
 def test_read_script_metadata_path(tmp_path: Path) -> None:
     script: Final[Path] = tmp_path / "app.py"
     script.write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8-sig", newline="\r\n")
 
-    assert read_script_metadata(script) == ScriptMetadata((), None)
+    assert read_script_metadata(script) == ScriptMetadata(dependencies=(), requires_python=None)
 
 
 @pytest.mark.parametrize(
@@ -58,7 +57,7 @@ def test_read_script_metadata_delimiter_in_multiline_string(quote: str, line: st
         f'# /// script\n# dependencies = ["demo"]\n# [tool.demo]\n# text = {quote}\n{line}\n# {quote}\n# ///\n'
     )
 
-    assert read_script_metadata(content) == ScriptMetadata(("demo",), None)
+    assert read_script_metadata(content) == ScriptMetadata(dependencies=("demo",), requires_python=None)
 
 
 def test_read_script_metadata_missing() -> None:
@@ -68,51 +67,49 @@ def test_read_script_metadata_missing() -> None:
 @pytest.mark.parametrize(
     ("content", "message", "error_type"),
     [
-        (
+        pytest.param(
             "# /// script\n# dependencies = [1]\n# ///\n",
             "dependencies.*array of strings",
             PipxError,
+            id="dependencies",
         ),
-        (
+        pytest.param(
             '# /// script\n# dependencies = ["???"]\n# ///\n',
             "Invalid requirement",
             PipxError,
+            id="requirement",
         ),
-        (
+        pytest.param(
             "# /// script\n# dependencies = []\n# requires-python = []\n# ///\n",
             "requires-python.*string",
             PipxError,
+            id="requires-python-type",
         ),
-        (
+        pytest.param(
             '# /// script\n# dependencies = []\n# requires-python = "invalid"\n# ///\n',
             "Invalid.*requires-python",
             PipxError,
+            id="requires-python-value",
         ),
-        (
+        pytest.param(
             "# /// pyproject\n# dependencies = []\n# ///\n",
             "obsolete.*pyproject",
             ValueError,
+            id="obsolete",
         ),
-        (
+        pytest.param(
             "# /// script\n# dependencies = []\n# ///\n\n# /// script\n# dependencies = []\n# ///\n",
             "Multiple",
             ValueError,
+            id="multiple",
         ),
-        (
+        pytest.param(
             "# /// script\n# dependencies = []\n# ///\n# /// script\n# dependencies = []\n# ///\n",
             "Invalid statement",
             ValueError,
+            id="adjacent",
         ),
     ],
-    ids=(
-        "dependencies",
-        "requirement",
-        "requires-python-type",
-        "requires-python-value",
-        "obsolete",
-        "multiple",
-        "adjacent",
-    ),
 )
 def test_read_script_metadata_invalid(content: str, message: str, error_type: type[Exception]) -> None:
     with pytest.raises(error_type, match=message):
@@ -122,11 +119,10 @@ def test_read_script_metadata_invalid(content: str, message: str, error_type: ty
 @pytest.mark.parametrize(
     ("spec", "expected_apps", "name"),
     [
-        ("https://example.invalid/My_App.py", (), "my-app"),
-        ("https://example.invalid/app.py?version=1", ("Other_App",), "other-app"),
-        ("https://example.invalid/app.whl", (), None),
+        pytest.param("https://example.invalid/My_App.py", (), "my-app", id="url"),
+        pytest.param("https://example.invalid/app.py?version=1", ("Other_App",), "other-app", id="override"),
+        pytest.param("https://example.invalid/app.whl", (), None, id="package"),
     ],
-    ids=("url", "override", "package"),
 )
 def test_script_name_from_spec(spec: str, expected_apps: tuple[str, ...], name: str | None) -> None:
     assert script_name_from_spec(spec, expected_apps) == name
@@ -171,7 +167,7 @@ def test_script_name_from_spec_without_suffix_needs_a_path(
     assert script_name_from_spec(spec, ()) == name
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
     "url",
     [
@@ -190,7 +186,7 @@ def test_local_script_ignores_file_below_cwd_named_like_url(
     assert local_script(url) is None
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_installable_script_downloads_url_over_file_below_cwd(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, urlopen: MagicMock
 ) -> None:
@@ -227,10 +223,9 @@ def test_installable_script_rejects_name_mismatch() -> None:
 @pytest.mark.parametrize(
     ("expected_apps", "message"),
     [
-        (("first", "second"), "one --app"),
-        (("bad/app",), "portable command name"),
+        pytest.param(("first", "second"), "one --app", id="multiple"),
+        pytest.param(("bad/app",), "portable command name", id="invalid"),
     ],
-    ids=("multiple", "invalid"),
 )
 def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: str) -> None:
     with pytest.raises(PipxError, match=message):
@@ -239,12 +234,21 @@ def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: 
 
 def test_download_script_bounds_the_response_size(urlopen: MagicMock) -> None:
     urlopen.return_value.configure_mock(**{
-        "read.return_value": b"x" * (_MAX_SCRIPT_BYTES + 1),
+        "read.return_value": b"x" * (10 * 1024 * 1024 + 1),
         "headers.get_content_charset.return_value": "utf-8",
     })
 
     with pytest.raises(PipxError, match="larger than"):
         download_script("https://example.invalid/big.py")
+
+
+def test_download_script_bounds_the_wait(urlopen: MagicMock) -> None:
+    urlopen.return_value.configure_mock(
+        length=None, **{"read.return_value": b"print('hi')\n", "headers.get_content_charset.return_value": "utf-8"}
+    )
+
+    download_script("https://example.invalid/app.py")
+
     assert urlopen.call_args.kwargs["timeout"] == 30
 
 
@@ -304,7 +308,7 @@ def test_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_ftp_script_url_passes_credentials_to_urllib(mocker: MockerFixture) -> None:
-    urlopen = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"))
+    urlopen: Final[MagicMock] = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"))
 
     assert run_pipx_cli(["run", "ftp://alice:s3cr3t@localhost/tool.py"]) == 1
 

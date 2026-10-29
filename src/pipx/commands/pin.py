@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx.colors import bold
+from pipx.colors import BOLD
 from pipx.constants import ExitCode
-from pipx.emojis import sleep
+from pipx.emojis import SLEEP
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 
@@ -18,43 +18,45 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
+    from pipx.pipx_metadata_file import PackageInfo
+
 
 def pin(
     venv_dir: Path,
     skip: Sequence[str],
     *,
     verbose: bool,
-    injected_only: bool = False,
+    injected_only: bool,
 ) -> OperationResult[PinData]:
-    venv = Venv(venv_dir, verbose=verbose)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if (main_package := venv.package_metadata.get(venv.main_package_name)) is None:
         return _missing_result(("pin",), venv)
 
-    messages: list[OutputMessage] = []
-    packages: list[_ChangedPackage] = []
-    skipped: list[_SkippedPackage] = []
+    messages: Final[list[OutputMessage]] = []
+    packages: Final[list[_ChangedPackage]] = []
+    skipped: Final[list[_SkippedPackage]] = []
     if injected_only or skip:
         skip_names: Final[set[str]] = {canonicalize_name(requested) for requested in skip}
         for package_name, package in venv.package_metadata.items():
             if package_name == venv.main_package_name:
                 continue
             if package_name in skip_names or canonicalize_name(f"{package_name}{package.suffix}") in skip_names:
-                skipped.append(_SkippedPackage(venv.name, package_name, "requested"))
+                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
                 continue
             if package.pinned:
-                skipped.append(_SkippedPackage(venv.name, package_name, "already-pinned"))
-                messages.append(OutputMessage(f"pipx already pins {package_name}; skipping it."))
+                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned"))
+                messages.append(OutputMessage(text=f"pipx already pins {package_name}; skipping it."))
                 continue
             _update_pin_info(venv, package_name, is_main_package=False, pinned=True)
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
 
         if packages:
             messages.append(_summary_message(venv, _PinStatus.PINNED, len(packages)))
-            messages.extend(OutputMessage(f"  - {package.package} {package.version}") for package in packages)
+            messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in packages)
     else:
         for package_name, package in venv.package_metadata.items():
             if package.pinned:
-                skipped.append(_SkippedPackage(venv.name, package_name, "already-pinned"))
+                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned"))
                 continue
             _update_pin_info(
                 venv,
@@ -65,7 +67,7 @@ def pin(
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
         if main_package.pinned:
             messages.append(
-                OutputMessage(f"pipx already pins package {main_package.package} {sleep}", stream=OutputStream.LOG)
+                OutputMessage(text=f"pipx already pins package {main_package.package} {SLEEP}", stream=OutputStream.LOG)
             )
 
     return OperationResult(
@@ -76,15 +78,15 @@ def pin(
 
 
 def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
-    venv = Venv(venv_dir, verbose=verbose)
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if venv.package_metadata.get(venv.main_package_name) is None:
         return _missing_result(("unpin",), venv)
 
-    packages: list[_ChangedPackage] = []
-    skipped: list[_SkippedPackage] = []
-    for package_name in venv.package_metadata:
-        if not venv.package_metadata[package_name].pinned:
-            skipped.append(_SkippedPackage(venv.name, package_name, "not-pinned"))
+    packages: Final[list[_ChangedPackage]] = []
+    skipped: Final[list[_SkippedPackage]] = []
+    for package_name, package in venv.package_metadata.items():
+        if not package.pinned:
+            skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="not-pinned"))
             continue
         _update_pin_info(
             venv,
@@ -94,32 +96,33 @@ def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
         )
         packages.append(_changed_package(venv, package_name, _PinStatus.UNPINNED))
 
-    if packages:
-        messages = [_summary_message(venv, _PinStatus.UNPINNED, len(packages))]
-        messages.extend(OutputMessage(f"  - {package.package}") for package in packages)
-    else:
-        messages = [OutputMessage(f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG)]
-
     return OperationResult(
         command=("unpin",),
         data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
-        messages=tuple(messages),
+        messages=(
+            (
+                _summary_message(venv, _PinStatus.UNPINNED, len(packages)),
+                *(OutputMessage(text=f"  - {package.package}") for package in packages),
+            )
+            if packages
+            else (OutputMessage(text=f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG),)
+        ),
     )
 
 
 def _missing_result(command: tuple[str, ...], venv: Venv) -> OperationResult[PinData]:
-    error = f"pipx does not manage package {venv.name}"
+    error: Final[str] = f"pipx does not manage package {venv.name}"
     return OperationResult(
         command=command,
         data=PinData(packages=(), skipped=()),
-        messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        messages=(OutputMessage(text=error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
         errors=(OperationError(code="package_pin_failed", message=error, environment=venv.name),),
     )
 
 
 def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pinned: bool) -> None:
-    package = venv.package_metadata[package_name]
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
     venv.update_package_metadata(
         package_name=str(package.package),
         package_or_url=str(package.package_or_url),
@@ -134,7 +137,7 @@ def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pi
 
 
 def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _ChangedPackage:
-    package = venv.package_metadata[package_name]
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _ChangedPackage(
         environment=venv.name,
         package=f"{package.package}{package.suffix}",
@@ -146,8 +149,8 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
 
 
 def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> OutputMessage:
-    package_label = "package" if package_count == 1 else "packages"
-    return OutputMessage(bold(f"pipx {status.value} {package_count} {package_label} in venv {venv.name}"))
+    package_label: Final[str] = "package" if package_count == 1 else "packages"
+    return OutputMessage(text=BOLD(f"pipx {status.value} {package_count} {package_label} in venv {venv.name}"))
 
 
 class _PinStatus(StrEnum):
@@ -155,7 +158,7 @@ class _PinStatus(StrEnum):
     UNPINNED = "unpinned"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _ChangedPackage:
     environment: str
     package: str
@@ -165,14 +168,14 @@ class _ChangedPackage:
     location: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _SkippedPackage:
     environment: str
     package: str
     reason: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class PinData(OperationData):
     packages: tuple[_ChangedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]

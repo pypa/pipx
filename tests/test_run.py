@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import importlib
 import logging
 import os
 import shutil
@@ -9,94 +8,100 @@ import subprocess
 import sys
 import textwrap
 import zipfile
+from contextlib import contextmanager
 from functools import partial
 from http.server import BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
 from threading import Thread
 from typing import TYPE_CHECKING, Final, NoReturn
-from unittest import mock
 
 import pytest
 from filelock import AcquireReturnProxy, FileLock, Timeout
 from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Mapping, Sequence
+    from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
+    from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
 import pipx.main
-from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import paths, shared_libs, util
-from pipx.commands.run import run_package
+from pipx.commands.run import maybe_script_content, run_package
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.venv import VenvContainer
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+def test_help_text(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
+    mocker.patch.object(sys, "exit", autospec=True, side_effect=ValueError("raised in test to exit early"))
+
+    with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["run", "--help"])
-    captured = capsys.readouterr()
-    assert "Download the latest version of a package" in captured.out
+
+    assert "Download the latest version of a package" in capsys.readouterr().out
 
 
-def execvpe_mock(_cmd_path: str, cmd_args: Sequence[str], env: Mapping[str, str]) -> None:
-    return_code = subprocess.run(
-        [str(x) for x in cmd_args],
-        env=env,
-        capture_output=False,
-        encoding="utf-8",
-        text=True,
-        check=False,
-    ).returncode
-    sys.exit(return_code)
+def execvpe_via_subprocess(_cmd_path: str, cmd_args: Sequence[str], env: Mapping[str, str]) -> None:
+    sys.exit(
+        subprocess.run(
+            [str(arg) for arg in cmd_args],
+            env=env,
+            capture_output=False,
+            encoding="utf-8",
+            text=True,
+            check=False,
+        ).returncode
+    )
+
+
+@pytest.fixture
+def exec_via_subprocess(mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
 
 
 def run_pipx_cli_exit(pipx_cmd_list: list[str], assert_exit: int | None = None) -> None:
     with pytest.raises(SystemExit) as sys_exit:
         run_pipx_cli(pipx_cmd_list)
     if assert_exit is not None:
-        assert sys_exit.type is SystemExit
         assert sys_exit.value.code == assert_exit
 
 
-@pytest.mark.parametrize("package_name", ["pycowsay", "pycowsay==0.0.0.2", "pycowsay>=0.0.0.2"])
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.parametrize(
+    "package_name",
+    [
+        pytest.param("pycowsay", id="name"),
+        pytest.param("pycowsay==0.0.0.2", id="pinned"),
+        pytest.param("pycowsay>=0.0.0.2", id="lower-bound"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_simple_run(capsys: pytest.CaptureFixture[str], package_name: str) -> None:
     run_pipx_cli_exit(["run", package_name, "--help"])
-    captured = capsys.readouterr()
-    assert "Download the latest version of a package" not in captured.out
+
+    assert "Download the latest version of a package" not in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_normalizes_inferred_package_name(
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    backend: str,
-) -> None:
-    mocker.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_normalizes_inferred_package_name(monkeypatch: pytest.MonkeyPatch, backend: str) -> None:
     monkeypatch.setenv("PATH", f"{os.environ['PATH']}{os.pathsep}{os.defpath}")
 
     run_pipx_cli_exit(["run", "--backend", backend, "bLaCk", "--version"], assert_exit=0)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture) -> None:
     # `uv tool run PyCowSay` would look for a `PyCowSay` script; only the venv path knows what the package installed
     run_pipx_cli_exit(["run", "--backend", "uv", "PyCowSay", "cowsay", "hi"], assert_exit=0)
 
-    assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
+    assert f"exec_app: {paths.CTX.venv_cache}" in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_uv_index_url_beats_uv_default_index(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, pipx_local_pypiserver: str
 ) -> None:
@@ -132,8 +137,7 @@ def test_run_matching_name_uses_uv_tool_run(mocker: MockerFixture, spec_args: li
         pytest.param("empty-project @ {uri}", id="direct-reference"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_spec_honors_dotted_pipx_run_entry_point(
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
@@ -165,7 +169,7 @@ def test_run_spec_honors_dotted_pipx_run_entry_point(
     )
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
-    assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
+    assert f"exec_app: {paths.CTX.venv_cache}" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -176,23 +180,30 @@ def test_run_preserves_explicit_app_name(
     assert "'bLaCk.app' executable script not found in package 'black'." in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_cache(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_cache_reuses_venv(caplog: pytest.LogCaptureFixture) -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
+
     run_pipx_cli_exit(["run", "--verbose", "pycowsay", "cowsay", "args"], assert_exit=0)
+
     assert "Reusing cached venv" in caplog.text
 
+
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_no_cache_removes_cached_venv(caplog: pytest.LogCaptureFixture) -> None:
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    caplog.set_level(logging.DEBUG)
+
     run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+
     assert "Removing cached venv" in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_refresh_rebuilds_cached_environment() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    venv_dir: Final[Path] = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
+    venv_dir: Final[Path] = next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())
     marker: Final[Path] = venv_dir / "marker"
     marker.touch()
 
@@ -201,11 +212,10 @@ def test_run_refresh_rebuilds_cached_environment() -> None:
     assert not marker.exists()
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_refresh_retains_replacement() -> None:
     run_pipx_cli_exit(["run", "--refresh", "pycowsay", "cowsay", "args"])
-    venv_dir: Final[Path] = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
+    venv_dir: Final[Path] = next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())
     marker: Final[Path] = venv_dir / "marker"
     marker.touch()
 
@@ -214,11 +224,10 @@ def test_run_refresh_retains_replacement() -> None:
     assert marker.exists()
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> None:
-    paths.ctx.venv_cache.mkdir(parents=True, exist_ok=True)
-    held: Final[Path] = paths.ctx.venv_cache / "held-by-another-run"
+    paths.CTX.venv_cache.mkdir(parents=True, exist_ok=True)
+    held: Final[Path] = paths.CTX.venv_cache / "held-by-another-run"
     held.mkdir()
     (held / "pipx_expired_venv").touch()
 
@@ -251,21 +260,20 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
     assert held.is_dir()
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_isolates_cache_by_dependency() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
-    plain_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+    plain_dirs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
 
     run_pipx_cli_exit(["run", "--with", "six", "pycowsay", "cowsay", "hi"])
-    with_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()} - plain_dirs
+    with_dirs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()} - plain_dirs
 
     assert [bool(list(path.rglob("six-*.dist-info"))) for path in (*plain_dirs, *with_dirs)] == [False, True]
 
 
 @pytest.fixture
 def script_interpreters(mocker: MockerFixture) -> None:
-    """Each searched minor ``3.X`` resolves to ``/py/3.X``; the default Python reports 3.14.0."""
+    # each searched minor 3.X resolves to /py/3.X, and the default Python reports 3.14.0
     mocker.patch(
         "pipx.requires_python.find_python_interpreter", autospec=True, side_effect=lambda minor, _: f"/py/{minor}"
     )
@@ -278,7 +286,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.parametrize(
     ("requires_python", "searched"),
     [
@@ -305,7 +313,7 @@ def test_run_script_searches_python_only_when_default_fails_requires_python(
     }
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_rejects_python_failing_requires_python(
     tmp_path: Path, mocker: MockerFixture, capsys: pytest.CaptureFixture[str], backend: str
@@ -336,30 +344,22 @@ def test_run_cache_options_are_mutually_exclusive(
     assert "not allowed with argument" in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_does_not_mark_cache_as_installation(mocker: MockerFixture) -> None:
-    mocker.patch("os.execvpe", new=execvpe_mock)
-
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_does_not_mark_cache_as_installation() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
 
-    venv_dir = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
-    assert PipxMetadata(venv_dir).environment is None
+    assert PipxMetadata(next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())).environment is None
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_cooldown_separates_cache(
-    package_cache_dir: Path,
-    mocker: MockerFixture,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_cooldown_separates_cache(package_cache_dir: Path, caplog: pytest.LogCaptureFixture) -> None:
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
 
     run_pipx_cli_exit(
         ["run", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"], "hello"],
         assert_exit=0,
     )
-    cached_venvs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+    cached_venvs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
     caplog.clear()
 
     run_pipx_cli_exit(
@@ -368,17 +368,16 @@ def test_run_cooldown_separates_cache(
     )
 
     assert (
-        len({path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}),
+        len({path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}),
         "--uploaded-prior-to" in caplog.text,
     ) == (len(cached_venvs) + 1, False)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_no_path_check(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    which = mock.Mock(return_value="/fake/bin/pycowsay")
-    for module_name in ("pipx.commands.run", "pipx.commands.run_uv"):
-        monkeypatch.setattr(importlib.import_module(module_name), "which", which)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_no_path_check(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    which: Final[MagicMock] = mocker.create_autospec(shutil.which, return_value="/fake/bin/pycowsay")
+    mocker.patch("pipx.commands.run.which", new=which)
+    mocker.patch("pipx.commands.run_uv.which", new=which)
 
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
     which.assert_called_once_with("pycowsay")
@@ -390,46 +389,45 @@ def test_no_path_check(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptur
     assert "is already on your PATH" not in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_cachedir_tag(caplog: pytest.LogCaptureFixture) -> None:
-    tag_path = paths.ctx.venv_cache / "CACHEDIR.TAG"
+@pytest.mark.usefixtures("pipx_ultra_temp_env", "exec_via_subprocess")
+def test_cachedir_tag_created_with_signature(caplog: pytest.LogCaptureFixture) -> None:
+    tag_path: Final[Path] = paths.CTX.venv_cache / "CACHEDIR.TAG"
     assert not tag_path.exists()
-
-    # Run pipx to create tag
     caplog.set_level(logging.DEBUG)
+
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    assert "Adding CACHEDIR.TAG to cache directory" in caplog.text
-    assert tag_path.exists()
+
+    assert (
+        "Adding CACHEDIR.TAG to cache directory" in caplog.text,
+        tag_path.read_text().startswith("Signature: 8a477f597d28d172789f06886806bc55"),
+    ) == (True, True)
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env", "exec_via_subprocess")
+def test_cachedir_tag_not_recreated(caplog: pytest.LogCaptureFixture) -> None:
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    caplog.set_level(logging.DEBUG)
     caplog.clear()
 
-    # Run pipx again to verify the tag file is not recreated
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    assert "Adding CACHEDIR.TAG to cache directory" not in caplog.text
-    assert tag_path.exists()
 
-    # Verify the tag file starts with the required signature.
-    with tag_path.open("r") as tag_file:
-        assert tag_file.read().startswith("Signature: 8a477f597d28d172789f06886806bc55")
+    assert (
+        "Adding CACHEDIR.TAG to cache directory" in caplog.text,
+        (paths.CTX.venv_cache / "CACHEDIR.TAG").exists(),
+    ) == (False, True)
 
 
-@pytest.mark.usefixtures("pipx_ultra_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_cache_sweep_ignores_tag(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+@pytest.mark.usefixtures("pipx_ultra_temp_env", "exec_via_subprocess")
+def test_cache_sweep_ignores_tag(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    tag_path = paths.ctx.venv_cache / "CACHEDIR.TAG"
-    expired_venv = paths.ctx.venv_cache / "expired"
+    tag_path: Final[Path] = paths.CTX.venv_cache / "CACHEDIR.TAG"
+    expired_venv: Final[Path] = paths.CTX.venv_cache / "expired"
     expired_venv.mkdir()
-
-    class FutureDateTime(dt.datetime):
-        @classmethod
-        def now(cls, tz: dt.tzinfo | None = None) -> FutureDateTime:
-            return cls.fromtimestamp((super().now(tz) + dt.timedelta(days=15)).timestamp(), tz)
-
-    monkeypatch.setattr(dt, "datetime", FutureDateTime)
+    mocker.patch(
+        "pipx.commands.run.dt",
+        UTC=dt.UTC,
+        **{"datetime.now.return_value": dt.datetime.now(dt.UTC) + dt.timedelta(days=15)},
+    )
     caplog.set_level(logging.INFO)
     caplog.clear()
 
@@ -440,14 +438,12 @@ def test_cache_sweep_ignores_tag(
     assert f"Removing expired venv {tag_path}" not in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_script_from_url(served_script: str) -> None:
     run_pipx_cli_exit(["run", served_script], assert_exit=0)
 
 
-@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd", "exec_via_subprocess")
 def test_run_script_from_url_ignores_working_directory_modules(
     served_script: str, tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
@@ -458,8 +454,7 @@ def test_run_script_from_url_ignores_working_directory_modules(
     assert capfd.readouterr().out.splitlines() == ['"ok"']
 
 
-@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd", "exec_via_subprocess")
 def test_run_entry_point_ignores_working_directory_modules(
     empty_project: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
@@ -481,18 +476,21 @@ def planted_json_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def served_script(tmp_path: Path) -> Iterator[str]:
-    """Serves the script over loopback rather than fetching a third-party gist.
-
-    Pointing the test at somebody else's URL made it fail whenever that host rate-limited the runner, and the leaked
-    socket surfaced as an unraisable ResourceWarning in whichever test the GC happened to interrupt.
-    """
+    # loopback rather than a third-party gist: that host rate-limited the CI runners, and its leaked socket surfaced as
+    # an unraisable ResourceWarning in whichever test the GC interrupted
     (tmp_path / "pipx-demo.py").write_text("print('pipx works!')\n", encoding="utf-8")
+    with _serving(partial(SimpleHTTPRequestHandler, directory=str(tmp_path))) as port:
+        yield f"http://127.0.0.1:{port}/pipx-demo.py"
+
+
+@contextmanager
+def _serving(handler: type[BaseHTTPRequestHandler] | partial[SimpleHTTPRequestHandler]) -> Generator[int, None, None]:
     # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
-    server = ThreadingTCPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(tmp_path)))
-    thread = Thread(target=server.serve_forever, daemon=True)
+    server: Final[ThreadingTCPServer] = ThreadingTCPServer(("127.0.0.1", 0), handler)
+    thread: Final[Thread] = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield f"http://127.0.0.1:{server.server_address[1]}/pipx-demo.py"
+        yield server.server_address[1]
     finally:
         server.shutdown()
         server.server_close()
@@ -502,28 +500,32 @@ def served_script(tmp_path: Path) -> Iterator[str]:
 @pytest.mark.parametrize(
     ("input_run_args", "expected_app_with_args"),
     [
-        (["--", "pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
-        (["--", "pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
-        (["--", "pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
-        (["--", "pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
-        (["--", "pycowsay", "--"], ["pycowsay", "--"]),
-        (["--", "pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
-        (["pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
-        (["pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
-        (["pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
-        (["pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
-        (["pycowsay", "--"], ["pycowsay", "--"]),
-        (["pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
-        (["--", "--", "pycowsay", "--"], ["--", "pycowsay", "--"]),
+        pytest.param(["--", "pycowsay", "--", "hello"], ["pycowsay", "--", "hello"], id="sep-app-sep-arg"),
+        pytest.param(
+            ["--", "pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"], id="sep-app-sep-sep-arg"
+        ),
+        pytest.param(["--", "pycowsay", "hello", "--"], ["pycowsay", "hello", "--"], id="sep-app-arg-sep"),
+        pytest.param(
+            ["--", "pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"], id="sep-app-arg-sep-sep"
+        ),
+        pytest.param(["--", "pycowsay", "--"], ["pycowsay", "--"], id="sep-app-sep"),
+        pytest.param(["--", "pycowsay", "--", "--"], ["pycowsay", "--", "--"], id="sep-app-sep-sep"),
+        pytest.param(["pycowsay", "--", "hello"], ["pycowsay", "--", "hello"], id="app-sep-arg"),
+        pytest.param(["pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"], id="app-sep-sep-arg"),
+        pytest.param(["pycowsay", "hello", "--"], ["pycowsay", "hello", "--"], id="app-arg-sep"),
+        pytest.param(["pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"], id="app-arg-sep-sep"),
+        pytest.param(["pycowsay", "--"], ["pycowsay", "--"], id="app-sep"),
+        pytest.param(["pycowsay", "--", "--"], ["pycowsay", "--", "--"], id="app-sep-sep"),
+        pytest.param(["--", "--", "pycowsay", "--"], ["--", "pycowsay", "--"], id="sep-sep-app-sep"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_appargs_doubledash(
     monkeypatch: pytest.MonkeyPatch, input_run_args: list[str], expected_app_with_args: list[str]
 ) -> None:
-    parser, _ = pipx.main.get_command_parser()
+    parser = pipx.main.get_command_parser()
     monkeypatch.setattr(sys, "argv", ["pipx", "run", *input_run_args])
-    parsed_pipx_args = parser.parse_args()
+    parsed_pipx_args: Final = parser.parse_args()
     pipx.main.check_args(parsed_pipx_args)
     assert parsed_pipx_args.app_with_args == expected_app_with_args
 
@@ -551,27 +553,24 @@ def test_run_ensure_null_pythonpath(make_wheel: Callable[[dict[str, str]], Path]
 
 # packages listed roughly in order of increasing test duration
 @pytest.mark.parametrize(
-    ("package", "package_or_url", "app_appargs", "skip_win"),
+    ("package", "package_or_url", "app_appargs"),
     [
-        ("pycowsay", "pycowsay", ["pycowsay", "hello"], False),
-        ("shell-functools", PKG["shell-functools"]["spec"], ["filter", "--help"], True),
-        ("black", PKG["black"]["spec"], ["black", "--help"], False),
-        ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
+        pytest.param("pycowsay", "pycowsay", ["pycowsay", "hello"], id="pycowsay"),
+        pytest.param(
+            "shell-functools",
+            PKG["shell-functools"]["spec"],
+            ["filter", "--help"],
+            id="shell-functools",
+            marks=pytest.mark.skipif(sys.platform.startswith("win"), reason="setup.py scripts do not run on Windows"),
+        ),
+        pytest.param("black", PKG["black"]["spec"], ["black", "--help"], id="black"),
+        pytest.param("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], id="kaggle"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_package_determination(
-    caplog: pytest.LogCaptureFixture,
-    package: str,
-    package_or_url: str,
-    app_appargs: list[str],
-    skip_win: bool,
+    caplog: pytest.LogCaptureFixture, package: str, package_or_url: str, app_appargs: list[str]
 ) -> None:
-    if sys.platform.startswith("win") and skip_win:
-        # Skip packages with 'scripts' in setup.py that don't work on Windows
-        pytest.skip()
-
     caplog.set_level(logging.INFO)
 
     run_pipx_cli_exit(["run", "--verbose", "--spec", package_or_url, "--", *app_appargs])
@@ -580,30 +579,37 @@ def test_package_determination(
     assert f"Determined package name: {package}" in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_without_requirements(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    test_str = "Hello, world!"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                from pathlib import Path
-                Path({str(out)!r}).write_text({test_str!r})
-            """
-        ).strip()
-    )
-    run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == test_str
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_passes_python_args_to_script(
-    tmp_path: Path,
-    mocker: MockerFixture,
+@pytest.mark.parametrize(
+    "run_args",
+    [
+        pytest.param(["{uri}"], id="file-uri"),
+        pytest.param(["--path", "{path}"], id="absolute-name"),
+        pytest.param(["test.py"], id="relative-name"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_without_requirements(
+    hello_script: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch, run_args: list[str]
 ) -> None:
-    mocker.patch("os.execvpe", new=execvpe_mock)
+    script, out = hello_script
+    monkeypatch.chdir(script.parent)
+
+    run_pipx_cli_exit(["run", *(arg.format(uri=script.as_uri(), path=script) for arg in run_args)])
+
+    assert out.read_text() == "Hello, world!"
+
+
+@pytest.fixture
+def hello_script(tmp_path: Path) -> tuple[Path, Path]:
+    out: Final[Path] = tmp_path / "output.txt"
+    (script := tmp_path / "test.py").write_text(
+        f"from pathlib import Path\nPath({str(out)!r}).write_text('Hello, world!')"
+    )
+    return script, out
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_passes_python_args_to_script(tmp_path: Path) -> None:
     output: Final[Path] = tmp_path / "flags.txt"
     script: Final[Path] = tmp_path / "flags.py"
     script.write_text(
@@ -623,14 +629,9 @@ def test_run_rejects_invalid_python_args(capsys: pytest.CaptureFixture[str]) -> 
     assert "invalid Python arguments: No closing quotation" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_passes_python_args_to_app(
-    mocker: MockerFixture,
-    tmp_path: Path,
-    backend: str,
-) -> None:
-    mocker.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_passes_python_args_to_app(tmp_path: Path, backend: str) -> None:
     project: Final[Path] = tmp_path / "flags-app"
     project.mkdir()
     (project / "pyproject.toml").write_text(
@@ -705,24 +706,26 @@ def test_run_rejects_python_args_for_pypackages(
     ],
 )
 def test_run_preserves_console_encoding(tmp_path: Path, encoding: str, script_text: str) -> None:
-    script = tmp_path / "console_output.py"
+    script: Final[Path] = tmp_path / "console_output.py"
     script.write_text(script_text, encoding="utf-8")
-    env = pipx_subprocess_env() | {"PIPX_DEFAULT_BACKEND": "pip", "PYTHONIOENCODING": encoding}
+    env: Final[dict[str, str]] = pipx_subprocess_env() | {"PIPX_DEFAULT_BACKEND": "pip", "PYTHONIOENCODING": encoding}
 
-    direct_output = subprocess.run(
+    direct_output: Final[bytes] = subprocess.run(
         [sys.executable, script],
         env=env,
         stdout=subprocess.PIPE,
         check=True,
     ).stdout
-    pipx_output = subprocess.run(
-        [sys.executable, "-m", "pipx", "run", script],
-        env=env,
-        stdout=subprocess.PIPE,
-        check=True,
-    ).stdout
 
-    assert pipx_output == direct_output
+    assert (
+        subprocess.run(
+            [sys.executable, "-m", "pipx", "run", script],
+            env=env,
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
+        == direct_output
+    )
 
 
 @pytest.mark.parametrize(
@@ -768,11 +771,10 @@ def test_run_preserves_console_encoding(tmp_path: Path, encoding: str, script_te
         ),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_requirements(script_text: str, expected_output: str, tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
     script.write_text(
         textwrap.dedent(script_text.format(out=str(out))).strip(),
         encoding="utf-8",
@@ -781,8 +783,7 @@ def test_run_with_requirements(script_text: str, expected_output: str, tmp_path:
     assert out.read_text() == expected_output
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> None:
     # uv fails on a malformed config file it discovers, so success proves it never read the one beside the script; a
     # sibling of PIPX_HOME, since a uv.toml above PIPX_HOME would still apply
@@ -802,7 +803,7 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
 def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocker: MockerFixture) -> None:
     def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
         # raises Timeout while held; exec_app waits for the script on Windows, so the lock would outlive the handover
-        with VenvContainer(paths.ctx.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
+        with VenvContainer(paths.CTX.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
             raise SystemExit(0)
 
     mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
@@ -818,7 +819,7 @@ def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocke
         pytest.param("old", ["--refresh"], id="refresh"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_script_uv_rebuilds_for_new_request(
     demodep_version_script: tuple[Path, Path],
     second_links: str,
@@ -838,8 +839,7 @@ def test_run_script_uv_rebuilds_for_new_request(
 
 
 @pytest.fixture
-def demodep_version_script(tmp_path: Path, mocker: MockerFixture) -> tuple[Path, Path]:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+def demodep_version_script(tmp_path: Path) -> tuple[Path, Path]:
     out: Final[Path] = tmp_path / "output.txt"
     (script := tmp_path / "test.py").write_text(
         "# /// script\n# dependencies = ['demodep']\n# ///\nfrom importlib.metadata import version\n"
@@ -851,19 +851,12 @@ def demodep_version_script(tmp_path: Path, mocker: MockerFixture) -> tuple[Path,
 @pytest.fixture
 def publish_demodep(tmp_path: Path) -> Callable[[str, str], Path]:
     def publish(links_name: str, version: str) -> Path:
-        (links := tmp_path / links_name).mkdir(exist_ok=True)
-        info: Final[str] = f"demodep-{version}.dist-info"
-        with zipfile.ZipFile(links / f"demodep-{version}-py3-none-any.whl", "w") as archive:
-            archive.writestr("demodep.py", "")
-            archive.writestr(f"{info}/METADATA", f"Metadata-Version: 2.1\nName: demodep\nVersion: {version}\n")
-            archive.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-            archive.writestr(f"{info}/RECORD", "")
-        return links
+        return write_wheel(tmp_path / links_name, "demodep", version).parent
 
     return publish
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_rebuilds_after_installer_env_changes(
     demodep_version_script: tuple[Path, Path],
     monkeypatch: pytest.MonkeyPatch,
@@ -880,16 +873,13 @@ def test_run_rebuilds_after_installer_env_changes(
 
 
 @pytest.fixture
-def run_demodep_script(
-    tmp_path: Path, mocker: MockerFixture, publish_demodep: Callable[[str, str], Path]
-) -> Callable[[str], set[Path]]:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+def run_demodep_script(tmp_path: Path, publish_demodep: Callable[[str, str], Path]) -> Callable[[str], set[Path]]:
     (script := tmp_path / "test.py").write_text("# /// script\n# dependencies = ['demodep']\n# ///\nimport demodep\n")
     links: Final[Path] = publish_demodep("links", "1.0")
 
     def run(backend: str) -> set[Path]:
         run_pipx_cli_exit(["run", "--backend", backend, f"--pip-args=--find-links={links}", str(script)], assert_exit=0)
-        return {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+        return {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
 
     return run
 
@@ -903,7 +893,7 @@ def run_demodep_script(
         pytest.param("uv", "UV_RUN_RECURSION_DEPTH", "1", id="uv-run-recursion-depth"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_cache_key_ignores_unrelated_installer_env(
     monkeypatch: pytest.MonkeyPatch,
     run_demodep_script: Callable[[str], set[Path]],
@@ -928,7 +918,7 @@ def test_run_cache_key_ignores_unrelated_installer_env(
         pytest.param("uv", "UV_PIPX_UNLISTED", "1", id="uv-unlisted"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_cache_key_follows_resolution_installer_env(
     monkeypatch: pytest.MonkeyPatch,
     run_demodep_script: Callable[[str], set[Path]],
@@ -942,11 +932,10 @@ def test_run_cache_key_follows_resolution_installer_env(
     assert len(run_demodep_script(backend) - first) == 1
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
     script.write_text(
         textwrap.dedent(
             f"""
@@ -975,17 +964,10 @@ def test_run_with_requirements_and_cli_with_pip_backend(tmp_path: Path) -> None:
     assert not out.exists()
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_run_script_cooldown(
-    package_cache_dir: Path,
-    tmp_path: Path,
-    mocker: MockerFixture,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+@pytest.fixture
+def pycowsay_script(tmp_path: Path) -> tuple[Path, Path]:
     output: Final[Path] = tmp_path / "output.txt"
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text(
+    (script := tmp_path / "test.py").write_text(
         textwrap.dedent(
             f"""
             # /// script
@@ -998,6 +980,14 @@ def test_run_script_cooldown(
         ).strip(),
         encoding="utf-8",
     )
+    return script, output
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_script_cooldown(
+    package_cache_dir: Path, pycowsay_script: tuple[Path, Path], caplog: pytest.LogCaptureFixture
+) -> None:
+    script, output = pycowsay_script
 
     run_pipx_cli_exit(
         [
@@ -1015,26 +1005,11 @@ def test_run_script_cooldown(
     assert (output.read_text(encoding="utf-8"), "--uploaded-prior-to P7D" in caplog.text) == ("done", True)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_script_resolves_relative_find_links(
-    root: Path, tmp_path: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
+    root: Path, pycowsay_script: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    output: Final[Path] = tmp_path / "output.txt"
-    script: Final[Path] = tmp_path / "test.py"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-            # /// script
-            # dependencies = ["pycowsay==0.0.0.2"]
-            # ///
-
-            from pathlib import Path
-            Path({str(output)!r}).write_text("done")
-            """
-        ).strip(),
-        encoding="utf-8",
-    )
+    script, output = pycowsay_script
     monkeypatch.chdir(root)
 
     run_pipx_cli_exit(
@@ -1051,10 +1026,9 @@ def test_run_script_resolves_relative_find_links(
     assert output.read_text(encoding="utf-8") == "done"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_requirements_old(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    script = tmp_path / "test.py"
+    script: Final[Path] = tmp_path / "test.py"
     script.write_text(
         textwrap.dedent(
             """
@@ -1070,10 +1044,9 @@ def test_run_with_requirements_old(tmp_path: Path, capsys: pytest.CaptureFixture
     assert "Use `# /// script`" in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_correct_traceback(capfd: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
+    script: Final[Path] = tmp_path / "test.py"
     script.write_text(
         textwrap.dedent(
             """
@@ -1085,54 +1058,32 @@ def test_run_correct_traceback(capfd: pytest.CaptureFixture[str], tmp_path: Path
     with pytest.raises(SystemExit):
         run_pipx_cli(["run", str(script)])
 
-    captured = capfd.readouterr()
-    assert "test.py" in captured.err
+    assert "test.py" in capfd.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_args(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
+@pytest.mark.parametrize(
+    "header",
+    [
+        pytest.param("", id="plain"),
+        pytest.param('# /// script\n# dependencies = ["packaging"]\n# ///\nimport packaging\n', id="with-requirements"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_with_args(tmp_path: Path, header: str) -> None:
+    script: Final[Path] = tmp_path / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
     script.write_text(
-        textwrap.dedent(
-            f"""
-                import sys
-                from pathlib import Path
-                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
-            """
-        ).strip()
+        f"{header}import sys\nfrom pathlib import Path\nPath({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))"
     )
+
     run_pipx_cli_exit(["run", script.as_uri(), "1"])
+
     assert out.read_text() == "2"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements_and_args(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                # /// script
-                # dependencies = ["packaging"]
-                # ///
-                import packaging
-                import sys
-                from pathlib import Path
-                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
-            """
-        ).strip()
-    )
-    run_pipx_cli_exit(["run", script.as_uri(), "1"])
-    assert out.read_text() == "2"
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
+    script: Final[Path] = tmp_path / "test.py"
     script.write_text(
         textwrap.dedent(
             """
@@ -1143,25 +1094,15 @@ def test_run_with_failing_requirements(capfd: pytest.CaptureFixture[str], tmp_pa
             """
         ).strip()
     )
+    assert run_pipx_cli(["run", str(script)]) != 0
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in capfd.readouterr().err
 
-    # Attempt first invocation of `pipx run`.
-    # This should fail as the `will_fail` package will not be able to be installed.
-    return_code = run_pipx_cli(["run", str(script)])
-    captured = capfd.readouterr()
+    # a venv kept from the failed install would run the script, which then fails with ModuleNotFoundError
+    assert run_pipx_cli(["run", str(script)]) != 0
 
-    assert return_code != 0
-    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
-
-    # Attempt second invocation of `pipx run`.
-    # If above failure was detected and the temporary venv marked for deletion,
-    # then this should fail in the same manner.
-    # If the above failure was not detected, then a ModuleNotFoundError will be raised.
-    return_code = run_pipx_cli(["run", str(script)])
-    captured = capfd.readouterr()
-
-    assert return_code != 0
-    assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
-    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+    err: Final[str] = capfd.readouterr().err
+    assert "ModuleNotFoundError: No module named 'will_fail'" not in err
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1174,10 +1115,10 @@ def test_run_script_interrupted_venv_creation_expires_cache(
     def interrupt() -> None:
         raise KeyboardInterrupt
 
-    before_venv_subprocess(paths.ctx.venv_cache, interrupt)
+    before_venv_subprocess(paths.CTX.venv_cache, interrupt)
     assert run_pipx_cli(["run", "--backend", "pip", str(inline_script)]) == 1
     mocker.stopall()
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
 
     run_pipx_cli_exit(["run", "--backend", "pip", str(inline_script)], assert_exit=0)
 
@@ -1192,11 +1133,10 @@ def test_run_package_install_failure_expires_cache(package_cache_dir: Path) -> N
 
     assert run_pipx_cli(["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]) == 1
 
-    assert len(list(paths.ctx.venv_cache.glob("*/pipx_expired_venv"))) == 1
+    assert len(list(paths.CTX.venv_cache.glob("*/pipx_expired_venv"))) == 1
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_app_not_found_keeps_cache(caplog: pytest.LogCaptureFixture) -> None:
     assert run_pipx_cli(["run", "--spec", "pycowsay", "pycowsayy"]) == 1
     caplog.set_level(logging.INFO)
@@ -1210,24 +1150,19 @@ def test_run_app_not_found_keeps_cache(caplog: pytest.LogCaptureFixture) -> None
 def test_pip_args_forwarded_to_shared_libs(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
 ) -> None:
-    # strategy:
-    # 1. start from an empty env to ensure the next command would trigger a shared lib update
-    assert shared_libs.shared_libs.needs_upgrade
-    # 2. install any package with --no-index
-    # and check that the shared library update phase fails
-    return_code = run_pipx_cli(["run", "--verbose", "--pip-args=--no-index", "pycowsay", "hello"])
-    assert "Upgrading shared libraries in" in caplog.text
+    # an empty env makes the next command upgrade the shared libs, which --no-index must then fail
+    assert shared_libs.SHARED_LIBS.needs_upgrade
 
-    captured = capsys.readouterr()
-    assert return_code != 0
-    assert "ERROR: Could not find a version that satisfies the requirement pip" in captured.err
+    assert run_pipx_cli(["run", "--verbose", "--pip-args=--no-index", "pycowsay", "hello"]) != 0
+
+    assert "ERROR: Could not find a version that satisfies the requirement pip" in capsys.readouterr().err
+    assert "Upgrading shared libraries in" in caplog.text
     assert "Failed to upgrade shared libraries" in caplog.text
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_invalid_requirement(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
+    script: Final[Path] = tmp_path / "test.py"
     script.write_text(
         textwrap.dedent(
             """
@@ -1238,88 +1173,34 @@ def test_run_with_invalid_requirement(capsys: pytest.CaptureFixture[str], tmp_pa
             """
         ).strip()
     )
-    ret = run_pipx_cli(["run", script.as_uri()])
-    assert ret == 1
 
-    captured = capsys.readouterr()
-    assert "Invalid requirement this is an invalid requirement" in captured.err
+    assert run_pipx_cli(["run", script.as_uri()]) == 1
 
-
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_script_by_absolute_name(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    test_str = "Hello, world!"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                from pathlib import Path
-                Path({str(out)!r}).write_text({test_str!r})
-            """
-        ).strip()
-    )
-    run_pipx_cli_exit(["run", "--path", str(script)])
-    assert out.read_text() == test_str
+    assert "Invalid requirement this is an invalid requirement" in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_script_by_relative_name(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    test_str = "Hello, world!"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                from pathlib import Path
-                Path({str(out)!r}).write_text({test_str!r})
-            """
-        ).strip()
-    )
-    with monkeypatch.context() as m:
-        m.chdir(tmp_path)
-        run_pipx_cli_exit(["run", "test.py"])
-    assert out.read_text() == test_str
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="uses file descriptor")
-def test_run_script_by_file_descriptor(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_run_script_by_file_descriptor(monkeypatch: pytest.MonkeyPatch, hello_script: tuple[Path, Path]) -> None:
+    script, out = hello_script
     read_fd, write_fd = os.pipe()
-    out = tmp_path / "output.txt"
-    test_str = "Hello, world!"
-
-    os.write(
-        write_fd,
-        textwrap
-        .dedent(
-            f"""
-                from pathlib import Path
-                Path({str(out)!r}).write_text({test_str!r})
-            """
-        )
-        .strip()
-        .encode("utf-8"),
-    )
+    os.write(write_fd, script.read_bytes())
     os.close(write_fd)
+    monkeypatch.chdir(script.parent)
 
-    with monkeypatch.context() as m:
-        m.chdir(tmp_path)
-        try:
-            run_pipx_cli_exit(["run", f"/dev/fd/{read_fd}"])
-        finally:
-            os.close(read_fd)
-    assert out.read_text() == test_str
+    try:
+        run_pipx_cli_exit(["run", f"/dev/fd/{read_fd}"])
+    finally:
+        os.close(read_fd)
+
+    assert out.read_text() == "Hello, world!"
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="uses windows version format")
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_windows_python_version(tmp_path: Path) -> None:
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    out: Final[Path] = tmp_path / "output.txt"
     script.write_text(
         textwrap.dedent(
             f"""
@@ -1329,30 +1210,30 @@ def test_run_with_windows_python_version(tmp_path: Path) -> None:
             """
         ).strip()
     )
-    version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    version: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
+
     run_pipx_cli_exit(["run", script.as_uri(), "--python", version])
+
     assert version in out.read_text()
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_verify_script_name_provided(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     (tmp_path / "black").mkdir()
+
     run_pipx_cli_exit(["run", "black"])
-    captured = capsys.readouterr()
-    assert "black" in captured.err
+
+    assert "black" in capsys.readouterr().err
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_shared_lib_as_app(capfd: pytest.CaptureFixture[str]) -> None:
     run_pipx_cli_exit(["run", "pip", "--help"])
-    captured = capfd.readouterr()
-    assert "pip <command> [options]" in captured.out
+
+    assert "pip <command> [options]" in capfd.readouterr().out
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_local_path_entry_point(
     caplog: pytest.LogCaptureFixture,
     empty_project: Path,
@@ -1368,20 +1249,19 @@ def test_run_local_path_entry_point(
 
 @pytest.fixture
 def vcs_project(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str, str], str]:
-    """Apply one pyproject substitution to the empty project, commit it and return its git URL."""
-
     def create(old: str, new: str) -> str:
-        project = tmp_path / "vcs-project"
+        project: Final[Path] = tmp_path / "vcs-project"
         shutil.copytree(root / "testdata" / "empty_project", project)
-        pyproject = project / "pyproject.toml"
+        pyproject: Final[Path] = project / "pyproject.toml"
         pyproject.write_text(pyproject.read_text().replace(old, new))
         # uv clones through `git submodule`, a shell script needing the platform utilities the sandboxed PATH drops
         monkeypatch.setenv("PATH", os.environ["PATH_ORIG"])
-        subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-        subprocess.run(["git", "add", "."], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-        subprocess.run(
-            [  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-                "git",
+        git: Final[str | None] = shutil.which("git")
+        assert git is not None
+        for git_args in (
+            ["init", "--quiet"],
+            ["add", "."],
+            [
                 "-c",
                 "user.name=pipx tests",
                 "-c",
@@ -1393,23 +1273,26 @@ def vcs_project(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
                 "-m",
                 "test fixture",
             ],
-            cwd=project,
-            check=True,
-        )
+        ):
+            subprocess.run([git, *git_args], cwd=project, check=True)
         return f"git+{project.as_uri()}"
 
     return create
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_vcs_url_infers_app_name(
     vcs_project: Callable[[str, str], str],
     caplog: pytest.LogCaptureFixture,
     backend: str,
 ) -> None:
-    command = ["run", "--backend", backend, vcs_project("empty_project.main:cli", "empty_project.main:main")]
+    command: Final[list[str]] = [
+        "run",
+        "--backend",
+        backend,
+        vcs_project("empty_project.main:cli", "empty_project.main:main"),
+    ]
     run_pipx_cli_exit(command, assert_exit=0)
     run_pipx_cli_exit(command, assert_exit=0)
 
@@ -1417,9 +1300,8 @@ def test_run_vcs_url_infers_app_name(
     assert "Reusing cached venv" in caplog.text
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_vcs_url_runs_sole_script_of_other_name(
     vcs_project: Callable[[str, str], str],
     caplog: pytest.LogCaptureFixture,
@@ -1427,11 +1309,16 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
     backend: str,
 ) -> None:
     # drop the pipx.run entry point as well: it matches on package name and would hide the console script lookup
-    declared = (
+    declared: Final[str] = (
         'scripts.empty-project = "empty_project.main:cli"\n'
         'entry-points."pipx.run".empty-project = "empty_project.main:cli"'
     )
-    command = ["run", "--backend", backend, vcs_project(declared, 'scripts.renamed = "empty_project.main:main"')]
+    command: Final[list[str]] = [
+        "run",
+        "--backend",
+        backend,
+        vcs_project(declared, 'scripts.renamed = "empty_project.main:main"'),
+    ]
     run_pipx_cli_exit(command, assert_exit=0)
     assert "NOTE: running app 'renamed' from 'empty-project'" in capsys.readouterr().out
 
@@ -1447,15 +1334,10 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
         pytest.param(["--pip-args=--find-links=dist"], id="find-links"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_relative_path_keys_cache_per_directory(
-    tmp_path: Path,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    capfd: pytest.CaptureFixture[str],
-    source_args: list[str],
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str], source_args: list[str]
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
     for checkout in ("first", "second"):
         (dist := tmp_path / checkout / "dist").mkdir(parents=True)
         with zipfile.ZipFile(dist / "tool-1.0-py3-none-any.whl", "w") as archive:
@@ -1476,30 +1358,23 @@ def test_run_relative_path_keys_cache_per_directory(
     assert capfd.readouterr().out.splitlines()[-1] == "built in second"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_uv_dash_app_is_not_a_uv_option() -> None:
     # uv rejects the operand as a usage error instead of reading -n as --no-cache and running pycowsay
     run_pipx_cli_exit(["run", "--backend", "uv", "--", "-n", "pycowsay", "hi"], assert_exit=2)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with() -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
 
-    assert list(paths.ctx.venv_cache.rglob("black-*.dist-info"))
+    assert list(paths.CTX.venv_cache.rglob("black-*.dist-info"))
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_cooldown(
-    package_cache_dir: Path,
-    empty_project_wheel: Path,
-    mocker: MockerFixture,
-    caplog: pytest.LogCaptureFixture,
+    package_cache_dir: Path, empty_project_wheel: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-
     run_pipx_cli_exit(
         [
             "run",
@@ -1517,7 +1392,7 @@ def test_run_with_cooldown(
     )
 
     assert (
-        bool(list(paths.ctx.venv_cache.rglob("empty_project-*.dist-info"))),
+        bool(list(paths.CTX.venv_cache.rglob("empty_project-*.dist-info"))),
         "--uploaded-prior-to P7D" in caplog.text,
     ) == (True, True)
 
@@ -1540,7 +1415,7 @@ def test_run_with_pins_app_dependency(
         "empty-project",
     ])
 
-    assert [path.name for path in paths.ctx.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
+    assert [path.name for path in paths.CTX.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1549,11 +1424,10 @@ def test_run_with_app_extra_exposes_nothing(local_extras_wheel: Path, mocker: Mo
 
     run_pipx_cli_exit(["run", "--spec", str(local_extras_wheel), "--with", f"{local_extras_wheel}[cow]", "repeatme"])
 
-    assert list(paths.ctx.bin_dir.iterdir()) == []
+    assert list(paths.CTX.bin_dir.iterdir()) == []
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "args"], assert_exit=0)
 
@@ -1564,15 +1438,13 @@ def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
-    run_module = importlib.import_module("pipx.commands.run")
-    mocker.patch.object(run_module, "download_script", autospec=True, return_value="print('hi')")
+    mocker.patch("pipx.commands.run.download_script", autospec=True, return_value="print('hi')")
 
-    assert run_module.maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
+    assert maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
 
 
 @pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_script_url_cut_short_is_rejected(
     truncated_script_url: str, capsys: pytest.CaptureFixture[str], command: str
 ) -> None:
@@ -1585,15 +1457,8 @@ def test_script_url_cut_short_is_rejected(
 
 @pytest.fixture
 def truncated_script_url() -> Iterator[str]:
-    server = ThreadingTCPServer(("127.0.0.1", 0), _TruncatingHandler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield f"http://127.0.0.1:{server.server_address[1]}/tool.py"
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+    with _serving(_TruncatingHandler) as port:
+        yield f"http://127.0.0.1:{port}/tool.py"
 
 
 class _TruncatingHandler(BaseHTTPRequestHandler):
@@ -1676,8 +1541,9 @@ def test_run_cache_key_ignores_unrelated_env(
 
 @pytest.fixture
 def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
-    # Stop at the filesystem boundary before installing conflicting argument sets.
+    # stop at the filesystem boundary before installing conflicting argument sets
     lock: Final = mocker.patch("filelock.FileLock", autospec=True)
+    # Python before 3.14 does not configure a dunder of an autospec through keyword arguments
     lock.return_value.__enter__.side_effect = OSError("cache lock unavailable")
 
     def capture(dependencies: list[str], pip_args: list[str], venv_args: list[str]) -> Path:
@@ -1694,7 +1560,13 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
                 verbose=False,
                 use_cache=True,
                 python_args=[],
+                refresh=False,
+                infer_app_name=False,
+                backend=None,
+                env_backend=None,
+                resolved_backend="pip",
                 no_path_check=True,
+                cooldown_days=None,
             )
         return lock.call_args.args[0]
 

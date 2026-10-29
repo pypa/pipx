@@ -90,7 +90,7 @@ Linux and macOS, ``platformdirs`` reads ``XDG_DATA_HOME`` and ``XDG_CACHE_HOME``
 for the log directory, so exporting any of them moves the matching pipx directory; leave them unset for the platform
 default.
 
-These paths were introduced in 1.2.0 and temporarily reverted for macOS and Windows between 1.5.0 and 1.16.0. To move an
+pipx introduced these paths in 1.2.0 and reverted them for macOS and Windows between 1.5.0 and 1.16.0. To move an
 existing installation to the new default, see :doc:`move-installation`.
 
 **********************
@@ -115,17 +115,18 @@ subcommand, as in ``sudo pipx manifest sync --global ./pipx.toml``.
 
 Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, ``/usr/local/share``
 for shell completions, and ``/opt/pipx`` for environments. Override them with ``PIPX_GLOBAL_BIN_DIR``,
-``PIPX_GLOBAL_MAN_DIR``, ``PIPX_GLOBAL_COMPLETION_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
-global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
+``PIPX_GLOBAL_MAN_DIR``, ``PIPX_GLOBAL_COMPLETION_DIR``, and ``PIPX_GLOBAL_HOME``.
+
+Add the global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
 ``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS. pipx refuses to replace a file there that holds
 anything besides the entry an earlier ``ensurepath --global`` wrote; add the directory yourself, or pass ``--force`` to
 replace the file.
 
-When pipx itself is installed with ``--global`` and ``PIPX_GLOBAL_HOME`` is overridden, set the override for every user
-(for example in ``/etc/environment``), so that pipx recognizes its own environment as the global one; see
+When you install pipx itself with ``--global`` and override ``PIPX_GLOBAL_HOME``, set the override for every user (for
+example in ``/etc/environment``), so that pipx recognizes its own environment as the global one; see
 :doc:`../reference/environment-variables`.
 
-You can also set the variables explicitly instead of using ``--global``:
+You can also set the variables yourself instead of using ``--global``:
 
 .. code-block:: console
 
@@ -133,7 +134,7 @@ You can also set the variables explicitly instead of using ``--global``:
 
 .. note::
 
-    ``--global`` is not supported on Windows.
+    pipx does not support ``--global`` on Windows.
 
 *********************************
  Prepend or preview the PATH edit

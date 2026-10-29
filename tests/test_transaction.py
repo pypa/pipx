@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, util
 from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 
 def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace(venv_dir: Path) -> None:
     with preserve_venv(venv_dir, enabled=True):
-        siblings: Final = {path.name for path in paths.ctx.venvs.iterdir() if path.is_dir()}
-        backups: Final = [path for path in paths.ctx.trash.iterdir() if path.is_dir()]
+        siblings: Final[set[str]] = {path.name for path in paths.CTX.venvs.iterdir() if path.is_dir()}
+        backups: Final[list[Path]] = [path for path in paths.CTX.trash.iterdir() if path.is_dir()]
 
     assert (siblings, len(backups)) == ({"demo"}, 1)
 
@@ -34,7 +34,7 @@ def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace(venv_dir: Path
 def venv_dir(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
 ) -> Path:
-    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
+    venv_dir: Final[Path] = paths.CTX.venvs / "demo"
     venv_dir.mkdir(parents=True)
     (venv_dir / "marker").write_text("v1", encoding="utf-8")
     return venv_dir
@@ -71,7 +71,7 @@ def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success
         backup.remove_venv()
         venv_dir.mkdir()
 
-    assert (list(venv_dir.iterdir()), [path for path in paths.ctx.trash.iterdir() if path.is_dir()]) == ([], [])
+    assert (list(venv_dir.iterdir()), [path for path in paths.CTX.trash.iterdir() if path.is_dir()]) == ([], [])
 
 
 @pytest.mark.usefixtures("signal_handlers")
@@ -117,7 +117,7 @@ def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: 
 
     with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
         backup.remove_venv()
-        moved: Final = [(path / "marker").read_text(encoding="utf-8") for path in paths.ctx.trash.iterdir()]
+        moved: Final[list[str]] = [(path / "marker").read_text(encoding="utf-8") for path in paths.CTX.trash.iterdir()]
 
     assert (venv_dir.exists(), moved, attempts) == (False, ["v1"], [venv_dir, venv_dir])
 
@@ -127,7 +127,7 @@ def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(venv_dir: Pa
     real_rename: Final = Path.rename
 
     def rename_then_interrupt(source: Path, target: Path) -> Path:
-        moved = real_rename(source, target)
+        moved: Final[Path] = real_rename(source, target)
         if source == venv_dir:
             signal.raise_signal(signal.SIGINT)
         return moved
@@ -160,12 +160,12 @@ def test_preserve_venv_restores_after_another_command_swept_the_trash(venv_dir: 
 
 
 @contextmanager
-def _venv_lock_held_elsewhere(venv_dir: Path) -> Generator[None, None, None]:
+def _venv_lock_held_elsewhere(venv_dir: Path) -> Generator[None]:
     # the command owning the backup runs in another process, so the sweep must not find the lock reentrant
     held, release = Event(), Event()
 
     def hold() -> None:
-        with VenvContainer(paths.ctx.venvs).venv_lock(venv_dir):
+        with VenvContainer(paths.CTX.venvs).venv_lock(venv_dir):
             held.set()
             release.wait()
 
@@ -180,24 +180,24 @@ def _venv_lock_held_elsewhere(venv_dir: Path) -> Generator[None, None, None]:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_setup_sweeps_trash_entries_no_command_holds() -> None:
-    paths.ctx.trash.mkdir(parents=True)
+    paths.CTX.trash.mkdir(parents=True)
     for name in ("demo-abcd1234-pipx-backup", "demo-abcd1234-pipx-reinstall", "pipx-trash.app"):
-        (paths.ctx.trash / name).mkdir()
-        (paths.ctx.trash / name / "file").touch()
-    (paths.ctx.trash / "pipx-trash.app.exe").touch()
+        (paths.CTX.trash / name).mkdir()
+        (paths.CTX.trash / name / "file").touch()
+    (paths.CTX.trash / "pipx-trash.app.exe").touch()
 
     run_pipx_cli(["list"])
 
-    assert list(paths.ctx.trash.glob("*")) == []
+    assert list(paths.CTX.trash.glob("*")) == []
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_setup_leaves_the_target_of_a_symlinked_trash(tmp_path: Path) -> None:
     (target := tmp_path / "elsewhere").mkdir()
     (target / "file").touch()
-    paths.ctx.trash.parent.mkdir(parents=True, exist_ok=True)
-    paths.ctx.trash.symlink_to(target)
+    paths.CTX.trash.parent.mkdir(parents=True, exist_ok=True)
+    paths.CTX.trash.symlink_to(target)
 
     run_pipx_cli(["list"])
 

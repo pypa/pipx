@@ -9,12 +9,12 @@ import threading
 import time
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 
 import pytest
 from filelock import FileLock, Timeout
 
-from helpers import skip_if_windows
+from helpers import SKIP_IF_WINDOWS
 from pipx.fanout import (
     fan_out,
     finished_on_interrupt,
@@ -26,9 +26,7 @@ from pipx.fanout import (
 from pipx.util import run_subprocess
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from pathlib import Path
-    from types import FrameType
 
     from pytest_mock import MockerFixture
 
@@ -38,12 +36,16 @@ def second_done() -> threading.Event:
     return threading.Event()
 
 
-def test_fan_out_returns_results_in_task_order() -> None:
+def test_fan_out_returns_results_in_task_order(second_done: threading.Event) -> None:
     def first() -> str:
-        time.sleep(0.1)
+        second_done.wait(timeout=5)
         return "first"
 
-    assert fan_out([first, lambda: "second"], sequential=False) == ["first", "second"]
+    def second() -> str:
+        second_done.set()
+        return "second"
+
+    assert fan_out([first, second], sequential=False) == ["first", "second"]
 
 
 def test_fan_out_sequential_runs_tasks_in_calling_thread() -> None:
@@ -91,13 +93,14 @@ def test_fan_out_finishes_last_task_queued_after_the_others() -> None:
     assert fan_out([int, int], sequential=False) == [0, 0]
 
 
-def test_fan_out_raises_first_failure_in_task_order() -> None:
+def test_fan_out_raises_first_failure_in_task_order(second_done: threading.Event) -> None:
     def first() -> None:
-        time.sleep(0.1)
+        second_done.wait(timeout=5)
         msg = "first"
         raise ValueError(msg)
 
     def second() -> None:
+        second_done.set()
         msg = "second"
         raise ValueError(msg)
 
@@ -145,7 +148,7 @@ def test_output_is_held_only_for_task_waiting_its_turn(second_done: threading.Ev
         return output_is_held()
 
     def second() -> bool:
-        held = output_is_held()
+        held: Final[bool] = output_is_held()
         second_done.set()
         return held
 
@@ -154,13 +157,18 @@ def test_output_is_held_only_for_task_waiting_its_turn(second_done: threading.Ev
 
 def test_in_turn_waits_for_earlier_tasks() -> None:
     events: Final[list[str]] = []
+    second_waiting: Final[threading.Event] = threading.Event()
 
     def first() -> None:
-        time.sleep(0.1)
+        second_waiting.wait(timeout=5)
         events.append("first")
 
+    def not_done() -> bool:
+        second_waiting.set()
+        return False
+
     def second() -> None:
-        with in_turn(lambda: False):
+        with in_turn(not_done):
             events.append("second")
 
     fan_out([first, second], sequential=False)
@@ -185,7 +193,7 @@ def test_in_turn_outside_fan_out_runs_immediately() -> None:
     assert events == ["ran"]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     rolled_back: Final[list[str]] = []
@@ -203,7 +211,7 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     assert rolled_back == ["first"]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_by_signal_another_thread_handles() -> None:
     def interrupted() -> None:
@@ -215,14 +223,15 @@ def test_fan_out_interrupted_by_signal_another_thread_handles() -> None:
         fan_out([interrupted, int], sequential=False)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_by_signal_whose_interrupt_the_interpreter_dropped(monkeypatch: pytest.MonkeyPatch) -> None:
     dropped: Final[list[type[BaseException] | None]] = []
     monkeypatch.setattr(sys, "unraisablehook", lambda unraisable: dropped.append(unraisable.exc_type))
 
     with stopping_children_on_signals():
-        handler: Final = cast("Callable[[int, FrameType | None], None]", signal.getsignal(signal.SIGINT))
+        handler: Final = signal.getsignal(signal.SIGINT)
+        assert callable(handler)
         target = {0}
         # the interpreter reports an exception raised in a weakref callback as unraisable instead of propagating it
         _reference = weakref.ref(target, lambda _: handler(signal.SIGINT, None))
@@ -271,7 +280,7 @@ def test_locked_in_order_leaves_no_lock_cycle_with_another_run(tmp_path: Path) -
     assert other_run == ["took both"]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_stops_children_on_sigterm() -> None:
     def terminated() -> None:
@@ -285,7 +294,7 @@ def test_fan_out_stops_children_on_sigterm() -> None:
         fan_out([terminated, int], sequential=False)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_signal_stops_the_grandchildren_of_a_child(tmp_path: Path) -> None:
     pid_file: Final[Path] = tmp_path / "grandchild.pid"
@@ -338,7 +347,7 @@ def test_signals_keep_their_handlers_off_the_main_thread() -> None:
     assert signalled == [False]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_signals_are_ignored_once_signalled() -> None:
     with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
@@ -347,7 +356,7 @@ def test_signals_are_ignored_once_signalled() -> None:
     assert signal.getsignal(signal.SIGINT) is signal.SIG_IGN
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogCaptureFixture) -> None:
     main_thread: Final[int] = threading.get_ident()
@@ -370,7 +379,7 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
         ) == ["finished", "interrupted 1"]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptureFixture) -> None:
     main_thread: Final[int] = threading.get_ident()
@@ -406,7 +415,7 @@ def test_fan_out_runs_off_the_main_thread() -> None:
     assert results == [[0, 0]]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_ends_unfinished_line_before_held_output(
     capsys: pytest.CaptureFixture[str], second_done: threading.Event

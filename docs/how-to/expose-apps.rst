@@ -35,7 +35,7 @@ and run ``pipx expose`` again to link the skipped resource.
  Expose a dependency's apps
 ***************************
 
-A dependency's apps are not exposed by default. Select them at install time.
+pipx does not expose a dependency's apps by default; select them at install time.
 
 ``--include-deps`` exposes apps and manual pages from every dependency:
 
@@ -55,7 +55,7 @@ package is not a dependency that ships apps, manual pages, or shell completions.
 
 .. note::
 
-    ``--include-apps-from`` was renamed to ``--include-resources-from``. pipx still reads the old name from metadata
+    pipx renamed ``--include-apps-from`` to ``--include-resources-from``, and still reads the old name from metadata
     written by earlier versions.
 
 **********

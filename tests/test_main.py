@@ -9,16 +9,26 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, TypedDict, cast
+from typing import TYPE_CHECKING, Final, Protocol, TypedDict
 
 import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import current_log_file, run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
-from pipx import constants, main, paths
+from pipx import backends, main, paths
+from pipx.main import (
+    _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
+    build_parser,
+    get_command_parser,
+    get_pip_args,
+    package_is_path,
+    parse_pipx_args,
+    prog_name,
+)
 from pipx.util import PipxError, redact_url_credentials
+from pipx.version import version
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -31,6 +41,7 @@ _MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
 _SKIP_WITHOUT_PERMISSIONS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     sys.platform == "win32" or os.geteuid() == 0, reason="needs POSIX permissions that bind the current user"
 )
+_ENVIRONMENT_VALUE: Final[list[str]] = ["environment", "--value", "PIPX_HOME"]
 
 
 @pytest.fixture
@@ -60,7 +71,7 @@ def test_version(exit_early: MagicMock, capsys: pytest.CaptureFixture[str]) -> N
         run_pipx_cli(["--version"])
 
     exit_early.assert_called_with(0)
-    assert main.__version__ in capsys.readouterr().out.strip()
+    assert version in capsys.readouterr().out.strip()
 
 
 @pytest.mark.parametrize(
@@ -73,7 +84,7 @@ def test_version(exit_early: MagicMock, capsys: pytest.CaptureFixture[str]) -> N
 def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: str) -> None:
     mocker.patch.object(sys, "argv", [argv])
     mocker.patch.object(sys, "executable", executable)
-    assert main.prog_name() == expected
+    assert prog_name() == expected
 
 
 @pytest.mark.parametrize(
@@ -104,7 +115,7 @@ def test_startup_drops_search_path_entry_python_adds(
     assert (result.returncode, result.stderr.strip()) == expected
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_module_starts_in_removed_working_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PYTHONSAFEPATH", raising=False)
     start: Final[str] = "os.execv(sys.executable, [sys.executable, '-m', 'pipx', '--version'])"
@@ -117,12 +128,12 @@ def test_module_starts_in_removed_working_directory(tmp_path: Path, monkeypatch:
         text=True,
     )
 
-    assert (result.returncode, result.stdout.strip()) == (0, main.__version__)
+    assert (result.returncode, result.stdout.strip()) == (0, version)
 
 
 def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(sys, "argv", ["sphinx-build"])
-    parser: Final[argparse.ArgumentParser] = main.build_parser()
+    parser: Final[argparse.ArgumentParser] = build_parser()
 
     with pytest.raises(SystemExit) as sys_exit:
         parser.parse_args(["run", "--help"])
@@ -152,20 +163,17 @@ def test_limit_verbosity(flag: str) -> None:
 
 
 def test_all_subcommands_have_func_registered() -> None:
-    parser: Final[argparse.ArgumentParser] = main.get_command_parser()[0]
-    subparsers_type: Final[type[argparse.Action]] = argparse._SubParsersAction  # ruff:ignore[private-member-access]  # argparse has no public subparser API
-    top_actions = parser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
-    subparsers_action = next(a for a in top_actions if isinstance(a, subparsers_type))
-    choices: Final[dict[str, argparse.ArgumentParser]] = cast(
-        "dict[str, argparse.ArgumentParser]", subparsers_action.choices
-    )
-    for name, subparser in choices.items():
-        assert callable(subparser.get_default("func")), f"{name!r} missing callable func default"
-        nested_actions = subparser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
-        for nested in (a for a in nested_actions if isinstance(a, subparsers_type)):
-            nested_choices = cast("dict[str, argparse.ArgumentParser]", nested.choices)
-            for sub_name, sub_parser in nested_choices.items():
-                assert callable(sub_parser.get_default("func")), f"{sub_name!r} missing callable func default"
+    assert [
+        name for name, subparser in _subparsers(get_command_parser()) if not callable(subparser.get_default("func"))
+    ] == []
+
+
+def _subparsers(parser: argparse.ArgumentParser) -> Iterator[tuple[str, argparse.ArgumentParser]]:
+    for action in parser._actions:  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+        if isinstance(action, argparse._SubParsersAction):  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+            for name, subparser in action.choices.items():
+                yield name, subparser
+                yield from _subparsers(subparser)
 
 
 @pytest.mark.parametrize(
@@ -188,9 +196,9 @@ def test_all_subcommands_have_func_registered() -> None:
     ],
 )
 def test_operation_commands_accept_output_format(argv: list[str]) -> None:
-    parser: Final[argparse.ArgumentParser] = main.get_command_parser()[0]
+    parser: Final[argparse.ArgumentParser] = get_command_parser()
 
-    args: Final[argparse.Namespace] = main.parse_pipx_args(parser, [*argv, "--output", "json"])
+    args: Final[argparse.Namespace] = parse_pipx_args(parser, [*argv, "--output", "json"])
 
     assert args.output == "json"
 
@@ -218,13 +226,11 @@ def test_manpage_header(manpage_troff: bytes) -> None:
     assert re.search(r'^\.TH "pipx" "1" .* "User Commands"$', manpage_troff.decode(), re.MULTILINE)
 
 
-@pytest.mark.skipif(shutil.which("man") is None, reason="man is not installed")
 @pytest.mark.timeout(60)  # man printed nothing for 5 s on a busy Linux CI runner
-def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
-    manpage: Final[Path] = tmp_path / "pipx.1"
-    manpage.write_bytes(manpage_troff)
+def test_manpage_renders(man: str, manpage_troff: bytes, tmp_path: Path) -> None:
+    (manpage := tmp_path / "pipx.1").write_bytes(manpage_troff)
     result = subprocess.run(
-        ["man", str(manpage)],  # ruff:ignore[start-process-with-partial-path]  # man resolves via PATH by design in this render smoke test
+        [man, str(manpage)],
         capture_output=True,
         text=True,
         env=os.environ | {"COLUMNS": "200", "MANPAGER": "cat", "PAGER": "cat"},
@@ -234,6 +240,13 @@ def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
     )
     rendered: Final[str] = re.sub(r".\x08", "", result.stdout)
     assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
+
+
+@pytest.fixture
+def man() -> str:
+    if (executable := shutil.which("man")) is None:
+        pytest.skip("man is not installed")
+    return executable
 
 
 @pytest.fixture
@@ -252,11 +265,9 @@ def manpage_troff() -> bytes:
     ],
 )
 def test_inject_accepts_force_before_or_after_dependency(argv: list[str]) -> None:
-    args: Final[argparse.Namespace] = main.parse_pipx_args(main.get_command_parser()[0], argv)
+    args: Final[argparse.Namespace] = parse_pipx_args(get_command_parser(), argv)
 
-    assert args.package == "ansible-core"
-    assert args.dependencies == ["ansible"]
-    assert args.force is True
+    assert (args.package, args.dependencies, args.force) == ("ansible-core", ["ansible"], True)
 
 
 def test_package_is_path_ignores_existing_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,7 +275,7 @@ def test_package_is_path_ignores_existing_directory(tmp_path: Path, monkeypatch:
     (tmp_path / "commit-check").mkdir()
 
     # regression for #1778: a directory sharing the package name is not a path spec, so this must not raise
-    main.package_is_path("commit-check")
+    package_is_path("commit-check")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -276,85 +287,49 @@ def test_package_is_path_rejects_forward_slash(
 
 
 @pytest.mark.parametrize(
-    ("missing_raw", "python_raw", "expected_option", "expected_invalid"),
+    ("env", "exit_code", "expected"),
     [
-        pytest.param(None, None, constants.FetchPythonOptions.NEVER, False, id="unset"),
-        pytest.param("1", None, constants.FetchPythonOptions.MISSING, False, id="legacy-truthy"),
-        pytest.param("0", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy"),
-        pytest.param(" False ", None, constants.FetchPythonOptions.NEVER, False, id="legacy-whitespace-falsy"),
-        pytest.param("n", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy-n"),
-        pytest.param(None, "always", constants.FetchPythonOptions.ALWAYS, False, id="explicit-always"),
-        pytest.param(None, "garbage", constants.FetchPythonOptions.NEVER, True, id="invalid-value"),
+        pytest.param((True, "garbage", None), 1, "PIPX_FETCH_PYTHON must be unset", id="invalid-value"),
+        pytest.param((False, "missing", "1"), 1, "Setting both", id="both-env-vars"),
+        pytest.param((False, None, "1"), 0, "PIPX_FETCH_MISSING_PYTHON is deprecated", id="deprecated-env-warning"),
     ],
 )
-def test_compute_fetch_python(
-    missing_raw: str | None,
-    python_raw: str | None,
-    expected_option: constants.FetchPythonOptions,
-    expected_invalid: bool,
-) -> None:
-    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)  # ruff:ignore[private-member-access]  # no public API
-    assert option is expected_option
-    assert invalid is expected_invalid
-
-
-@pytest.mark.parametrize(
-    ("invalid", "fetch_python_raw", "missing_raw", "expected"),
-    [
-        pytest.param(True, "garbage", None, "PIPX_FETCH_PYTHON must be unset", id="invalid-value"),
-        pytest.param(False, "missing", "1", "Setting both", id="both-env-vars"),
-    ],
-)
-def test_validate_fetch_python_raises(
-    monkeypatch: pytest.MonkeyPatch,
-    invalid: bool,
-    fetch_python_raw: str | None,
-    missing_raw: str | None,
+def test_cli_reports_fetch_python_env(
+    fetch_python_env: _FetchPythonEnv,
+    capsys: pytest.CaptureFixture[str],
+    env: tuple[bool, str | None, str | None],
+    exit_code: int,
     expected: str,
 ) -> None:
-    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", invalid)
-    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
-    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
-    with pytest.raises(main.PipxError, match=expected):
-        main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
+    fetch_python_env(*env)
+
+    assert (run_pipx_cli(_ENVIRONMENT_VALUE), expected in capsys.readouterr().err) == (exit_code, True)
 
 
-def test_validate_fetch_python_deprecated_env_warning(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
-    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
-    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", "1")
-    main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
-    assert "PIPX_FETCH_MISSING_PYTHON is deprecated" in capsys.readouterr().err
+def test_cli_accepts_unset_fetch_python_env(fetch_python_env: _FetchPythonEnv) -> None:
+    fetch_python_env(False, None, None)
+
+    assert run_pipx_cli(_ENVIRONMENT_VALUE) == 0
 
 
-def test_validate_fetch_python_passes_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
-    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
-    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", None)
-    main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
+class _FetchPythonEnv(Protocol):
+    def __call__(self, invalid: bool, fetch_python_raw: str | None, missing_raw: str | None) -> None: ...
 
 
-@pytest.mark.parametrize(
-    ("raw", "expected_days", "expected_invalid"),
-    [
-        pytest.param(None, None, False, id="unset"),
-        pytest.param("  ", None, False, id="blank"),
-        pytest.param("7", 7, False, id="days"),
-        pytest.param(" 7 ", 7, False, id="whitespace-padded"),
-        pytest.param("0", 0, False, id="zero"),
-        pytest.param("-1", None, True, id="negative"),
-        pytest.param("garbage", None, True, id="not-an-integer"),
-    ],
-)
-def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_invalid: bool) -> None:
-    assert constants._compute_cooldown(raw) == (expected_days, expected_invalid)  # ruff:ignore[private-member-access]  # no public API
+@pytest.fixture
+def fetch_python_env(monkeypatch: pytest.MonkeyPatch) -> _FetchPythonEnv:
+    # pipx reads these variables at import, so patch the values main parsed from them
+    def apply(invalid: bool, fetch_python_raw: str | None, missing_raw: str | None) -> None:
+        monkeypatch.setattr(main, "FETCH_PYTHON_INVALID", invalid)
+        monkeypatch.setattr(main, "FETCH_PYTHON_RAW", fetch_python_raw)
+        monkeypatch.setattr(main, "FETCH_MISSING_PYTHON_RAW", missing_raw)
+
+    return apply
 
 
 def test_cli_rejects_invalid_env_cooldown(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setattr(main, "_COOLDOWN_INVALID", True)
-    monkeypatch.setattr(main, "_COOLDOWN_RAW", "garbage")
+    monkeypatch.setattr(main, "COOLDOWN_INVALID", True)
+    monkeypatch.setattr(main, "COOLDOWN_RAW", "garbage")
 
     assert run_pipx_cli(["list"])
 
@@ -387,13 +362,13 @@ def test_deprecated_fetch_missing_python_silent_under_help(capsys: pytest.Captur
 def test_get_pip_args_quoting(mocker: MockerFixture, windows: bool, pip_args: str, expected: list[str]) -> None:
     mocker.patch.object(main, "WINDOWS", windows)
 
-    assert main.get_pip_args({"pip_args": pip_args}) == expected
+    assert get_pip_args(argparse.Namespace(pip_args=pip_args)) == expected
 
 
 def test_get_pip_args_keeps_windows_path_separator(mocker: MockerFixture) -> None:
     mocker.patch.object(main, "WINDOWS", True)
 
-    assert main.get_pip_args({"pip_args": r"'--no-index --find-links=D:\TEST\DIR'"}) == [
+    assert get_pip_args(argparse.Namespace(pip_args=r"'--no-index --find-links=D:\TEST\DIR'")) == [
         "--no-index",
         r"--find-links=D:\TEST\DIR",
     ]
@@ -402,16 +377,16 @@ def test_get_pip_args_keeps_windows_path_separator(mocker: MockerFixture) -> Non
 def test_get_pip_args_honours_posix_escape(mocker: MockerFixture) -> None:
     mocker.patch.object(main, "WINDOWS", False)
 
-    assert main.get_pip_args({"pip_args": "--find-links /opt/foo\\ bar"}) == ["--find-links", "/opt/foo bar"]
+    assert get_pip_args(argparse.Namespace(pip_args="--find-links /opt/foo\\ bar")) == ["--find-links", "/opt/foo bar"]
 
 
 def test_get_pip_args_rejects_unclosed_quote() -> None:
     with pytest.raises(PipxError, match="invalid pip arguments: No closing quotation"):
-        main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
+        get_pip_args(argparse.Namespace(pip_args="--find-links '/opt/foo bar"))
 
 
 def test_get_pip_args_forwards_index_url() -> None:
-    assert main.get_pip_args({"index_url": "https://example.com/simple"}) == [
+    assert get_pip_args(argparse.Namespace(index_url="https://example.com/simple")) == [
         "--index-url",
         "https://example.com/simple",
     ]
@@ -420,7 +395,7 @@ def test_get_pip_args_forwards_index_url() -> None:
 @pytest.mark.parametrize("index_url", [pytest.param("", id="empty"), pytest.param("  ", id="whitespace")])
 def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
     with pytest.raises(PipxError, match="--index-url is empty"):
-        main.get_pip_args({"index_url": index_url})
+        get_pip_args(argparse.Namespace(index_url=index_url))
 
 
 @pytest.mark.parametrize(
@@ -437,7 +412,7 @@ def test_get_pip_args_rejects_empty_index_url(index_url: str) -> None:
 )
 def test_get_pip_args_rejects_empty_index_in_pip_args(pip_args: str, option: str) -> None:
     with pytest.raises(PipxError, match=f"^{option} is empty"):
-        main.get_pip_args({"pip_args": pip_args})
+        get_pip_args(argparse.Namespace(pip_args=pip_args))
 
 
 @pytest.mark.parametrize(
@@ -449,7 +424,7 @@ def test_get_pip_args_rejects_empty_index_in_pip_args(pip_args: str, option: str
     ],
 )
 def test_get_pip_args_keeps_non_empty_index_in_pip_args(pip_args: str) -> None:
-    assert main.get_pip_args({"pip_args": pip_args}) == pip_args.split()
+    assert get_pip_args(argparse.Namespace(pip_args=pip_args)) == pip_args.split()
 
 
 _LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
@@ -483,8 +458,10 @@ def test_read_only_command_runs_without_writable_home(locked_home: Path, flags: 
 def test_unwritable_home_reports_error(
     locked_home: Path, capsys: pytest.CaptureFixture[str], flags: list[str], fix: str
 ) -> None:
-    exit_code = run_pipx_cli(["install", *flags, "pycowsay"])
-    assert (exit_code, capsys.readouterr().err) == (1, f"Cannot create {locked_home}: permission denied; {fix}.\n")
+    assert (run_pipx_cli(["install", *flags, "pycowsay"]), capsys.readouterr().err) == (
+        1,
+        f"Cannot create {locked_home}: permission denied; {fix}.\n",
+    )
 
 
 @pytest.fixture
@@ -500,16 +477,14 @@ def locked_home(
     mocker.patch("platformdirs.user_log_path", autospec=True, return_value=tmp_path / "logs")
     (locked := tmp_path / "locked").mkdir(mode=0o500)
     monkeypatch.setattr(paths, request.param, home := locked / "pipx")
-    paths.ctx.make_local()
+    paths.CTX.make_local()
     yield home
     locked.chmod(0o700)
 
 
 @pytest.fixture
-def json_install_verbose(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
-    capsys: pytest.CaptureFixture[str],
-) -> pytest.CaptureFixture[str]:
+def json_install_verbose(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> pytest.CaptureFixture[str]:
+    del pipx_temp_env
     assert not run_pipx_cli(["install", "--output", "json", "--verbose", PKG["pycowsay"]["spec"]])
     return capsys
 
@@ -544,9 +519,9 @@ def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None
 @pytest.mark.parametrize(
     "patches",
     [
-        pytest.param({"_COOLDOWN_INVALID": True, "_COOLDOWN_RAW": "abc"}, id="cooldown"),
-        pytest.param({"_MAX_LOGS_INVALID": True, "_MAX_LOGS_RAW": "x"}, id="max-logs"),
-        pytest.param({"_FETCH_PYTHON_INVALID": True}, id="fetch-python"),
+        pytest.param({"COOLDOWN_INVALID": True, "COOLDOWN_RAW": "abc"}, id="cooldown"),
+        pytest.param({"MAX_LOGS_INVALID": True, "MAX_LOGS_RAW": "x"}, id="max-logs"),
+        pytest.param({"FETCH_PYTHON_INVALID": True}, id="fetch-python"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -603,6 +578,31 @@ def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.Monke
     find_uv_binary.assert_not_called()
 
 
+def test_validate_backend_silent_on_env_uv_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # diagnostic commands (`pipx environment`, `pipx list`) must keep working without a startup warning that the later
+    # UvBackend.__init__ error would contradict; patch both the source and the package re-export, as either one left
+    # unpatched would find uv
+    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
+    caplog.set_level("WARNING", logger="pipx.main")
+
+    _validate_backend_available(cli_backend=None, env_backend="uv")
+
+    assert not any("uv" in rec.message.lower() for rec in caplog.records)
+
+
+def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
+    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    with pytest.raises(PipxError, match="uv' executable could not be found"):
+        _validate_backend_available(cli_backend="uv", env_backend=None)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli([]) == 1
@@ -627,25 +627,25 @@ def test_log_masks_command_line_password_with_space() -> None:
     assert "upgrade --index-url https://****:****@host/simple nosuchpackage" in log
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
 def test_log_dir_is_created_owner_only() -> None:
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
 def test_log_dir_left_world_readable_is_tightened() -> None:
-    paths.ctx.logs.mkdir(mode=0o755, parents=True)
+    paths.CTX.logs.mkdir(mode=0o755, parents=True)
 
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.ctx.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
 def test_log_file_is_owner_only() -> None:
     assert not run_pipx_cli(["list"])
@@ -659,7 +659,7 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
 
     assert not run_pipx_cli(["list"])
 
-    assert current_log_file().parent == paths.ctx.logs
+    assert current_log_file().parent == paths.CTX.logs
 
 
 @pytest.mark.parametrize(

@@ -28,8 +28,6 @@ if TYPE_CHECKING:
 
     from pipx.pipx_metadata_file import PackageInfo
 
-_MAX_OUTDATED_WORKERS: Final[int] = 8
-
 
 def list_outdated(
     venv_container: VenvContainer,
@@ -44,7 +42,7 @@ def list_outdated(
     )
     messages: Final[list[OutputMessage]] = [
         OutputMessage(
-            f"{failure.environment}: {failure.error}",
+            text=f"{failure.environment}: {failure.error}",
             stream=OutputStream.STDERR,
             level=OutputLevel.ERROR,
         )
@@ -54,7 +52,7 @@ def list_outdated(
     if not data.packages and not data.failures:
         messages.append(
             OutputMessage(
-                "pipx found no available upgrades."
+                text="pipx found no available upgrades."
                 if data.packages_checked
                 else "pipx found no index packages to check."
             )
@@ -150,7 +148,7 @@ def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards 
     )
     if len(venv_dirs) == 1:
         return (check(venv_dirs[0]),)
-    with ThreadPoolExecutor(max_workers=min(_MAX_OUTDATED_WORKERS, len(venv_dirs))) as executor:
+    with ThreadPoolExecutor(max_workers=min(8, len(venv_dirs))) as executor:
         return tuple(executor.map(check, venv_dirs))
 
 
@@ -184,9 +182,11 @@ def _list_venv_outdated(
 ) -> _EnvironmentOutdated:
     if not venv.python_path.is_file():
         message: Final[str] = f"Invalid python interpreter {venv.python_path}. To fix, execute: pipx reinstall-all"
-        return _EnvironmentOutdated(failures=(_FailedEnvironment(venv.name, message),))
+        return _EnvironmentOutdated(failures=(_FailedEnvironment(environment=venv.name, error=message),))
     if not venv.package_metadata:
-        return _EnvironmentOutdated(failures=(_FailedEnvironment(venv.name, "Missing internal pipx metadata."),))
+        return _EnvironmentOutdated(
+            failures=(_FailedEnvironment(environment=venv.name, error="Missing internal pipx metadata."),)
+        )
     if upgradable_only and venv.pipx_metadata.main_package.lock_file is not None:
         return _EnvironmentOutdated()
 
@@ -197,20 +197,22 @@ def _list_venv_outdated(
     for package_name, package_info in venv.package_metadata.items():
         if package_name != venv.main_package_name and not include_injected:
             continue
-        display_name: str = f"{package_name}{package_info.suffix}"
+        display_name: Final[str] = f"{package_name}{package_info.suffix}"
         if package_info.package_or_url is None:
-            failures.append(_FailedEnvironment(venv.name, f"Package {display_name} has corrupt pipx metadata."))
+            failures.append(
+                _FailedEnvironment(environment=venv.name, error=f"Package {display_name} has corrupt pipx metadata.")
+            )
         elif upgradable_only and package_info.pinned:
             continue
         elif "--editable" in package_info.pip_args:
-            skipped.append(_SkippedPackage(venv.name, display_name, "editable"))
+            skipped.append(_SkippedPackage(environment=venv.name, package=display_name, reason="editable"))
         elif valid_pypi_name(package_info.package_or_url) is None:
-            skipped.append(_SkippedPackage(venv.name, display_name, "non-index"))
+            skipped.append(_SkippedPackage(environment=venv.name, package=display_name, reason="non-index"))
         elif not pip_args and (source := changeable_recorded_source(package_info.pip_args, venv.root)) is not None:
             failures.append(
                 _FailedEnvironment(
-                    venv.name,
-                    f"refusing to check {display_name} for updates through {source}, and with it the versions "
+                    environment=venv.name,
+                    error=f"refusing to check {display_name} for updates through {source}, and with it the versions "
                     "reported. Move the file or directory to a place only you and root can change.",
                 )
             )
@@ -224,10 +226,10 @@ def _list_venv_outdated(
         packages.extend(index_packages)
         failures.extend(index_failures)
     return _EnvironmentOutdated(
-        sum(len(package_infos) for package_infos in packages_by_index.values()),
-        tuple(packages),
-        tuple(skipped),
-        tuple(failures),
+        packages_checked=sum(len(package_infos) for package_infos in packages_by_index.values()),
+        packages=tuple(packages),
+        skipped=tuple(skipped),
+        failures=tuple(failures),
     )
 
 
@@ -237,10 +239,10 @@ def _collect_outdated(
     package_infos: dict[str, PackageInfo],
 ) -> tuple[list[_OutdatedPackage], list[_FailedEnvironment]]:
     try:
-        outdated = list(venv.list_outdated_packages(list(index_args), package_infos))
+        outdated: Final = list(venv.list_outdated_packages(list(index_args), package_infos))
     except PipxError as error:
-        return [], [_FailedEnvironment(venv.name, str(error))]
-    packages = [
+        return [], [_FailedEnvironment(environment=venv.name, error=str(error))]
+    return [
         _OutdatedPackage(
             environment=venv.name,
             package=f"{managed_package.package}{managed_package.suffix}",
@@ -251,8 +253,7 @@ def _collect_outdated(
         )
         for package in outdated
         if (managed_package := package_infos.get(canonicalize_name(package.name))) is not None
-    ]
-    return packages, []
+    ], []
 
 
 def _package_message(package: _OutdatedPackage) -> OutputMessage:
@@ -260,11 +261,11 @@ def _package_message(package: _OutdatedPackage) -> OutputMessage:
         f"{package.package} (injected in {package.environment})" if package.injected else package.package
     )
     return OutputMessage(
-        f"{subject}{' [pinned]' if package.pinned else ''}: {package.version} -> {package.latest_version}"
+        text=f"{subject}{' [pinned]' if package.pinned else ''}: {package.version} -> {package.latest_version}"
     )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _OutdatedPackage:
     environment: str
     package: str
@@ -274,20 +275,20 @@ class _OutdatedPackage:
     pinned: bool
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _SkippedPackage:
     environment: str
     package: str
     reason: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _FailedEnvironment:
     environment: str
     error: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _EnvironmentOutdated:
     packages_checked: int = 0
     packages: tuple[_OutdatedPackage, ...] = ()
@@ -295,18 +296,19 @@ class _EnvironmentOutdated:
     failures: tuple[_FailedEnvironment, ...] = ()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedData(OperationData):
-    def to_dict(self) -> dict[str, object]:
-        # failures are surfaced as top-level envelope errors; upgrade still reads this field internally
-        data = super().to_dict()
-        data.pop("failures", None)
-        return data
-
     packages_checked: int
     packages: tuple[_OutdatedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]
     failures: tuple[_FailedEnvironment, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        # the envelope reports failures as top-level errors, and upgrade still reads the field; the base is named
+        # because a slots dataclass breaks zero-argument super() before Python 3.14
+        data: Final[dict[str, object]] = OperationData.to_dict(self)
+        del data["failures"]
+        return data
 
 
 __all__ = [

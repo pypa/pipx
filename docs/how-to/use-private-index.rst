@@ -8,7 +8,7 @@ Install from a private index, behind a proxy, or offline by forwarding index opt
  Set the index for one command
 ******************************
 
-Pass ``--index-url`` directly, or forward pip options with ``--pip-args``:
+Pass ``--index-url`` to pipx, or forward `pip <https://pip.pypa.io/>`__ options with ``--pip-args``:
 
 .. code-block:: console
 
@@ -30,14 +30,15 @@ record stays. pipx resolves a relative ``--find-links`` (``-f``) path against th
 records the absolute path, so after ``pipx runpip my-package install --no-index -f ./wheels my-package`` a later upgrade
 or reinstall reads the same ``wheels`` directory from wherever you start it.
 
-Under the uv backend, pipx passes ``--index-url`` (``-i``) to uv as ``--default-index``, so it replaces a default index
+Under the `uv <https://github.com/astral-sh/uv>`__ backend, pipx passes ``--index-url`` (``-i``) to uv as
+``--default-index``, so it replaces a default index
 set through ``UV_DEFAULT_INDEX`` or a ``default = true`` ``[[index]]`` entry. uv still searches indexes added through
 ``UV_INDEX`` or other ``[[index]]`` entries before it, as it does for its own ``--default-index``.
 
 pipx refuses an empty or whitespace-only index URL before it creates an environment, whether it comes from
 ``--index-url`` (``-i``) or from ``--index-url``, ``-i``, ``--extra-index-url``, ``--default-index`` or ``--index``
 inside ``--pip-args``. An empty value usually means an unset variable, as in ``--index-url "$INDEX_URL"``, and uv reads
-it as the default index, so the package would come from PyPI instead of your index. Under the uv backend pipx also
+it as the default index, so the package would come from `PyPI <https://pypi.org/>`__ instead of your index. Under the uv backend pipx also
 refuses an empty index recorded by an earlier install when ``upgrade``, ``reinstall`` or ``install-all`` replays it:
 
 .. code-block:: console
@@ -80,8 +81,8 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
 
     Under the uv backend, ``pipx run`` translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
     ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
-    ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. Any other flag raises an error rather than being
-    silently dropped. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
+    ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. pipx raises an error for any other flag instead of
+    dropping it. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
     (``-i``), so uv decides which flags it accepts. Use ``--backend pip`` when you need a pip-only flag. See
     :doc:`use-uv-backend`.
 

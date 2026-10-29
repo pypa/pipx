@@ -6,12 +6,12 @@ import enum
 import json
 import logging
 import sys
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any, Final, Generic, TypeVar
 
 from pipx.constants import EXIT_CODE_OK, ExitCode
 
-PIPX_RESULT_VERSION: Final[str] = "1"
+_PIPX_RESULT_VERSION: Final[str] = "1"
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class OutputStream(enum.StrEnum):
     STDERR = "stderr"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OutputMessage:
     text: str
     stream: OutputStream = OutputStream.STDOUT
@@ -42,17 +42,16 @@ class OutputMessage:
     notice: bool = False
 
 
-@dataclass(frozen=True)
+# scripts key on the code and the identity fields, so they stay stable across releases
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OperationError:
-    """A single failure inside a structured result, with a stable code and the identity fields scripts key on."""
-
     code: str
     message: str
     environment: str | None = None
     package: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OperationData:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -61,7 +60,7 @@ class OperationData:
 _PayloadT = TypeVar("_PayloadT", bound=OperationData)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OperationResult(Generic[_PayloadT]):
     command: tuple[str, ...]
     data: _PayloadT
@@ -69,7 +68,7 @@ class OperationResult(Generic[_PayloadT]):
     exit_code: ExitCode = EXIT_CODE_OK
     errors: tuple[OperationError, ...] = ()
     # whether the operation produced at least one successful outcome; distinguishes a partial run from a total failure
-    succeeded: bool = field(default=False)
+    succeeded: bool = False
 
     @property
     def status(self) -> str:
@@ -78,22 +77,9 @@ class OperationResult(Generic[_PayloadT]):
         return "partial" if self.succeeded else "error"
 
 
-def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
-    for message in messages:
-        if quiet <= message.level:
-            if message.stream is OutputStream.LOG:
-                _LOGGER.warning(message.text)
-            else:
-                print(message.text, file=sys.stderr if message.stream is OutputStream.STDERR else sys.stdout)
-
-
-def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: ExitCode) -> str:
-    return _render_envelope(command, "error", exit_code, {}, (error,))
-
-
 def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, quiet: int) -> ExitCode:
     if output is OutputFormat.JSON:
-        envelope = _render_envelope(
+        envelope: Final[str] = _render_envelope(
             result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
         )
         print(envelope)  # ruff:ignore[print]  # the JSON envelope is the command's machine-readable stdout payload
@@ -115,7 +101,7 @@ def _render_envelope(
 ) -> str:
     return json.dumps(
         {
-            "pipx_result_version": PIPX_RESULT_VERSION,
+            "pipx_result_version": _PIPX_RESULT_VERSION,
             "command": list(command),
             "status": status,
             "exit_code": int(exit_code),
@@ -125,6 +111,19 @@ def _render_envelope(
         indent=2,
         sort_keys=True,
     )
+
+
+def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
+    for message in messages:
+        if quiet <= message.level:
+            if message.stream is OutputStream.LOG:
+                _LOGGER.warning(message.text)
+            else:
+                print(message.text, file=sys.stderr if message.stream is OutputStream.STDERR else sys.stdout)
+
+
+def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: ExitCode) -> str:
+    return _render_envelope(command, "error", exit_code, {}, (error,))
 
 
 __all__ = [

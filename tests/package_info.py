@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
-WIN = sys.platform.startswith("win")
+_WIN: Final[bool] = sys.platform.startswith("win")
 
 
 def _exe_if_win(apps: list[str]) -> list[str]:
-    return [f"{app}.exe" if WIN else app for app in apps]
+    return [f"{app}.exe" if _WIN else app for app in apps]
 
 
-# Versions of all packages possibly used in our tests
-# Only apply _exe_if_win to entry_points, NOT scripts
-PKG: dict[str, dict[str, Any]] = {
+# Windows wraps entry points in an .exe launcher but installs scripts as they are, so only entry points go through
+# _exe_if_win
+PKG: Final[dict[str, dict[str, Any]]] = {
     "ansible": {
         "spec": "ansible==6.7.0",
         "apps": [
@@ -239,7 +239,7 @@ PKG: dict[str, dict[str, Any]] = {
         "apps": ["grow"],
         "apps_of_dependencies": _exe_if_win([
             "chardetect",  # chardet EXE
-            "gen_protorpc",  # EXE
+            "gen_protorpc",
             "html2text",  # html2text EXE
             "markdown_py",  # Markdown EXE
             "pybabel",  # babel EXE
@@ -339,25 +339,25 @@ PKG: dict[str, dict[str, Any]] = {
         "spec": "jupyter==1.0.0",
         "apps": [],
         "apps_of_dependencies": _exe_if_win([
-            "iptest",  # EXE
-            "iptest3",  # EXE
-            "ipython",  # EXE
-            "ipython3",  # EXE
+            "iptest",
+            "iptest3",
+            "ipython",
+            "ipython3",
             "jsonschema",  # jsonschema EXE
-            "jupyter",  # EXE
-            "jupyter-bundlerextension",  # EXE
-            "jupyter-console",  # EXE
-            "jupyter-kernel",  # EXE
-            "jupyter-kernelspec",  # EXE
-            "jupyter-migrate",  # EXE
-            "jupyter-nbconvert",  # EXE
-            "jupyter-nbextension",  # EXE
-            "jupyter-notebook",  # EXE
-            "jupyter-qtconsole",  # EXE
-            "jupyter-run",  # EXE
-            "jupyter-serverextension",  # EXE
-            "jupyter-troubleshoot",  # EXE
-            "jupyter-trust",  # EXE
+            "jupyter",
+            "jupyter-bundlerextension",
+            "jupyter-console",
+            "jupyter-kernel",
+            "jupyter-kernelspec",
+            "jupyter-migrate",
+            "jupyter-nbconvert",
+            "jupyter-nbextension",
+            "jupyter-notebook",
+            "jupyter-qtconsole",
+            "jupyter-run",
+            "jupyter-serverextension",
+            "jupyter-troubleshoot",
+            "jupyter-trust",
             "pygmentize",  # pygments EXE
         ]),
     },
@@ -423,40 +423,40 @@ PKG: dict[str, dict[str, Any]] = {
         "spec": "mackup==0.8.29",
         "apps": _exe_if_win(["mackup"]),
         "apps_of_dependencies": [],
-    },  # ONLY FOR mac, linux
+    },  # macOS and Linux only
     "magic-wormhole": {
         "spec": "magic-wormhole==0.13.0",
         "apps": _exe_if_win(["wormhole"]),
         "apps_of_dependencies": _exe_if_win([
-            "automat-visualize",  # EXE
-            "cftp",  # EXE
-            "ckeygen",  # EXE
-            "conch",  # EXE
-            "mailmail",  # EXE
-            "pyhtmlizer",  # EXE
-            "tkconch",  # EXE
+            "automat-visualize",
+            "cftp",
+            "ckeygen",
+            "conch",
+            "mailmail",
+            "pyhtmlizer",
+            "tkconch",
             "tqdm",  # tqdm EXE
-            "trial",  # EXE
-            "twist",  # EXE
-            "twistd",  # EXE
-            "wamp",  # EXE
-            "xbrnetwork",  # EXE
-            "xbrnetwork-ui",  # EXE
+            "trial",
+            "twist",
+            "twistd",
+            "wamp",
+            "xbrnetwork",
+            "xbrnetwork-ui",
         ])
-        + (["pywin32_postinstall.py", "pywin32_testall.py"] if WIN else []),
+        + (["pywin32_postinstall.py", "pywin32_testall.py"] if _WIN else []),
     },
     "mayan-edms": {
         "spec": "mayan-edms==3.5.2",
         "apps": ["mayan-edms.py"],
         "apps_of_dependencies": [
             *_exe_if_win([
-                "celery",  # EXE
+                "celery",
                 "chardetect",  # chardet EXE
-                "django-admin",  # EXE
-                "gunicorn",  # EXE
+                "django-admin",
+                "gunicorn",
                 "jsonschema",  # jsonschema EXE
                 "sqlformat",  # sqlparse EXE
-                "swagger-flex",  # EXE
+                "swagger-flex",
                 "update-tld-names",  # # EXE
             ]),
             "django-admin.py",
@@ -467,10 +467,10 @@ PKG: dict[str, dict[str, Any]] = {
         "spec": "mkdocs==1.1.2",
         "apps": _exe_if_win(["mkdocs"]),
         "apps_of_dependencies": _exe_if_win([
-            "livereload",  # EXE
+            "livereload",
             "futurize",  # future EXE
             "pasteurize",  # future EXE
-            "nltk",  # EXE
+            "nltk",
             "tqdm",  # tqdm EXE
             "markdown_py",  # Markdown EXE
         ]),
@@ -486,10 +486,10 @@ PKG: dict[str, dict[str, Any]] = {
         "apps_of_dependencies": [
             *_exe_if_win([
                 "docutils",
-                "doit",  # EXE
+                "doit",
                 "mako-render",  # mako EXE
                 "markdown_py",  # Markdown EXE
-                "natsort",  # EXE
+                "natsort",
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
                 "unidecode",  # unidecode EXE
@@ -638,8 +638,8 @@ PKG: dict[str, dict[str, Any]] = {
                 "docutils",
                 "markdown_py",  # Markdown EXE
                 "pygmentize",  # pygments EXE
-                "pylupdate6",  # EXE
-                "pyuic6",  # EXE
+                "pylupdate6",
+                "pyuic6",
                 "chardetect",
             ]),
             "rst2html.py",  # docutils NO_EXE
@@ -705,7 +705,7 @@ PKG: dict[str, dict[str, Any]] = {
     },
     "streamlink": {
         "spec": "streamlink==6.3.1",
-        "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if WIN else [])),
+        "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if _WIN else [])),
         "apps_of_dependencies": _exe_if_win(["normalizer", "wsdump"]),
         "man_pages": [str(Path("man1") / "streamlink.1")],
         "man_pages_of_dependencies": [],
@@ -862,3 +862,8 @@ PKG: dict[str, dict[str, Any]] = {
         ]),
     },
 }
+
+
+__all__ = [
+    "PKG",
+]

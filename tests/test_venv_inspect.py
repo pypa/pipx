@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import skip_if_windows
+from helpers import SKIP_IF_WINDOWS, write_dist_info
 from pipx import venv_inspect
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -17,40 +18,46 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def _write_dist_info(site_packages: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
-    dist_info = site_packages / f"{canonicalize_name(name)}-1.0.dist-info"
-    dist_info.mkdir(parents=True)
-    metadata = [f"Name: {name}", "Version: 1.0"]
-    metadata.extend(f"Requires-Dist: {requirement}" for requirement in requirements)
-    (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
-
-
-def test_inspect_venv_indexes_distribution_names_once(tmp_path: Path, mocker: MockerFixture) -> None:
-    site_packages = tmp_path / "site-packages"
+def test_inspect_venv_indexes_distribution_names_once(
+    tmp_path: Path, venv_sys_path: list[str], mocker: MockerFixture
+) -> None:
+    site_packages: Final[Path] = tmp_path / "site-packages"
     _write_dist_info(site_packages, "Root_Package", ("dependency-package",))
     _write_dist_info(site_packages, "Dependency_Package")
-    nameless_dist_info = site_packages / "nameless-1.0.dist-info"
-    nameless_dist_info.mkdir()
+    (nameless_dist_info := site_packages / "nameless-1.0.dist-info").mkdir()
     (nameless_dist_info / "METADATA").write_text("Version: 1.0\n", encoding="utf-8")
+    venv_sys_path.append(str(site_packages))
+    canonicalize: Final = mocker.spy(venv_inspect, "canonicalize_name")
+
+    result: Final = venv_inspect.inspect_venv(
+        "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man"
+    )
+
+    canonicalized: Final[list[str]] = [call.args[0] for call in canonicalize.call_args_list]
+    assert (result.package_version, canonicalized.count("Root_Package"), canonicalized.count("Dependency_Package")) == (
+        "1.0",
+        1,
+        1,
+    )
+
+
+@pytest.fixture
+def venv_sys_path(mocker: MockerFixture) -> list[str]:
+    sys_path: Final[list[str]] = []
     mocker.patch.object(
         venv_inspect,
         "fetch_info_in_venv",
         autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
+        return_value=(sys_path, {"python_full_version": "3.10.0"}, "3.10.0"),
     )
-    canonicalize = mocker.spy(venv_inspect, "canonicalize_name")
+    return sys_path
 
-    result = venv_inspect.inspect_venv(
-        "root-package",
-        set(),
-        tmp_path / "bin",
-        tmp_path / "python",
-        tmp_path / "man",
-    )
 
-    assert result.package_version == "1.0"
-    assert [call.args[0] for call in canonicalize.call_args_list].count("Root_Package") == 1
-    assert [call.args[0] for call in canonicalize.call_args_list].count("Dependency_Package") == 1
+def _write_dist_info(site_packages: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
+    (dist_info := site_packages / f"{canonicalize_name(name)}-1.0.dist-info").mkdir(parents=True)
+    metadata: Final[list[str]] = [f"Name: {name}", "Version: 1.0"]
+    metadata.extend(f"Requires-Dist: {requirement}" for requirement in requirements)
+    (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -70,16 +77,20 @@ def test_not_required_packages_skips_invalid_distribution_names(tmp_path: Path, 
     assert venv_inspect.not_required_packages([str(tmp_path)], {}) == {"top-package"}
 
 
-def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: MockerFixture) -> None:
-    site_packages = tmp_path / "site-packages"
+def test_list_not_required_packages_treats_extra_dependencies_as_required(site_packages: Path, tmp_path: Path) -> None:
+    # child-package is required only through top-package's `extra == "cli"` dependency, so it stays required while
+    # top-package is installed
+    write_dist_info(site_packages, "top-package", ['child-package>=1; extra == "cli"'], provides_extra=["cli"])
+    write_dist_info(site_packages, "child-package")
+
+    assert list_not_required_packages(tmp_path / "bin" / "python") == {"top-package"}
+
+
+def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, venv_sys_path: list[str]) -> None:
+    site_packages: Final[Path] = tmp_path / "site-packages"
     _write_dist_info(site_packages, "root-package")
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
-    )
-    args: tuple[str, set[str], Path, Path, Path] = (
+    venv_sys_path.append(str(site_packages))
+    args: Final[tuple[str, set[str], Path, Path, Path]] = (
         "root-package",
         set(),
         tmp_path / "bin",
@@ -89,7 +100,7 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
 
     assert venv_inspect.inspect_venv(*args).package_version == "1.0"
 
-    site_packages_stat = site_packages.stat()
+    site_packages_stat: Final[os.stat_result] = site_packages.stat()
     _write_dist_info(site_packages, "dependency-package")
     (site_packages / "root-package-1.0.dist-info" / "METADATA").write_text(
         "Name: root-package\nVersion: 1.0\nRequires-Dist: dependency-package\n",
@@ -100,18 +111,13 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
     assert venv_inspect.inspect_venv(*args).package_version == "1.0"
 
 
-def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, mocker: MockerFixture) -> None:
+def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, venv_sys_path: list[str]) -> None:
     site_packages: Final[Path] = tmp_path / "site-packages"
     _write_dist_info(site_packages, "root-package")
     later: Final[Path] = tmp_path / "base-site-packages" / "root_package-99.dist-info"
     later.mkdir(parents=True)
     (later / "METADATA").write_text("Name: root-package\nVersion: 99\n", encoding="utf-8")
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages), str(later.parent)], {"python_full_version": "3.10.0"}, "3.10.0"),
-    )
+    venv_sys_path.extend([str(site_packages), str(later.parent)])
 
     result: Final = venv_inspect.inspect_venv(
         "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man"
@@ -131,23 +137,10 @@ def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, m
 def test_inspect_venv_copies_editable_man_pages_only_from_the_project(
     editable_project: Path, source: str, expected: list[str]
 ) -> None:
-    source = source.format(outside=editable_project.parent / "outside.1")
-
-    assert _inspect_editable_man_pages(editable_project, source) == expected
-
-
-@skip_if_windows
-@pytest.mark.parametrize(
-    "target",
-    [
-        pytest.param("../../outside.1", id="out-of-the-project"),
-        pytest.param("link.1", id="symlink-loop"),
-    ],
-)
-def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, target: str) -> None:
-    (editable_project / "man" / "link.1").symlink_to(target)
-
-    assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
+    assert (
+        _inspect_editable_man_pages(editable_project, source.format(outside=editable_project.parent / "outside.1"))
+        == expected
+    )
 
 
 @pytest.fixture
@@ -163,16 +156,11 @@ def editable_project(root_package_venv: Path) -> Path:
 
 
 @pytest.fixture
-def root_package_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
+def root_package_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
     site_packages: Final[Path] = tmp_path / "lib" / "site-packages"
     _write_dist_info(site_packages, "root-package")
     (tmp_path / "bin").mkdir()
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
-    )
+    venv_sys_path.append(str(site_packages))
     return tmp_path
 
 
@@ -187,6 +175,20 @@ def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
     return venv_inspect.inspect_venv(
         "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
     ).man_pages
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param("../../outside.1", id="out-of-the-project"),
+        pytest.param("link.1", id="symlink-loop"),
+    ],
+)
+def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, target: str) -> None:
+    (editable_project / "man" / "link.1").symlink_to(target)
+
+    assert _inspect_editable_man_pages(editable_project, "man/link.1") == []
 
 
 @pytest.mark.parametrize(
@@ -207,14 +209,14 @@ def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
 def test_inspect_venv_follows_extras_of_revisited_dependency(
     extras_venv: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...], expected: list[str]
 ) -> None:
-    result = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
+    result: Final = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
 
     assert sorted(result.apps_of_dependencies) == expected
 
 
 @pytest.fixture
-def extras_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
-    site_packages = tmp_path / "site-packages"
+def extras_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
+    site_packages: Final[Path] = tmp_path / "site-packages"
     (tmp_path / "bin").mkdir()
     _write_dist_info(site_packages, "left", ("shared[first]",))
     _write_dist_info(site_packages, "right", ("shared[second]",))
@@ -228,17 +230,12 @@ def extras_venv(tmp_path: Path, mocker: MockerFixture) -> Path:
         "../share/bash-completion/completions/second-app,,\n",
         encoding="utf-8",
     )
-    mocker.patch.object(
-        venv_inspect,
-        "fetch_info_in_venv",
-        autospec=True,
-        return_value=([str(site_packages)], {"python_full_version": "3.13.0"}, "3.13.0"),
-    )
+    venv_sys_path.append(str(site_packages))
     return tmp_path
 
 
 def _write_app(venv_root: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
-    site_packages = venv_root / "site-packages"
+    site_packages: Final[Path] = venv_root / "site-packages"
     _write_dist_info(site_packages, name, requirements)
     (site_packages / f"{name}-1.0.dist-info" / "entry_points.txt").write_text(
         f"[console_scripts]\n{name} = app:main\n", encoding="utf-8"
@@ -261,7 +258,7 @@ def _inspect_extras_venv(
 
 
 def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_venv: Path) -> None:
-    result = _inspect_extras_venv(extras_venv, ("left", "right"))
+    result: Final = _inspect_extras_venv(extras_venv, ("left", "right"))
 
     assert (result.man_paths_of_dependencies, result.completion_paths_of_dependencies) == (
         {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
@@ -298,7 +295,7 @@ def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
     return venv_inspect.inspect_venv("root-package", set(), venv / "bin", venv / "python", venv / "man")
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(other_app_venv: Path) -> None:
     _write_root_metadata(other_app_venv, {"installed-files.txt": "loop\n../../bin/other\n"})
     (loop := other_app_venv / "lib" / "site-packages" / "loop").symlink_to(loop)

@@ -2,9 +2,9 @@
  Use with pre-commit
 ####################
 
-Run a pipx app as a `pre-commit <https://pre-commit.com/>`_ hook. This is useful for apps that work with ``pipx run``
-but have no native pre-commit support, when you want the prebuilt wheel from PyPI rather than a source build, or when you
-need pipx's ``--spec`` and ``--index-url`` flags.
+Run a pipx app as a `pre-commit <https://pre-commit.com/>`_ hook. Reach for this with apps that work with ``pipx run``
+but have no native ``pre-commit`` support, when you want the prebuilt wheel from `PyPI <https://pypi.org/>`__ rather than
+a source build, or when you need pipx's ``--spec`` and ``--index-url`` flags.
 
 *************
  Add the hook
@@ -25,7 +25,7 @@ example. Set ``rev`` to the latest pipx release tag from the `releases page
           args: [yapf, -i]
           types: [python]
 
-The ``args`` list is passed to ``pipx run``: the first item is the app to run, the rest are its arguments.
+``pre-commit`` passes the ``args`` list to ``pipx run``: the first item is the app to run, the rest are its arguments.
 
 **********
  Verify it

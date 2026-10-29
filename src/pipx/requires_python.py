@@ -19,8 +19,6 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 # the newest release pipx looks for when a package rules out the default interpreter
 _NEWEST_PYTHON_MINOR: Final[int] = 15
-# scanned to decide whether a minor's range overlaps a constraint; above any real CPython patch count so none is missed
-_MAX_PATCH: Final[int] = 40
 
 
 class IncompatiblePythonError(PipxError):
@@ -56,18 +54,43 @@ def rejected_constraint(backend_output: str) -> SpecifierSet | None:
     )
 
 
+def _parse(requires_python: str) -> SpecifierSet | None:
+    try:
+        return SpecifierSet(requires_python)
+    except InvalidSpecifier:
+        _LOGGER.info("Cannot read the Python constraint %r", requires_python)
+        return None
+
+
+def _candidate_versions() -> Iterator[str]:
+    return (f"3.{minor}" for minor in range(_NEWEST_PYTHON_MINOR, int(MINIMUM_PYTHON_VERSION.split(".")[1]) - 1, -1))
+
+
+def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
+    # no CPython minor has reached 40 patch releases, so the scan misses none
+    return any(constraint.contains(f"{minor}.{patch}", prereleases=True) for patch in range(40))
+
+
 def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
-    """The declared constraint when ``python_version`` fails it, otherwise nothing."""
     if not requires_python or (constraint := _parse(requires_python)) is None:
         return None
     return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
 def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
-    """The declared constraint when ``interpreter`` fails it, otherwise nothing (unknown version passes)."""
+    # an interpreter whose version pipx cannot read passes
     if (version := _interpreter_version(interpreter)) is None:
         return None
     return unsatisfied_constraint(requires_python, version)
+
+
+def _interpreter_version(interpreter: str) -> str | None:
+    process: Final = run_subprocess(
+        [interpreter, "-c", "import sys; print('.'.join(str(part) for part in sys.version_info[:3]))"],
+        capture_stderr=False,
+        log_stdout=False,
+    )
+    return process.stdout.strip() or None if process.returncode == 0 else None
 
 
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
@@ -99,39 +122,11 @@ def _matching_interpreter(minor: str, constraint: SpecifierSet, fetch_python: Fe
         interpreter: Final[str] = find_python_interpreter(minor, fetch_python)
     except (InterpreterResolutionError, PipxError):
         return None
-    # the resolved interpreter is some patch release of the minor, so the constraint is checked against its real version
-    version: Final[str | None] = _interpreter_version(interpreter)
-    if version is not None and constraint.contains(version, prereleases=True):
+    # the resolved interpreter is some patch release of the minor, so pipx checks the constraint against its own version
+    if (version := _interpreter_version(interpreter)) is not None and constraint.contains(version, prereleases=True):
         _LOGGER.info("Python %s satisfies %s", version, constraint)
         return interpreter
     return None
-
-
-def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
-    return any(constraint.contains(f"{minor}.{patch}", prereleases=True) for patch in range(_MAX_PATCH))
-
-
-def _interpreter_version(interpreter: str) -> str | None:
-    process = run_subprocess(
-        [interpreter, "-c", "import sys; print('.'.join(str(part) for part in sys.version_info[:3]))"],
-        capture_stderr=False,
-        log_stdout=False,
-    )
-    return process.stdout.strip() or None if process.returncode == 0 else None
-
-
-def _candidate_versions() -> Iterator[str]:
-    lowest: Final[int] = int(MINIMUM_PYTHON_VERSION.split(".")[1])
-    for minor in range(_NEWEST_PYTHON_MINOR, lowest - 1, -1):
-        yield f"3.{minor}"
-
-
-def _parse(requires_python: str) -> SpecifierSet | None:
-    try:
-        return SpecifierSet(requires_python)
-    except InvalidSpecifier:
-        _LOGGER.info("Cannot read the Python constraint %r", requires_python)
-        return None
 
 
 __all__ = [

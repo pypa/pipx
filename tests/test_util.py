@@ -16,10 +16,11 @@ from venv import EnvBuilder
 
 import pytest
 
-from helpers import skip_if_windows
+from helpers import SKIP_IF_WINDOWS
 from pipx import paths
 from pipx.fanout import fan_out
 from pipx.util import (
+    PipxError,
     exec_app,
     full_package_description,
     get_site_packages,
@@ -34,6 +35,7 @@ from pipx.util import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
+    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
@@ -43,49 +45,44 @@ _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.w
 _COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
-@pytest.mark.parametrize("windows", [pytest.param(False, id="posix"), pytest.param(True, id="windows")])
-def test_exec_app_preserves_stream_encoding(
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    windows: bool,
-) -> None:
-    monkeypatch.setattr("pipx.util.WINDOWS", windows)
-    env = {"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"}
-    if windows:
-        boundary = mocker.patch("pipx.util.subprocess.run", autospec=True, side_effect=RuntimeError)
-    else:
-        boundary = mocker.patch("pipx.util.os.execvpe", autospec=True, side_effect=RuntimeError)
+_STREAM_ENCODING: Final[dict[str, str]] = {"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"}
+
+
+def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("pipx.util.WINDOWS", False)
+    execvpe: Final[MagicMock] = mocker.patch("pipx.util.os.execvpe", autospec=True, side_effect=RuntimeError)
 
     with pytest.raises(RuntimeError):
-        exec_app(["python"], env)
+        exec_app(["python"], dict(_STREAM_ENCODING))
 
-    child_env = boundary.call_args.kwargs["env"] if windows else boundary.call_args.args[2]
-    assert child_env["PYTHONIOENCODING"] == "cp850"
-    assert child_env["PYTHONLEGACYWINDOWSSTDIO"] == "cp850"
+    assert {name: execvpe.call_args.args[2][name] for name in _STREAM_ENCODING} == _STREAM_ENCODING
+
+
+def test_exec_app_preserves_stream_encoding_on_windows(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("pipx.util.WINDOWS", True)
+    run: Final[MagicMock] = mocker.patch("pipx.util.subprocess.run", autospec=True, side_effect=RuntimeError)
+
+    with pytest.raises(RuntimeError):
+        exec_app(["python"], dict(_STREAM_ENCODING))
+
+    assert {name: run.call_args.kwargs["env"][name] for name in _STREAM_ENCODING} == _STREAM_ENCODING
 
 
 def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
     caplog: pytest.LogCaptureFixture,
-    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     tmp_path: Path,
 ) -> None:
-    trash_dir = tmp_path / "trash"
-    trash_dir.mkdir()
-    (trash_dir / "locked.dll").write_text("locked")
-
-    def fake_rmtree(path: Path, ignore_errors: bool = False) -> None:
-        assert path == trash_dir
-        if not ignore_errors:
-            msg = "locked file"
-            raise PermissionError(msg)
-
-    monkeypatch.setattr("pipx.util.shutil.rmtree", fake_rmtree)
+    (locked_dir := tmp_path / "locked").mkdir()
+    (locked_dir / "locked.dll").write_text("locked")
+    rmtree: Final[MagicMock] = mocker.patch("pipx.util.shutil.rmtree", autospec=True)
 
     with caplog.at_level(logging.WARNING, logger="pipx.util"):
-        rmdir(trash_dir, safe_rm=False)
+        rmdir(locked_dir, safe_rm=False)
 
-    assert trash_dir.is_dir()
-    assert f"Failed to delete {trash_dir}. You may need to delete it manually." in caplog.text
+    rmtree.assert_called_once_with(locked_dir, ignore_errors=True)
+    assert locked_dir.is_dir()
+    assert f"Failed to delete {locked_dir}. You may need to delete it manually." in caplog.text
 
 
 def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
@@ -93,11 +90,10 @@ def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
     mocker: MockerFixture,
     tmp_path: Path,
 ) -> None:
-    path = tmp_path / "locked"
-    path.mkdir()
-    mocker.patch("pipx.util.shutil.rmtree")
+    (path := tmp_path / "locked").mkdir()
+    mocker.patch("pipx.util.shutil.rmtree", autospec=True)
     mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"))
-    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+    mocker.patch.object(type(paths.CTX), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
 
     with caplog.at_level(logging.WARNING, logger="pipx.util"):
         rmdir(path)
@@ -109,7 +105,7 @@ def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
 def test_rmdir_via_trash_removes_in_place_when_the_move_fails(mocker: MockerFixture, tmp_path: Path) -> None:
     (path := tmp_path / "venv").mkdir()
     mocker.patch.object(Path, "rename", autospec=True, side_effect=OSError("cross-device link"))
-    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+    mocker.patch.object(type(paths.CTX), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
 
     rmdir_via_trash(path)
 
@@ -117,22 +113,9 @@ def test_rmdir_via_trash_removes_in_place_when_the_move_fails(mocker: MockerFixt
 
 
 def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp_path: Path) -> None:
-    file = tmp_path / "locked"
-    file.write_text("content")
-    trash_dir = tmp_path / "trash"
-    trash_dir.mkdir()
-    is_dir = Path.is_dir
-    stale = True
-
-    def stale_is_dir(path: Path) -> bool:
-        nonlocal stale
-        if path == trash_dir and stale:
-            stale = False
-            return False
-        return is_dir(path)
-
-    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=trash_dir))
-    mocker.patch.object(Path, "is_dir", stale_is_dir)
+    (file := tmp_path / "locked").write_text("content")
+    (trash_dir := tmp_path / "trash").mkdir()
+    mocker.patch.object(type(paths.CTX), "trash", mocker.PropertyMock(return_value=trash_dir))
     mocker.patch.object(Path, "unlink", side_effect=PermissionError("locked file"))
 
     safe_unlink(file)
@@ -141,27 +124,38 @@ def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp
     assert [path.read_text() for path in trash_dir.iterdir()] == ["content"]
 
 
+def test_subprocess_keyring_provider_defaults_to_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PIP_KEYRING_PROVIDER", raising=False)
+
+    result: Final = run_subprocess([sys.executable, "-c", "import os; print(os.environ['PIP_KEYRING_PROVIDER'])"])
+
+    assert result.stdout.strip() == "subprocess"
+
+
 @pytest.mark.parametrize(
-    ("env_value", "expected"),
+    ("variable", "value", "expected"),
     [
-        pytest.param(None, "subprocess", id="defaults_to_subprocess"),
-        pytest.param("import", "import", id="preserves_explicit"),
+        pytest.param("PIP_KEYRING_PROVIDER", "import", "import", id="keyring-provider-preserved"),
+        pytest.param("PIP_TARGET", "/some/custom/target", "unset", id="pip-target-removed"),
+        pytest.param("PIP_USER", "1", "0", id="pip-user-disabled"),
     ],
 )
-def test_subprocess_keyring_provider(monkeypatch: pytest.MonkeyPatch, env_value: str | None, expected: str) -> None:
-    if env_value is not None:
-        monkeypatch.setenv("PIP_KEYRING_PROVIDER", env_value)
-    else:
-        monkeypatch.delenv("PIP_KEYRING_PROVIDER", raising=False)
+def test_subprocess_env_seen_by_the_child(
+    monkeypatch: pytest.MonkeyPatch, variable: str, value: str, expected: str
+) -> None:
+    monkeypatch.setenv(variable, value)
 
-    result = run_subprocess([sys.executable, "-c", "import os; print(os.environ['PIP_KEYRING_PROVIDER'])"])
+    result: Final = run_subprocess([
+        sys.executable,
+        "-c",
+        f"import os; print(os.environ.get({variable!r}, 'unset'))",
+    ])
 
     assert result.stdout.strip() == expected
 
 
 def test_subprocess_pythonsafepath_set_for_python_commands() -> None:
-    """Test that PYTHONSAFEPATH is set for Python subprocess calls to prevent CWD shadowing (issue #1575)."""
-    result = run_subprocess([
+    result: Final = run_subprocess([
         sys.executable,
         "-c",
         "import os, sys; sys.stdout.write(os.environ.get('PYTHONSAFEPATH', ''))",
@@ -211,21 +205,6 @@ def test_subprocess_held_uncaptured_stderr_stays_unset() -> None:
     assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, None]
 
 
-@pytest.fixture
-def typed_input() -> Iterator[None]:
-    read_end, write_end = os.pipe()
-    os.write(write_end, b"typed")
-    os.close(write_end)
-    saved: Final[int] = os.dup(0)
-    os.dup2(read_end, 0)
-    os.close(read_end)
-    try:
-        yield
-    finally:
-        os.dup2(saved, 0)
-        os.close(saved)
-
-
 @pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
 @pytest.mark.usefixtures("typed_input")
 def test_subprocess_of_fan_out_task_waiting_its_turn_reads_no_input(stream_output: bool) -> None:
@@ -239,6 +218,21 @@ def test_subprocess_of_fan_out_task_waiting_its_turn_reads_no_input(stream_outpu
         return stdout
 
     assert fan_out([lambda: second_done.wait(timeout=5), second], sequential=False) == [True, "''\n"]
+
+
+@pytest.fixture
+def typed_input() -> Iterator[None]:
+    read_end, write_end = os.pipe()
+    os.write(write_end, b"typed")
+    os.close(write_end)
+    saved: Final[int] = os.dup(0)
+    os.dup2(read_end, 0)
+    os.close(read_end)
+    try:
+        yield
+    finally:
+        os.dup2(saved, 0)
+        os.close(saved)
 
 
 def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[str]) -> None:
@@ -316,10 +310,18 @@ def test_subprocess_stream_reports_the_terminal_to_the_child(
     assert result.stdout.strip() == expected
 
 
-@skip_if_windows
-def test_subprocess_stream_hands_a_terminal_to_the_child(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    ("destination_is_a_terminal", "expected"),
+    [
+        pytest.param(True, "True", id="hands-a-terminal", marks=SKIP_IF_WINDOWS),
+        pytest.param(False, "False", id="leaves-a-pipe"),
+    ],
+)
+def test_subprocess_stream_child_sees_a_terminal_only_behind_one(
+    mocker: MockerFixture, destination_is_a_terminal: bool, expected: str
+) -> None:
     destination: Final[StringIO] = StringIO()
-    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch.object(destination, "isatty", return_value=destination_is_a_terminal)
     mocker.patch("pipx.util.sys.stdout", destination)
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
@@ -327,19 +329,7 @@ def test_subprocess_stream_hands_a_terminal_to_the_child(mocker: MockerFixture) 
         stream_output=True,
     )
 
-    assert result.stdout.strip() == "True"
-
-
-def test_subprocess_stream_leaves_a_pipe_to_the_child_without_a_terminal(mocker: MockerFixture) -> None:
-    destination: Final[StringIO] = StringIO()
-    mocker.patch("pipx.util.sys.stdout", destination)
-    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
-        [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
-        capture_stderr=False,
-        stream_output=True,
-    )
-
-    assert result.stdout.strip() == "False"
+    assert result.stdout.strip() == expected
 
 
 def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:
@@ -405,7 +395,7 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
     assert outputs == {"payload"}
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c() -> None:
     # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
@@ -420,7 +410,7 @@ def test_subprocess_stream_propagates_ctrl_c() -> None:
         )
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c_while_readers_start(mocker: MockerFixture) -> None:
     submit: Final = ThreadPoolExecutor.submit
@@ -450,7 +440,7 @@ def test_subprocess_replaces_undecodable_output(stream_output: bool) -> None:
     assert result.stdout == "\ufffd bad\nafter\n"
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
@@ -460,7 +450,7 @@ def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
     assert result.stdout == "\ufffd bad\nafter\n"
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
     destination: Final[StringIO] = StringIO()
     mocker.patch.object(destination, "isatty", return_value=True)
@@ -509,7 +499,7 @@ def test_get_site_packages_reads_the_venv_layout(tmp_path: Path, site_dirs: list
     assert get_site_packages(tmp_path / "bin" / "python") == [tmp_path / site_dir for site_dir in expected]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_get_site_packages_skips_a_lib64_linked_to_lib(tmp_path: Path) -> None:
     (purelib := tmp_path / "lib" / "python3.99" / "site-packages").mkdir(parents=True)
     (tmp_path / "lib64").symlink_to("lib")
@@ -517,12 +507,12 @@ def test_get_site_packages_skips_a_lib64_linked_to_lib(tmp_path: Path) -> None:
     assert get_site_packages(tmp_path / "bin" / "python") == [purelib]
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp_path: Path) -> None:
     EnvBuilder(symlinks=True).create(tmp_path)
     (tmp_path / "lib" / "python3.0" / "site-packages").mkdir(parents=True)
-    interpreter = tmp_path / "bin" / "python"
-    output = subprocess.run(
+    interpreter: Final[Path] = tmp_path / "bin" / "python"
+    output: Final[list[str]] = subprocess.run(
         (
             str(interpreter),
             "-c",
@@ -540,12 +530,12 @@ def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp
 
 
 def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+    monkeypatch.setattr(paths.CTX, "log_file", tmp_path / "cmd.log")
     tags: Final[str] = "ABCDEFGH"
 
     def fail(tag: str) -> None:
         output: Final[str] = f"{tag * 79}\n" * 2000
-        subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, output, output))
+        subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, output, output), streamed=False)
 
     fan_out([partial(fail, tag) for tag in tags], sequential=False)
 
@@ -554,12 +544,12 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
     assert sorted(blocks) == sorted(tags)
 
 
-@skip_if_windows
+@SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("permissive_umask")
 def test_pip_error_log_is_owner_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(paths.ctx, "log_file", tmp_path / "cmd.log")
+    monkeypatch.setattr(paths.CTX, "log_file", tmp_path / "cmd.log")
 
-    subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, "out", "err"))
+    subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, "out", "err"), streamed=False)
 
     assert stat.S_IMODE((tmp_path / "cmd_pip_errors.log").stat().st_mode) == 0o600
 
@@ -625,13 +615,11 @@ def test_redact_url_credentials_masks_userinfo(text: str, expected: str) -> None
         ),
     ],
 )
-def test_subprocess_post_check_logs_failed_command_without_credentials(
-    caplog: pytest.LogCaptureFixture, args: list[str], expected: str
-) -> None:
-    with caplog.at_level(logging.INFO, logger="pipx.util"):
-        subprocess_post_check(subprocess.CompletedProcess(args, 1, "", ""), raise_error=False)
+def test_subprocess_post_check_reports_failed_command_without_credentials(args: list[str], expected: str) -> None:
+    with pytest.raises(PipxError) as error:
+        subprocess_post_check(subprocess.CompletedProcess(args, 1, "", ""))
 
-    assert caplog.messages == [expected]
+    assert error.value.raw_message == expected
 
 
 def test_full_package_description_of_bare_spec_hides_url_credentials() -> None:

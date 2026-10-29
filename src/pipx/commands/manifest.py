@@ -28,7 +28,7 @@ from datetime import date, datetime, time
 from pathlib import Path
 from shutil import copy2, which
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final, TypeAlias, cast
+from typing import TYPE_CHECKING, Final, TypeAlias
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -51,6 +51,8 @@ from pipx.result import (
 from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
+    from typing import TypeIs
+
     from pipx.venv import VenvContainer
 
 
@@ -66,22 +68,22 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
     backend: str | None,
     env_backend: str | None,
 ) -> OperationResult[ManifestData]:
-    manifest = _load_manifest(manifest_file, require_locks=True)
-    failures: list[_FailedTool] = []
-    messages: list[OutputMessage] = []
-    synced: list[str] = []
+    manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
+    failures: Final[list[_FailedTool]] = []
+    messages: Final[list[OutputMessage]] = []
+    synced: Final[list[str]] = []
     for tool in manifest.tools:
-        venv_dir = venv_container.get_venv_dir(tool.environment)
+        venv_dir: Final[Path] = venv_container.get_venv_dir(tool.environment)
         with venv_container.venv_lock(venv_dir) as venv_lock:
-            existed = venv_dir.is_dir()
-            recorded = PipxMetadata(venv_dir)
-            was_exposed = existed and recorded.exposure_enabled
+            existed: Final[bool] = venv_dir.is_dir()
+            recorded: Final[PipxMetadata] = PipxMetadata(venv_dir)
+            was_exposed: Final[bool] = existed and recorded.exposure_enabled
             try:
                 if was_exposed:
                     unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
                 # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
                 with force_replaces_only(()):
-                    outcome = install(
+                    outcome: Final = install(
                         venv_dir,
                         [tool.package_name],
                         [tool.package],
@@ -118,8 +120,8 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
                 raise
             # install returns a failed result rather than raising when it does not render, so check both
             if error_message is not None:
-                failures.append(_FailedTool(tool.environment, error_message))
-                messages.append(OutputMessage(error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+                failures.append(_FailedTool(environment=tool.environment, error=error_message))
+                messages.append(OutputMessage(text=error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
                     expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             else:
@@ -136,44 +138,18 @@ def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards 
         messages=tuple(messages),
         exit_code=ExitCode(1) if failures else EXIT_CODE_OK,
         errors=tuple(
-            OperationError(code="manifest_sync_failed", message=f.error, environment=f.environment) for f in failures
+            OperationError(code="manifest_sync_failed", message=failure.error, environment=failure.environment)
+            for failure in failures
         ),
         succeeded=bool(synced),
     )
 
 
-def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
-    manifest = _load_manifest(manifest_file, require_locks=False)
-    if not any(tool.lock_file is not None for tool in manifest.tools):
-        msg = "The manifest does not declare any lock files."
-        raise PipxError(msg)
-    if outside := sorted(
-        str(tool.lock_file)
-        for tool in manifest.tools
-        if tool.lock_file is not None and not tool.lock_file.is_relative_to(manifest.path.parent)
-    ):
-        msg = f"Manifest lock files must be inside the manifest directory {manifest.path.parent}: {', '.join(outside)}"
-        raise PipxError(msg)
-    if not (nab := which("nab")):
-        msg = "The nab command is required. Install it with `pipx install nab`."
-        raise PipxError(msg)
-    try:
-        locked: Final[list[str]] = _generate_locks(manifest, nab)
-    except OSError as error:
-        msg = f"Cannot write manifest locks: {error}"
-        raise PipxError(msg) from error
-    return OperationResult(
-        command=("manifest", "lock"),
-        data=ManifestData(environments=(), locks=tuple(locked)),
-        messages=tuple(OutputMessage(f"locked {lock_file}") for lock_file in locked),
-    )
-
-
 def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
-    path = manifest_file.expanduser().resolve()
+    path: Final[Path] = manifest_file.expanduser().resolve()
     try:
         with path.open("rb") as file:
-            data = cast("dict[str, _TomlValue]", tomllib.load(file))
+            data: Final[dict[str, _TomlValue]] = tomllib.load(file)
     except FileNotFoundError as error:
         msg = f"Manifest does not exist: {path}"
         raise PipxError(msg) from error
@@ -183,7 +159,7 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
 
     groups, tool_data = _parse_manifest_tables(data)
 
-    tools: list[_ManifestTool] = []
+    tools: Final[list[_ManifestTool]] = []
     for environment, group in groups.items():
         if not isinstance(group, list) or len(group) != 1 or not isinstance(package := group[0], str):
             msg = f"Dependency group {environment} must contain one package requirement."
@@ -201,7 +177,7 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
 def _parse_manifest_tables(
     data: dict[str, _TomlValue],
 ) -> tuple[dict[str, _TomlValue], dict[str, _TomlValue]]:
-    if unknown := sorted(set(data) - _ROOT_KEYS):
+    if unknown := sorted(set(data) - {"project", "dependency-groups", "tool"}):
         msg = f"Unknown manifest {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}"
         raise PipxError(msg)
     if not isinstance(project := data.get("project"), dict):
@@ -214,7 +190,7 @@ def _parse_manifest_tables(
     if not isinstance(tool_table := data.get("tool"), dict):
         msg = "Manifest tool must be a table."
         raise PipxError(msg)
-    if unknown := sorted(set(tool_table) - _TOOL_TABLE_KEYS):
+    if unknown := sorted(set(tool_table) - {"pipx", "nab"}):
         msg = f"Unknown manifest tool {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}"
         raise PipxError(msg)
     if (nab_data := tool_table.get("nab")) is not None and not isinstance(nab_data, dict):
@@ -224,7 +200,7 @@ def _parse_manifest_tables(
 
 
 def _validate_project(data: dict[str, _TomlValue]) -> None:
-    if unknown := sorted(set(data) - _PROJECT_KEYS):
+    if unknown := sorted(set(data) - {"name", "version", "dependencies", "requires-python"}):
         msg = f"Unknown manifest project {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}"
         raise PipxError(msg)
     if not isinstance(data.get("name"), str) or not isinstance(data.get("version"), str):
@@ -245,11 +221,12 @@ def _parse_pipx_table(
     if not isinstance(pipx_data := tool_table.get("pipx"), dict):
         msg = "Manifest tool.pipx must be a table."
         raise PipxError(msg)
-    if unknown := sorted(set(pipx_data) - _PIPX_KEYS):
+    if unknown := sorted(set(pipx_data) - {"version", "tools"}):
         msg = f"Unknown tool.pipx {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}"
         raise PipxError(msg)
-    if pipx_data.get("version") != _MANIFEST_VERSION:
-        msg = f'Manifest version must be "{_MANIFEST_VERSION}".'
+    manifest_version: Final[str] = "1.0"
+    if pipx_data.get("version") != manifest_version:
+        msg = f'Manifest version must be "{manifest_version}".'
         raise PipxError(msg)
     if not isinstance(tool_data := pipx_data.get("tools", {}), dict):
         msg = "Manifest tool.pipx.tools must be a table."
@@ -271,10 +248,12 @@ def _parse_tool(
     if environment != canonicalize_name(environment):
         msg = f"Manifest tool name must be normalized: {environment}"
         raise PipxError(msg)
-    if unknown := sorted(set(data) - _TOOL_KEYS):
+    if unknown := sorted(
+        set(data) - {"suffix", "apps", "include-dependencies", "include-resources-from", "expose", "lock"}
+    ):
         msg = f"Unknown {'key' if len(unknown) == 1 else 'keys'} for manifest tool {environment}: {', '.join(unknown)}"
         raise PipxError(msg)
-    package_name = _parse_package(environment, package)
+    package_name: Final[str] = _parse_package(environment, package)
     if not isinstance(suffix := data.get("suffix", ""), str):
         msg = f"Manifest tool {environment} suffix must be a string."
         raise PipxError(msg)
@@ -307,7 +286,7 @@ def _parse_tool(
 
 def _parse_package(environment: str, package: str) -> str:
     try:
-        requirement = Requirement(package)
+        requirement: Final[Requirement] = Requirement(package)
     except InvalidRequirement:
         msg = f"Manifest tool {environment} has an invalid package requirement: {redact_url_credentials(package)}"
         # packaging quotes the requirement in its message, so chaining it would log the credentials with the traceback
@@ -319,26 +298,28 @@ def _parse_package(environment: str, package: str) -> str:
 
 
 def _parse_include_resources_from(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
-    if not isinstance(packages := data.get("include-resources-from", []), list) or any(
-        not isinstance(package, str) or not package for package in packages
-    ):
+    if not _is_non_empty_strings(packages := data.get("include-resources-from", [])):
         msg = f"Manifest tool {environment} include-resources-from must be non-empty strings."
         raise PipxError(msg)
-    included: Final[tuple[str, ...]] = tuple(canonicalize_name(package) for package in cast("list[str]", packages))
+    included: Final[tuple[str, ...]] = tuple(canonicalize_name(package) for package in packages)
     if len(included) != len(set(included)):
         msg = f"Manifest tool {environment} include-resources-from must be unique."
         raise PipxError(msg)
     return included
 
 
+def _is_non_empty_strings(value: object) -> TypeIs[list[str]]:
+    return isinstance(value, list) and all(isinstance(item, str) and item for item in value)
+
+
 def _parse_apps(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
-    if not isinstance(apps := data.get("apps", []), list) or any(not isinstance(app, str) or not app for app in apps):
+    if not _is_non_empty_strings(apps := data.get("apps", [])):
         msg = f"Manifest tool {environment} apps must be non-empty strings."
         raise PipxError(msg)
     if len(apps) != len(set(apps)):
         msg = f"Manifest tool {environment} apps must be unique."
         raise PipxError(msg)
-    return tuple(cast("list[str]", apps))
+    return tuple(apps)
 
 
 def _parse_lock_file(
@@ -353,10 +334,8 @@ def _parse_lock_file(
     if not isinstance(lock_value, str):
         msg = f"Manifest tool {environment} lock must be a path string."
         raise PipxError(msg)
-    lock_file = Path(lock_value).expanduser()
-    if not lock_file.is_absolute():
-        lock_file = manifest_dir / lock_file
-    lock_file = lock_file.resolve()
+    # joining onto the manifest directory keeps an absolute lock path as it is
+    lock_file: Final[Path] = (manifest_dir / Path(lock_value).expanduser()).resolve()
     if not _is_pylock_name(lock_file.name):
         msg = f"Manifest tool {environment} lock must be named pylock.toml or pylock.<name>.toml."
         raise PipxError(msg)
@@ -364,11 +343,6 @@ def _parse_lock_file(
         msg = f"Lock file does not exist for manifest tool {environment}: {lock_file}"
         raise PipxError(msg)
     return lock_file
-
-
-def _duplicate_lock_files(tools: list[_ManifestTool]) -> tuple[Path, ...]:
-    counts = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
-    return tuple(sorted(lock_file for lock_file, count in counts.items() if count > 1))
 
 
 def _is_pylock_name(name: str) -> bool:
@@ -382,13 +356,97 @@ def _is_pylock_name(name: str) -> bool:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ManifestTool:
+    environment: str
+    package: str
+    package_name: str
+    suffix: str
+    apps: tuple[str, ...]
+    include_dependencies: bool
+    include_resources_from: tuple[str, ...]
+    expose: bool
+    lock_file: Path | None
+
+
+def _duplicate_lock_files(tools: list[_ManifestTool]) -> tuple[Path, ...]:
+    counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
+    return tuple(sorted(lock_file for lock_file, count in counts.items() if count > 1))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Manifest:
+    path: Path
+    tools: tuple[_ManifestTool, ...]
+
+
+_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedTool:
+    environment: str
+    error: str
+
+
+def _prune_environments(
+    manifest: _Manifest,
+    venv_container: VenvContainer,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    *,
+    verbose: bool,
+) -> list[OutputMessage]:
+    declared: Final[set[str]] = {tool.environment for tool in manifest.tools}
+    messages: Final[list[OutputMessage]] = []
+    for venv_dir in sorted(venv_container.iter_venv_dirs()):
+        if venv_dir.name in declared:
+            continue
+        with venv_container.venv_lock(venv_dir):
+            messages.extend(uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose).messages)
+    return messages
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ManifestData(OperationData):
+    environments: tuple[str, ...]
+    locks: tuple[str, ...]
+
+
+def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
+    manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=False)
+    if not any(tool.lock_file is not None for tool in manifest.tools):
+        msg = "The manifest does not declare any lock files."
+        raise PipxError(msg)
+    if outside := sorted(
+        str(tool.lock_file)
+        for tool in manifest.tools
+        if tool.lock_file is not None and not tool.lock_file.is_relative_to(manifest.path.parent)
+    ):
+        msg = f"Manifest lock files must be inside the manifest directory {manifest.path.parent}: {', '.join(outside)}"
+        raise PipxError(msg)
+    if not (nab := which("nab")):
+        msg = "The nab command is required. Install it with `pipx install nab`."
+        raise PipxError(msg)
+    try:
+        locked: Final[list[str]] = _generate_locks(manifest, nab)
+    except OSError as error:
+        msg = f"Cannot write manifest locks: {error}"
+        raise PipxError(msg) from error
+    return OperationResult(
+        command=("manifest", "lock"),
+        data=ManifestData(environments=(), locks=tuple(locked)),
+        messages=tuple(OutputMessage(text=f"locked {lock_file}") for lock_file in locked),
+    )
+
+
 def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
     with TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir:
-        generated: list[tuple[Path, Path]] = []
+        generated: Final[list[tuple[Path, Path]]] = []
         for tool in manifest.tools:
             if tool.lock_file is None:
                 continue
-            tool_dir = Path(temporary_dir) / tool.environment
+            tool_dir: Final[Path] = Path(temporary_dir) / tool.environment
             tool_dir.mkdir()
             generated_lock = tool_dir / tool.lock_file.name
             if tool.lock_file.is_file():
@@ -417,13 +475,13 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                 raise PipxError(msg)
             generated.append((generated_lock, tool.lock_file))
 
-        backups_dir = Path(temporary_dir) / ".previous"
+        backups_dir: Final[Path] = Path(temporary_dir) / ".previous"
         backups_dir.mkdir()
         locked: Final[list[str]] = []
         # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
         # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
-        applied: list[tuple[Path, Path | None]] = []
-        try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole apply loop shares one handler so a mid-run failure rolls all locks back
+        applied: Final[list[tuple[Path, Path | None]]] = []
+        try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler rolls back every applied lock
             for index, (generated_lock, lock_file) in enumerate(generated):
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
                 backup: Path | None = None
@@ -445,73 +503,6 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                         lock_file.unlink(missing_ok=True)
             raise
     return locked
-
-
-def _prune_environments(
-    manifest: _Manifest,
-    venv_container: VenvContainer,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    *,
-    verbose: bool,
-) -> list[OutputMessage]:
-    declared = {tool.environment for tool in manifest.tools}
-    messages: list[OutputMessage] = []
-    for venv_dir in sorted(venv_container.iter_venv_dirs()):
-        if venv_dir.name in declared:
-            continue
-        with venv_container.venv_lock(venv_dir):
-            messages.extend(uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose).messages)
-    return messages
-
-
-@dataclass(frozen=True)
-class _Manifest:
-    path: Path
-    tools: tuple[_ManifestTool, ...]
-
-
-@dataclass(frozen=True)
-class _ManifestTool:
-    environment: str
-    package: str
-    package_name: str
-    suffix: str
-    apps: tuple[str, ...]
-    include_dependencies: bool
-    include_resources_from: tuple[str, ...]
-    expose: bool
-    lock_file: Path | None
-
-
-_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
-
-
-_MANIFEST_VERSION: Final[str] = "1.0"
-_ROOT_KEYS: Final[frozenset[str]] = frozenset({"project", "dependency-groups", "tool"})
-_PROJECT_KEYS: Final[frozenset[str]] = frozenset({"name", "version", "dependencies", "requires-python"})
-_TOOL_TABLE_KEYS: Final[frozenset[str]] = frozenset({"pipx", "nab"})
-_PIPX_KEYS: Final[frozenset[str]] = frozenset({"version", "tools"})
-_TOOL_KEYS: Final[frozenset[str]] = frozenset({
-    "suffix",
-    "apps",
-    "include-dependencies",
-    "include-resources-from",
-    "expose",
-    "lock",
-})
-
-
-@dataclass(frozen=True)
-class _FailedTool:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True)
-class ManifestData(OperationData):
-    environments: tuple[str, ...]
-    locks: tuple[str, ...]
 
 
 __all__ = [

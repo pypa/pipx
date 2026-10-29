@@ -16,8 +16,8 @@ exposes their entry points on ``PATH``.
 -  Entry points from the main package and dependencies named with ``--include-resources-from`` or ``--include-deps``.
 
 An install fails when neither the package nor its selected dependencies expose an application. The caller can pass
-``--app NAME`` to require an exact entry point. pipx removes a new environment or restores an existing one when the check
-fails.
+``--app NAME`` to require an exact entry point. pipx removes a new environment or restores an existing one when the
+check fails.
 
 ************
  Boundaries
@@ -47,17 +47,21 @@ The `security policy <https://github.com/pypa/pipx/security/policy>`_ builds on 
 picks up a file the user did not name, from the current directory, its parents, or a location another local account can
 write, has a security bug.
 
-pipx can record an environment's resolved dependencies as a lock file in the PyPA ``pylock.toml`` format, so the
-environment rebuilds identically; ``pipx manifest lock`` writes these locks and ``pipx install --lock`` reads one back.
-pipx does not use ``requirements.txt`` as a state or lock format.
+pipx can record an environment's resolved dependencies as a lock file in the PyPA `pylock.toml
+<https://packaging.python.org/en/latest/specifications/pylock-toml/>`_ format, so the environment rebuilds identically;
+``pipx manifest lock`` writes these locks and ``pipx install --lock`` reads one back. pipx does not use
+``requirements.txt`` as a state or lock format.
 
-pipx exposes top-level policy when pip and uv honor the same contract. Backend arguments carry controls specific to pip
-or uv. ``--cooldown DAYS`` maps one pipx release-age policy to both backends.
+pipx exposes top-level policy when `pip <https://pip.pypa.io>`_ and `uv <https://docs.astral.sh/uv/>`_ honor the same
+contract. Backend arguments carry controls specific to ``pip`` or ``uv``. ``--cooldown DAYS`` maps one pipx release-age
+policy to both backends.
 
 A release-age policy describes the machine, not one command, so ``PIPX_COOLDOWN`` supplies the default and no
 configuration file appears to hold it. That keeps pipx settings in one place and keeps the policy out of the backend
 environment variables (``PIP_UPLOADED_PRIOR_TO``, ``UV_EXCLUDE_NEWER``), which would bind pipx to one backend and leak
-into unrelated pip and uv runs in the same shell. The variable outranks the cooldown an environment recorded at install
+into unrelated ``pip`` and ``uv`` runs in the same shell.
+
+The variable outranks the cooldown an environment recorded at install
 time, because it states what the machine wants now rather than what an older install happened to use; ``--cooldown``
 still overrides both, and a lock file supersedes all of them by pinning every version outright.
 
@@ -76,6 +80,7 @@ not use it as a model; the project should deprecate and remove it in a separate 
  Choose another tool
 ********************
 
-Use a project dependency manager such as uv or Poetry for project libraries and development tools. Use ``venv``, pip, or
-uv for a library environment. Use a version manager such as mise when a directory must select tool versions, and use the
-system package manager to find or install operating-system packages.
+Use a project dependency manager such as ``uv`` or `Poetry <https://python-poetry.org>`_ for project libraries and
+development tools. Use `venv <https://docs.python.org/3/library/venv.html>`_, ``pip``, or ``uv`` for a library
+environment. Use a version manager such as `mise <https://mise.jdx.dev>`_ when a directory must select tool versions,
+and use the system package manager to find or install operating-system packages.

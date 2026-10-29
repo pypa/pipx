@@ -6,31 +6,27 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
+@pytest.mark.parametrize(
+    ("scope_args", "pip_command"),
+    [
+        pytest.param([], "list", id="list"),
+        pytest.param([], "list --format=freeze", id="splits-single-argument"),
+        pytest.param(["--global"], "list", id="global", marks=SKIP_IF_WINDOWS),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_runpip() -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["runpip", "pycowsay", "list"])
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_runpip_splits_single_argument() -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["runpip", "pycowsay", "list --format=freeze"])
-
-
-@skip_if_windows
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_runpip_global() -> None:
-    assert not run_pipx_cli(["install", "--global", "pycowsay"])
-    assert not run_pipx_cli(["runpip", "--global", "pycowsay", "list"])
+def test_runpip(scope_args: list[str], pip_command: str) -> None:
+    assert not run_pipx_cli(["install", *scope_args, "pycowsay"])
+    assert not run_pipx_cli(["runpip", *scope_args, "pycowsay", pip_command])
 
 
 @pytest.mark.parametrize(
@@ -54,10 +50,9 @@ def test_runpip_install_refreshes_main_package_metadata(
 ) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, "--editable", str(empty_project)])
 
-    metadata_path = paths.ctx.venvs / "empty-project" / "pipx_metadata.json"
-    before = json.loads(metadata_path.read_text())
-    assert before["main_package"]["package_or_url"] == str(empty_project.resolve())
-    assert before["main_package"]["pip_args"] == ["--editable"]
+    metadata_path: Final[Path] = paths.CTX.venvs / "empty-project" / "pipx_metadata.json"
+    before: Final = json.loads(metadata_path.read_text())["main_package"]
+    assert (before["package_or_url"], before["pip_args"]) == (str(empty_project.resolve()), ["--editable"])
 
     assert not run_pipx_cli([
         "runpip",
@@ -68,9 +63,8 @@ def test_runpip_install_refreshes_main_package_metadata(
         str(empty_project_wheel),
     ])
 
-    after = json.loads(metadata_path.read_text())
-    assert after["main_package"]["package_or_url"] == str(empty_project_wheel.resolve())
-    assert after["main_package"]["pip_args"] == []
+    after: Final = json.loads(metadata_path.read_text())["main_package"]
+    assert (after["package_or_url"], after["pip_args"]) == (str(empty_project_wheel.resolve()), [])
 
 
 @pytest.mark.parametrize(
@@ -96,14 +90,14 @@ def test_runpip_install_records_editable_spelling(
         *(arg.format(project=empty_project) for arg in editable_args),
     ])
 
-    main_package = json.loads((paths.ctx.venvs / "empty-project" / "pipx_metadata.json").read_text())["main_package"]
-    assert (main_package["package_or_url"], main_package["pip_args"]) == (str(empty_project.resolve()), ["--editable"])
+    main_package: Final = PipxMetadata(paths.CTX.venvs / "empty-project").main_package
+    assert (main_package.package_or_url, main_package.pip_args) == (str(empty_project.resolve()), ["--editable"])
 
 
 _NEW_INDEX: Final[tuple[str, ...]] = ("--no-index", "--find-links", "{new}")
 
 
-@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.parametrize(
     ("install_args", "runpip_args", "expected"),
     [
@@ -135,8 +129,7 @@ def test_runpip_install_records_index_options(
 
     assert not run_pipx_cli(["runpip", "empty-project", "install", "--force-reinstall", *fill(runpip_args)])
 
-    metadata = json.loads((paths.ctx.venvs / "empty-project" / "pipx_metadata.json").read_text())
-    assert metadata["main_package"]["pip_args"] == fill(expected)
+    assert PipxMetadata(paths.CTX.venvs / "empty-project").main_package.pip_args == fill(expected)
 
 
 @pytest.mark.parametrize(
@@ -152,13 +145,13 @@ def test_runpip_resolves_relative_paths_in_working_directory(
 ) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, str(empty_project_wheel)])
     # a wheel's data files unpack into the venv root, so a file there must not stand in for the user's
-    (paths.ctx.venvs / "empty-project" / "requirements.txt").write_text("picked-by-an-installed-wheel\n")
+    (paths.CTX.venvs / "empty-project" / "requirements.txt").write_text("picked-by-an-installed-wheel\n")
     (tmp_path / "requirements.txt").write_text(f"{local_extras_wheel}\n")
     monkeypatch.chdir(tmp_path)
 
     assert not run_pipx_cli(["runpip", "empty-project", "install", "-r", "requirements.txt"])
 
-    assert "repeatme" in Venv(paths.ctx.venvs / "empty-project").list_installed_packages()
+    assert "repeatme" in Venv(paths.CTX.venvs / "empty-project").list_installed_packages()
 
 
 @pytest.mark.parametrize(
@@ -179,6 +172,6 @@ def test_runpip_relative_find_links_survive_reinstall(
     shutil.copy2(empty_project_wheel, wheels)
     monkeypatch.chdir(tmp_path)
     assert not run_pipx_cli(["runpip", "empty-project", "install", "--no-index", *find_links_args, "empty-project"])
-    monkeypatch.chdir(paths.ctx.home)
+    monkeypatch.chdir(paths.CTX.home)
 
     assert not run_pipx_cli(["reinstall", "empty-project"])

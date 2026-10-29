@@ -18,20 +18,22 @@ _LAZY_MODULES_HONORED: Final[pytest.MarkDecorator] = pytest.mark.skipif(
 )
 
 
-def test_importing_util_first_succeeds(root: Path) -> None:
-    env = {**os.environ, "PYTHONPATH": str(root / "src")}
-
-    result = subprocess.run(
+def test_importing_util_first_succeeds(root: Path, source_env: dict[str, str]) -> None:
+    result: Final = subprocess.run(
         [sys.executable, "-c", "import pipx.util; print('Success!')"],
         check=False,
         capture_output=True,
         cwd=root,
-        env=env,
+        env=source_env,
         text=True,
     )
 
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "Success!\n"
+    assert (result.returncode, result.stdout) == (0, "Success!\n"), result.stderr
+
+
+@pytest.fixture
+def source_env(root: Path) -> dict[str, str]:
+    return {**os.environ, "PYTHONPATH": str(root / "src")}
 
 
 @pytest.mark.parametrize(
@@ -54,13 +56,13 @@ def test_importing_util_first_succeeds(root: Path) -> None:
         pytest.param("pipx.package_specifier", id="package-specifier", marks=_LAZY_MODULES_HONORED),
     ],
 )
-def test_importing_main_defers_heavy_module(root: Path, module: str) -> None:
-    result = subprocess.run(
+def test_importing_main_defers_heavy_module(root: Path, source_env: dict[str, str], module: str) -> None:
+    result: Final = subprocess.run(
         [sys.executable, "-c", f"import sys, pipx.main; print({module!r} in sys.modules)"],
         check=False,
         capture_output=True,
         cwd=root,
-        env={**os.environ, "PYTHONPATH": str(root / "src")},
+        env=source_env,
         text=True,
     )
 
@@ -75,8 +77,8 @@ def test_importing_main_defers_heavy_module(root: Path, module: str) -> None:
         pytest.param("pipx.colors", True, id="terminal-snapshot-eager"),
     ],
 )
-def test_cli_startup_loads_module(root: Path, module: str, loaded: bool) -> None:
-    assert (module in _startup_imports(root, [], {})) is loaded
+def test_cli_startup_loads_module(root: Path, source_env: dict[str, str], module: str, loaded: bool) -> None:
+    assert (module in _startup_imports(root, [], source_env)) is loaded
 
 
 @_LAZY_MODULES_HONORED
@@ -88,18 +90,18 @@ def test_cli_startup_loads_module(root: Path, module: str, loaded: bool) -> None
     ],
 )
 def test_cli_startup_keeps_lazy_imports_mode_set_by_user(
-    root: Path, options: list[str], environment: dict[str, str]
+    root: Path, source_env: dict[str, str], options: list[str], environment: dict[str, str]
 ) -> None:
-    assert "argcomplete.shell_integration" in _startup_imports(root, options, environment)
+    assert "argcomplete.shell_integration" in _startup_imports(root, options, source_env | environment)
 
 
-def _startup_imports(root: Path, options: list[str], environment: dict[str, str]) -> set[str]:
-    result = subprocess.run(
+def _startup_imports(root: Path, options: list[str], env: dict[str, str]) -> set[str]:
+    result: Final = subprocess.run(
         [sys.executable, *options, "-X", "importtime", "-m", "pipx", "--version"],
         check=True,
         capture_output=True,
         cwd=root,
-        env={**os.environ, "PYTHONPATH": str(root / "src"), **environment},
+        env=env,
         text=True,
     )
     return {line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")}

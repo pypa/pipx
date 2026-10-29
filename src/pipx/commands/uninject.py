@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.venv_inspect",
+    "pipx.wrap",
 ]
 
 import logging
@@ -19,7 +20,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.colors import bold
+from pipx.colors import BOLD
 from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
     drop_links_taken_over,
@@ -32,9 +33,9 @@ from pipx.commands.inject import (
     InjectionStatus,
 )
 from pipx.commands.uninstall import (
-    _get_package_bin_dir_app_paths,
-    _get_package_completion_paths,
-    _get_package_man_paths,
+    get_package_bin_dir_app_paths,
+    get_package_completion_paths,
+    get_package_man_paths,
 )
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -42,9 +43,9 @@ from pipx.constants import (
     EXIT_CODE_UNINJECT_ERROR,
     MAN_SECTIONS,
 )
-from pipx.emojis import stars
+from pipx.emojis import STARS
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import pipx_wrap, redact_url_credentials, safe_unlink
+from pipx.util import redact_url_credentials, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import (
     fetch_info_in_venv,
@@ -52,13 +53,14 @@ from pipx.venv_inspect import (
     get_required_dependency_names,
     not_required_packages,
 )
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from importlib import metadata
 
     from pipx.pipx_metadata_file import PackageInfo
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resource dirs and both flags for the whole dependency set
@@ -98,10 +100,10 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
     errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[InjectionPackage]] = []
-    for dep in dependencies:
-        result: OperationResult[InjectionData] = uninject_dep(
+    for dependency in dependencies:
+        result: OperationResult[InjectionData] = _uninject_dep(
             venv,
-            dep,
+            dependency,
             local_bin_dir=local_bin_dir,
             local_man_dir=local_man_dir,
             leave_deps=leave_deps,
@@ -120,28 +122,31 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
     )
 
 
-def _injected_metadata_name(venv: Venv, package_name: str) -> str:
-    """Resolve a requested package name to the name it is keyed by in pipx metadata.
+def _uninject_failure(
+    environment: str,
+    package: str | None,
+    error: str,
+    *,
+    stream: OutputStream = OutputStream.LOG,
+) -> OperationResult[InjectionData]:
+    return OperationResult(
+        command=("uninject",),
+        data=InjectionData(packages=(), skipped=()),
+        messages=(OutputMessage(text=error, stream=stream, level=OutputLevel.ERROR),),
+        exit_code=EXIT_CODE_UNINJECT_ERROR,
+        errors=(
+            OperationError(code="package_uninject_failed", message=error, environment=environment, package=package),
+        ),
+    )
 
-    Injected packages are keyed by their bare package name, but ``pipx inject
-    --with-suffix`` gives them the environment suffix, so users spell them
-    ``pycowsay@1 black@1``. Both spellings have to name the same record.
-    """
-    if package_name in venv.pipx_metadata.injected_packages:
-        return package_name
-    for name, injected_package in venv.pipx_metadata.injected_packages.items():
-        if injected_package.suffix and package_name == canonicalize_name(f"{name}{injected_package.suffix}"):
-            return name
-    return package_name
 
-
-def uninject_dep(
+def _uninject_dep(
     venv: Venv,
     package_name: str,
     *,
     local_bin_dir: Path,
     local_man_dir: Path,
-    leave_deps: bool = False,
+    leave_deps: bool,
 ) -> OperationResult[InjectionData]:
     package_name = _injected_metadata_name(venv, canonicalize_name(package_name))
 
@@ -166,42 +171,40 @@ def uninject_dep(
         )
 
     package: Final[PackageInfo] = venv.package_metadata[package_name]
-    need_app_uninstall: Final[bool] = package.include_apps
-
-    new_resource_paths = drop_copies_claimed_elsewhere(
-        get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir), venv.bin_path
+    resource_paths: Final[set[Path]] = drop_copies_claimed_elsewhere(
+        _get_include_resource_paths(package, venv, local_bin_dir, local_man_dir), venv.bin_path
     )
 
     if not leave_deps:
-        orig_not_required_packages = venv.list_installed_packages(not_required=True)
-        logger.info("Original not required packages: %s", orig_not_required_packages)
+        orig_not_required_packages: Final[set[str]] = venv.list_installed_packages(not_required=True)
+        _LOGGER.info("Original not required packages: %s", orig_not_required_packages)
 
     venv.uninstall_packages(package_name, was_injected=True)
 
     if not leave_deps:
         # inspect again: the uninstall can drop search path entries, such as an editable install's .pth
         venv_sys_path, venv_env, _ = fetch_info_in_venv(venv.python_path)
-        new_not_required_packages = not_required_packages(venv_sys_path, venv_env)
-        logger.info("New not required packages: %s", new_not_required_packages)
+        new_not_required_packages: Final[set[str]] = not_required_packages(venv_sys_path, venv_env)
+        _LOGGER.info("New not required packages: %s", new_not_required_packages)
 
-        deps_of_uninstalled = new_not_required_packages - orig_not_required_packages
-        if deps_of_uninstalled:
-            remaining_deps = _get_remaining_dependencies(venv, package_name, venv_sys_path, venv_env)
-            deps_of_uninstalled -= remaining_deps
-            logger.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
+        if deps_of_uninstalled := new_not_required_packages - orig_not_required_packages:
+            deps_of_uninstalled -= _get_remaining_dependencies(venv, package_name, venv_sys_path, venv_env)
+            _LOGGER.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
             if deps_of_uninstalled:
                 venv.uninstall_packages(*sorted(deps_of_uninstalled))
 
-        deps_string = " and its dependencies"
-    else:
-        deps_string = ""
-
-    if need_app_uninstall:
+    if package.include_apps:
         # the uninstall dropped this package's record, so what the venv still expects belongs to its other packages
         expected: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
-        for path in drop_links_taken_over(new_resource_paths - expected, venv.root):
-            _unlink_injected_resource(path)
+        for path in drop_links_taken_over(resource_paths - expected, venv.root):
+            try:
+                safe_unlink(path)
+            except FileNotFoundError:
+                _LOGGER.info("tried to remove but couldn't find %s", path)
+            else:
+                _LOGGER.info("removed file %s", path)
 
+    deps_string: Final[str] = "" if leave_deps else " and its dependencies"
     return OperationResult(
         command=("uninject",),
         data=InjectionData(
@@ -218,93 +221,56 @@ def uninject_dep(
         ),
         messages=(
             OutputMessage(
-                f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}"
+                text=f"Uninjected package {BOLD(package_name)}{deps_string} from venv {BOLD(venv.root.name)} {STARS}"
             ),
         ),
     )
 
 
-def _unlink_injected_resource(path: Path) -> None:
-    try:
-        safe_unlink(path)
-    except FileNotFoundError:
-        logger.info("tried to remove but couldn't find %s", path)
-    else:
-        logger.info("removed file %s", path)
+def _injected_metadata_name(venv: Venv, package_name: str) -> str:
+    # metadata keys an injected package by its bare name, but `inject --with-suffix` adds the environment suffix, so
+    # users spell it black@1 too
+    if package_name in venv.pipx_metadata.injected_packages:
+        return package_name
+    for name, injected_package in venv.pipx_metadata.injected_packages.items():
+        if injected_package.suffix and package_name == canonicalize_name(f"{name}{injected_package.suffix}"):
+            return name
+    return package_name
 
 
-def _uninject_failure(
-    environment: str,
-    package: str | None,
-    error: str,
-    *,
-    stream: OutputStream = OutputStream.LOG,
-) -> OperationResult[InjectionData]:
-    return OperationResult(
-        command=("uninject",),
-        data=InjectionData(packages=(), skipped=()),
-        messages=(OutputMessage(error, stream=stream, level=OutputLevel.ERROR),),
-        exit_code=EXIT_CODE_UNINJECT_ERROR,
-        errors=(
-            OperationError(code="package_uninject_failed", message=error, environment=environment, package=package),
-        ),
+def _get_include_resource_paths(
+    package: PackageInfo, venv: Venv, local_bin_dir: Path, local_man_dir: Path
+) -> set[Path]:
+    apps: Final[set[str]] = {name for app in package.apps_to_expose for name in exposed_app_names(app, package.suffix)}
+    man_pages: Final[set[str]] = set(package.man_pages_to_expose)
+    completions: Final[set[str]] = set(package.completions_to_expose)
+    return (
+        {path for path in get_package_bin_dir_app_paths(package, venv.bin_path, local_bin_dir) if path.name in apps}
+        | {
+            path
+            for section in MAN_SECTIONS
+            for path in get_package_man_paths(package, venv.man_path / section, local_man_dir / section)
+            if str(Path(path.parent.name) / path.name) in man_pages
+        }
+        | {
+            path
+            for section in COMPLETION_SECTIONS
+            for path in get_package_completion_paths(
+                package, venv.man_path.parent / section, paths.CTX.completion_dir / section
+            )
+            if f"{path.parent.parent.name}/{path.parent.name}/{path.name}" in completions
+        }
     )
-
-
-def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    bin_dir_app_paths = _get_package_bin_dir_app_paths(
-        venv.package_metadata[package_name], venv.bin_path, local_bin_dir
-    )
-    man_paths = set()
-    for man_section in MAN_SECTIONS:
-        man_paths |= _get_package_man_paths(
-            venv.package_metadata[package_name],
-            venv.man_path / man_section,
-            local_man_dir / man_section,
-        )
-    completion_paths = set()
-    for completion_section in COMPLETION_SECTIONS:
-        completion_paths |= _get_package_completion_paths(
-            venv.package_metadata[package_name],
-            venv.man_path.parent / completion_section,
-            paths.ctx.completion_dir / completion_section,
-        )
-
-    pkg_metadata = venv.package_metadata[package_name]
-    all_apps = {name for app in pkg_metadata.apps_to_expose for name in exposed_app_names(app, pkg_metadata.suffix)}
-    all_man_pages = set(pkg_metadata.man_pages_to_expose)
-    all_completions = set(pkg_metadata.completions_to_expose)
-
-    need_to_remove = set()
-    for bin_dir_app_path in bin_dir_app_paths:
-        if bin_dir_app_path.name in all_apps:
-            need_to_remove.add(bin_dir_app_path)
-    for man_path in man_paths:
-        path = Path(man_path.parent.name) / man_path.name
-        if str(path) in all_man_pages:
-            need_to_remove.add(man_path)
-    for completion_path in completion_paths:
-        relative = f"{completion_path.parent.parent.name}/{completion_path.parent.name}/{completion_path.name}"
-        if relative in all_completions:
-            need_to_remove.add(completion_path)
-
-    return need_to_remove
 
 
 def _get_remaining_dependencies(
     venv: Venv, excluded_package: str, venv_sys_path: list[str], venv_env: dict[str, str]
 ) -> set[str]:
-    distributions = get_distributions_by_name(venv_sys_path)
-
-    remaining_deps: set[str] = set()
-    remaining_packages: list[str] = [
-        name
-        for name in [venv.pipx_metadata.main_package.package, *list(venv.pipx_metadata.injected_packages)]
-        if name is not None and name != excluded_package
-    ]
-    for pkg_name in remaining_packages:
-        remaining_deps |= _collect_transitive_deps(pkg_name, distributions, venv_env)
-
+    distributions: Final[dict[str, metadata.Distribution]] = get_distributions_by_name(venv_sys_path)
+    remaining_deps: Final[set[str]] = set()
+    for name in (venv.pipx_metadata.main_package.package, *venv.pipx_metadata.injected_packages):
+        if name is not None and name != excluded_package:
+            remaining_deps.update(_collect_transitive_deps(name, distributions, venv_env))
     return remaining_deps
 
 
@@ -316,13 +282,12 @@ def _collect_transitive_deps(
 ) -> set[str]:
     if visited is None:
         visited = set()
-    canonical = canonicalize_name(package_name)
-    if canonical in visited:
+    if (canonical := canonicalize_name(package_name)) in visited:
         return visited
     visited.add(canonical)
-    if dist := distributions.get(canonical):
-        for dep_name in get_required_dependency_names(dist, env):
-            _collect_transitive_deps(dep_name, distributions, env, visited)
+    if distribution := distributions.get(canonical):
+        for dependency_name in get_required_dependency_names(distribution, env):
+            _collect_transitive_deps(dependency_name, distributions, env, visited)
     return visited
 
 

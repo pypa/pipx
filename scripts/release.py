@@ -10,14 +10,19 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Final
 
-_ROOT: Final = Path(__file__).resolve().parent.parent
+_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
+
+
+class _Options(argparse.Namespace):
+    bump: str
+    dispatch: bool
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser: Final = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bump", choices=("auto", "major", "minor", "patch"), default="auto")
     parser.add_argument("--dispatch", action="store_true", help="start the protected release workflow on GitHub")
-    args = parser.parse_args()
+    args: Final = parser.parse_args(namespace=_Options())
     if args.dispatch:
         _run(
             "gh",
@@ -33,11 +38,10 @@ def main() -> None:
         )
         return
     with TemporaryDirectory(prefix="pipx-release-") as temporary_directory:
-        source = Path(temporary_directory) / "source"
-        build_environment = Path(temporary_directory) / "build"
+        source: Final[Path] = Path(temporary_directory) / "source"
         _run("git", "clone", "--quiet", "--shared", str(_ROOT), str(source))
-        tags = _run("git", "tag", "--list", cwd=source, capture_output=True).stdout
-        version = _run(
+        tags: Final[str] = _run("git", "tag", "--list", cwd=source, capture_output=True).stdout
+        version: Final[str] = _run(
             "release-creator",
             "tags",
             "--next",
@@ -48,7 +52,7 @@ def main() -> None:
             stdin_text=tags,
             capture_output=True,
         ).stdout.strip()
-        previous = _run(
+        previous: Final[str] = _run(
             "release-creator",
             "tags",
             version,
@@ -80,7 +84,7 @@ def main() -> None:
         )
         try:
             _run("prek", "run", "docstrfmt", "--files", "docs/changelog.rst", cwd=source)
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError:  # the hook fails when it rewrites the file, so a rerun checks the result
             _run("prek", "run", "docstrfmt", "--files", "docs/changelog.rst", cwd=source)
         _run("prek", "run", "--all-files", cwd=source)
         _run("git", "config", "user.name", "pipx release preview", cwd=source)
@@ -88,7 +92,7 @@ def main() -> None:
         _run("git", "add", "docs/changelog.rst", "changelog.d", cwd=source)
         _run("git", "commit", "-m", f"Release {version}", cwd=source)
         _run("git", "tag", "-a", version, "-m", f"release {version}", cwd=source)
-        note_args = [
+        notes: Final[str] = _run(
             "release-creator",
             "notes",
             "--changelog",
@@ -99,10 +103,11 @@ def main() -> None:
             "pypa/pipx",
             "--artifact-url",
             f"https://pypi.org/project/pipx/{version}/",
-        ]
-        if previous:
-            note_args.extend(("--previous", previous))
-        notes = _run(*note_args, cwd=source, capture_output=True).stdout
+            *(("--previous", previous) if previous else ()),
+            cwd=source,
+            capture_output=True,
+        ).stdout
+        build_environment: Final[Path] = Path(temporary_directory) / "build"
         _run("uv", "venv", "--python", "3.15", str(build_environment), cwd=source)
         _run(
             "uv",
@@ -118,7 +123,7 @@ def main() -> None:
             "pylock.toml",
             cwd=source,
         )
-        epoch = _run("git", "log", "-1", "--format=%ct", cwd=source, capture_output=True).stdout.strip()
+        epoch: Final[str] = _run("git", "log", "-1", "--format=%ct", cwd=source, capture_output=True).stdout.strip()
         _run(
             "uv",
             "build",
@@ -162,8 +167,3 @@ if __name__ == "__main__":
         if error.stderr:
             sys.stderr.write(error.stderr)
         raise SystemExit(error.returncode) from None
-
-
-__all__ = [
-    "main",
-]
