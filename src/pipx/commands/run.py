@@ -62,81 +62,6 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _VENV_EXPIRED_FILENAME: Final[str] = "pipx_expired_venv"
 _VCS_SCHEMES: Final[frozenset[str]] = frozenset({"bzr", "git", "hg", "svn"})
 
-# Only variables that change what the installer resolves or installs: keying on every PIP_*/UV_* variable split one
-# command's cache on timeouts, verbosity, cache dirs and the UV_RUN_RECURSION_DEPTH that `uv run` sets for its children.
-# pip reads PIP_<OPTION> for each long option of `pip install`; uv's are listed in its environment variable reference.
-_PIP_KEYED_ENV: Final[frozenset[str]] = frozenset({
-    "PIP_ABI",
-    "PIP_ALL_RELEASES",
-    "PIP_BUILD_CONSTRAINT",
-    "PIP_CONFIG_FILE",
-    "PIP_CONFIG_SETTINGS",
-    "PIP_CONSTRAINT",
-    "PIP_EDITABLE",
-    "PIP_EXTRA_INDEX_URL",
-    "PIP_FIND_LINKS",
-    "PIP_GROUP",
-    "PIP_IGNORE_REQUIRES_PYTHON",
-    "PIP_IMPLEMENTATION",
-    "PIP_INDEX_URL",
-    "PIP_ISOLATED",
-    "PIP_KEYRING_PROVIDER",
-    "PIP_NO_BINARY",
-    "PIP_NO_BUILD_ISOLATION",
-    "PIP_NO_DEPS",
-    "PIP_NO_INDEX",
-    "PIP_ONLY_BINARY",
-    "PIP_ONLY_DEPS",
-    "PIP_ONLY_FINAL",
-    "PIP_PLATFORM",
-    "PIP_PRE",
-    "PIP_PREFER_BINARY",
-    "PIP_PREFIX",
-    "PIP_PYTHON",
-    "PIP_PYTHON_VERSION",
-    "PIP_REQUIREMENT",
-    "PIP_REQUIREMENTS_FROM_SCRIPT",
-    "PIP_ROOT",
-    "PIP_TARGET",
-    "PIP_TRUSTED_HOST",
-    "PIP_UPLOADED_PRIOR_TO",
-    "PIP_USER",
-    "PIP_USE_DEPRECATED",
-    "PIP_USE_FEATURE",
-})
-_UV_KEYED_ENV: Final[frozenset[str]] = frozenset({
-    "UV_BUILD_CONSTRAINT",
-    "UV_CONFIG_FILE",
-    "UV_CONSTRAINT",
-    "UV_DEFAULT_INDEX",
-    "UV_EXCLUDE",
-    "UV_EXCLUDE_NEWER",
-    "UV_EXTRA_INDEX_URL",
-    "UV_FIND_LINKS",
-    "UV_INDEX",
-    "UV_INDEX_STRATEGY",
-    "UV_INDEX_URL",
-    "UV_INSECURE_HOST",
-    "UV_KEYRING_PROVIDER",
-    "UV_MANAGED_PYTHON",
-    "UV_NO_BINARY",
-    "UV_NO_BINARY_PACKAGE",
-    "UV_NO_BUILD",
-    "UV_NO_BUILD_ISOLATION",
-    "UV_NO_BUILD_PACKAGE",
-    "UV_NO_CONFIG",
-    "UV_NO_MANAGED_PYTHON",
-    "UV_NO_SOURCES",
-    "UV_NO_SOURCES_PACKAGE",
-    "UV_OVERRIDE",
-    "UV_PRERELEASE",
-    "UV_PYTHON",
-    "UV_PYTHON_DOWNLOADS",
-    "UV_PYTHON_PREFERENCE",
-    "UV_RESOLUTION",
-    "UV_TORCH_BACKEND",
-})
-
 _APP_NOT_FOUND_ERROR_MESSAGE: Final[str] = """\
 '{app}' executable script not found in package '{package_name}'.
 Available executable scripts:
@@ -664,9 +589,58 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     *,
     cooldown_days: int | None,
 ) -> Path:
-    # the installer also reads its index, find-links and similar settings from the environment
-    keyed: Final = _UV_KEYED_ENV if backend == UV else _PIP_KEYED_ENV
-    installer_env: Final = sorted((name, value) for name, value in os.environ.items() if name in keyed)
+    # The installer also reads its index, find-links and similar settings from the environment, more of them than a list
+    # could track: pip takes PIP_ followed by any option name or alias, in any case, with - or _. So every PIP_*/UV_*
+    # variable counts except these, which tune timeouts, retries, parallelism, output and the cache, or are set by
+    # `uv run` for its children. Names are compared as pip sees them: upper case with _ for -.
+    prefix, unkeyed = (
+        (
+            "UV_",
+            {
+                "UV_CACHE_DIR",
+                "UV_CONCURRENT_BUILDS",
+                "UV_CONCURRENT_CACHE_READS",
+                "UV_CONCURRENT_DOWNLOADS",
+                "UV_CONCURRENT_INSTALLS",
+                "UV_HTTP_CONNECT_TIMEOUT",
+                "UV_HTTP_RETRIES",
+                "UV_HTTP_TIMEOUT",
+                "UV_NO_CACHE",
+                "UV_NO_PROGRESS",
+                "UV_REQUEST_TIMEOUT",
+                "UV_RUN_RECURSION_DEPTH",
+            },
+        )
+        if backend == UV
+        else (
+            "PIP_",
+            {
+                "PIP_CACHE_DIR",
+                "PIP_DISABLE_PIP_VERSION_CHECK",
+                "PIP_LOCAL_LOG",
+                "PIP_LOG",
+                "PIP_LOG_FILE",
+                "PIP_NO_CACHE_DIR",
+                "PIP_NO_COLOR",
+                "PIP_NO_INPUT",
+                "PIP_NO_PYTHON_VERSION_WARNING",
+                "PIP_NO_WARN_CONFLICTS",
+                "PIP_NO_WARN_SCRIPT_LOCATION",
+                "PIP_PROGRESS_BAR",
+                "PIP_QUIET",
+                "PIP_RESUME_RETRIES",
+                "PIP_RETRIES",
+                "PIP_ROOT_USER_ACTION",
+                "PIP_TIMEOUT",
+                "PIP_VERBOSE",
+            },
+        )
+    )
+    installer_env: Final = sorted(
+        (name, value)
+        for name, value in os.environ.items()
+        if (normalized := name.upper().replace("-", "_")).startswith(prefix) and normalized not in unkeyed
+    )
     # Preserve list and field boundaries so different invocations cannot reuse the same digest input.
     digest: Final = hashlib.sha256(
         json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
