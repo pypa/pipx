@@ -101,6 +101,18 @@ def runs_from_venv(venv_dir: Path) -> bool:
     return Path(sys.prefix).resolve() == venv_dir.resolve()
 
 
+def import_from_copy(copy_dir: Path) -> bool:
+    if not repoint_imports(Path(sys.prefix), copy_dir):
+        return False
+    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    # the running pipx imports from the copy until it exits, long after it releases the venv lock, so it holds a lock
+    # of its own that keeps a concurrent trash sweep away; the operating system drops it when the process ends
+    (lock := FileLock(copy_dir / _IN_USE_LOCK)).acquire()
+    _HELD_COPIES[copy_dir] = lock
+    return True
+
+
 def repoint_imports(source: Path, target: Path) -> bool:
     # pipx changing the venv it runs from puts another version in its place; later imports (lazy ones and those inside
     # functions) must load the old code from its copy, or old and new modules mix; sys.path finds top-level modules and
@@ -116,18 +128,6 @@ def repoint_imports(source: Path, target: Path) -> bool:
 
 def _moved(entry: str, source: Path, target: Path) -> str:
     return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
-
-
-def import_from_copy(copy_dir: Path) -> bool:
-    if not repoint_imports(Path(sys.prefix), copy_dir):
-        return False
-    from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
-
-    # the running pipx imports from the copy until it exits, long after it releases the venv lock, so it holds a lock
-    # of its own that keeps a concurrent trash sweep away; the operating system drops it when the process ends
-    (lock := FileLock(copy_dir / _IN_USE_LOCK)).acquire()
-    _HELD_COPIES[copy_dir] = lock
-    return True
 
 
 def release_copy(copy_dir: Path) -> None:
