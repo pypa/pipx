@@ -38,8 +38,6 @@ def test_cli_value_skips_unrelated_discovery(
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    # ``pipx.commands.__init__`` re-exports ``environment`` (the function), which shadows the submodule on the
-    # package. ``import_module`` returns the module regardless.
     environment_module: Final = importlib.import_module("pipx.commands.environment")
     resolve_backend_name: Final[MagicMock] = mocker.patch.object(
         environment_module,

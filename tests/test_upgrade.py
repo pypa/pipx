@@ -32,7 +32,8 @@ from pipx import paths, shared_libs
 from pipx.backends import uv as uv_backend
 from pipx.main import cli
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
-from pipx.util import get_venv_paths, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli
-from pipx import paths, util
+from pipx import paths, trash
 from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv
 from pipx.util import PipxError
@@ -85,7 +85,7 @@ def test_preserve_venv_finishes_the_restore_through_an_interrupt(venv_dir: Path,
 
 
 def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
-    util.rmdir(path, safe_rm=safe_rm)
+    trash.rmdir(path, safe_rm=safe_rm)
     signal.raise_signal(signal.SIGINT)
 
 

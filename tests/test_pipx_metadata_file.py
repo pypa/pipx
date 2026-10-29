@@ -21,10 +21,11 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths, pipx_metadata_file
-from pipx.backends import UV
+from pipx.backends._base import UV  # ruff:ignore[import-private-name]  # no public home
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
-from pipx.util import PipxError, redact_url_credentials
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
