@@ -154,41 +154,37 @@ def test_ensurepath_cli_global_keeps_foreign_file(
     ) == (1, existing, 0o640, True)
 
 
-@pytest.mark.parametrize("macos", [pytest.param(False, id="linux"), pytest.param(True, id="macos")])
+@pytest.fixture(params=[pytest.param(False, id="linux"), pytest.param(True, id="macos")])
+def undecodable_config_file(request: pytest.FixtureRequest, mocker: MockerFixture, tmp_path: Path) -> Path:
+    (config_file := tmp_path / "pipx.sh").write_bytes(b"/site/\xff\n")
+    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
+    mocker.patch.object(ensure_path_module, "MACOS", request.param)
+    return config_file
+
+
 @_SKIP_GLOBAL_ON_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_ensurepath_cli_global_keeps_undecodable_file(
-    mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str], macos: bool
+    undecodable_config_file: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (config_file := tmp_path / "pipx.sh").write_bytes(b"/site/\xff\n")
-    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
-    mocker.patch.object(ensure_path_module, "MACOS", macos)
-
     exit_code = run_pipx_cli(["ensurepath", "--global"])
 
     assert (
         exit_code,
-        config_file.read_bytes(),
+        undecodable_config_file.read_bytes(),
         "pass --force to replace the file" in " ".join(capsys.readouterr().err.split()),
     ) == (1, b"/site/\xff\n", True)
 
 
-@pytest.mark.parametrize("macos", [pytest.param(False, id="linux"), pytest.param(True, id="macos")])
 @_SKIP_GLOBAL_ON_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_ensurepath_cli_global_force_replaces_undecodable_file(
-    mocker: MockerFixture, tmp_path: Path, macos: bool
-) -> None:
-    (config_file := tmp_path / "pipx.sh").write_bytes(b"/site/\xff\n")
-    mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
-    mocker.patch.object(ensure_path_module, "MACOS", macos)
-
+def test_ensurepath_cli_global_force_replaces_undecodable_file(undecodable_config_file: Path) -> None:
     exit_code = run_pipx_cli(["ensurepath", "--global", "--force"])
 
-    assert (exit_code, str(ensure_path_module.paths.ctx.bin_dir) in config_file.read_text(encoding="utf-8")) == (
-        EXIT_CODE_OK,
-        True,
-    )
+    assert (
+        exit_code,
+        str(ensure_path_module.paths.ctx.bin_dir) in undecodable_config_file.read_text(encoding="utf-8"),
+    ) == (EXIT_CODE_OK, True)
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
