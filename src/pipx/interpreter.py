@@ -109,7 +109,7 @@ def _fetch_standalone_interpreter(python_version: str) -> str:
 
 def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER) -> str:
     if fetch_python == FetchPythonOptions.ALWAYS:
-        if os.sep in python_version or "/" in python_version or Path(python_version).is_file():
+        if _has_path_separator(python_version) or Path(python_version).is_file():
             msg = (
                 f"--fetch-python={FetchPythonOptions.ALWAYS} requires a Python version "
                 f"(e.g. '3.13'), got '{python_version}'."
@@ -118,7 +118,7 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
         return _fetch_standalone_interpreter(python_version)
 
     # a bare name such as 3.11 must not match a file of that name in the working directory
-    if (os.sep in python_version or "/" in python_version) and Path(python_version).is_file():
+    if _has_path_separator(python_version) and Path(python_version).is_file():
         return python_version
     # uv reads a bare name such as python3.11 as a version request and may settle on a .venv in a parent directory
     if found := shutil.which(python_version):
@@ -141,6 +141,10 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
         return _fetch_standalone_interpreter(python_version)
 
     raise InterpreterResolutionError(source="PATH", version=python_version)
+
+
+def _has_path_separator(python: str) -> bool:
+    return os.sep in python or "/" in python
 
 
 # The following code was copied from https://github.com/uranusjr/pipx-standalone
@@ -212,7 +216,7 @@ def _get_sys_executable() -> str:
 
 def _resolve_python(python: str) -> str:
     # a bare name goes to PATH only; testing it as a file first would pick up one sitting in the working directory
-    if (os.sep in python or "/" in python) and (path := Path(python)).is_file():
+    if _has_path_separator(python) and (path := Path(python)).is_file():
         return str(path.resolve())
     if found := shutil.which(python):
         return found
