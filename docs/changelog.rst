@@ -14,6 +14,94 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-10:
+
+`1.18.10 <https://github.com/pypa/pipx/tree/1.18.10>`_ - 2026-10-29
+===================================================================
+
+.. _release-1-18-10-changes:
+
+Changes
+-------
+
+- Error, warning, and help messages now state what pipx found and what to run next, without hedges such as "already
+  seems to be installed" or "Perhaps". Update scripts that match the old message text (:pr:`2376`) by
+  :user:`gaborbernat`.
+
+.. _release-1-18-10-fixed:
+
+Fixed
+-----
+
+- A pipx that changed its own environment, through ``pipx upgrade pipx`` or ``pipx reinstall pipx`` for example, no
+  longer crashes with an ``ImportError`` when another pipx command empties the trash while it is still running, such as
+  during the rest of ``pipx upgrade-all``. The copy of its environment it imports from now stays in the trash until the
+  process exits (:pr:`2397`) by :user:`gaborbernat`.
+- Interrupting a parallel ``pipx reinstall-all`` with Ctrl-C now gives a restored environment back the shared app, man
+  page or completion links another environment took while the rebuild had it in the trash, as a failed rebuild already
+  did (:pr:`2386`) by :user:`gaborbernat`.
+- On Windows under the uv backend, ``pipx run --refresh`` or ``--no-cache`` of a local script no longer deletes the
+  cached environment while another run of the same script is still executing in it, and neither does the expiry sweep.
+  Such a run builds a throwaway environment for itself instead, and after ``--refresh`` the next run to find the cached
+  one idle rebuilds it (:pr:`2387`) by :user:`gaborbernat`.
+- On Windows under the uv backend, ``pipx upgrade pipx`` on a pipx that manages itself no longer fails with ``Access is
+  denied`` and rolls back. uv deletes the files it replaces, which Windows refuses for the running ``pipx.exe``, so pipx
+  now moves that launcher to its trash first, where the next pipx command deletes it (:pr:`2396`) by
+  :user:`gaborbernat`.
+- Where pipx copies launchers instead of linking them, as on Windows without symlink rights, ``pipx reinstall`` and
+  ``pipx install --force`` no longer warn ``Overwriting file`` for the package's own launcher. Windows ``.exe``
+  launchers embed their build time, so a rebuilt one never matched its old copy byte for byte and every reinstall
+  warned. pipx now recognises its own copy by the interpreter it names and replaces it without a warning; a file another
+  venv or the user put there still gets one (:pr:`2394`) by :user:`gaborbernat`.
+- With the uv backend and ``UV_LINK_MODE=symlink``, ``pipx uninstall`` now removes the man page and shell completion
+  links it exposed, and ``pipx list`` no longer reports those man pages as missing. uv makes the environment's own
+  copies symlinks into its cache, and pipx followed them there instead of stopping at the environment (:pr:`2380`) by
+  :user:`gaborbernat`.
+- ``--fetch-python`` and ``pipx interpreter upgrade`` now download and unpack the standalone Python build next to the
+  interpreter directory instead of in the system temp dir, so a tmpfs ``/tmp`` or a ``/tmp`` on another btrfs subvolume
+  no longer forces a full copy of the build into the pipx home or splits its hard links into separate files (:pr:`2403`)
+  by :user:`gaborbernat`.
+- ``pipx inject pipx`` without ``--include-apps`` and ``pipx runpip pipx`` on a pipx that manages itself no longer mix
+  old and new pipx code when they change the pipx package. Like ``pipx upgrade pipx``, they now load late imports from a
+  copy of the environment, which the next pipx command deletes from the trash (:pr:`2393`) by :user:`gaborbernat`.
+- ``pipx list --json`` no longer exports the interpreter a self-managed pipx recorded when that path no longer leads to
+  the interpreter its environment runs on, such as a removed bootstrap environment's ``python3``. ``pipx install-all``
+  then builds that environment on the default interpreter instead of whatever appears at the old path (:pr:`2389`) by
+  :user:`gaborbernat`.
+- ``pipx reinstall pipx`` on a pipx that manages itself no longer crashes with an ``ImportError`` when it installs a
+  different pipx version. Modules the running pipx imported late came from the version it was installing, so old and new
+  code mixed. It now loads them from its own moved environment, which the next pipx command deletes from the trash
+  (:pr:`2377`) by :user:`gaborbernat`.
+- ``pipx upgrade pipx``, ``pipx upgrade-all`` and ``pipx install --force pipx`` on a pipx that manages itself no longer
+  crash with an ``ImportError`` when they install a different pipx version. The running pipx now loads its late imports
+  from a copy of its environment, which the next pipx command deletes from the trash (:pr:`2388`) by
+  :user:`gaborbernat`.
+- pipx now recognises the app copies it made when the environment's interpreter path is too long for a shebang line or
+  contains a space. pip and uv start such launchers with a ``#!/bin/sh`` line that hands over to the interpreter, and
+  pipx took ``/bin/sh`` for the interpreter, so ``pipx reinstall`` kept a stale copy and warned "File exists ... Not
+  modifying." (:pr:`2392`) by :user:`gaborbernat`.
+
+.. _release-1-18-10-security:
+
+Security
+--------
+
+- ``pipx run`` now names its cached environments with an HMAC keyed by a random per-user secret, stored with mode
+  ``0600`` in ``.run-key`` inside the run cache. Before, the name was a plain hash of inputs that include tokens and
+  proxy passwords from the environment, so another account that could list the cache could check guesses at those values
+  against it. Existing cache entries are not reused and expire as usual (:pr:`2370`) by :user:`gaborbernat`.
+- pipx no longer records an abbreviation of a one-shot pip option that the current pip finds ambiguous but an older pip
+  accepts, such as ``--requirem FILE``, which pip 24.0 reads as ``--requirement FILE``. With such a shared pip, a later
+  ``pipx upgrade`` or ``pipx reinstall`` used to replay it and install from whatever another account had put at that
+  path. An existing record drops it when read, and an abbreviation that could name a source option such as
+  ``--constraint`` goes through the same replay check as that option (:pr:`2390`) by :user:`gaborbernat`.
+- pipx no longer records an interpreter that lives inside another virtual environment, such as the ``python3`` of an
+  activated bootstrap environment or of one made with ``python3 -m venv --copies``. It records the base interpreter
+  named in that environment's ``pyvenv.cfg``, which outlives the bootstrap. ``pipx install-all`` also stops building on
+  an exported interpreter that sits inside a virtual environment or that another account can change, and uses the
+  default Python with a message instead, so a snapshot taken before the bootstrap was removed no longer runs whatever
+  another account later puts at its old path (:pr:`2402`) by :user:`gaborbernat`.
+
 .. _release-1-18-9:
 
 `1.18.9 <https://github.com/pypa/pipx/tree/1.18.9>`_ - 2026-10-29
