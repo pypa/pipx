@@ -346,6 +346,34 @@ def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, moc
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_refreshes_its_own_stale_copy_quietly(
+    dotted_app_wheel: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", str(dotted_app_wheel)])
+    exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")
+    exposed.write_bytes(exposed.read_bytes() + b"# stale\n")
+    caplog.clear()
+
+    assert not run_pipx_cli(["reinstall", "foo-bar-x"])
+
+    assert f"Overwriting file {exposed}" not in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_warns_when_overwriting_a_foreign_copy(
+    dotted_app_wheel: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    paths.CTX.bin_dir.mkdir(parents=True)
+    (exposed := paths.CTX.bin_dir / app_name("tool3.12")).write_text("#!/elsewhere/bin/python\n", encoding="utf-8")
+
+    assert not run_pipx_cli(["install", "--force", str(dotted_app_wheel)])
+
+    assert f"Overwriting file {exposed}" in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_suffix_legacy_venv() -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
     mock_legacy_venv("pycowsay_x", metadata_version="0.1")
