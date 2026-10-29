@@ -2,28 +2,29 @@ from __future__ import annotations
 
 import pytest
 
-from pipx import constants
+from pipx import main
+from pipx.constants import FetchPythonOptions
 
 
 @pytest.mark.parametrize(
     ("missing_raw", "python_raw", "expected_option", "expected_invalid"),
     [
-        pytest.param(None, None, constants.FetchPythonOptions.NEVER, False, id="unset"),
-        pytest.param("1", None, constants.FetchPythonOptions.MISSING, False, id="legacy-truthy"),
-        pytest.param("0", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy"),
-        pytest.param(" False ", None, constants.FetchPythonOptions.NEVER, False, id="legacy-whitespace-falsy"),
-        pytest.param("n", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy-n"),
-        pytest.param(None, "always", constants.FetchPythonOptions.ALWAYS, False, id="explicit-always"),
-        pytest.param(None, "garbage", constants.FetchPythonOptions.NEVER, True, id="invalid-value"),
+        pytest.param(None, None, FetchPythonOptions.NEVER, False, id="unset"),
+        pytest.param("1", None, FetchPythonOptions.MISSING, False, id="legacy-truthy"),
+        pytest.param("0", None, FetchPythonOptions.NEVER, False, id="legacy-falsy"),
+        pytest.param(" False ", None, FetchPythonOptions.NEVER, False, id="legacy-whitespace-falsy"),
+        pytest.param("n", None, FetchPythonOptions.NEVER, False, id="legacy-falsy-n"),
+        pytest.param(None, "always", FetchPythonOptions.ALWAYS, False, id="explicit-always"),
+        pytest.param(None, "garbage", FetchPythonOptions.NEVER, True, id="invalid-value"),
     ],
 )
 def test_compute_fetch_python(
     missing_raw: str | None,
     python_raw: str | None,
-    expected_option: constants.FetchPythonOptions,
+    expected_option: FetchPythonOptions,
     expected_invalid: bool,
 ) -> None:
-    option, invalid = constants.compute_fetch_python(missing_raw, python_raw)
+    option, invalid = main._compute_fetch_python(missing_raw, python_raw)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it
     assert option is expected_option
     assert invalid is expected_invalid
 
@@ -41,7 +42,7 @@ def test_compute_fetch_python(
     ],
 )
 def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_invalid: bool) -> None:
-    assert constants.compute_cooldown(raw) == (expected_days, expected_invalid)
+    assert main._compute_cooldown(raw) == (expected_days, expected_invalid)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it
 
 
 @pytest.mark.parametrize(
@@ -58,4 +59,4 @@ def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_i
     ],
 )
 def test_compute_max_logs(raw: str | None, expected_logs: int, expected_invalid: bool) -> None:
-    assert constants.compute_max_logs(raw) == (expected_logs, expected_invalid)
+    assert main._compute_max_logs(raw) == (expected_logs, expected_invalid)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it

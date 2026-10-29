@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.commands.uninstall", "pipx.util", "pipx.venv"]
+__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources
-from pipx.commands.uninstall import get_venv_resource_paths
+from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources, get_venv_resource_paths
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import safe_unlink
+from pipx.trash import safe_unlink
 from pipx.venv import Venv
 
 if TYPE_CHECKING:

@@ -6,8 +6,8 @@ __lazy_modules__ = [
     "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
-    "pipx.commands.uninstall",
-    "pipx.util",
+    "pipx.redact",
+    "pipx.trash",
     "pipx.venv",
     "pipx.venv_inspect",
     "pipx.wrap",
@@ -26,16 +26,14 @@ from pipx.commands.common import (
     drop_links_taken_over,
     exposed_app_names,
     get_expected_venv_resource_paths,
+    get_package_bin_dir_app_paths,
+    get_package_completion_paths,
+    get_package_man_paths,
 )
 from pipx.commands.inject import (
     InjectionData,
     InjectionPackage,
     InjectionStatus,
-)
-from pipx.commands.uninstall import (
-    get_package_bin_dir_app_paths,
-    get_package_completion_paths,
-    get_package_man_paths,
 )
 from pipx.constants import (
     COMPLETION_SECTIONS,
@@ -44,8 +42,9 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import STARS
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import redact_url_credentials, safe_unlink
+from pipx.trash import safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import (
     fetch_info_in_venv,
@@ -58,20 +57,13 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from importlib import metadata
 
+    from pipx.options import UninjectOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resource dirs and both flags for the whole dependency set
-    venv_dir: Path,
-    dependencies: list[str],
-    *,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    leave_deps: bool,
-    verbose: bool,
-) -> OperationResult[InjectionData]:
+def uninject(venv_dir: Path, dependencies: list[str], options: UninjectOptions) -> OperationResult[InjectionData]:
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         return _uninject_failure(
             venv_dir.name,
@@ -80,7 +72,7 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
             stream=OutputStream.STDERR,
         )
 
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
+    venv: Final[Venv] = Venv(venv_dir, verbose=options.verbose)
 
     if not venv.package_metadata:
         return _uninject_failure(
@@ -104,9 +96,9 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
         result: OperationResult[InjectionData] = _uninject_dep(
             venv,
             dependency,
-            local_bin_dir=local_bin_dir,
-            local_man_dir=local_man_dir,
-            leave_deps=leave_deps,
+            local_bin_dir=options.local_bin_dir,
+            local_man_dir=options.local_man_dir,
+            leave_deps=options.leave_deps,
         )
         errors.extend(result.errors)
         messages.extend(result.messages)

@@ -79,7 +79,9 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
         ``--cache-dir``, ``-t``/``--target``, ``--prefix``, ``--root`` and ``--src``) apply only to the command they
         were given on, so pipx neither stores nor replays them. An abbreviation the current pip finds ambiguous but an
         older pip reads as one of these, such as ``--requirem`` before pip added ``--requirements-from-script``, counts
-        as that option, and one that could name a source option goes through the replay check below.
+        as that option, and one that could name a source option goes through the replay check below. An abbreviation
+        that could also name a flag, such as ``--b`` for ``--break-system-packages``, takes no value, so the option
+        after it is read on its own.
 
         On POSIX, a replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
         ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, `uv

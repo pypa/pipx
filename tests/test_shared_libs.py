@@ -17,7 +17,7 @@ from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
-from pipx.util import run_subprocess
+from pipx.subprocess_runner import run_subprocess
 from pipx.venv import Venv
 
 if TYPE_CHECKING:

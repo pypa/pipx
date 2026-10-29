@@ -7,19 +7,12 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import write_dist_info
-from pipx import backends, paths
-from pipx.backends import (
-    KNOWN_BACKENDS,
-    PIP,
-    UV,
-    OutdatedPackage,
-    assert_not_pip_under_uv,
-    env_default_backend,
-    find_uv_binary,
-    resolve_backend_name,
-)
+from pipx import paths
+from pipx.backends import registry
+from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, OutdatedPackage  # ruff:ignore[import-private-name]  # no public home
 from pipx.backends.pip import PipBackend
-from pipx.backends.uv import UvBackend, resolve_uv_binary
+from pipx.backends.registry import assert_not_pip_under_uv, env_default_backend, resolve_backend_name
+from pipx.backends.uv import UvBackend, find_uv_binary, resolve_uv_binary
 from pipx.constants import WINDOWS
 from pipx.util import PipxError
 
@@ -147,12 +140,12 @@ def test_resolve_backend_name_keeps_explicit_uv_when_too_old(
 
 
 def test_resolve_backend_name_auto_no_uv(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
     assert resolve_backend_name(env_value=None) == (PIP, "auto-pip")
 
 
 def test_resolve_backend_name_auto_disabled(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(Path("/opt/uv"), "path"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(Path("/opt/uv"), "path"))
     assert resolve_backend_name(env_value=None, auto=False) == (PIP, "auto-pip")
 
 

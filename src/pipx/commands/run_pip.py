@@ -5,6 +5,7 @@ __lazy_modules__ = [
     "pathlib",
     "pipx.commands.common",
     "pipx.commands.transaction",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.util",
     "pipx.venv",
@@ -17,6 +18,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.transaction import preserve_venv, runs_from_venv
+from pipx.options import BackendOptions, ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, extract_index_options, install_specs, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -50,7 +52,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
             str(venv.python_path),
             pip_args=["--editable"] if editable else [],
             verbose=venv.verbose,
-            backend=venv.backend_name,
+            backend=BackendOptions(cli=venv.backend_name),
         )
         if canonicalize_name(package_name) != canonicalize_name(main_package.package):
             continue
@@ -59,11 +61,8 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
             package_name=main_package.package,
             package_or_url=package_spec,
             pip_args=_updated_main_package_pip_args(main_package.pip_args, pip_args, editable=editable),
-            include_dependencies=main_package.include_dependencies,
-            include_resources_from=main_package.include_resources_from,
-            include_apps=main_package.include_apps,
+            exposure=ExposureOptions.recorded(main_package),
             is_main_package=True,
-            suffix=main_package.suffix,
             pinned=main_package.pinned,
         )
         return

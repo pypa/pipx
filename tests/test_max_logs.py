@@ -81,8 +81,8 @@ def test_max_logs_keeps_logs_of_running_command(log_dir: Path, monkeypatch: pyte
 
 
 def test_cli_rejects_invalid_env_max_logs(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    monkeypatch.setattr(main, "MAX_LOGS_INVALID", True)
-    monkeypatch.setattr(main, "MAX_LOGS_RAW", "garbage")
+    monkeypatch.setattr(main, "_MAX_LOGS_INVALID", True)
+    monkeypatch.setattr(main, "_MAX_LOGS_RAW", "garbage")
 
     assert run_pipx_cli(["list"])
 
