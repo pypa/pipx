@@ -102,6 +102,58 @@ _LONG_FLAGS: Final[frozenset[str]] = _PIP_LONG_FLAGS | {
     "--system",
     "--system-certs",
 }
+# pip install's long options taking a value, from pip's cli/cmdoptions.py and commands/install.py
+_PIP_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
+    "--abi",
+    "--all-releases",
+    "--build-constraint",
+    "--cache-dir",
+    "--cert",
+    "--client-cert",
+    "--config-settings",
+    "--constraint",
+    "--default-timeout",
+    "--editable",
+    "--exists-action",
+    "--extra-index-url",
+    "--find-links",
+    "--group",
+    "--implementation",
+    "--index-url",
+    "--keyring-provider",
+    "--local-log",
+    "--log",
+    "--log-file",
+    "--no-binary",
+    "--only-binary",
+    "--only-final",
+    "--platform",
+    "--prefix",
+    "--progress-bar",
+    "--proxy",
+    "--pypi-url",
+    "--python",
+    "--python-version",
+    "--refresh-package",
+    "--report",
+    "--requirement",
+    "--requirements-from-script",
+    "--resume-retries",
+    "--retries",
+    "--root",
+    "--root-user-action",
+    "--source",
+    "--source-dir",
+    "--source-directory",
+    "--src",
+    "--target",
+    "--timeout",
+    "--trusted-host",
+    "--upgrade-strategy",
+    "--uploaded-prior-to",
+    "--use-deprecated",
+    "--use-feature",
+})
 # a later upgrade or reinstall replays what pipx records, possibly as root, so a one-shot input or an output location
 # recorded here would be read or written again after its directory has changed hands
 _PIP_ONE_SHOT_OPTIONS: Final[frozenset[str]] = frozenset({
@@ -338,8 +390,19 @@ def _parse_pip_args(pip_args: list[str]) -> list[_PipArgument]:
 
 def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
     spelled, separator, value = argument.partition("=")
-    if (name := _long_option_name(spelled)) is None or (separator and name in _LONG_FLAGS):
-        # pip rejects an unknown or ambiguous option, and a value given to a flag, so keep those as typed
+    if (name := _long_option_name(spelled)) is None:
+        if not _prefixed_options(spelled, _PIP_VALUE_OPTIONS):
+            # pip rejects an unknown option, so keep it as typed
+            return _PipArgument(name=argument)
+        # an older pip, with fewer options, can take a prefix this table finds ambiguous, so keep it as typed, with
+        # the value the option it names there would take
+        return (
+            _PipArgument(name=spelled, value=value, separator=separator)
+            if separator
+            else _PipArgument(name=spelled, value=next(arguments, None))
+        )
+    if separator and name in _LONG_FLAGS:
+        # pip rejects a value given to a flag, so keep it as typed
         return _PipArgument(name=argument)
     if name in _LONG_FLAGS:
         return _PipArgument(name=name)
@@ -393,66 +456,18 @@ def _long_option_name(spelled: str) -> str | None:
 
 
 def pip_long_option_name(spelled: str) -> str | None:
-    # pip install's long options taking a value, from pip's cli/cmdoptions.py and commands/install.py
-    value_options: Final[frozenset[str]] = frozenset({
-        "--abi",
-        "--all-releases",
-        "--build-constraint",
-        "--cache-dir",
-        "--cert",
-        "--client-cert",
-        "--config-settings",
-        "--constraint",
-        "--default-timeout",
-        "--editable",
-        "--exists-action",
-        "--extra-index-url",
-        "--find-links",
-        "--group",
-        "--implementation",
-        "--index-url",
-        "--keyring-provider",
-        "--local-log",
-        "--log",
-        "--log-file",
-        "--no-binary",
-        "--only-binary",
-        "--only-final",
-        "--platform",
-        "--prefix",
-        "--progress-bar",
-        "--proxy",
-        "--pypi-url",
-        "--python",
-        "--python-version",
-        "--refresh-package",
-        "--report",
-        "--requirement",
-        "--requirements-from-script",
-        "--resume-retries",
-        "--retries",
-        "--root",
-        "--root-user-action",
-        "--source",
-        "--source-dir",
-        "--source-directory",
-        "--src",
-        "--target",
-        "--timeout",
-        "--trusted-host",
-        "--upgrade-strategy",
-        "--uploaded-prior-to",
-        "--use-deprecated",
-        "--use-feature",
-    })
-    if spelled in (pip_options := value_options | _PIP_LONG_FLAGS):
+    if spelled in (pip_options := _PIP_VALUE_OPTIONS | _PIP_LONG_FLAGS):
         return spelled
-    # pip, through optparse, takes any unambiguous prefix of its own long options
-    match [option for option in pip_options if option.startswith(spelled)]:
+    match list(_prefixed_options(spelled, pip_options)):
         case [option]:
             return option
         case _:
             return None
+
+
+def _prefixed_options(spelled: str, options: frozenset[str]) -> frozenset[str]:
+    # pip, through optparse, takes any unambiguous prefix of its own long options; "--" alone ends the options
+    return frozenset(option for option in options if option.startswith(spelled)) if spelled != "--" else frozenset()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -505,7 +520,17 @@ def recordable_pip_args(pip_args: list[str]) -> list[str]:
 
 
 def _without_one_shot(arguments: list[_PipArgument]) -> list[_PipArgument]:
-    return [argument for argument in arguments if argument.name not in _PIP_ONE_SHOT_OPTIONS]
+    return [argument for argument in arguments if not _may_name(argument, _PIP_ONE_SHOT_OPTIONS)]
+
+
+def _may_name(argument: _PipArgument, options: frozenset[str]) -> bool:
+    # pip 24.0 reads --requirem as --requirement, a prefix the later --requirements-from-script made ambiguous
+    return argument.name in options or (
+        argument.value is not None
+        and argument.name.startswith("--")
+        and _long_option_name(argument.name) is None
+        and bool(_prefixed_options(argument.name, options))
+    )
 
 
 def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
@@ -537,18 +562,13 @@ def changeable_recorded_source(pip_args: list[str], venv_dir: Path) -> str | Non
 def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
     if argument.value is None:
         return None
-    if argument.name in _PIP_SOURCE_PATH_OPTIONS:
+    if _may_name(argument, _PIP_SOURCE_PATH_OPTIONS):
         # uv splits a --find-links value on commas, pip takes it whole
         values: set[str] = {argument.value, *argument.value.split(",")}
-    elif argument.name in {
-        "-i",
-        "--default-index",
-        "--extra",
-        "--extra-index-url",
-        "--index",
-        "--index-url",
-        "--pypi-url",
-    }:
+    elif _may_name(
+        argument,
+        frozenset({"-i", "--default-index", "--extra", "--extra-index-url", "--index", "--index-url", "--pypi-url"}),
+    ):
         # index options whose value can be a local directory, with pip reading uv's --extra as --extra-index-url; uv
         # takes a named index as name=url
         name, separator, url = argument.value.partition("=")
