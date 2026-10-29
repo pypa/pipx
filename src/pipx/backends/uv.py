@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["importlib", "json", "pathlib", "pipx", "pipx.util", "shutil", "subprocess"]
+__lazy_modules__ = ["contextlib", "importlib", "json", "pathlib", "pipx", "pipx.util", "shutil", "subprocess"]
 
 import json
 import logging
