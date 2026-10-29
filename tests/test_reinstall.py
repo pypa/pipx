@@ -367,8 +367,20 @@ def test_reinstall_keeps_a_file_it_did_not_expose(
     assert (user_file.is_symlink(), user_file.read_text(encoding="utf-8")) == (False, "mine")
 
 
+@pytest.mark.parametrize(
+    "home_depth",
+    [
+        pytest.param(0, id="short-home"),
+        # past the shebang length limit, installers start launchers with a /bin/sh trampoline that execs the interpreter
+        pytest.param(3, id="long-home", marks=SKIP_IF_WINDOWS),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_refreshes_a_stale_copy_it_exposed(dotted_app_wheel: Path, mocker: MockerFixture) -> None:
+def test_reinstall_refreshes_a_stale_copy_it_exposed(
+    dotted_app_wheel: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, home_depth: int
+) -> None:
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", paths.CTX.home.joinpath(*["h" * 200] * home_depth))
+    paths.CTX.make_local()
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
     exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")

@@ -605,19 +605,26 @@ def _launcher_owner_ids(resource_path: Path) -> list[tuple[int, int]]:
     start = 0
     while (marker := data.find(b"#!", start)) != -1:
         start = marker + 2
-        end = data.find(b"\n", marker)
-        line = (data[start:] if end == -1 else data[start:end]).strip()
-        if line.startswith(b'"'):
-            interpreter = line[1:close] if (close := line.find(b'"', 1)) != -1 else b""
-        else:
-            interpreter = parts[0] if (parts := line.split()) else b""
+        end = len(data) if (newline := data.find(b"\n", start)) == -1 else newline
+        next_end = len(data) if (newline := data.find(b"\n", end + 1)) == -1 else newline
         # the scan reads every file in the bin directory, so a stray "#!" in a foreign binary hands over arbitrary
-        # bytes: os.fsdecode rejects undecodable ones under the surrogatepass codec Windows uses, and stat an embedded
-        # NUL; neither makes the copy ours
+        # bytes: os.fsdecode rejects undecodable ones under the surrogatepass codec Windows uses, shlex unbalanced
+        # quotes, and stat an embedded NUL; none makes the copy ours
         with suppress(OSError, ValueError):
-            if interpreter:
-                owner_ids.append(_directory_id(Path(os.fsdecode(interpreter)).parent))
+            if interpreter := _shebang_interpreter(data[start:end].strip(), data[end + 1 : next_end]):
+                owner_ids.append(_directory_id(Path(interpreter).parent))
     return owner_ids
+
+
+def _shebang_interpreter(line: bytes, next_line: bytes) -> str:
+    if line == b"/bin/sh" and next_line.startswith(b"'''exec' "):
+        # pip and uv write a /bin/sh trampoline when the interpreter path is too long for a shebang or holds a space,
+        # and name the interpreter, shell-quoted, on the exec line that follows
+        words: Final[list[str]] = shlex.split(os.fsdecode(next_line))
+        return words[1] if len(words) > 1 else ""
+    if line.startswith(b'"'):
+        return os.fsdecode(line[1:close]) if (close := line.find(b'"', 1)) != -1 else ""
+    return os.fsdecode(parts[0]) if (parts := line.split()) else ""
 
 
 def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
