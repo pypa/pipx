@@ -356,10 +356,11 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             (default: {paths.DEFAULT_PIPX_MAN_DIR}) is in the man search path
             ($MANPATH).
 
-            The result: apps you can run from anywhere, located in packages
-            you can cleanly upgrade or uninstall. Guaranteed to not have
-            dependency version conflicts or interfere with your OS's python
-            packages. 'sudo' is not required to do this.
+            You get apps you can run from anywhere, in packages you can
+            cleanly upgrade or uninstall. Each package gets its own virtual
+            environment, so its dependencies cannot conflict with those of
+            other packages or interfere with your OS's python packages. You
+            do not need 'sudo' for this.
 
             pipx install PACKAGE_SPEC ...
             pipx install --python PYTHON PACKAGE_SPEC
@@ -487,7 +488,7 @@ def _add_python_options(parser: argparse.ArgumentParser) -> None:
         default=FETCH_PYTHON,
         help=(
             f"When to fetch a standalone Python build from python-build-standalone. "
-            f"'{FetchPythonOptions.ALWAYS}' always downloads (ignores any system Python); "
+            f"'{FetchPythonOptions.ALWAYS}' uses a standalone build even when a system Python matches; "
             f"'{FetchPythonOptions.MISSING}' downloads only when the requested version is not found locally; "
             f"'{FetchPythonOptions.NEVER}' never downloads. "
             "Defaults to PIPX_FETCH_PYTHON, or 'never'."
@@ -524,7 +525,7 @@ class _DeprecatedFetchMissingPython(argparse.Action):
 def _package_spec(value: str) -> str:
     # pip and uv would read a dash-leading value as one of their own options rather than a package
     if value.startswith("-"):
-        msg = f"{redact_url_credentials(value)!r} is an installer option, not a package; pass it with --pip-args"
+        msg = f"{redact_url_credentials(value)!r} is an installer option; pass it with --pip-args"
         raise argparse.ArgumentTypeError(msg)
     return value
 
@@ -947,7 +948,7 @@ def _add_upgrade(
         ),
         parents=[shared_parser],
     )
-    _complete_with(parser.add_argument("packages", help="package names(s) to upgrade", nargs="+"), venv_completer)
+    _complete_with(parser.add_argument("packages", help="names of the packages to upgrade", nargs="+"), venv_completer)
     parser.add_argument(
         "--include-injected",
         action="store_true",
@@ -1217,8 +1218,8 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
 
             Packages are uninstalled, then installed with pipx install PACKAGE
             with the same options used in the original install of PACKAGE.
-            This is useful if you upgraded to a new version of Python and want
-            all your packages to use the latest as well.
+            Run it after upgrading Python to move all your packages to the
+            new version.
 
             Rebuilds up to eight environments at once and prints the output
             of each in turn; --verbose rebuilds them one at a time.
@@ -1374,7 +1375,7 @@ def _installed_venv_dirs(args: argparse.Namespace, ctx: _DispatchContext) -> tup
     for venv_dir in venv_dirs:
         if not venv_dir.is_dir():
             name: Final[str] = venv_dir.name
-            msg = f"venv for {name!r} was not found. Was {name!r} installed with pipx?"
+            msg = f"pipx has no venv for {name!r}; run 'pipx list' to see the installed packages"
             raise PipxError(msg)
     return venv_dirs
 
@@ -1567,9 +1568,9 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             since they can reuse the cached Virtual Environment.
 
             In support of PEP 582 'run' will use apps found in a local __pypackages__
-            directory, if present. Please note that this behavior is experimental,
-            and acts as a companion tool to pythonloc. It may be modified or
-            removed in the future. See https://github.com/cs01/pythonloc.
+            directory, if present. This behavior is experimental and is a
+            companion tool to pythonloc. pipx may change or remove it
+            in a future release. See https://github.com/cs01/pythonloc.
             """
         ),
         parents=[shared_parser],
@@ -1762,10 +1763,7 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
     parser.add_argument(
         "--prepend",
         action="store_true",
-        help=(
-            "Prepend directories to your PATH instead of appending. "
-            "This is useful if you want to prioritize pipx apps over system apps."
-        ),
+        help="Prepend directories to your PATH instead of appending. Use it to put pipx apps ahead of system apps.",
     )
     parser.add_argument(
         "--force",
