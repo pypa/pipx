@@ -4,6 +4,7 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
+    "pipx.backends._base",
     "pipx.redact",
     "pipx.util",
     "pipx.wrap",
@@ -26,6 +27,7 @@ from typing import TYPE_CHECKING, Final, cast
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
+from pipx.backends._base import PIP
 from pipx.emojis import HAZARD
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
@@ -147,6 +149,15 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--overrides",
     "--project",
 })
+# value-taking options a recorded snapshot may carry, as their (uv, pip) spellings
+_VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
+    **dict.fromkeys(("--default-index", "--index-url", "-i"), ("--default-index", "--index-url")),
+    **dict.fromkeys(("--index", "--extra-index-url"), ("--index", "--extra-index-url")),
+    **dict.fromkeys(("--find-links", "-f"), ("--find-links", "--find-links")),
+    **dict.fromkeys(("--constraints", "--constraint", "-c"), ("--constraints", "--constraint")),
+    **dict.fromkeys(("--allow-insecure-host", "--trusted-host"), ("--allow-insecure-host", "--trusted-host")),
+    **{option: (option, option) for option in ("--keyring-provider", "--index-strategy", "--prerelease")},
+}
 
 
 def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
@@ -573,6 +584,66 @@ def _changeable_by_others(value: str, base: Path) -> Path | None:
     return None
 
 
+def translate_pip_args(pip_args: list[str], backend: str, environment: str) -> tuple[list[str], list[str]]:
+    # keeping the recorded index stops a snapshot moved to the other backend from installing from PyPI instead
+    to_pip: Final[bool] = backend == PIP
+    translated: Final[list[str]] = []
+    dropped: Final[list[str]] = []
+    arguments: Final[Iterator[str]] = iter(pip_args)
+    for argument in arguments:
+        flag, value = _split_option(argument if to_pip else _expand_pip_abbreviation(argument), arguments)
+        spelling = _VALUE_OPTION_SPELLINGS.get(flag, (flag, flag))
+        match spelling[0]:
+            case "--no-index":
+                translated.append(flag)
+            case "--pre" | "--prerelease" if flag == "--pre" or value == "allow":
+                translated.extend(["--pre"] if to_pip else ["--prerelease", "allow"])
+            case "--prerelease":
+                dropped.extend([flag, value])
+            case "--index":
+                # uv takes a named index as name=url, and the name means nothing to pip
+                name, _, url = value.partition("=")
+                translated.extend([spelling[to_pip], url if url and re.fullmatch(r"[A-Za-z0-9._-]+", name) else value])
+            case "--find-links":
+                # uv splits a --find-links value on commas, pip takes it as one location
+                translated.extend(
+                    part for link in (value.split(",") if to_pip else [value]) for part in (spelling[to_pip], link)
+                )
+            case "--default-index" | "--constraints":
+                translated.extend([spelling[to_pip], value])
+            case "--allow-insecure-host" if "://" not in value:
+                translated.extend([spelling[to_pip], value])
+            case "--keyring-provider" if value in {"disabled", "subprocess"}:
+                translated.extend([flag, value])
+            case "--index-strategy" if value == "unsafe-best-match":
+                pass  # pip always picks the best match across its indexes
+            case "--allow-insecure-host" | "--keyring-provider" | "--index-strategy":
+                msg = (
+                    f"Cannot install {environment} with the {backend} backend: its recorded index option {flag} "
+                    f"{redact_url_credentials(value)} has no {backend} equivalent, and dropping it could install from "
+                    "a different index."
+                )
+                raise PipxError(msg)
+            case _:
+                dropped.append(argument)
+    return translated, dropped
+
+
+def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
+    flag, _, value = argument.partition("=") if argument.startswith("--") else (argument[:2], "", argument[2:])
+    if flag not in _VALUE_OPTION_SPELLINGS:
+        return argument, ""
+    return flag, value or next(arguments, "")
+
+
+def _expand_pip_abbreviation(argument: str) -> str:
+    # pip accepts any unambiguous prefix of a long option: a pip recording can hold --index-u for --index-url
+    flag, separator, value = argument.partition("=")
+    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
+        return argument
+    return f"{name}{separator}{value}"
+
+
 def resolve_local_path(package_spec: str) -> str:
     return _parse_specifier(package_spec).valid_local_path or package_spec
 
@@ -813,6 +884,7 @@ __all__ = [
     "resolve_local_path",
     "source_without_extras",
     "static_project_name",
+    "translate_pip_args",
     "trusted_recorded_pip_args",
     "valid_pypi_name",
     "wheel_project_name",

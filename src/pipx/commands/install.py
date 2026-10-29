@@ -57,7 +57,7 @@ from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.options import DEFAULT_COOLDOWN_OPTIONS, BackendOptions, CooldownOptions, ExposureOptions
-from pipx.package_specifier import package_spec_satisfied, pip_long_option_name, trusted_recorded_pip_args
+from pipx.package_specifier import package_spec_satisfied, translate_pip_args, trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.redact import redact_url_credentials
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
@@ -88,15 +88,6 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-# value-taking options a recorded snapshot may carry, as their (uv, pip) spellings
-_VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
-    **dict.fromkeys(("--default-index", "--index-url", "-i"), ("--default-index", "--index-url")),
-    **dict.fromkeys(("--index", "--extra-index-url"), ("--index", "--extra-index-url")),
-    **dict.fromkeys(("--find-links", "-f"), ("--find-links", "--find-links")),
-    **dict.fromkeys(("--constraints", "--constraint", "-c"), ("--constraints", "--constraint")),
-    **dict.fromkeys(("--allow-insecure-host", "--trusted-host"), ("--allow-insecure-host", "--trusted-host")),
-    **{option: (option, option) for option in ("--keyring-provider", "--index-strategy", "--prerelease")},
-}
 
 
 def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-statements]  # flat install API mirroring the CLI's install options
@@ -982,7 +973,7 @@ def _translate_recorded_pip_args(
     # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
     environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}"
     translations: Final[list[tuple[list[str], list[str]]]] = [
-        _translate_pip_args(trusted_recorded_pip_args(package.pip_args, venv_metadata.venv_dir), backend, environment)
+        translate_pip_args(trusted_recorded_pip_args(package.pip_args, venv_metadata.venv_dir), backend, environment)
         for package in packages
     ]
     if dropped := list(
@@ -1002,66 +993,6 @@ def _translate_recorded_pip_args(
             f"; translated for {backend}: {' '.join(kept)}" if kept else "",
         )
     return [translated for translated, _ in translations]
-
-
-def _translate_pip_args(pip_args: list[str], backend: str, environment: str) -> tuple[list[str], list[str]]:
-    # keeping the recorded index stops a snapshot moved to the other backend from installing from PyPI instead
-    to_pip: Final[bool] = backend == PIP
-    translated: Final[list[str]] = []
-    dropped: Final[list[str]] = []
-    arguments: Final[Iterator[str]] = iter(pip_args)
-    for argument in arguments:
-        flag, value = _split_option(argument if to_pip else _expand_pip_abbreviation(argument), arguments)
-        spelling = _VALUE_OPTION_SPELLINGS.get(flag, (flag, flag))
-        match spelling[0]:
-            case "--no-index":
-                translated.append(flag)
-            case "--pre" | "--prerelease" if flag == "--pre" or value == "allow":
-                translated.extend(["--pre"] if to_pip else ["--prerelease", "allow"])
-            case "--prerelease":
-                dropped.extend([flag, value])
-            case "--index":
-                # uv takes a named index as name=url, and the name means nothing to pip
-                name, _, url = value.partition("=")
-                translated.extend([spelling[to_pip], url if url and re.fullmatch(r"[A-Za-z0-9._-]+", name) else value])
-            case "--find-links":
-                # uv splits a --find-links value on commas, pip takes it as one location
-                translated.extend(
-                    part for link in (value.split(",") if to_pip else [value]) for part in (spelling[to_pip], link)
-                )
-            case "--default-index" | "--constraints":
-                translated.extend([spelling[to_pip], value])
-            case "--allow-insecure-host" if "://" not in value:
-                translated.extend([spelling[to_pip], value])
-            case "--keyring-provider" if value in {"disabled", "subprocess"}:
-                translated.extend([flag, value])
-            case "--index-strategy" if value == "unsafe-best-match":
-                pass  # pip always picks the best match across its indexes
-            case "--allow-insecure-host" | "--keyring-provider" | "--index-strategy":
-                msg = (
-                    f"Cannot install {environment} with the {backend} backend: its recorded index option {flag} "
-                    f"{redact_url_credentials(value)} has no {backend} equivalent, and dropping it could install from "
-                    "a different index."
-                )
-                raise PipxError(msg)
-            case _:
-                dropped.append(argument)
-    return translated, dropped
-
-
-def _split_option(argument: str, arguments: Iterator[str]) -> tuple[str, str]:
-    flag, _, value = argument.partition("=") if argument.startswith("--") else (argument[:2], "", argument[2:])
-    if flag not in _VALUE_OPTION_SPELLINGS:
-        return argument, ""
-    return flag, value or next(arguments, "")
-
-
-def _expand_pip_abbreviation(argument: str) -> str:
-    # pip accepts any unambiguous prefix of a long option: a pip recording can hold --index-u for --index-url
-    flag, separator, value = argument.partition("=")
-    if not flag.startswith("--") or (name := pip_long_option_name(flag)) is None:
-        return argument
-    return f"{name}{separator}{value}"
 
 
 def _generate_package_spec(package_info: PackageInfo) -> str:
