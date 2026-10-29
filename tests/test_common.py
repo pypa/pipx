@@ -578,9 +578,10 @@ def test_package_name_from_spec_ignores_files_below_cwd_named_like_url(package_s
 
 @pytest.fixture
 def probe_venv(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch.object(
-        common, "Venv", autospec=True, **{"return_value.install_package_no_deps.return_value": "acme-tool"}
-    )
+    venv: Final[MagicMock] = mocker.patch.object(common, "Venv", autospec=True)
+    # Python 3.11's create_autospec drops a return value passed as a keyword for a child method
+    venv.return_value.install_package_no_deps.return_value = "acme-tool"
+    return venv
 
 
 def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: MagicMock) -> None:
