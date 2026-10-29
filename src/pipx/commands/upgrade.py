@@ -38,7 +38,7 @@ from pipx.commands.common import (
 from pipx.commands.install import install as install_package
 from pipx.commands.outdated import inspect_outdated
 from pipx.commands.reinstall import reinstall
-from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv
+from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
@@ -215,7 +215,8 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
     with (
         preserve_venv(
             venv_dir,
-            enabled=upgrading and any(package.expected_apps for package in venv.package_metadata.values()),
+            enabled=upgrading
+            and (runs_from_venv(venv_dir) or any(package.expected_apps for package in venv.package_metadata.values())),
         ),
         marked_unfinished(venv_dir),
     ):

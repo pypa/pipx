@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.util", "pipx.venv", "shutil", "tempfile"]
 
+import sys
 import time
 from contextlib import contextmanager, suppress
 from pathlib import Path
@@ -27,7 +28,7 @@ REINSTALL_BACKUP_SUFFIX: Final[str] = "-pipx-reinstall"
 @contextmanager
 def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -> Generator[VenvBackup]:
     backup: Final[VenvBackup] = VenvBackup(venv_dir, enabled=enabled)
-    if enabled and copy_upfront:
+    if enabled and (copy_upfront or runs_from_venv(venv_dir)):
         backup.copy()
     try:
         yield backup
@@ -43,6 +44,7 @@ class VenvBackup:
         self._venv_dir: Final[Path] = venv_dir
         self._enabled: Final[bool] = enabled
         self._backup_dir: Path | None = None
+        self._holds_imports: bool = False
 
     def copy(self) -> None:
         backup_dir: Final[Path] = self._new_backup_dir()
@@ -53,6 +55,7 @@ class VenvBackup:
             msg: Final[str] = f"pipx could not back up environment {self._venv_dir.name}: {error}"
             raise PipxError(msg) from error
         self._backup_dir = backup_dir
+        self._holds_imports = runs_from_venv(self._venv_dir) and repoint_imports(Path(sys.prefix), backup_dir)
 
     def _new_backup_dir(self) -> Path:
         # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate
@@ -81,10 +84,34 @@ class VenvBackup:
             with uninterrupted():
                 rmdir(self._venv_dir)
                 self._backup_dir.rename(self._venv_dir)
+                if self._holds_imports:
+                    repoint_imports(self._backup_dir, Path(sys.prefix))
 
     def discard(self) -> None:
-        if self._backup_dir is not None:
+        # the running pipx keeps importing from its copy, so the trash cleanup of the next pipx run removes it
+        if self._backup_dir is not None and not self._holds_imports:
             rmdir(self._backup_dir)
+
+
+def runs_from_venv(venv_dir: Path) -> bool:
+    return Path(sys.prefix).resolve() == venv_dir.resolve()
+
+
+def repoint_imports(source: Path, target: Path) -> bool:
+    # pipx changing the venv it runs from puts another version in its place; later imports (lazy ones and those inside
+    # functions) must load the old code from its copy, or old and new modules mix; sys.path finds top-level modules and
+    # each package's __path__ its submodules
+    moved: Final[list[str]] = [_moved(entry, source, target) for entry in sys.path]
+    changed: Final[bool] = moved != sys.path
+    sys.path[:] = moved
+    for module in tuple(sys.modules.values()):
+        if isinstance(search_path := getattr(module, "__path__", None), list):
+            search_path[:] = [_moved(entry, source, target) for entry in search_path]
+    return changed
+
+
+def _moved(entry: str, source: Path, target: Path) -> str:
+    return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
 
 
 def rename_once_released(source: Path, target: Path) -> None:
@@ -159,4 +186,6 @@ __all__ = [
     "marked_unfinished",
     "preserve_venv",
     "rename_once_released",
+    "repoint_imports",
+    "runs_from_venv",
 ]
