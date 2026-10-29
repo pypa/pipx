@@ -7,6 +7,7 @@ __lazy_modules__ = [
     "pathlib",
     "pipx.fanout",
     "pipx.redact",
+    "pipx.util",
     "pty",
     "re",
     "select",

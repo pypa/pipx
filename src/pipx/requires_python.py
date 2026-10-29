@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "re"]
+__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "pipx.subprocess_runner", "re"]
 
 import logging
 import re
