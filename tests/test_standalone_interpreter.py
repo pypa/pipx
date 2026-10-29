@@ -234,12 +234,12 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
     cache_dir, publish = published_darwin_release
     real_rename: Final = os.rename
 
-    def rename_within_cache_dir(source: str, target: str) -> None:
+    def rename_within_cache_dir(source: str | Path, target: str | Path) -> None:
         if not Path(source).is_relative_to(cache_dir):
             raise OSError(errno.EXDEV, os.strerror(errno.EXDEV))
         real_rename(source, target)
 
-    # a tmpfs /tmp or another btrfs subvolume: renames out of the system temp dir fail, so shutil.move copies instead
+    # like a tmpfs /tmp or another btrfs subvolume, renames from outside the pipx home fail so shutil.move copies
     mocker.patch.object(os, "rename", side_effect=rename_within_cache_dir)
     mocker.patch.object(os, "replace", side_effect=rename_within_cache_dir)
     archive: Final[io.BytesIO] = io.BytesIO()
@@ -252,7 +252,7 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_standalone_python_fetch_leaves_no_staging_dir(
+def test_standalone_python_failed_fetch_leaves_no_staging_dir(
     published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
 ) -> None:
     cache_dir, publish = published_darwin_release
@@ -357,7 +357,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
     real_replace: Final = os.replace
     concurrent: Final[list[Future[str]]] = []
 
-    def swap_into_place(source: str, destination: str) -> None:
+    def swap_into_place(source: str | Path, destination: str | Path) -> None:
         # start the second fetch while the first one is swapping its build into place
         if not concurrent:
             concurrent.append(executor.submit(standalone_python.download_python_build_standalone, "3.99"))

@@ -27,6 +27,7 @@ import shutil
 import tarfile
 import time
 import urllib.error
+from contextlib import contextmanager
 from functools import partial
 from http import HTTPStatus
 from pathlib import Path, PurePosixPath
@@ -38,6 +39,7 @@ from pipx.animate import animate
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from typing import TypeIs
 
     from filelock import BaseFileLock
@@ -111,10 +113,7 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
 
         full_version, (download_link, digest) = resolve_python_version(python_version)
 
-        # unpack next to install_dir rather than in the system temp dir: from a tmpfs /tmp or another btrfs subvolume,
-        # moving the build into place copies all of it and splits its hard links into separate files
-        staging_dir: Final[Path] = _fresh_staging_dir(install_dir)
-        try:
+        with _staging_dir(install_dir) as staging_dir:
             archive: Final[Path] = staging_dir / f"python-{full_version}.tar.gz"
             download_dir: Final[Path] = staging_dir / "download"
 
@@ -124,8 +123,6 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
             # is fully extracted do we swap it into place, so a failed download or unpack never destroys a working
             # interpreter
             _install_atomically(download_dir / "python", install_dir)
-        finally:
-            shutil.rmtree(staging_dir, ignore_errors=True)
 
     return str(installed_python)
 
@@ -135,18 +132,6 @@ def _version_lock(install_dir: Path) -> BaseFileLock:
 
     install_dir.parent.mkdir(parents=True, exist_ok=True)
     return FileLock(install_dir.with_name(f".{install_dir.name}.lock"))
-
-
-def _fresh_staging_dir(install_dir: Path) -> Path:
-    # the dot prefix hides a fetch in progress from interpreter list, prune and upgrade; under the version lock anything
-    # already at this name is a crashed fetch's leftover
-    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
-    if staging_dir.exists():
-        shutil.rmtree(staging_dir)
-    # owner-only like a system temp dir, and exist_ok=False so a directory created at this name since the cleanup fails
-    # the fetch instead of being unpacked into
-    staging_dir.mkdir(mode=0o700)
-    return staging_dir
 
 
 def resolve_python_version(requested_version: str) -> tuple[str, tuple[str, str]]:
@@ -264,6 +249,23 @@ def _backoff_or_raise(error: Exception, attempt: int, url: str) -> None:
         raise error
     _LOGGER.debug("fetch attempt %d/%d for %s failed (%s); retrying", attempt, fetch_attempts, url, error)
     time.sleep(0.5 * 2 ** (attempt - 1))
+
+
+@contextmanager
+def _staging_dir(install_dir: Path) -> Generator[Path]:
+    # unpack next to install_dir rather than in the system temp dir: from a tmpfs /tmp or another btrfs subvolume,
+    # moving the build into place copies all of it and splits its hard links into separate files; the dot prefix hides
+    # a fetch in progress from interpreter list, prune and upgrade
+    staging_dir: Final[Path] = install_dir.with_name(f".{install_dir.name}.incoming")
+    # under the version lock, anything already at this name is a killed fetch's leftover
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    # owner-only like a system temp dir; mkdir fails rather than unpack into a directory created here since the cleanup
+    staging_dir.mkdir(mode=0o700)
+    try:
+        yield staging_dir
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
 
 
 def _download(full_version: str, download_link: str, archive: Path) -> None:
