@@ -69,14 +69,21 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
       - Resolved installed version.
     - - ``pip_args``
       - Arguments forwarded to the backend at install time, replayed by later ``upgrade`` and ``reinstall`` runs. pipx
-        stores a relative path given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, as an
-        absolute path, and resolves a relative one already on file against the environment's directory.
+        reads them as pip does and stores each option under its full name, so it stores a clustered ``-qf wheels`` as
+        ``-q -f wheels`` and an abbreviated ``--find-l wheels`` as ``--find-links wheels``. It stores a relative path
+        given to a pip option, such as ``--cert ca.pem`` or ``--find-links wheels``, as an absolute path, and resolves
+        a relative one already on file against the environment's directory.
 
         Options naming a one-shot input or an output location (``-r``/``--requirement``,
         ``--requirements-from-script``, ``--report``, ``--log``, ``--log-file``, ``--local-log``, ``--cache-dir``,
         ``-t``/``--target``, ``--prefix``, ``--root`` and ``--src``) apply only to the command they were given on, so
-        pipx neither stores nor replays them. On POSIX, pipx warns about and drops a stored path that another account
-        could change, because it or a directory above it is writable by others or owned by another user.
+        pipx neither stores nor replays them.
+
+        On POSIX, a replay stops with an error before the installer runs when a stored ``-f``/``--find-links``,
+        ``-c``/``--constraint``, ``--build-constraint``, ``--cert``, ``--client-cert``, or ``file://`` or local-path
+        index URL names a path another account could change, because it or a directory above it is writable by others
+        or owned by another user. The record stays as it is; passing the options again with ``--pip-args`` uses them
+        for that run.
     - - ``include_dependencies``
       - Whether apps and man pages from all dependencies are exposed.
     - - ``include_resources_from``

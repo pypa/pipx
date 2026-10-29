@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import shutil
 import subprocess
+import sys
 import threading
 from dataclasses import replace
 from functools import partial
@@ -35,6 +37,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from _pytest.capture import CaptureResult
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -108,7 +111,9 @@ def test_upgrade_records_relative_find_links_as_absolute(tmp_path: Path, monkeyp
 def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
     venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
-    _record_main_pip_args(venv_dir, ["--find-links", "wheels"])
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
+    metadata.write()
     monkeypatch.chdir(tmp_path)
 
     assert not run_pipx_cli(["upgrade", "pycowsay"])
@@ -116,25 +121,74 @@ def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, m
     assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
 
 
-def _record_main_pip_args(venv_dir: Path, pip_args: list[str]) -> None:
-    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
-    metadata.main_package = replace(metadata.main_package, pip_args=pip_args)
+@pytest.fixture
+def recorded_find_links(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    tmp_path: Path,
+) -> Path:
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
+    wheels: Final[Path] = tmp_path.resolve() / "wheels"
+    wheels.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(wheels)])
     metadata.write()
+    return wheels
+
+
+@skip_if_windows
+@pytest.mark.skipif(sys.platform != "win32" and os.geteuid() == 0, reason="root owns the files it creates")
+def test_upgrade_refuses_recorded_find_links_owned_by_another_account(
+    recorded_find_links: Path, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1)
+    capsys.readouterr()
+
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert (
+        f"pycowsay: refusing to replay the recorded --find-links {recorded_find_links}: another account can change "
+        f"{recorded_find_links}, and with it what gets installed."
+    ) in capsys.readouterr().err
+
+
+@skip_if_windows
+@pytest.mark.skipif(sys.platform != "win32" and os.geteuid() == 0, reason="root owns the files it creates")
+def test_upgrade_keeps_metadata_of_refused_find_links(recorded_find_links: Path, mocker: MockerFixture) -> None:
+    metadata_file: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    recorded: Final[bytes] = metadata_file.read_bytes()
+    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1)
+
+    run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert metadata_file.read_bytes() == recorded
+
+
+def test_upgrade_replays_recorded_find_links_owned_by_user(recorded_find_links: Path) -> None:
+    assert not run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == [
+        "--find-links",
+        str(recorded_find_links),
+    ]
 
 
 @skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_drops_recorded_find_links_writable_by_others(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_upgrade_refuses_recorded_file_index_url_writable_by_others(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
     shared: Final[Path] = tmp_path.resolve() / "shared"
     shared.mkdir()
     shared.chmod(0o777)
-    _record_main_pip_args(paths.ctx.venvs / "pycowsay", ["--find-links", str(shared / "wheels")])
-    caplog.clear()
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.main_package = replace(metadata.main_package, pip_args=["--index-url", (shared / "simple").as_uri()])
+    metadata.write()
+    capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade", "pycowsay"])
+    assert run_pipx_cli(["upgrade", "pycowsay"])
 
-    assert f"ignoring recorded --find-links {shared / 'wheels'}; another account can change {shared}." in caplog.text
+    assert f"another account can change {shared}, and with it what gets installed." in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

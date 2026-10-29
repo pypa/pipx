@@ -35,7 +35,7 @@ from pipx.commands.common import (
 from pipx.commands.transaction import marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import hazard, stars
-from pipx.package_specifier import add_extras, get_extras, source_without_extras
+from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
 from pipx.result import (
     OperationData,
     OperationError,
@@ -158,7 +158,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     package_spec = main_spec or package_spec
     if is_main_package:
         main_package = venv.pipx_metadata.main_package
-        pip_args = pip_args or main_package.pip_args
+        pip_args = pip_args or trusted_recorded_pip_args(main_package.pip_args, venv_dir)
         include_dependencies = main_package.include_dependencies
         include_resources_from = main_package.include_resources_from
         include_apps = main_package.include_apps

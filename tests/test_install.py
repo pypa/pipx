@@ -293,24 +293,26 @@ def test_force_install_does_not_record_internal_pip_args() -> None:
 
 
 @pytest.mark.parametrize(
-    "pip_args",
+    ("pip_args", "recorded"),
     [
-        pytest.param("-r requirements.txt", id="requirement"),
-        pytest.param("--requirement=requirements.txt", id="requirement-equals"),
-        pytest.param("-rrequirements.txt", id="requirement-attached"),
-        pytest.param("--log pip.log", id="log"),
+        pytest.param("-r requirements.txt", [], id="requirement"),
+        pytest.param("--requirement=requirements.txt", [], id="requirement-equals"),
+        pytest.param("-rrequirements.txt", [], id="requirement-attached"),
+        pytest.param("-qr requirements.txt", ["-q"], id="requirement-clustered"),
+        pytest.param("--log pip.log", [], id="log"),
+        pytest.param("--log-f pip.log", [], id="log-abbreviated"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_does_not_record_one_shot_pip_args(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pip_args: str
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pip_args: str, recorded: list[str]
 ) -> None:
     (tmp_path / "requirements.txt").write_text("", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
     assert not run_pipx_cli(["install", "--backend", "pip", f"--pip-args=--no-cache-dir {pip_args}", "pycowsay"])
 
-    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == ["--no-cache-dir"]
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == ["--no-cache-dir", *recorded]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

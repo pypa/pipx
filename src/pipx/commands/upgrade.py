@@ -42,7 +42,7 @@ from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
+from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
@@ -440,15 +440,17 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
             ),
         )
 
-    main_pip_args: Final[list[str]] = pip_args or main_package.pip_args
-    if packages_to_upgrade is None or packages_to_upgrade:
+    upgrading: Final[bool] = packages_to_upgrade is None or bool(packages_to_upgrade)
+    main_pip_args: Final[list[str]] = pip_args or (
+        trusted_recorded_pip_args(main_package.pip_args, venv.root) if upgrading else main_package.pip_args
+    )
+    if upgrading:
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
 
     with (
         preserve_venv(
             venv_dir,
-            enabled=(packages_to_upgrade is None or bool(packages_to_upgrade))
-            and any(package.expected_apps for package in venv.package_metadata.values()),
+            enabled=upgrading and any(package.expected_apps for package in venv.package_metadata.values()),
         ),
         marked_unfinished(venv_dir),
     ):
@@ -506,6 +508,13 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
     selected: Final[set[str]] = (
         set(package_names) if packages_to_upgrade is None else set(package_names).intersection(packages_to_upgrade)
     )
+    # checked before the cooldown write and the first upgrade, so a refused source changes nothing
+    selected_pip_args: Final[dict[str, list[str]]] = {
+        package_name: main_pip_args
+        if package_name == venv.main_package_name
+        else pip_args or trusted_recorded_pip_args(venv.package_metadata[package_name].pip_args, venv.root)
+        for package_name in selected
+    }
     if cooldown_days is not None:
         cooldown_packages: Final[tuple[str, ...]] = tuple(
             package_name
@@ -531,9 +540,7 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
                 _upgrade_package(
                     venv,
                     package_name,
-                    main_pip_args
-                    if package_name == venv.main_package_name
-                    else pip_args or venv.package_metadata[package_name].pip_args,
+                    selected_pip_args[package_name],
                     is_main_package=package_name == venv.main_package_name,
                     force=force,
                     cooldown_days=cooldown_days,
