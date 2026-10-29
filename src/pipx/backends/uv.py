@@ -7,6 +7,7 @@ import logging
 import re
 import shutil
 import subprocess
+from contextlib import nullcontext
 from functools import cache
 from importlib import import_module
 from pathlib import Path
@@ -17,10 +18,12 @@ from packaging.version import InvalidVersion, Version
 from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
+from pipx.constants import WINDOWS
 from pipx.util import (
     PipxError,
     reject_empty_index,
     run_subprocess,
+    running_launcher_moved_aside,
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
@@ -122,14 +125,17 @@ class UvBackend(Backend):
         if no_deps:
             cmd.append("--no-deps")
         cmd += [*self._default_index_args(self._strip_pip_quiet_flags(pip_args)), *requirements]
-        process: Final = run_subprocess(
-            cmd,
-            run_dir=str(venv_root),
-            log_stdout=not log_pip_errors,
-            log_stderr=not log_pip_errors,
-            env_overrides=self._env_overrides(),
-            stream_output=verbose,
-        )
+        # unlike pip, which moves the files it replaces aside, uv deletes them in place, and Windows refuses that for
+        # the running launcher of a pipx upgrading itself
+        with running_launcher_moved_aside(venv_python.parent) if WINDOWS else nullcontext():
+            process: Final = run_subprocess(
+                cmd,
+                run_dir=str(venv_root),
+                log_stdout=not log_pip_errors,
+                log_stderr=not log_pip_errors,
+                env_overrides=self._env_overrides(),
+                stream_output=verbose,
+            )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process, tool_name="uv", streamed=verbose)
         return process
