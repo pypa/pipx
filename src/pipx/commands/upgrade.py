@@ -10,10 +10,13 @@ __lazy_modules__ = [
     "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
     "pipx.script",
     "pipx.shared_libs",
+    "pipx.subprocess_runner",
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
@@ -43,42 +46,32 @@ from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
+from pipx.options import CooldownOptions, ExposureOptions, InstallOptions, OutdatedOptions, ReinstallOptions
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
 from pipx.shared_libs import SHARED_LIBS
-from pipx.util import PipxError, redact_url_credentials, run_subprocess
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Collection, Sequence
+    from collections.abc import Collection
     from pathlib import Path
 
     from filelock import BaseFileLock
 
     from pipx.commands.outdated import OutdatedData
+    from pipx.options import BackendOptions, UpgradeOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade option set across the selected venvs
-    venv_dirs: dict[str, Path],
-    python: str | None,
-    pip_args: list[str],
-    venv_args: list[str],
-    *,
-    verbose: bool,
-    include_injected: bool,
-    force: bool,
-    install: bool,
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
-) -> OperationResult[UpgradeData]:
+def upgrade(venv_dirs: dict[str, Path], options: UpgradeOptions) -> OperationResult[UpgradeData]:
     results: Final[list[_PackageUpgradeResult]] = []
     install_messages: Final[list[OutputMessage]] = []
 
@@ -86,21 +79,7 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
         with VenvContainer(venv_dir.parent).venv_lock(venv_dir) as venv_lock:
             results.extend(
                 _upgrade_venv(
-                    venv_dir,
-                    pip_args,
-                    verbose=verbose,
-                    include_injected=include_injected,
-                    force=force,
-                    install=install,
-                    package_spec=package_spec,
-                    venv_args=venv_args,
-                    python=python,
-                    python_flag_passed=python_flag_passed,
-                    backend=backend,
-                    env_backend=env_backend,
-                    venv_lock=venv_lock,
-                    cooldown_days=cooldown_days,
-                    extra_messages=install_messages,
+                    venv_dir, options, package_spec=package_spec, venv_lock=venv_lock, messages=install_messages
                 )
             )
 
@@ -115,56 +94,44 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
     )
 
 
-def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the full install/upgrade context for one venv
+def _upgrade_venv(
     venv_dir: Path,
-    pip_args: list[str],
+    options: UpgradeOptions,
     *,
-    verbose: bool,
-    include_injected: bool,
-    force: bool,
-    install: bool = False,
-    package_spec: str | None = None,
-    venv_args: list[str] | None = None,
-    python: str | None = None,
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    venv: Venv | None = None,
-    packages_to_upgrade: Collection[str] | None = None,
-    venv_lock: BaseFileLock | None,
-    cooldown_days: int | None,
-    extra_messages: list[OutputMessage],
+    package_spec: str,
+    venv_lock: BaseFileLock,
+    messages: list[OutputMessage],
 ) -> tuple[_PackageUpgradeResult, ...]:
     if not venv_dir.is_dir():
-        if install:
+        if options.install:
             installed: Final = install_package(
-                venv_dir=None,
-                venv_args=venv_args or [],
-                package_names=None,
+                None,
+                None,
                 # the venv directory only carries the package name; the original argument keeps any version specifier
                 # or extras the user asked to install
-                package_specs=[package_spec or venv_dir.name],
-                local_bin_dir=paths.CTX.bin_dir,
-                local_man_dir=paths.CTX.man_dir,
-                python=python,
-                pip_args=pip_args,
-                verbose=verbose,
-                force=force,
-                reinstall=False,
-                include_dependencies=False,
-                include_resources_from=(),
-                preinstall_packages=None,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
+                [package_spec or venv_dir.name],
+                InstallOptions(
+                    local_bin_dir=paths.CTX.bin_dir,
+                    local_man_dir=paths.CTX.man_dir,
+                    python=options.python,
+                    pip_args=options.pip_args,
+                    venv_args=options.venv_args,
+                    verbose=options.verbose,
+                    force=options.force,
+                    reinstall=False,
+                    exposure=ExposureOptions(),
+                    preinstall_packages=None,
+                    python_flag_passed=options.python_flag_passed,
+                    backend=options.backend,
+                    cooldown=CooldownOptions(cli_days=options.cooldown.days),
+                    emit_output=False,
+                ),
                 venv_lock=venv_lock,
-                cooldown_days=cooldown_days,
-                emit_output=False,
             )
             # install does not raise when it does not render, so surface a failed result here
             if installed.errors:
                 raise PipxError(installed.errors[0].message)
-            extra_messages.extend(installed.messages)
+            messages.extend(installed.messages)
             return ()
         msg: Final[str] = f"""
             Package is not installed. Expected to find {venv_dir!s}, but it
@@ -172,71 +139,28 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
             """
         raise PipxError(msg)
 
-    if venv_args and not install:
-        _LOGGER.info("Ignoring %s as not combined with --install", ", ".join(venv_args))
+    if options.venv_args and not options.install:
+        _LOGGER.info("Ignoring %s as not combined with --install", ", ".join(options.venv_args))
 
-    if python and not install:
+    if options.python and not options.install:
         _LOGGER.info("Ignoring --python as not combined with --install")
 
-    if venv is None:
-        venv = _repaired_venv(
-            venv_dir,
-            verbose=verbose,
-            backend=backend,
-            env_backend=env_backend,
-            venv_lock=venv_lock,
-            messages=extra_messages,
-        )
-        _validate_venv_for_upgrade(venv_dir, venv)
-
-    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
-    if main_package.lock_file is not None:
-        return (
-            _PackageUpgradeResult(
-                environment=venv.name,
-                package=venv.name,
-                previous_version=main_package.package_version,
-                version=main_package.package_version,
-                status=_UpgradeStatus.LOCKED,
-                injected=False,
-                location=str(venv.root),
-                interpreter=venv.pipx_metadata.python_version,
-                backend=venv.pipx_metadata.backend,
-            ),
-        )
-
-    upgrading: Final[bool] = packages_to_upgrade is None or bool(packages_to_upgrade)
-    main_pip_args: Final[list[str]] = pip_args or (
-        trusted_recorded_pip_args(main_package.pip_args, venv.root) if upgrading else main_package.pip_args
+    venv: Final[Venv] = _repaired_venv(
+        venv_dir,
+        verbose=options.verbose,
+        backend=options.backend,
+        venv_lock=venv_lock,
+        messages=messages,
     )
-    if upgrading:
-        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
-
-    with (
-        preserve_venv(
-            venv_dir,
-            enabled=upgrading
-            and (runs_from_venv(venv_dir) or any(package.expected_apps for package in venv.package_metadata.values())),
-        ),
-        marked_unfinished(venv_dir),
-    ):
-        return _upgrade_packages(
-            venv,
-            main_pip_args,
-            pip_args,
-            include_injected=include_injected,
-            force=force,
-            packages_to_upgrade=packages_to_upgrade,
-            cooldown_days=cooldown_days,
-        )
+    _validate_venv_for_upgrade(venv_dir, venv)
+    return _upgrade_venv_packages(venv, options, packages_to_upgrade=None)
 
 
-def _repaired_venv(  # ruff:ignore[too-many-arguments]  # forwards the reinstall context for one venv
+def _repaired_venv(
     venv_dir: Path,
     *,
     verbose: bool,
-    backend: str | None,
-    env_backend: str | None,
+    backend: BackendOptions,
     venv_lock: BaseFileLock | None,
     messages: list[OutputMessage],
 ) -> Venv:
@@ -244,17 +168,18 @@ def _repaired_venv(  # ruff:ignore[too-many-arguments]  # forwards the reinstall
         _LOGGER.warning("%s was left half changed by an interrupted pipx run; reinstalling it first.", venv_dir.name)
         messages.extend(
             reinstall(
-                venv_dir=venv_dir,
-                local_bin_dir=paths.CTX.bin_dir,
-                local_man_dir=paths.CTX.man_dir,
-                python=_base_python(Venv(venv_dir)),
-                verbose=verbose,
-                backend=backend,
-                env_backend=env_backend,
+                venv_dir,
+                ReinstallOptions(
+                    local_bin_dir=paths.CTX.bin_dir,
+                    local_man_dir=paths.CTX.man_dir,
+                    python=_base_python(Venv(venv_dir)),
+                    verbose=verbose,
+                    backend=backend,
+                ),
                 venv_lock=venv_lock,
             ).messages
         )
-    return Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    return Venv(venv_dir, verbose=verbose, backend=backend)
 
 
 def _base_python(venv: Venv) -> str:
@@ -285,18 +210,52 @@ def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
         raise PipxError(msg, wrap_message=False)
 
 
-def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both pip-arg sets plus the injected/force/cooldown flags
+def _upgrade_venv_packages(
+    venv: Venv, options: UpgradeOptions, *, packages_to_upgrade: Collection[str] | None
+) -> tuple[_PackageUpgradeResult, ...]:
+    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
+    if main_package.lock_file is not None:
+        return (
+            _PackageUpgradeResult(
+                environment=venv.name,
+                package=venv.name,
+                previous_version=main_package.package_version,
+                version=main_package.package_version,
+                status=_UpgradeStatus.LOCKED,
+                injected=False,
+                location=str(venv.root),
+                interpreter=venv.pipx_metadata.python_version,
+                backend=venv.pipx_metadata.backend,
+            ),
+        )
+
+    upgrading: Final[bool] = packages_to_upgrade is None or bool(packages_to_upgrade)
+    main_pip_args: Final[list[str]] = options.pip_args or (
+        trusted_recorded_pip_args(main_package.pip_args, venv.root) if upgrading else main_package.pip_args
+    )
+    if upgrading:
+        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=options.verbose)
+
+    with (
+        preserve_venv(
+            venv.root,
+            enabled=upgrading
+            and (runs_from_venv(venv.root) or any(package.expected_apps for package in venv.package_metadata.values())),
+        ),
+        marked_unfinished(venv.root),
+    ):
+        return _upgrade_packages(venv, main_pip_args, options, packages_to_upgrade=packages_to_upgrade)
+
+
+def _upgrade_packages(
     venv: Venv,
     main_pip_args: list[str],
-    pip_args: list[str],
+    options: UpgradeOptions,
     *,
-    include_injected: bool,
-    force: bool,
     packages_to_upgrade: Collection[str] | None,
-    cooldown_days: int | None,
 ) -> tuple[_PackageUpgradeResult, ...]:
     package_names: Final[list[str]] = [venv.main_package_name]
-    if include_injected:
+    if options.include_injected:
         package_names.extend(
             package_name for package_name in venv.package_metadata if package_name != venv.main_package_name
         )
@@ -308,9 +267,10 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
     selected_pip_args: Final[dict[str, list[str]]] = {
         package_name: main_pip_args
         if package_name == venv.main_package_name
-        else pip_args or trusted_recorded_pip_args(venv.package_metadata[package_name].pip_args, venv.root)
+        else options.pip_args or trusted_recorded_pip_args(venv.package_metadata[package_name].pip_args, venv.root)
         for package_name in selected
     }
+    cooldown_days: Final[int | None] = options.cooldown.days
     if cooldown_days is not None:
         cooldown_packages: Final[tuple[str, ...]] = tuple(
             package_name
@@ -334,8 +294,7 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
             venv,
             package_name,
             selected_pip_args[package_name],
-            is_main_package=package_name == venv.main_package_name,
-            force=force,
+            force=options.force,
             cooldown_days=cooldown_days,
         )
         if package_name in selected
@@ -348,12 +307,11 @@ def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both 
     )
 
 
-def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one package needs its pip args plus the main/force/cooldown context
+def _upgrade_package(
     venv: Venv,
     package_name: str,
     pip_args: list[str],
     *,
-    is_main_package: bool,
     force: bool,
     cooldown_days: int | None,
 ) -> _PackageUpgradeResult:
@@ -371,11 +329,8 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
         package_name,
         parse_specifier_for_upgrade(package_metadata.package_or_url),
         pip_args,
-        include_dependencies=package_metadata.include_dependencies,
-        include_resources_from=package_metadata.include_resources_from,
-        include_apps=package_metadata.include_apps,
-        is_main_package=is_main_package,
-        suffix=package_metadata.suffix,
+        exposure=ExposureOptions.recorded(package_metadata),
+        is_main_package=package_name == venv.main_package_name,
         expected_apps=package_metadata.expected_apps,
         cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
     )
@@ -483,27 +438,16 @@ def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> 
     )
 
 
-def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade-all option set
-    venv_container: VenvContainer,
-    *,
-    verbose: bool,
-    pip_args: list[str],
-    include_injected: bool,
-    skip: Sequence[str],
-    force: bool,
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
-) -> OperationResult[UpgradeData]:
+def upgrade_all(venv_container: VenvContainer, options: UpgradeOptions) -> OperationResult[UpgradeData]:
     outdated: Final[OutdatedData] = inspect_outdated(
         venv_container,
-        include_injected=include_injected,
-        upgradable_only=True,
-        pip_args=pip_args,
-        skip=skip,
-        backend=backend,
-        env_backend=env_backend,
+        OutdatedOptions(
+            include_injected=options.include_injected,
+            upgradable_only=True,
+            pip_args=options.pip_args,
+            skip=options.skip,
+            backend=options.backend,
+        ),
     )
     candidates: Final[set[tuple[str, str]]] = {
         (package.environment, package.package) for package in outdated.packages
@@ -526,21 +470,13 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
                     _upgrade_listed_venv,
                     venv_container,
                     venv_dir,
-                    verbose=verbose,
-                    pip_args=pip_args,
-                    include_injected=include_injected,
-                    skip=skip,
-                    force=force,
-                    python_flag_passed=python_flag_passed,
-                    backend=backend,
-                    env_backend=env_backend,
-                    cooldown_days=cooldown_days,
+                    options,
                     candidates=candidates,
                     check_failures=check_failures,
                 )
                 for venv_dir in venv_dirs
             ],
-            sequential=verbose,
+            sequential=options.verbose,
             interrupted=lambda index: _interrupted_upgrade(venv_dirs[index]),
         )
     failures: Final[list[_FailedUpgrade]] = []
@@ -586,23 +522,15 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
     )
 
 
-def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat upgrade-all context for one venv
+def _upgrade_listed_venv(
     venv_container: VenvContainer,
     venv_dir: Path,
+    options: UpgradeOptions,
     *,
-    verbose: bool,
-    pip_args: list[str],
-    include_injected: bool,
-    skip: Sequence[str],
-    force: bool,
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-    cooldown_days: int | None,
     candidates: set[tuple[str, str]],
     check_failures: dict[str, list[str]],
 ) -> _VenvUpgrade:
-    if venv_dir.name in skip:
+    if venv_dir.name in options.skip:
         return _VenvUpgrade(skipped=(_SkippedUpgrade(environment=venv_dir.name, reason="requested"),))
     with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
         messages: Final[list[OutputMessage]] = []
@@ -611,9 +539,8 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
         try:
             venv: Final[Venv] = _repaired_venv(
                 venv_dir,
-                verbose=verbose,
-                backend=backend,
-                env_backend=env_backend,
+                verbose=options.verbose,
+                backend=options.backend,
                 venv_lock=venv_lock,
                 messages=messages,
             )
@@ -624,25 +551,15 @@ def _upgrade_listed_venv(  # ruff:ignore[too-many-arguments]  # forwards the fla
                 )
             _validate_venv_for_upgrade(venv_dir, venv)
             _raise_check_failures(venv, check_failures if checked else {})
-            package_results: Final[tuple[_PackageUpgradeResult, ...]] = _upgrade_venv(
-                venv_dir,
-                pip_args,
-                verbose=verbose,
-                include_injected=include_injected,
-                force=force,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-                venv=venv,
+            package_results: Final[tuple[_PackageUpgradeResult, ...]] = _upgrade_venv_packages(
+                venv,
+                options,
                 packages_to_upgrade={
                     package_name
                     for package_name, package in venv.package_metadata.items()
-                    if (package_name == venv.main_package_name or include_injected)
+                    if (package_name == venv.main_package_name or options.include_injected)
                     and (venv.name, f"{package_name}{package.suffix}") in candidates
                 },
-                venv_lock=venv_lock,
-                cooldown_days=cooldown_days,
-                extra_messages=messages,
             )
         except PipxError as error:
             messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))

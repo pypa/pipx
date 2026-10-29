@@ -23,11 +23,11 @@ from helpers import (
     write_wheel,
 )
 from package_info import PKG
-from pipx import paths, util, venv_inspect
+from pipx import paths, trash, util, venv_inspect
 from pipx.commands import common
 from pipx.commands import reinstall as reinstall_module
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
-from pipx.util import redact_url_credentials
+from pipx.redact import redact_url_credentials
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -688,7 +688,7 @@ def test_reinstall_finishes_the_restore_through_a_second_signal(
     before_venv_subprocess(paths.CTX.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
 
     def rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
-        util.rmdir(path, safe_rm=safe_rm)
+        trash.rmdir(path, safe_rm=safe_rm)
         signal.raise_signal(signal.SIGINT)
 
     mocker.patch.object(reinstall_module, "rmdir", autospec=True, side_effect=rmdir_then_interrupt)

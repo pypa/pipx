@@ -11,14 +11,18 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.backends",
+    "pipx.backends._base",
+    "pipx.backends.registry",
     "pipx.commands.environment",
     "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
+    "pipx.options",
     "pipx.package_specifier",
+    "pipx.redact",
     "pipx.result",
     "pipx.shared_libs",
+    "pipx.subprocess_runner",
     "pipx.util",
     "pipx.venv",
     "pipx.version",
@@ -52,27 +56,18 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backends import KNOWN_BACKENDS, UV, env_default_backend, get_backend, resolve_backend_name
+from pipx.backends._base import KNOWN_BACKENDS, UV
+from pipx.backends.registry import env_default_backend, get_backend, resolve_backend_name
 from pipx.colors import BOLD, GREEN
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.commands.transaction import empty_trash
 from pipx.constants import (
-    COOLDOWN,
-    COOLDOWN_INVALID,
-    COOLDOWN_RAW,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
-    FETCH_MISSING_PYTHON_RAW,
-    FETCH_PYTHON,
-    FETCH_PYTHON_INVALID,
-    FETCH_PYTHON_RAW,
-    MAX_LOGS_INVALID,
-    MAX_LOGS_RAW,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
     FetchPythonOptions,
-    compute_max_logs,
 )
 from pipx.emojis import HAZARD
 from pipx.fanout import stopping_children_on_signals
@@ -82,17 +77,25 @@ from pipx.interpreter import (
     get_default_python,
     get_default_python_spec,
 )
+from pipx.options import (
+    BackendOptions,
+    CooldownOptions,
+    ExposureOptions,
+    InjectOptions,
+    InstallOptions,
+    ListOptions,
+    ReinstallOptions,
+    RunOptions,
+    SyncOptions,
+    UninjectOptions,
+    UpgradeOptions,
+)
 from pipx.package_specifier import valid_pypi_name
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
-from pipx.util import (
-    PipxError,
-    mkdir,
-    open_owner_only,
-    redact_url_credentials,
-    reject_empty_index,
-    stream_subprocess_stdout_to_stderr,
-)
+from pipx.subprocess_runner import stream_subprocess_stdout_to_stderr
+from pipx.util import PipxError, mkdir, open_owner_only, reject_empty_index
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 from pipx.wrap import pipx_wrap
@@ -483,7 +486,7 @@ def _add_python_options(parser: argparse.ArgumentParser) -> None:
         "--fetch-python",
         type=FetchPythonOptions,
         choices=list(FetchPythonOptions),
-        default=FETCH_PYTHON,
+        default=_FETCH_PYTHON,
         help=(
             f"When to fetch a standalone Python build from python-build-standalone. "
             f"'{FetchPythonOptions.ALWAYS}' uses a standalone build even when a system Python matches; "
@@ -608,29 +611,31 @@ def _cmd_install(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         None,
         None,
         args.package_spec,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        force=args.force,
-        upgrade=args.upgrade,
-        reinstall=False,
-        include_dependencies=args.include_deps,
-        include_resources_from=args.include_resources_from,
-        preinstall_packages=args.preinstall,
-        expected_apps=args.app or (),
-        lock_file=args.lock,
-        suffix=args.suffix,
-        python_flag_passed=ctx.python_flag_passed,
-        fetch_python=ctx.fetch_python,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        upgrade_strategy=args.upgrade_strategy,
-        cooldown_days=ctx.cooldown_days,
-        env_cooldown_days=ctx.env_cooldown_days,
-        emit_output=False,
+        InstallOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            force=args.force,
+            upgrade=args.upgrade,
+            reinstall=False,
+            exposure=ExposureOptions(
+                include_dependencies=args.include_deps,
+                include_resources_from=args.include_resources_from,
+                suffix=args.suffix,
+            ),
+            preinstall_packages=args.preinstall,
+            expected_apps=args.app or (),
+            lock_file=args.lock,
+            python_flag_passed=ctx.python_flag_passed,
+            fetch_python=ctx.fetch_python,
+            backend=ctx.backend,
+            upgrade_strategy=args.upgrade_strategy,
+            cooldown=ctx.cooldown,
+            emit_output=False,
+        ),
     )
 
 
@@ -663,17 +668,18 @@ def _cmd_install_all(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
 
     return install_all(
         args.spec_metadata_file,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        force=args.force,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
-        python_flag_passed=ctx.python_flag_passed,
+        InstallOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            force=args.force,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+            python_flag_passed=ctx.python_flag_passed,
+        ),
     )
 
 
@@ -725,10 +731,12 @@ def _cmd_uninject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationR
         return uninject(
             venv_dir,
             args.dependencies,
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
-            leave_deps=args.leave_deps,
-            verbose=ctx.verbose,
+            UninjectOptions(
+                local_bin_dir=paths.CTX.bin_dir,
+                local_man_dir=paths.CTX.man_dir,
+                leave_deps=args.leave_deps,
+                verbose=ctx.verbose,
+            ),
         )
 
 
@@ -806,17 +814,18 @@ def _cmd_inject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRes
             venv_dir,
             args.dependencies,
             args.requirements,
-            ctx.pip_args,
-            verbose=ctx.verbose,
-            include_apps=args.include_apps,
-            include_dependencies=args.include_deps,
-            include_resources_from=args.include_resources_from,
-            force=args.force,
-            suffix=args.with_suffix,
-            backend=ctx.backend,
-            env_backend=ctx.env_backend,
-            cooldown_days=ctx.effective_cooldown_days,
-            emit_output=False,
+            InjectOptions(
+                pip_args=ctx.pip_args,
+                verbose=ctx.verbose,
+                include_apps=args.include_apps,
+                include_dependencies=args.include_deps,
+                include_resources_from=args.include_resources_from,
+                force=args.force,
+                with_suffix=args.with_suffix,
+                backend=ctx.backend,
+                cooldown_days=ctx.cooldown.days,
+                emit_output=False,
+            ),
         )
 
 
@@ -977,17 +986,18 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
 
     return upgrade(
         _venv_dirs(args, ctx),
-        ctx.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        verbose=ctx.verbose,
-        include_injected=args.include_injected,
-        force=args.force,
-        install=args.install,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        UpgradeOptions(
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            verbose=ctx.verbose,
+            include_injected=args.include_injected,
+            force=args.force,
+            install=args.install,
+            python_flag_passed=ctx.python_flag_passed,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+        ),
     )
 
 
@@ -1038,15 +1048,16 @@ def _cmd_upgrade_all(args: argparse.Namespace, ctx: _DispatchContext) -> Operati
 
     return upgrade_all(
         ctx.venv_container,
-        verbose=ctx.verbose,
-        include_injected=args.include_injected,
-        skip=ctx.skip_list,
-        force=args.force,
-        pip_args=ctx.pip_args,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
+        UpgradeOptions(
+            verbose=ctx.verbose,
+            include_injected=args.include_injected,
+            skip=ctx.skip_list,
+            force=args.force,
+            pip_args=ctx.pip_args,
+            python_flag_passed=ctx.python_flag_passed,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+        ),
     )
 
 
@@ -1197,17 +1208,19 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
     with ctx.venv_container.venv_lock(venv_dir) as venv_lock:
         from pipx.commands.reinstall import reinstall
 
-        return reinstall(
-            venv_dir=venv_dir,
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
-            python=ctx.python,
-            verbose=ctx.verbose,
-            python_flag_passed=ctx.python_flag_passed,
-            backend=ctx.backend,
-            env_backend=ctx.env_backend,
-            venv_lock=venv_lock,
-        )
+        return reinstall(venv_dir, _reinstall_options(ctx), venv_lock=venv_lock)
+
+
+def _reinstall_options(ctx: _DispatchContext) -> ReinstallOptions:
+    return ReinstallOptions(
+        local_bin_dir=paths.CTX.bin_dir,
+        local_man_dir=paths.CTX.man_dir,
+        python=ctx.python,
+        verbose=ctx.verbose,
+        python_flag_passed=ctx.python_flag_passed,
+        backend=ctx.backend,
+        skip=ctx.skip_list,
+    )
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1242,17 +1255,7 @@ def _cmd_reinstall_all(args: argparse.Namespace, ctx: _DispatchContext) -> Opera
     del args
     from pipx.commands.reinstall import reinstall_all
 
-    return reinstall_all(
-        ctx.venv_container,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        skip=ctx.skip_list,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-    )
+    return reinstall_all(ctx.venv_container, _reinstall_options(ctx))
 
 
 def _add_health(
@@ -1305,17 +1308,7 @@ def _add_repair(
 def _cmd_repair(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResult[RepairData]:
     from pipx.commands.health import repair
 
-    return repair(
-        ctx.venv_container,
-        _selected_venv_dirs(args, ctx),
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-    )
+    return repair(ctx.venv_container, _selected_venv_dirs(args, ctx), _reinstall_options(ctx))
 
 
 def _add_list(
@@ -1368,10 +1361,12 @@ def _cmd_list(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode | Ope
     return list_packages(
         ctx.venv_container,
         venv_dirs,
-        include_injected=args.include_injected,
-        json_format=output is OutputFormat.JSON,
-        short_format=args.short,
-        pinned_only=args.pinned,
+        ListOptions(
+            include_injected=args.include_injected,
+            json_format=output is OutputFormat.JSON,
+            short_format=args.short,
+            pinned_only=args.pinned,
+        ),
     )
 
 
@@ -1546,13 +1541,14 @@ def _cmd_sync(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResul
     return sync_manifest(
         args.manifest,
         ctx.venv_container,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
-        ctx.python,
-        verbose=ctx.verbose,
-        prune=args.prune,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
+        SyncOptions(
+            local_bin_dir=paths.CTX.bin_dir,
+            local_man_dir=paths.CTX.man_dir,
+            python=ctx.python,
+            verbose=ctx.verbose,
+            prune=args.prune,
+            backend=ctx.backend,
+        ),
     )
 
 
@@ -1660,25 +1656,26 @@ def _cmd_run(args: argparse.Namespace, ctx: _DispatchContext) -> NoReturn:
     from pipx.commands.run import run
 
     run(
-        app=args.app_with_args[0],
+        args.app_with_args[0],
+        RunOptions(
+            dependencies=args.with_,
+            app_args=args.app_with_args[1:],
+            python=ctx.python,
+            pip_args=ctx.pip_args,
+            venv_args=ctx.venv_args,
+            is_path=args.path,
+            pypackages=args.pypackages,
+            verbose=ctx.verbose,
+            use_cache=not args.no_cache,
+            refresh=args.refresh,
+            no_path_check=args.no_path_check,
+            backend=ctx.backend,
+            cooldown=ctx.cooldown,
+            python_args=args.python_args,
+            python_flag_passed=ctx.python_flag_passed,
+            fetch_python=ctx.fetch_python,
+        ),
         spec=ctx.spec,
-        dependencies=args.with_,
-        app_args=args.app_with_args[1:],
-        python=ctx.python,
-        pip_args=ctx.pip_args,
-        venv_args=ctx.venv_args,
-        is_path=args.path,
-        pypackages=args.pypackages,
-        verbose=ctx.verbose,
-        use_cache=not args.no_cache,
-        refresh=args.refresh,
-        no_path_check=args.no_path_check,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-        cooldown_days=ctx.effective_cooldown_days,
-        python_args=args.python_args,
-        python_flag_passed=ctx.python_flag_passed,
-        fetch_python=ctx.fetch_python,
     )
 
 
@@ -1846,9 +1843,48 @@ def _cmd_environment(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
     return environment(value=args.value)
 
 
+_COMPLETION_INSTRUCTIONS: Final[str] = """
+If your shell reports register-python-argcomplete as not found,
+or you run pipx as a zipapp, first run
+
+    pipx install argcomplete
+
+Add the command for your shell to its config file so the shell
+runs it on startup. Then open a new shell, or log in again, for
+autocompletion to start working.
+
+bash:
+    eval "$(register-python-argcomplete pipx)"
+
+zsh:
+    To activate completions in zsh, first mark compinit for autoload
+    and run it:
+
+    autoload -U compinit && compinit
+
+    Then enable completions for pipx:
+
+    eval "$(register-python-argcomplete pipx)"
+
+    With argcomplete earlier than v3, also enable bashcompinit in zsh:
+
+    autoload -U bashcompinit
+    bashcompinit
+
+
+tcsh:
+    eval `register-python-argcomplete --shell tcsh pipx`
+
+fish:
+    # Run this once; it does not belong in the config file
+    register-python-argcomplete --shell fish pipx >~/.config/fish/completions/pipx.fish
+
+"""
+
+
 def _cmd_completions(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
     del args, ctx
-    print(constants.COMPLETION_INSTRUCTIONS)  # ruff:ignore[print]  # user-facing CLI output
+    print(textwrap.dedent(_COMPLETION_INSTRUCTIONS))  # ruff:ignore[print]  # user-facing CLI output
     return ExitCode(0)
 
 
@@ -1914,12 +1950,61 @@ def _setup(args: argparse.Namespace) -> None:
         )
 
 
+_FETCH_MISSING_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
+_FETCH_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_PYTHON")
+
+
+def _compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tuple[FetchPythonOptions, bool]:
+    fetch_missing: Final[bool] = (missing_raw or "").strip().lower() not in {"", "0", "false", "f", "no", "n", "off"}
+    raw: Final[str] = python_raw or (
+        FetchPythonOptions.MISSING.value if fetch_missing else FetchPythonOptions.NEVER.value
+    )
+    try:
+        return FetchPythonOptions(raw), False
+    except ValueError:
+        return FetchPythonOptions.NEVER, True
+
+
+_FETCH_PYTHON, _FETCH_PYTHON_INVALID = _compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
+
+_COOLDOWN_RAW: Final[str | None] = os.environ.get("PIPX_COOLDOWN")
+
+
+def _compute_cooldown(raw: str | None) -> tuple[int | None, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return None, False
+    try:
+        days: Final[int] = int(stripped)
+    except ValueError:
+        return None, True
+    return (days, False) if days >= 0 else (None, True)
+
+
+_COOLDOWN, _COOLDOWN_INVALID = _compute_cooldown(_COOLDOWN_RAW)
+
+
+_MAX_LOGS_RAW: Final[str | None] = os.environ.get("PIPX_MAX_LOGS")
+
+
+def _compute_max_logs(raw: str | None) -> tuple[int, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return 10, False
+    try:
+        logs: Final[int] = int(stripped)
+    except ValueError:
+        return 10, True
+    return (logs, False) if logs >= 0 else (10, True)
+
+
+_MAX_LOGS_INVALID: Final[bool] = _compute_max_logs(_MAX_LOGS_RAW)[1]
+
+
 def _validate_fetch_python() -> None:
-    if FETCH_PYTHON_INVALID:
+    if _FETCH_PYTHON_INVALID:
         msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
         raise PipxError(msg)
-    if FETCH_MISSING_PYTHON_RAW is not None:
-        if FETCH_PYTHON_RAW is not None:
+    if _FETCH_MISSING_PYTHON_RAW is not None:
+        if _FETCH_PYTHON_RAW is not None:
             msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
             raise PipxError(msg)
         print(  # ruff:ignore[print]  # user-facing CLI output
@@ -1930,14 +2015,14 @@ def _validate_fetch_python() -> None:
 
 
 def _validate_cooldown() -> None:
-    if COOLDOWN_INVALID:
-        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {COOLDOWN_RAW!r}."
+    if _COOLDOWN_INVALID:
+        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
         raise PipxError(msg)
 
 
 def _validate_max_logs() -> None:
-    if MAX_LOGS_INVALID:
-        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {MAX_LOGS_RAW!r}."
+    if _MAX_LOGS_INVALID:
+        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
         raise PipxError(msg)
 
 
@@ -1982,7 +2067,7 @@ def _open_log_file(pipx_log_dir: Path) -> TextIOWrapper:
         pipx_log_dir.chmod(0o700)
     log_stream: Final[TextIOWrapper] = _create_log_file(pipx_log_dir)
     # the validator's parser lets a blank PIPX_MAX_LOGS fall back to the default, where int() would fail on it
-    _rotate_logs(Path(log_stream.name), compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
+    _rotate_logs(Path(log_stream.name), _compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
     return log_stream
 
 
@@ -2130,9 +2215,10 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
             )
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
-    cli_backend: Final[str | None] = getattr(args, "backend", None) or None
-    env_backend: Final[str | None] = env_default_backend()
-    _validate_backend_available(cli_backend, env_backend)
+    backend: Final[BackendOptions] = BackendOptions(
+        cli=getattr(args, "backend", None) or None, env=env_default_backend()
+    )
+    _validate_backend_available(backend)
 
     ctx: Final[_DispatchContext] = _DispatchContext(
         fetch_python=args.fetch_python if "fetch_python" in args else FetchPythonOptions.NEVER,
@@ -2144,14 +2230,14 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         python=python,
         python_flag_passed=bool(getattr(args, "python", None)),
         spec=spec,
-        backend=cli_backend,
-        env_backend=env_backend,
-        cooldown_days=getattr(args, "cooldown", None),
-        env_cooldown_days=COOLDOWN if "cooldown" in args else None,
+        backend=backend,
+        cooldown=CooldownOptions(
+            cli_days=getattr(args, "cooldown", None), env_days=_COOLDOWN if "cooldown" in args else None
+        ),
     )
     with (
         skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)),
-        shared_pip_cooldown(ctx.effective_cooldown_days),
+        shared_pip_cooldown(ctx.cooldown.days),
         # pip writes its progress to stdout, which under JSON belongs to the envelope alone
         stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
     ):
@@ -2182,9 +2268,9 @@ def package_is_path(package: str) -> None:
         )
 
 
-def _validate_backend_available(cli_backend: str | None, env_backend: str | None) -> None:
+def _validate_backend_available(backend: BackendOptions) -> None:
     # no auto-detection: it costs a `uv --version` subprocess, also for the commands that never build a backend
-    name, source = resolve_backend_name(cli_value=cli_backend, env_value=env_backend, auto=False)
+    name, source = resolve_backend_name(cli_value=backend.cli, env_value=backend.env, auto=False)
     if source in {"cli", "env"}:
         _LOGGER.info("Backend resolved to %s (source: %s)", name, source)
     # only an explicit --backend uv fails early; a uv picked by the environment stays silent so diagnostic commands,
@@ -2203,16 +2289,9 @@ class _DispatchContext:
     python: str
     python_flag_passed: bool
     spec: str | None
-    backend: str | None
-    env_backend: str | None
-    cooldown_days: int | None
-    env_cooldown_days: int | None
+    backend: BackendOptions
+    cooldown: CooldownOptions
     fetch_python: FetchPythonOptions
-
-    @property
-    def effective_cooldown_days(self) -> int | None:
-        # install takes the two apart instead, so a lock file can override the machine-wide policy
-        return self.cooldown_days if self.cooldown_days is not None else self.env_cooldown_days
 
 
 def get_pip_args(args: argparse.Namespace) -> list[str]:
