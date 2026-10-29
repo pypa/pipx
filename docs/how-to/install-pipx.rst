@@ -179,7 +179,7 @@ running executable, so it moves locked files to a trash directory and cleans the
 
 To share one self-managed pipx between all users on Unix, run the bootstrap's ``install`` with ``sudo`` and
 ``--global`` instead, before removing the bootstrap directory. The installed ``pipx`` then works on each user's own
-environments, and on the global ones only when ``--global`` is passed:
+environments, and on the global ones only when you pass ``--global``:
 
 .. code-block:: console
 

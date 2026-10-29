@@ -320,36 +320,25 @@ def test_inject_main_package_extra(
 
 
 @pytest.mark.parametrize(
-    ("installed_extras", "injected", "recorded_extras"),
+    ("installed", "injected", "recorded"),
     [
-        pytest.param("", "repeatme[cow]", "[cow]", id="by-name"),
-        pytest.param("", "RepeatMe[cow]", "[cow]", id="by-unnormalized-name"),
-        pytest.param("[tools]", "repeatme[cow]", "[cow,tools]", id="merges-recorded-extras"),
-        pytest.param("[tools]", "{wheel}[cow]", "[cow,tools]", id="by-recorded-path"),
+        pytest.param("{wheel}", "repeatme[cow]", "{wheel}[cow]", id="by-name"),
+        pytest.param("{wheel}", "RepeatMe[cow]", "{wheel}[cow]", id="by-unnormalized-name"),
+        pytest.param("{wheel}[tools]", "repeatme[cow]", "{wheel}[cow,tools]", id="merges-recorded-extras"),
+        pytest.param("{wheel}[tools]", "{wheel}[cow]", "{wheel}[cow,tools]", id="by-recorded-path"),
+        pytest.param("{uri}", "repeatme[cow] @ {uri}", "repeatme[cow] @ {uri}", id="by-recorded-url"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_main_package_extra_keeps_recorded_source(
-    local_extras_wheel: Path, installed_extras: str, injected: str, recorded_extras: str
+    local_extras_wheel: Path, installed: str, injected: str, recorded: str
 ) -> None:
-    assert not run_pipx_cli(["install", f"{local_extras_wheel}{installed_extras}"])
+    sources: Final[dict[str, str]] = {"wheel": str(local_extras_wheel), "uri": local_extras_wheel.as_uri()}
+    assert not run_pipx_cli(["install", installed.format_map(sources)])
 
-    assert not run_pipx_cli(["inject", "repeatme", injected.format(wheel=local_extras_wheel)])
+    assert not run_pipx_cli(["inject", "repeatme", injected.format_map(sources)])
 
-    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == (
-        f"{local_extras_wheel}{recorded_extras}"
-    )
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_inject_main_package_extra_by_recorded_url(local_extras_wheel: Path) -> None:
-    assert not run_pipx_cli(["install", local_extras_wheel.as_uri()])
-
-    assert not run_pipx_cli(["inject", "repeatme", f"repeatme[cow] @ {local_extras_wheel.as_uri()}"])
-
-    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == (
-        f"repeatme[cow] @ {local_extras_wheel.as_uri()}"
-    )
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.package_or_url == recorded.format_map(sources)
 
 
 @pytest.mark.parametrize(
@@ -630,22 +619,23 @@ def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCapture
 
 
 @pytest.mark.parametrize(
-    ("backend", "injected_before"),
-    [pytest.param("pip", False, id="pip-first-inject"), pytest.param("uv", True, id="uv-reinject")],
+    ("backend", "inject_flags"),
+    [
+        pytest.param("pip", [["--force"]], id="pip-first-inject"),
+        pytest.param("uv", [[], ["--force"]], id="uv-reinject"),
+    ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_force_inject_keeps_main_package_a_plugin_depends_on(
-    tmp_path: Path, backend: str, *, injected_before: bool
+    tmp_path: Path, backend: str, inject_flags: list[list[str]]
 ) -> None:
     plugin_index: Final[Path] = tmp_path / "plugin-index"
     write_wheel(plugin_index, "plugin", "1.0", requires=("tool",))
     write_wheel(plugin_index, "tool", "99.0")
     assert not run_pipx_cli(["install", "--backend", backend, str(write_wheel(tmp_path / "local", "tool", "1.0"))])
     inject: Final[list[str]] = ["inject", "tool", "plugin", f"--pip-args=--no-index --find-links={plugin_index}"]
-    if injected_before:
-        assert not run_pipx_cli(inject)
 
-    assert not run_pipx_cli([*inject, "--force"])
+    assert not any(run_pipx_cli([*inject, *flags]) for flags in inject_flags)
 
     assert module_version("tool") == "1.0"
 

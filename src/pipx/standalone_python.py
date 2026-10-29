@@ -133,12 +133,8 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
             archive = Path(tempdir) / f"python-{full_version}.tar.gz"
             download_dir = Path(tempdir) / "download"
 
-            # download the python build gz
             _download(full_version, download_link, archive)
-
-            # unpack the python build
             _unpack(full_version, archive, download_dir, digest)
-
             # the python installation we want is nested in the tarball under a directory named 'python'; only after it
             # is fully extracted do we swap it into place, so a failed download or unpack never destroys a working
             # interpreter

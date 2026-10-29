@@ -162,7 +162,7 @@ def _unrecorded_package_spec(venv: Venv) -> str:
                 return venv.main_package_name
     msg = (
         f"Not reinstalling {venv.name}. It has missing internal pipx metadata, so pipx cannot tell what it was "
-        f"installed from. Please uninstall and install this package to fix."
+        "installed from. Please uninstall and install this package to fix."
     )
     raise PipxError(msg)
 
@@ -244,7 +244,6 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
 
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
         with force_replaces_only(old_resource_paths):
-            # install main package first
             installed = install(
                 venv_dir,
                 [venv.main_package_name],
@@ -275,7 +274,6 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
             _raise_first_error(installed.errors)
             messages.extend(installed.messages)
 
-            # now install injected packages
             for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
                 injected = inject_dep(
                     venv_dir,

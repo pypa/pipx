@@ -21,6 +21,7 @@ from pipx.util import PipxError, redact_url_credentials
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
@@ -191,23 +192,28 @@ def test_local_script_ignores_file_below_cwd_named_like_url(
 
 @skip_if_windows
 def test_installable_script_downloads_url_over_file_below_cwd(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, urlopen: MagicMock
 ) -> None:
     monkeypatch.chdir(tmp_path)
     url: Final[str] = "https://example.invalid/app.py"
     (lookalike := tmp_path / url).parent.mkdir(parents=True)
     lookalike.write_text("# /// script\n# dependencies = []\n# ///\nprint('local')\n", encoding="utf-8")
     remote: Final[str] = "# /// script\n# dependencies = []\n# ///\nprint('remote')\n"
-    response = mocker.MagicMock(**{
+    urlopen.return_value.configure_mock(**{
         "read.return_value": remote.encode(),
         "headers.get_content_charset.return_value": "utf-8",
         "length": 0,
     })
-    response.__enter__.return_value = response
-    mocker.patch("urllib.request.urlopen", return_value=response)
 
     with installable_script("app", url, ()) as wheel, ZipFile(wheel) as archive:
         assert archive.read("_pipx_script_app/_script.py").decode() == remote
+
+
+@pytest.fixture
+def urlopen(mocker: MockerFixture) -> MagicMock:
+    response: Final[MagicMock] = mocker.MagicMock()
+    response.__enter__.return_value = response
+    return mocker.patch("urllib.request.urlopen", return_value=response)
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
@@ -231,12 +237,11 @@ def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: 
         script_name_from_spec("https://example.invalid/app.py", expected_apps)
 
 
-def test_download_script_bounds_the_response_size(mocker: MockerFixture) -> None:
-    response = mocker.MagicMock()
-    response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
-    response.headers.get_content_charset.return_value = "utf-8"
-    response.__enter__.return_value = response
-    urlopen = mocker.patch("urllib.request.urlopen", return_value=response)
+def test_download_script_bounds_the_response_size(urlopen: MagicMock) -> None:
+    urlopen.return_value.configure_mock(**{
+        "read.return_value": b"x" * (_MAX_SCRIPT_BYTES + 1),
+        "headers.get_content_charset.return_value": "utf-8",
+    })
 
     with pytest.raises(PipxError, match="larger than"):
         download_script("https://example.invalid/big.py")
@@ -264,13 +269,11 @@ def test_read_script_metadata_invalid_requirement_hides_url_credentials() -> Non
     ],
 )
 def test_download_script_reports_decode_failure(
-    mocker: MockerFixture, body: bytes, charset: str, cause: type[Exception]
+    urlopen: MagicMock, body: bytes, charset: str, cause: type[Exception]
 ) -> None:
-    response = mocker.MagicMock(
+    urlopen.return_value.configure_mock(
         length=None, **{"read.return_value": body, "headers.get_content_charset.return_value": charset}
     )
-    response.__enter__.return_value = response
-    mocker.patch("urllib.request.urlopen", return_value=response)
 
     with pytest.raises(PipxError, match=r"^Unable to read script https://example\.invalid/app\.py: ") as error:
         download_script("https://example.invalid/app.py")

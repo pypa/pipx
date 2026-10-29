@@ -1019,16 +1019,16 @@ def test_install_upgrade_strategy_requires_upgrade(capsys: pytest.CaptureFixture
     assert "--upgrade-strategy requires --upgrade" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    "index_args",
+    [
+        pytest.param(["--index-url", ""], id="index-url"),
+        pytest.param(["--pip-args=--index-url="], id="index-in-pip-args"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_rejects_empty_index_url(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["install", "--index-url", "", "pycowsay"])
-    assert "--index-url is empty" in capsys.readouterr().err
-    assert not (paths.ctx.venvs / "pycowsay").exists()
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_install_rejects_empty_index_in_pip_args(capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["install", "--pip-args=--index-url=", "pycowsay"])
+def test_install_rejects_empty_index(capsys: pytest.CaptureFixture[str], index_args: list[str]) -> None:
+    assert run_pipx_cli(["install", *index_args, "pycowsay"])
     assert "--index-url is empty" in capsys.readouterr().err
     assert not (paths.ctx.venvs / "pycowsay").exists()
 
@@ -1297,19 +1297,37 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
 
 
 @pytest.mark.parametrize(
-    ("listed_name", "dist_info_dirs"),
+    "dist_info_dirs",
     [
-        pytest.param("blacken", ["cooltool-1.0.dist-info"], id="rewritten-metadata"),
-        pytest.param("blacken", ["cooltool-1.0.dist-info", "blacken-9.0.dist-info"], id="added-distribution"),
+        pytest.param(["cooltool-1.0.dist-info"], id="rewritten-metadata"),
+        pytest.param(["cooltool-1.0.dist-info", "blacken-9.0.dist-info"], id="added-distribution"),
     ],
 )
 def test_package_name_determination_rejects_name_not_matching_dist_info(
-    mocker: MockerFixture, tmp_path: Path, listed_name: str, dist_info_dirs: list[str]
+    mocker: MockerFixture, tmp_path: Path, dist_info_dirs: list[str]
 ) -> None:
-    venv: Final[Venv] = _probe_venv(mocker, tmp_path, listed_name, dist_info_dirs)
+    venv: Final[Venv] = _probe_venv(mocker, tmp_path, "blacken", dist_info_dirs)
 
     with pytest.raises(PipxError, match=r"declares\s+the\s+name\s+'blacken'"):
         venv.install_package_no_deps("https://example.com/cooltool-1.0-py3-none-any.whl", [])
+
+
+def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, dist_info_dirs: list[str]) -> Venv:
+    def install(**_kwargs: object) -> subprocess.CompletedProcess[str]:
+        for dist_info_dir in dist_info_dirs:
+            (site_packages / dist_info_dir).mkdir()
+        return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
+
+    (root := site_packages / "probe-venv").mkdir()
+    (root / "pyvenv.cfg").touch()
+    venv: Final[Venv] = Venv(root)
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
+    # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
+    backend.install.side_effect = install
+    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
+    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
+    return venv
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1335,24 +1353,6 @@ def test_package_name_determination_accepts_normalized_dist_info_name(mocker: Mo
     venv: Final[Venv] = _probe_venv(mocker, tmp_path, "Cool.Tool", ["cool_tool-1.0.dist-info"])
 
     assert venv.install_package_no_deps("https://example.com/cool_tool-1.0-py3-none-any.whl", []) == "Cool.Tool"
-
-
-def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, dist_info_dirs: list[str]) -> Venv:
-    def install(**_kwargs: object) -> subprocess.CompletedProcess[str]:
-        for dist_info_dir in dist_info_dirs:
-            (site_packages / dist_info_dir).mkdir()
-        return subprocess.CompletedProcess(["pip", "install"], 0, stdout="", stderr="")
-
-    (root := site_packages / "probe-venv").mkdir()
-    (root / "pyvenv.cfg").touch()
-    venv: Final[Venv] = Venv(root)
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
-    # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
-    backend.install.side_effect = install
-    mocker.patch.object(venv, "_backend", backend)
-    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
-    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
-    return venv
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
@@ -1755,9 +1755,13 @@ def test_install_inline_script_app_override(inline_script: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -> None:
-    response: Final[MagicMock] = mocker.MagicMock(length=0)
-    response.read.return_value = inline_script.read_bytes()
-    response.headers.get_content_charset.return_value = "utf-8"
+    response: Final[MagicMock] = mocker.MagicMock(
+        length=0,
+        **{
+            "read.return_value": inline_script.read_bytes(),
+            "headers.get_content_charset.return_value": "utf-8",
+        },
+    )
     response.__enter__.return_value = response
     mocker.patch("urllib.request.urlopen", autospec=True, return_value=response)
 

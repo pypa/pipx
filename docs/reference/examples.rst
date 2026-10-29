@@ -171,7 +171,7 @@ pip                             uv
 (always picks the best match)   ``--index-strategy unsafe-best-match``
 =============================== ======================================================
 
-A pip option recorded as an abbreviation pip accepts, such as ``--index-u``, is translated like its full spelling.
+pipx translates a pip option recorded as an abbreviation pip accepts, such as ``--index-u``, like its full spelling.
 When a recorded index option has no equivalent, such as a uv ``--index-strategy`` other than ``unsafe-best-match``, an
 ``--allow-insecure-host`` URL, or pip's ``--keyring-provider import``, pipx refuses to install that environment rather
 than fall back to PyPI. pip searches every index for the best version, while uv stops at the first index that has the

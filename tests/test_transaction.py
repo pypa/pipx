@@ -22,42 +22,38 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace() -> None:
-    venv_dir = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
-
+def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace(venv_dir: Path) -> None:
     with preserve_venv(venv_dir, enabled=True):
-        siblings = {path.name for path in paths.ctx.venvs.iterdir() if path.is_dir()}
-        backups = [path for path in paths.ctx.trash.iterdir() if path.is_dir()]
+        siblings: Final = {path.name for path in paths.ctx.venvs.iterdir() if path.is_dir()}
+        backups: Final = [path for path in paths.ctx.trash.iterdir() if path.is_dir()]
 
     assert (siblings, len(backups)) == ({"demo"}, 1)
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_preserve_venv_restores_the_backup_on_failure() -> None:
-    venv_dir = paths.ctx.venvs / "demo"
+@pytest.fixture
+def venv_dir(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
+) -> Path:
+    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
     venv_dir.mkdir(parents=True)
     (venv_dir / "marker").write_text("v1", encoding="utf-8")
+    return venv_dir
 
-    def corrupt_then_fail() -> None:
-        (venv_dir / "marker").write_text("v2", encoding="utf-8")
-        msg = "boom"
-        raise PipxError(msg)
 
+def test_preserve_venv_restores_the_backup_on_failure(venv_dir: Path) -> None:
     with pytest.raises(PipxError, match="boom"), preserve_venv(venv_dir, enabled=True):
-        corrupt_then_fail()
+        _corrupt_then_fail(venv_dir)
 
     assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_preserve_venv_without_upfront_copy_restores_a_removed_venv_on_failure() -> None:
-    venv_dir = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+def _corrupt_then_fail(venv_dir: Path) -> None:
+    (venv_dir / "marker").write_text("v2", encoding="utf-8")
+    msg = "boom"
+    raise PipxError(msg)
 
+
+def test_preserve_venv_without_upfront_copy_restores_a_removed_venv_on_failure(venv_dir: Path) -> None:
     def rebuild_then_fail(backup: VenvBackup) -> None:
         backup.remove_venv()
         venv_dir.mkdir()
@@ -70,12 +66,7 @@ def test_preserve_venv_without_upfront_copy_restores_a_removed_venv_on_failure()
     assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success() -> None:
-    venv_dir = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
-
+def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success(venv_dir: Path) -> None:
     with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
         backup.remove_venv()
         venv_dir.mkdir()
@@ -83,20 +74,12 @@ def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success
     assert (list(venv_dir.iterdir()), [path for path in paths.ctx.trash.iterdir() if path.is_dir()]) == ([], [])
 
 
-@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
-def test_preserve_venv_finishes_the_restore_through_an_interrupt(mocker: MockerFixture) -> None:
-    venv_dir = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
+@pytest.mark.usefixtures("signal_handlers")
+def test_preserve_venv_finishes_the_restore_through_an_interrupt(venv_dir: Path, mocker: MockerFixture) -> None:
     mocker.patch.object(transaction, "rmdir", autospec=True, side_effect=_rmdir_then_interrupt)
 
-    def corrupt_then_fail() -> None:
-        (venv_dir / "marker").write_text("v2", encoding="utf-8")
-        msg = "boom"
-        raise PipxError(msg)
-
     with pytest.raises(KeyboardInterrupt), preserve_venv(venv_dir, enabled=True):
-        corrupt_then_fail()
+        _corrupt_then_fail(venv_dir)
 
     assert (venv_dir / "marker").read_text(encoding="utf-8") == "v1"
 
@@ -104,16 +87,6 @@ def test_preserve_venv_finishes_the_restore_through_an_interrupt(mocker: MockerF
 def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
     util.rmdir(path, safe_rm=safe_rm)
     signal.raise_signal(signal.SIGINT)
-
-
-@pytest.fixture
-def venv_dir(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
-) -> Path:
-    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
-    return venv_dir
 
 
 def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path, mocker: MockerFixture) -> None:
@@ -144,7 +117,7 @@ def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: 
 
     with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
         backup.remove_venv()
-        moved = [(path / "marker").read_text(encoding="utf-8") for path in paths.ctx.trash.iterdir()]
+        moved: Final = [(path / "marker").read_text(encoding="utf-8") for path in paths.ctx.trash.iterdir()]
 
     assert (venv_dir.exists(), moved, attempts) == (False, ["v1"], [venv_dir, venv_dir])
 
@@ -168,12 +141,7 @@ def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(venv_dir: Pa
 
 
 @pytest.mark.parametrize("copy_upfront", [pytest.param(True, id="copied"), pytest.param(False, id="moved")])
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_preserve_venv_restores_after_another_command_swept_the_trash(copy_upfront: bool) -> None:
-    venv_dir: Final[Path] = paths.ctx.venvs / "demo"
-    venv_dir.mkdir(parents=True)
-    (venv_dir / "marker").write_text("v1", encoding="utf-8")
-
+def test_preserve_venv_restores_after_another_command_swept_the_trash(venv_dir: Path, copy_upfront: bool) -> None:
     def rebuild_while_listing_then_fail(backup: VenvBackup) -> None:
         backup.remove_venv()
         venv_dir.mkdir()

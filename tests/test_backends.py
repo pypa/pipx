@@ -411,7 +411,11 @@ def uv_run_subprocess(tmp_path: Path, mocker: MockerFixture) -> MagicMock:
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
     )
-    return mocker.patch("pipx.backends.uv.run_subprocess", autospec=True)
+    return mocker.patch(
+        "pipx.backends.uv.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
 
 
 def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
@@ -433,23 +437,10 @@ def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_su
     uv_run_subprocess.assert_not_called()
 
 
-def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture) -> None:
-    binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
-    mocker.patch(
-        "pipx.backends.uv.subprocess.run",
-        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
-    )
-    run_subprocess: Final[MagicMock] = mocker.patch(
-        "pipx.backends.uv.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
-
+def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
     UvBackend().install(venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[])
 
-    assert run_subprocess.call_args.kwargs["env_overrides"] == {
+    assert uv_run_subprocess.call_args.kwargs["env_overrides"] == {
         "VIRTUAL_ENV": None,
         "UV_NO_PROGRESS": "1",
         "UV_PROJECT": str(paths.ctx.home),
@@ -480,26 +471,14 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, mocker: MockerFixture)
     ],
 )
 def test_uv_install_passes_index_url_as_default_index(
-    pip_args: list[str], expected: list[str], tmp_path: Path, mocker: MockerFixture
+    pip_args: list[str], expected: list[str], tmp_path: Path, uv_run_subprocess: MagicMock
 ) -> None:
-    binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
-    mocker.patch(
-        "pipx.backends.uv.subprocess.run",
-        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
-    )
-    run_subprocess: Final[MagicMock] = mocker.patch(
-        "pipx.backends.uv.run_subprocess",
-        autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-    )
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
     UvBackend().install(venv_root=tmp_path, venv_python=venv_python, requirements=["demo"], pip_args=pip_args)
 
-    assert run_subprocess.call_args.args[0] == [
-        binary,
+    assert uv_run_subprocess.call_args.args[0] == [
+        tmp_path / "uv",
         "pip",
         "install",
         "--python",
@@ -977,11 +956,11 @@ def test_backend_override_warning_dedups_per_venv(
 def test_venv_without_record_resolves_like_a_fresh_one(
     tmp_path: Path, backend: str | None, env_backend: str | None, expected: tuple[str, str]
 ) -> None:
-    venv_dir = tmp_path / "demo"
+    venv_dir: Final[Path] = tmp_path / "demo"
     venv_dir.mkdir()
     (venv_dir / "pyvenv.cfg").touch()
 
-    venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, backend=backend, env_backend=env_backend)
 
     assert (venv.backend_name, venv.backend_source) == expected
 
@@ -996,7 +975,7 @@ def test_venv_without_record_resolves_like_a_fresh_one(
 def test_pip_backend_install_lock_refuses_pip_without_lock_support(
     version_output: str, reported: str, tmp_path: Path, mocker: MockerFixture
 ) -> None:
-    run = mocker.patch(
+    run: Final[MagicMock] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=version_output, stderr=""),
@@ -1010,14 +989,11 @@ def test_pip_backend_install_lock_refuses_pip_without_lock_support(
     assert (
         f"needs pip>=26.1, but this environment runs {reported}." in " ".join(str(error.value).split()),
         run.call_count,
-    ) == (
-        True,
-        1,
-    )
+    ) == (True, 1)
 
 
 def test_pip_backend_install_lock_passes_lock_to_pip_with_lock_support(tmp_path: Path, mocker: MockerFixture) -> None:
-    run = mocker.patch(
+    run: Final[MagicMock] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="pip 26.1 from /pip\n", stderr=""),

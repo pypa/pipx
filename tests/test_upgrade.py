@@ -5,7 +5,6 @@ import json
 import shutil
 import subprocess
 import threading
-import zipfile
 from dataclasses import replace
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
@@ -24,6 +23,7 @@ from helpers import (
     run_pipx_cli,
     skip_if_windows,
     unwrap_log_text,
+    write_wheel,
 )
 from package_info import PKG
 from pipx import paths, shared_libs
@@ -108,14 +108,18 @@ def test_upgrade_records_relative_find_links_as_absolute(tmp_path: Path, monkeyp
 def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
     venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
-    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
-    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
-    metadata.write()
+    _record_main_pip_args(venv_dir, ["--find-links", "wheels"])
     monkeypatch.chdir(tmp_path)
 
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
     assert PipxMetadata(venv_dir).main_package.pip_args == ["--find-links", str((venv_dir / "wheels").resolve())]
+
+
+def _record_main_pip_args(venv_dir: Path, pip_args: list[str]) -> None:
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pip_args=pip_args)
+    metadata.write()
 
 
 @skip_if_windows
@@ -125,9 +129,7 @@ def test_upgrade_drops_recorded_find_links_writable_by_others(tmp_path: Path, ca
     shared: Final[Path] = tmp_path.resolve() / "shared"
     shared.mkdir()
     shared.chmod(0o777)
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared / "wheels")])
-    metadata.write()
+    _record_main_pip_args(paths.ctx.venvs / "pycowsay", ["--find-links", str(shared / "wheels")])
     caplog.clear()
 
     assert not run_pipx_cli(["upgrade", "pycowsay"])
@@ -391,32 +393,18 @@ def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
 def test_upgrade_uv_keeps_pinned_injected_dependency(tmp_path: Path) -> None:
     # uv's --upgrade re-resolves every dependency, unlike pip's default only-if-needed strategy
     index: Final[Path] = tmp_path / "index"
-    index.mkdir()
-    _publish_wheel(index, "tool", "1.0", requires=("plug",))
-    _publish_wheel(index, "plug", "1.0")
-    _publish_wheel(index, "plug", "1.5")
-    find_links: Final[str] = f"--pip-args=--no-index --find-links {index}"
-    assert not run_pipx_cli(["install", "--backend", "uv", find_links, "tool"])
-    assert not run_pipx_cli(["inject", find_links, "tool", "plug==1.5"])
+    write_wheel(index, "tool", "1.0", requires=("plug",))
+    write_wheel(index, "plug", "1.0")
+    write_wheel(index, "plug", "1.5")
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links {index}"
+    assert not run_pipx_cli(["install", "--backend", "uv", pip_args, "tool"])
+    assert not run_pipx_cli(["inject", pip_args, "tool", "plug==1.5"])
     assert not run_pipx_cli(["pin", "tool", "--injected-only"])
-    _publish_wheel(index, "plug", "9.0")
+    write_wheel(index, "plug", "9.0")
 
     assert not run_pipx_cli(["upgrade", "tool"])
 
     assert sorted(path.name for path in (paths.ctx.venvs / "tool").rglob("plug-*.dist-info")) == ["plug-1.5.dist-info"]
-
-
-def _publish_wheel(directory: Path, project: str, version: str, requires: tuple[str, ...] = ()) -> None:
-    dist_info: Final[str] = f"{project}-{version}.dist-info"
-    requires_dist: Final[str] = "".join(f"Requires-Dist: {requirement}\n" for requirement in requires)
-    with zipfile.ZipFile(directory / f"{project}-{version}-py3-none-any.whl", "w") as wheel:
-        wheel.writestr(f"{project}.py", "def main() -> None:\n    pass\n")
-        wheel.writestr(
-            f"{dist_info}/METADATA", f"Metadata-Version: 2.1\nName: {project}\nVersion: {version}\n{requires_dist}"
-        )
-        wheel.writestr(f"{dist_info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
-        wheel.writestr(f"{dist_info}/entry_points.txt", f"[console_scripts]\n{project}-app = {project}:main\n")
-        wheel.writestr(f"{dist_info}/RECORD", "")
 
 
 @pytest.mark.parametrize(
@@ -658,18 +646,6 @@ def test_upgrade_suffix_removes_link_named_before_the_last_dot(make_wheel: Calla
     assert sorted(path.name for path in paths.ctx.bin_dir.iterdir()) == ["tool3.12@1"]
 
 
-@pytest.fixture
-def credentialed_wheel_url(dotted_app_wheel: Path) -> Iterator[str]:
-    handler: Final = partial(SimpleHTTPRequestHandler, directory=str(dotted_app_wheel.parent))
-    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
-    with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        try:
-            yield f"http://u:s3cr3ttok@127.0.0.1:{server.server_address[1]}/{dotted_app_wheel.name}"
-        finally:
-            server.shutdown()
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_local_source_hides_url_credentials(
     credentialed_wheel_url: str, capsys: pytest.CaptureFixture[str]
@@ -683,10 +659,19 @@ def test_upgrade_local_source_hides_url_credentials(
     assert (
         f"local source {redact_url_credentials(credentialed_wheel_url)};" in " ".join(out.split()),
         "s3cr3ttok" in out,
-    ) == (
-        True,
-        False,
-    )
+    ) == (True, False)
+
+
+@pytest.fixture
+def credentialed_wheel_url(dotted_app_wheel: Path) -> Iterator[str]:
+    handler: Final = partial(SimpleHTTPRequestHandler, directory=str(dotted_app_wheel.parent))
+    # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
+    with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            yield f"http://u:s3cr3ttok@127.0.0.1:{server.server_address[1]}/{dotted_app_wheel.name}"
+        finally:
+            server.shutdown()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
