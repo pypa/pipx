@@ -75,8 +75,9 @@ dependencies, installs that wheel like any other package, then records the origi
 ``pipx run APP`` executes an application without installing it permanently. Under the pip backend pipx either reuses a
 cached temporary venv or builds a fresh one, then invokes the app. The cache key is a hash of the requirements (the spec
 plus any ``--with`` packages, with local paths made absolute), the ``--python`` value, pip and venv arguments, the
-backend, the cooldown, and the installer's environment variables (``PIP_*``, or ``UV_*`` under the uv backend); cached
-environments expire after 14 days, after which the next run rebuilds against the latest release. Edits to ``pip.conf``
+backend, the cooldown, and the installer's environment variables that change what it resolves (such as
+``PIP_INDEX_URL`` or ``UV_EXCLUDE_NEWER``, but not timeouts, verbosity or cache directories); cached environments
+expire after 14 days, after which the next run rebuilds against the latest release. Edits to ``pip.conf``
 or ``uv.toml`` are not part of the key, so pass ``--refresh`` after changing them. The temporary venv borrows the shared
 pip.
 
