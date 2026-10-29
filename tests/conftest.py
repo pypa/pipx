@@ -157,6 +157,28 @@ def make_wheel(tmp_path: Path) -> Callable[[dict[str, str]], Path]:
 
 
 @pytest.fixture
+def uv_symlinked_install(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    monkeypatch: pytest.MonkeyPatch,
+    make_wheel: Callable[[dict[str, str]], Path],
+) -> None:
+    if shutil.which("uv") is None:
+        pytest.skip("needs the uv binary")
+    # uv links a wheel's data files into the venv from its cache, so the venv's man page is itself a symlink
+    monkeypatch.setenv("UV_LINK_MODE", "symlink")
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "",
+        "foo_bar_x-1.data/scripts/tool": "echo tool\n",
+        "foo_bar_x-1.data/data/share/man/man1/tool.1": "manual\n",
+        "foo_bar_x-1.data/data/share/bash-completion/completions/tool": "complete -F _tool tool\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+    assert not run_pipx_cli(["install", str(wheel), "--backend", "uv"])
+
+
+@pytest.fixture
 def dotted_app_wheel(make_wheel: Callable[[dict[str, str]], Path]) -> Path:
     # tool.12 carries no shebang, so only its content ties a copy of it to the venv
     return make_wheel({
