@@ -10,10 +10,12 @@ __lazy_modules__ = [
     "pipx.commands.inject",
     "pipx.commands.install",
     "pipx.commands.transaction",
-    "pipx.commands.uninstall",
     "pipx.fanout",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
+    "pipx.redact",
+    "pipx.trash",
     "pipx.util",
     "pipx.venv",
     "tempfile",
@@ -22,7 +24,7 @@ __lazy_modules__ = [
 import contextlib
 import logging
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
 from tempfile import mkdtemp
@@ -37,12 +39,13 @@ from pipx.commands.common import (
     drop_links_taken_over,
     expose_shared_resources_in_order,
     force_replaces_only,
+    get_venv_package_infos,
+    get_venv_resource_paths,
     give_back_shared_links,
 )
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.transaction import REINSTALL_BACKUP_SUFFIX, is_unfinished, rename_once_released
-from pipx.commands.uninstall import get_venv_package_infos, get_venv_resource_paths
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,
@@ -53,57 +56,34 @@ from pipx.constants import (
 )
 from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
+from pipx.options import CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
+from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
-from pipx.util import PipxError, redact_url_credentials, rmdir, safe_unlink
+from pipx.trash import rmdir, safe_unlink
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from filelock import BaseFileLock
 
+    from pipx.options import ReinstallOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards the full reinstall context to every environment
-    venv_container: VenvContainer,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    *,
-    verbose: bool,
-    skip: Sequence[str],
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
-) -> OperationResult[ReinstallData]:
+def reinstall_all(venv_container: VenvContainer, options: ReinstallOptions) -> OperationResult[ReinstallData]:
     venv_dirs: Final[list[Path]] = [
-        venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in skip
+        venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in options.skip
     ]
     with expose_shared_resources_in_order(
-        (PipxMetadata(venv_dir) for venv_dir in venv_dirs), local_bin_dir, local_man_dir
+        (PipxMetadata(venv_dir) for venv_dir in venv_dirs), options.local_bin_dir, options.local_man_dir
     ):
         outcomes: Final[list[OperationResult[ReinstallData]]] = fan_out(
-            [
-                partial(
-                    _reinstall_locked,
-                    venv_container,
-                    venv_dir,
-                    local_bin_dir=local_bin_dir,
-                    local_man_dir=local_man_dir,
-                    python=python,
-                    verbose=verbose,
-                    python_flag_passed=python_flag_passed,
-                    backend=backend,
-                    env_backend=env_backend,
-                )
-                for venv_dir in venv_dirs
-            ],
-            sequential=verbose,
+            [partial(_reinstall_locked, venv_container, venv_dir, options) for venv_dir in venv_dirs],
+            sequential=options.verbose,
         )
     errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
@@ -125,31 +105,12 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
     )
 
 
-def _reinstall_locked(  # ruff:ignore[too-many-arguments]  # forwards the full reinstall context for one environment
-    venv_container: VenvContainer,
-    venv_dir: Path,
-    *,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    verbose: bool,
-    python_flag_passed: bool,
-    backend: str | None,
-    env_backend: str | None,
+def _reinstall_locked(
+    venv_container: VenvContainer, venv_dir: Path, options: ReinstallOptions
 ) -> OperationResult[ReinstallData]:
     try:
         with locked_in_order(venv_container.venv_lock(venv_dir)) as venv_lock:
-            return reinstall(
-                venv_dir=venv_dir,
-                local_bin_dir=local_bin_dir,
-                local_man_dir=local_man_dir,
-                python=python,
-                verbose=verbose,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-                venv_lock=venv_lock,
-            )
+            return reinstall(venv_dir, options, venv_lock=venv_lock)
     except PipxError as error_raised:
         return OperationResult(
             command=("reinstall",),
@@ -164,17 +125,8 @@ def _reinstall_locked(  # ruff:ignore[too-many-arguments]  # forwards the full r
         )
 
 
-def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv from its metadata and forwards the full install context
-    *,
-    venv_dir: Path,
-    local_bin_dir: Path,
-    local_man_dir: Path,
-    python: str,
-    verbose: bool,
-    python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
-    venv_lock: BaseFileLock | None,
+def reinstall(
+    venv_dir: Path, options: ReinstallOptions, *, venv_lock: BaseFileLock | None
 ) -> OperationResult[ReinstallData]:
     if not venv_dir.exists():
         return _outcome(
@@ -184,7 +136,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         )
 
     try:
-        Path(python).relative_to(venv_dir)
+        Path(options.python).relative_to(venv_dir)
     except ValueError:
         pass
     else:
@@ -199,14 +151,14 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
             exit_code=EXIT_CODE_REINSTALL_INVALID_PYTHON,
         )
 
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+    venv: Final[Venv] = Venv(venv_dir, verbose=options.verbose, backend=options.backend)
     # checked before the backup, so a refused source leaves the environment as it was
     main_pip_args: Final[list[str]] = trusted_recorded_pip_args(venv.pipx_metadata.main_package.pip_args, venv_dir)
     injected_pip_args: Final[dict[str, list[str]]] = {
         name: trusted_recorded_pip_args(package.pip_args, venv_dir)
         for name, package in venv.pipx_metadata.injected_packages.items()
     }
-    venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=options.verbose)
 
     package_or_url: Final[str] = (
         venv.pipx_metadata.main_package.package_or_url
@@ -218,7 +170,9 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
         msg: Final[str] = f"{ERROR} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first."
         raise PipxError(msg)
 
-    old_resource_paths: Final[set[Path]] = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
+    old_resource_paths: Final[set[Path]] = _get_reinstall_resource_paths(
+        venv, options.local_bin_dir, options.local_man_dir
+    )
     runs_from_venv: Final[bool] = Path(sys.prefix).resolve() == venv_dir.resolve()
     reinstall_backup_dir: Final[Path] = _create_reinstall_backup(venv_dir)
     if runs_from_venv:
@@ -234,27 +188,34 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 canonical_venv_dir,
                 [venv.main_package_name],
                 [package_or_url],
-                local_bin_dir,
-                local_man_dir,
-                python,
-                main_pip_args,
-                venv.pipx_metadata.venv_args,
-                verbose=verbose,
-                force=True,
-                reinstall=True,
-                include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-                include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
-                preinstall_packages=[],
-                expected_apps=venv.pipx_metadata.main_package.expected_apps,
-                lock_file=venv.pipx_metadata.main_package.lock_file,
-                cooldown_days=venv.pipx_metadata.main_package.cooldown_days,
-                suffix=venv.pipx_metadata.main_package.suffix,
-                python_flag_passed=python_flag_passed,
-                backend=backend or venv.pipx_metadata.backend,
-                env_backend=env_backend,
-                exposure_enabled=venv.pipx_metadata.exposure_enabled,
+                InstallOptions(
+                    local_bin_dir=options.local_bin_dir,
+                    local_man_dir=options.local_man_dir,
+                    python=options.python,
+                    pip_args=main_pip_args,
+                    venv_args=venv.pipx_metadata.venv_args,
+                    verbose=options.verbose,
+                    force=True,
+                    reinstall=True,
+                    exposure=ExposureOptions(
+                        include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+                        include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
+                        suffix=venv.pipx_metadata.main_package.suffix,
+                    ),
+                    preinstall_packages=[],
+                    expected_apps=venv.pipx_metadata.main_package.expected_apps,
+                    lock_file=venv.pipx_metadata.main_package.lock_file,
+                    cooldown=CooldownOptions(cli_days=venv.pipx_metadata.main_package.cooldown_days),
+                    python_flag_passed=options.python_flag_passed,
+                    backend=(
+                        recorded_backend := replace(
+                            options.backend, cli=options.backend.cli or venv.pipx_metadata.backend
+                        )
+                    ),
+                    exposure_enabled=venv.pipx_metadata.exposure_enabled,
+                    emit_output=False,
+                ),
                 venv_lock=venv_lock,
-                emit_output=False,
             )
             # install does not raise when it does not render, so restore the backup on a failed result too
             _raise_first_error(installed.errors)
@@ -265,26 +226,27 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                     canonical_venv_dir,
                     injected_name,
                     _require_injected_url(injected_package, venv.name),
-                    injected_pip_args[injected_name],
-                    verbose=verbose,
-                    include_apps=injected_package.include_apps,
-                    include_dependencies=injected_package.include_dependencies,
-                    include_resources_from=injected_package.include_resources_from,
-                    force=True,
-                    # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name from
-                    # the injected package's index when the injected package depends on it
-                    force_reinstall=False,
-                    suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
-                    backend=backend or venv.pipx_metadata.backend,
-                    env_backend=env_backend,
-                    cooldown_days=injected_package.cooldown_days,
-                    pinned=injected_package.pinned,
-                    emit_output=False,
+                    InjectOptions(
+                        pip_args=injected_pip_args[injected_name],
+                        verbose=options.verbose,
+                        include_apps=injected_package.include_apps,
+                        include_dependencies=injected_package.include_dependencies,
+                        include_resources_from=injected_package.include_resources_from,
+                        force=True,
+                        # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
+                        # from the injected package's index when the injected package depends on it
+                        force_reinstall=False,
+                        with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                        backend=recorded_backend,
+                        cooldown_days=injected_package.cooldown_days,
+                        pinned=injected_package.pinned,
+                        emit_output=False,
+                    ),
                 )
                 messages.extend(injected.messages)
 
         new_resource_paths: Final[set[Path]] = _get_expected_reinstall_resource_paths(
-            Venv(canonical_venv_dir, verbose=verbose), local_bin_dir, local_man_dir
+            Venv(canonical_venv_dir, verbose=options.verbose), options.local_bin_dir, options.local_man_dir
         )
         _remove_stale_reinstall_resources(
             drop_links_taken_over(

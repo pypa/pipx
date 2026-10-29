@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.uninstall", "pipx.util", "pipx.venv"]
+__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.common", "pipx.commands.uninstall", "pipx.trash", "pipx.venv"]
 
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
-from pipx.commands.uninstall import UninstallData, get_venv_package_infos, get_venv_resource_paths, uninstall_all
+from pipx.commands.common import get_venv_package_infos, get_venv_resource_paths
+from pipx.commands.uninstall import UninstallData, uninstall_all
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
-from pipx.util import rmdir
+from pipx.trash import rmdir
 from pipx.venv import Venv
 
 if TYPE_CHECKING:

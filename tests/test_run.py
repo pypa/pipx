@@ -29,8 +29,10 @@ if TYPE_CHECKING:
 import pipx.main
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
-from pipx import paths, shared_libs, util
+from pipx import paths, shared_libs, subprocess_runner
 from pipx.commands.run import maybe_script_content, run_package
+from pipx.constants import FetchPythonOptions
+from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.venv import VenvContainer
 
@@ -298,7 +300,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
 def test_run_script_searches_python_only_when_default_fails_requires_python(
     tmp_path: Path, mocker: MockerFixture, backend: str, requires_python: str, searched: set[str]
 ) -> None:
-    exec_mock: Final = mocker.create_autospec(util.exec_app, side_effect=SystemExit(0))
+    exec_mock: Final = mocker.create_autospec(subprocess_runner.exec_app, side_effect=SystemExit(0))
     mocker.patch("pipx.commands.run.exec_app", new=exec_mock)
     mocker.patch("pipx.commands.run_uv.exec_app", new=exec_mock)
     script: Final[Path] = tmp_path / "script.py"
@@ -1628,22 +1630,26 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
             run_package(
                 "pycowsay",
                 "pycowsay",
-                dependencies,
-                [],
-                "python3",
-                pip_args=pip_args,
-                venv_args=venv_args,
-                pypackages=False,
-                verbose=False,
-                use_cache=True,
-                python_args=[],
-                refresh=False,
+                RunOptions(
+                    app_args=[],
+                    dependencies=dependencies,
+                    python="python3",
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    is_path=False,
+                    pypackages=False,
+                    verbose=False,
+                    use_cache=True,
+                    python_args=[],
+                    refresh=False,
+                    no_path_check=True,
+                    backend=DEFAULT_BACKEND_OPTIONS,
+                    cooldown=CooldownOptions(),
+                    python_flag_passed=False,
+                    fetch_python=FetchPythonOptions.NEVER,
+                ),
                 infer_app_name=False,
-                backend=None,
-                env_backend=None,
                 resolved_backend="pip",
-                no_path_check=True,
-                cooldown_days=None,
             )
         return lock.call_args.args[0]
 

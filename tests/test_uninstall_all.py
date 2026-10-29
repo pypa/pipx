@@ -7,7 +7,7 @@ import pytest
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, SKIP_IF_WINDOWS, mock_legacy_venv, run_pipx_cli, write_wheel
 from pipx import paths
 from pipx.commands import uninstall as uninstall_module
-from pipx.util import rmdir_via_trash
+from pipx.trash import rmdir_via_trash
 
 if TYPE_CHECKING:
     from pathlib import Path
