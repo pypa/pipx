@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Final, cast
 import pytest
 
 from helpers import (
-    PACKAGE_CACHE_DIR_NAME,
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     drop_extra_app,
@@ -683,7 +682,7 @@ def test_upgrade_pip_args(
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_cooldown(
-    root: Path,
+    package_cache_dir: Path,
     empty_project_wheel: Path,
     caplog: pytest.LogCaptureFixture,
     *,
@@ -691,8 +690,7 @@ def test_upgrade_cooldown(
     expected_options: tuple[bool, bool],
     expected_cooldowns: tuple[int, int],
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project_wheel)])
     caplog.clear()

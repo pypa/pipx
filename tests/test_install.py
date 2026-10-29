@@ -18,7 +18,6 @@ from unittest import mock
 import pytest
 
 from helpers import (
-    PACKAGE_CACHE_DIR_NAME,
     MakePylock,
     app_name,
     drop_extra_app,
@@ -431,10 +430,11 @@ def test_install_force_pylock_keeps_the_recorded_backend(make_pylock: MakePylock
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_cooldown(root: Path, caplog: pytest.LogCaptureFixture, backend: str, backend_option: str) -> None:
+def test_install_cooldown(
+    package_cache_dir: Path, caplog: pytest.LogCaptureFixture, backend: str, backend_option: str
+) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     assert not run_pipx_cli([
         "install",
@@ -442,7 +442,7 @@ def test_install_cooldown(root: Path, caplog: pytest.LogCaptureFixture, backend:
         backend,
         "--cooldown",
         "7",
-        f"--pip-args=--no-index --find-links={find_links}",
+        f"--pip-args=--no-index --find-links={package_cache_dir}",
         PKG["pycowsay"]["spec"],
     ])
 
@@ -459,21 +459,20 @@ def test_install_cooldown(root: Path, caplog: pytest.LogCaptureFixture, backend:
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_env_cooldown(
-    root: Path,
+    package_cache_dir: Path,
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
     cli_args: list[str],
     expected_days: int,
 ) -> None:
     monkeypatch.setattr(main, "_COOLDOWN", 7)
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     assert not run_pipx_cli([
         "install",
         "--backend",
         "pip",
         *cli_args,
-        f"--pip-args=--no-index --find-links={find_links}",
+        f"--pip-args=--no-index --find-links={package_cache_dir}",
         PKG["pycowsay"]["spec"],
     ])
 
@@ -483,10 +482,9 @@ def test_install_env_cooldown(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_env_cooldown_opted_out_by_flag(
-    root: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+    package_cache_dir: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(main, "_COOLDOWN", 7)
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     assert not run_pipx_cli([
         "install",
@@ -494,7 +492,7 @@ def test_install_env_cooldown_opted_out_by_flag(
         "pip",
         "--cooldown",
         "0",
-        f"--pip-args=--no-index --find-links={find_links}",
+        f"--pip-args=--no-index --find-links={package_cache_dir}",
         PKG["pycowsay"]["spec"],
     ])
 
@@ -504,10 +502,9 @@ def test_install_env_cooldown_opted_out_by_flag(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_env_cooldown_outranks_recorded(
-    root: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+    package_cache_dir: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={package_cache_dir}"
     assert not run_pipx_cli(["install", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     caplog.clear()
 
@@ -1867,16 +1864,14 @@ def test_preinstall(caplog: pytest.LogCaptureFixture) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_preinstall_cooldown(root: Path, caplog: pytest.LogCaptureFixture) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-
+def test_preinstall_cooldown(package_cache_dir: Path, caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli([
         "install",
         "--preinstall",
         PKG["black"]["spec"],
         "--cooldown",
         "7",
-        f"--pip-args=--no-index --find-links={find_links}",
+        f"--pip-args=--no-index --find-links={package_cache_dir}",
         PKG["nox"]["spec"],
     ])
 
@@ -2277,13 +2272,12 @@ def test_install_leaves_recorded_environment_finished() -> None:
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
-def test_install_skip_maintenance_without_index(capsys: pytest.CaptureFixture[str], root: Path, tmp_path: Path) -> None:
+def test_install_skip_maintenance_without_index(
+    capsys: pytest.CaptureFixture[str], package_cache_dir: Path, tmp_path: Path
+) -> None:
     wheelhouse = tmp_path / "wheelhouse"
     wheelhouse.mkdir()
-    wheel = shutil.copy2(
-        next((root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME).glob("pycowsay-*.whl")),
-        wheelhouse,
-    )
+    wheel = shutil.copy2(next(package_cache_dir.glob("pycowsay-*.whl")), wheelhouse)
 
     assert not run_pipx_cli([
         "install",

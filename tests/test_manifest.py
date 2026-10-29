@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final, Literal
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli
+from helpers import app_name, run_pipx_cli
 from pipx import paths
 from pipx.commands import manifest as manifest_module
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
@@ -240,11 +240,10 @@ def test_sync_manifest_clears_app_and_lock_state(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_replays_recorded_install_options(
     write_manifest: Callable[[str], Path],
-    root: Path,
+    package_cache_dir: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
-    pip_args: Final[list[str]] = ["--no-index", f"--find-links={find_links}"]
+    pip_args: Final[list[str]] = ["--no-index", f"--find-links={package_cache_dir}"]
     assert not run_pipx_cli(["install", f"--pip-args={' '.join(pip_args)}", "--system-site-packages", "pycowsay"])
     manifest: Final[Path] = write_manifest(_manifest("pycowsay", "pycowsay"))
     caplog.clear()

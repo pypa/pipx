@@ -62,6 +62,11 @@ def root() -> Path:
     return Path(__file__).parents[1]
 
 
+@pytest.fixture(scope="session")
+def package_cache_dir(root: Path) -> Path:
+    return root / _PIPX_TESTS_DIR / "package_cache" / PACKAGE_CACHE_DIR_NAME
+
+
 @pytest.fixture
 def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     # a signal landing while the main thread runs a weakref callback or finalizer (garbage collection can run at any
@@ -104,11 +109,9 @@ def _preceded(call: Callable[_P, _R], marker: str, action: Callable[[], None]) -
 
 
 @pytest.fixture
-def make_pylock(root: Path, tmp_path: Path) -> MakePylock:
+def make_pylock(package_cache_dir: Path, tmp_path: Path) -> MakePylock:
     def create(package: str, version: str, group: str | None = None) -> Path:
-        wheel = next(
-            (root / _PIPX_TESTS_DIR / "package_cache" / PACKAGE_CACHE_DIR_NAME).glob(f"{package}-{version}-*.whl")
-        )
+        wheel = next(package_cache_dir.glob(f"{package}-{version}-*.whl"))
         groups = "" if group is None else f'dependency-groups = ["{group}"]\ndefault-groups = ["{group}"]\n'
         marker = "" if group is None else f'marker = "\\"{group}\\" in dependency_groups"\n'
         (lock_file := tmp_path / "pylock.test.toml").write_text(
@@ -507,7 +510,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def pipx_local_pypiserver(
-    request: pytest.FixtureRequest, root: Path, tmp_path_factory: pytest.TempPathFactory
+    request: pytest.FixtureRequest, root: Path, package_cache_dir: Path, tmp_path_factory: pytest.TempPathFactory
 ) -> Iterator[str]:
     if request.config.option.net_pypiserver:
         # need both yield and return because other codepath has both
@@ -543,7 +546,7 @@ def pipx_local_pypiserver(
         str(port),
         "--log-file",
         str(tmp_path_factory.mktemp("log") / "pypiserver.log"),
-        str(pipx_cache_dir / PACKAGE_CACHE_DIR_NAME),
+        str(package_cache_dir),
     ]
     pypiserver_process = subprocess.Popen(cmd, cwd=root)
     try:
