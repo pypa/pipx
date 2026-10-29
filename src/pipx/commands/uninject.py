@@ -89,9 +89,9 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
             pipx_wrap(
                 f"""
                 Can't uninject from Virtual Environment {venv_dir.name!r}.
-                {venv_dir.name!r} has missing internal pipx metadata.
-                It was likely installed using a pipx version before 0.15.0.0.
-                Please uninstall and install {venv_dir.name!r} manually to fix.
+                {venv_dir.name!r} has no internal pipx metadata.
+                pipx versions before 0.15.0.0 did not record it.
+                Uninstall and install {venv_dir.name!r} manually to fix it.
                 """
             ),
             stream=OutputStream.STDERR,

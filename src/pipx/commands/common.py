@@ -461,15 +461,15 @@ def _symlink_package_resource(
             pipx_wrap(
                 f"""
                 {HAZARD}  File exists at {symlink_path!s} and points
-                to {symlink_path.resolve()}{"" if exists else ", which is missing"}, not {path!s}. Not
-                modifying.
+                to {symlink_path.resolve()}{"" if exists else ", which is missing"}. pipx expected
+                {path!s} and leaves the file unchanged.
                 """,
                 subsequent_indent=" " * 4,
             )
         )
         return symlink_path
     if is_symlink and not exists:
-        _LOGGER.info("Removing existing symlink %s since it pointed non-existent location", symlink_path)
+        _LOGGER.info("Removing existing symlink %s because it points to a missing location", symlink_path)
         if symlink_path in _SHARED_RESOURCES.get():
             _DANGLING_TAKEN.get()[symlink_path] = (symlink_path.readlink(), path)
         symlink_path.unlink()

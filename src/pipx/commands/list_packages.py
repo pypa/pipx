@@ -184,9 +184,9 @@ def _log_venv_problems(problems: VenvProblems) -> None:
         )
     if problems.missing_metadata:
         _LOGGER.warning(
-            "\nOne or more packages have a missing internal pipx metadata.\n"
-            "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "\nOne or more packages have no internal pipx metadata.\n"
+            "   pipx versions before 0.15.0.0 did not record it.\n"
+            "   Uninstall and install these packages to fix them."
         )
     if problems.unreadable_metadata:
         _LOGGER.warning(
@@ -196,8 +196,7 @@ def _log_venv_problems(problems: VenvProblems) -> None:
         )
     if problems.not_installed:
         _LOGGER.warning(
-            "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "\nOne or more packages are not installed properly.\n   Uninstall and install these packages to fix them."
         )
 
 

@@ -331,7 +331,9 @@ def test_list_rejects_missing_selected_package(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "missing"])
-    assert capsys.readouterr().err.endswith("venv for 'missing' was not found. Was 'missing' installed with pipx?\n")
+    assert capsys.readouterr().err.endswith(
+        "pipx has no venv for 'missing'; run 'pipx list' to see the installed packages\n"
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

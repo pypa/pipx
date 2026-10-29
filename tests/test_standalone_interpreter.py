@@ -588,7 +588,7 @@ def test_prune_removes_unused_standalone_interpreter(capsys: pytest.CaptureFixtu
     assert not run_pipx_cli(["interpreter", "prune"])
 
     out: Final[str] = capsys.readouterr().out
-    assert ("Successfully removed:" in out, f"- Python {_TARGET_PYTHON_VERSION}" in out) == (True, True)
+    assert ("Removed:" in out, f"- Python {_TARGET_PYTHON_VERSION}" in out) == (True, True)
 
 
 @pytest.mark.usefixtures("pruned_unused_interpreter")
