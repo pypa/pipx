@@ -12,7 +12,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from socketserver import ThreadingTCPServer
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 from unittest import mock
 
 import pytest
@@ -21,6 +21,7 @@ from helpers import (
     PACKAGE_CACHE_DIR_NAME,
     MakePylock,
     app_name,
+    current_log_file,
     drop_extra_app,
     run_pipx_cli,
     skip_if_windows,
@@ -1529,7 +1530,7 @@ def test_install_verbose_masks_index_credentials(
 
     assert run_pipx_cli(["install", "--verbose", "--backend", "uv", f"--pip-args={index_args}", str(project)])
 
-    output: Final[str] = capsys.readouterr().err + cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    output: Final[str] = capsys.readouterr().err + current_log_file().read_text(encoding="utf-8")
     assert "****:****@127.0.0.1" in output
     assert "s3cr3t" not in output
 
@@ -1552,7 +1553,7 @@ def test_install_masks_spec_credentials(
     assert run_pipx_cli(["install", "--backend", "uv", *flags, spec])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    log: Final[str] = cast("Path", paths.ctx.log_file).read_text(encoding="utf-8")
+    log: Final[str] = current_log_file().read_text(encoding="utf-8")
     assert "s3cr3t" not in captured.out + captured.err + log
 
 

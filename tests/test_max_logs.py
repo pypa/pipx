@@ -5,11 +5,11 @@ from __future__ import annotations
 import errno
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from helpers import current_log_file, run_pipx_cli
 from pipx import constants, main, paths
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ def test_max_logs_keeps_logs_of_running_command(log_dir: Path, monkeypatch: pyte
     monkeypatch.setenv("PIPX_MAX_LOGS", "1")
     assert not run_pipx_cli(["list"])
     # the first command's log handler stays open until the next command replaces it, like a concurrent pipx process
-    log: Final[Path] = cast("Path", paths.ctx.log_file)
+    log: Final[Path] = current_log_file()
     (error_log := log.with_name(f"{log.stem}_uv_errors.log")).touch()
 
     assert not run_pipx_cli(["list"])
@@ -133,7 +133,7 @@ def test_max_logs_rotates_without_lock_support(
 
     assert not run_pipx_cli(["list"])
 
-    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [current_log_file().name]
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="POSIX permission bits decide whether the log can be opened")
@@ -146,7 +146,7 @@ def test_max_logs_rotates_an_unreadable_log(log_dir: Path, monkeypatch: pytest.M
 
     assert not run_pipx_cli(["list"])
 
-    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [current_log_file().name]
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="creating symlinks needs developer mode on Windows")
@@ -158,7 +158,7 @@ def test_max_logs_rotates_a_log_that_cannot_open(log_dir: Path, monkeypatch: pyt
 
     assert not run_pipx_cli(["list"])
 
-    assert [path.name for path in log_dir.glob("cmd_*.log")] == [cast("Path", paths.ctx.log_file).name]
+    assert [path.name for path in log_dir.glob("cmd_*.log")] == [current_log_file().name]
 
 
 @pytest.mark.parametrize(
@@ -179,4 +179,4 @@ def test_max_logs_keeps_logging_beside_a_log_it_cannot_remove(
 
     assert not run_pipx_cli(["list"])
 
-    assert cast("Path", paths.ctx.log_file).parent == log_dir
+    assert current_log_file().parent == log_dir
