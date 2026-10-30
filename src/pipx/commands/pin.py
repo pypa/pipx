@@ -50,10 +50,6 @@ def pin(
                 continue
             _update_pin_info(venv, package_name, is_main_package=False, pinned=True)
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
-
-        if packages:
-            messages.append(_summary_message(venv, _PinStatus.PINNED, len(packages)))
-            messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in packages)
     else:
         for package_name, package in venv.package_metadata.items():
             if package.pinned:
@@ -70,6 +66,10 @@ def pin(
             messages.append(
                 OutputMessage(text=f"pipx already pins package {main_package.package} {SLEEP}", stream=OutputStream.LOG)
             )
+
+    if packages:
+        messages.append(_summary_message(venv, _PinStatus.PINNED, len(packages)))
+        messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in packages)
 
     return OperationResult(
         command=("pin",),

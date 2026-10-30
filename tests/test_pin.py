@@ -95,7 +95,32 @@ def test_pin_json_reports_missing(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_output(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (
+        "pipx pinned 1 package in venv pycowsay" in captured.out,
+        "pycowsay 0.0.0.2" in captured.out,
+    ) == (True, True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_pin_quiet(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "pycowsay", "--quiet"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_injected_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
     capsys.readouterr()
