@@ -14,6 +14,21 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-11:
+
+`1.18.11 <https://github.com/pypa/pipx/tree/1.18.11>`_ - 2026-10-30
+===================================================================
+
+.. _release-1-18-11-fixed:
+
+Fixed
+-----
+
+- Fetch fresh standalone Python release data when the cached index is invalid or unreadable (:pr:`2404`) by
+  :user:`hemcharan710-afk` and :user:`gaborbernat`.
+- ``pipx pin`` now lists the packages it pins without ``--injected-only`` or ``--skip`` (:pr:`2405`) by
+  :user:`hemcharan710-afk` and :user:`gaborbernat`.
+
 .. _release-1-18-10:
 
 `1.18.10 <https://github.com/pypa/pipx/tree/1.18.10>`_ - 2026-10-29
