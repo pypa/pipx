@@ -78,6 +78,39 @@ def pin(
     )
 
 
+def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
+    if venv.package_metadata.get(venv.main_package_name) is None:
+        return _missing_result(("unpin",), venv)
+
+    packages: Final[list[_ChangedPackage]] = []
+    skipped: Final[list[_SkippedPackage]] = []
+    for package_name, package in venv.package_metadata.items():
+        if not package.pinned:
+            skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="not-pinned"))
+            continue
+        _update_pin_info(
+            venv,
+            package_name,
+            is_main_package=package_name == venv.main_package_name,
+            pinned=False,
+        )
+        packages.append(_changed_package(venv, package_name, _PinStatus.UNPINNED))
+
+    return OperationResult(
+        command=("unpin",),
+        data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
+        messages=(
+            (
+                _summary_message(venv, _PinStatus.UNPINNED, len(packages)),
+                *(OutputMessage(text=f"  - {package.package}") for package in packages),
+            )
+            if packages
+            else (OutputMessage(text=f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG),)
+        ),
+    )
+
+
 def _missing_result(command: tuple[str, ...], venv: Venv) -> OperationResult[PinData]:
     error: Final[str] = f"pipx does not manage package {venv.name}"
     return OperationResult(
@@ -116,39 +149,6 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
 def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> OutputMessage:
     package_label: Final[str] = "package" if package_count == 1 else "packages"
     return OutputMessage(text=BOLD(f"pipx {status.value} {package_count} {package_label} in venv {venv.name}"))
-
-
-def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
-    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
-    if venv.package_metadata.get(venv.main_package_name) is None:
-        return _missing_result(("unpin",), venv)
-
-    packages: Final[list[_ChangedPackage]] = []
-    skipped: Final[list[_SkippedPackage]] = []
-    for package_name, package in venv.package_metadata.items():
-        if not package.pinned:
-            skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="not-pinned"))
-            continue
-        _update_pin_info(
-            venv,
-            package_name,
-            is_main_package=package_name == venv.main_package_name,
-            pinned=False,
-        )
-        packages.append(_changed_package(venv, package_name, _PinStatus.UNPINNED))
-
-    return OperationResult(
-        command=("unpin",),
-        data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
-        messages=(
-            (
-                _summary_message(venv, _PinStatus.UNPINNED, len(packages)),
-                *(OutputMessage(text=f"  - {package.package}") for package in packages),
-            )
-            if packages
-            else (OutputMessage(text=f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG),)
-        ),
-    )
 
 
 class _PinStatus(StrEnum):
