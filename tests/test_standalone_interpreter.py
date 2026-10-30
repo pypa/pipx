@@ -60,6 +60,70 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
     ) == (current_releases, [[legacy_link, digest]])
 
 
+@pytest.mark.parametrize(
+    "corrupt_content",
+    [
+        pytest.param("", id="empty"),
+        pytest.param("not valid json", id="invalid-json"),
+        pytest.param('{"fetched": "not-a-timestamp", "releases": []}', id="invalid-fetched-type"),
+        pytest.param('{"fetched": 1e30, "releases": []}', id="overflow-timestamp"),
+        pytest.param('{"fetched": 1000.0, "releases": "not-a-list"}', id="invalid-releases-type"),
+        pytest.param('{"fetched": 1000.0, "releases": [["only-link"]]}', id="missing-digest"),
+        pytest.param("[]", id="json-array"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_corrupt_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyPatch, corrupt_content: str) -> None:
+    current_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
+    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (index_file := cache_dir / "index.json").write_text(corrupt_content, encoding="utf-8")
+    monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
+
+    assert (
+        standalone_python.get_or_update_index()["releases"],
+        json.loads(index_file.read_text(encoding="utf-8"))["releases"],
+    ) == (current_releases, [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_directory_at_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyPatch) -> None:
+    current_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
+    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (index_file := cache_dir / "index.json").mkdir()
+    monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
+
+    assert (
+        standalone_python.get_or_update_index()["releases"],
+        json.loads(index_file.read_text(encoding="utf-8"))["releases"],
+    ) == (current_releases, [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_valid_fresh_standalone_python_index_is_reused(monkeypatch: pytest.MonkeyPatch) -> None:
+    cached_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'1' * 64}")]
+    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir / "index.json").write_text(
+        json.dumps({
+            "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
+            "releases": cached_releases,
+        }),
+        encoding="utf-8",
+    )
+    called = False
+
+    def fail_if_called() -> list[tuple[str, str]]:
+        nonlocal called
+        called = True
+        return []
+
+    monkeypatch.setattr(standalone_python, "get_latest_python_releases", fail_if_called)
+
+    assert (standalone_python.get_or_update_index()["releases"], called) == (
+        [[_DARWIN_LINK, f"sha256:{'1' * 64}"]],
+        False,
+    )
+
+
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_download_standalone_python_sets_tar_filter() -> None:
     with warnings.catch_warnings(record=True) as caught_warnings:
