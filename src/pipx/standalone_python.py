@@ -184,24 +184,32 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
 
 def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
     index_file: Final[Path] = paths.CTX.standalone_python_cachedir / "index.json"
-    # a legacy URL-only index fails validation, and a current one is refreshed after 30 days
-    if (
-        use_cache
-        and index_file.exists()
-        and _is_valid_python_index(loaded := json.loads(index_file.read_text()))
-        and dt.datetime.now(tz=dt.UTC) - dt.datetime.fromtimestamp(loaded["fetched"], tz=dt.UTC)
-        <= dt.timedelta(days=30)
-    ):
+    if use_cache and (loaded := _load_cached_index(index_file)) is not None:
         return loaded
-    releases: Final[list[tuple[str, str]]] = get_latest_python_releases()
-    index: Final[_PythonIndex] = {"fetched": dt.datetime.now(tz=dt.UTC).timestamp(), "releases": releases}
-    index_file.write_text(json.dumps(index))
+    index: Final[_PythonIndex] = {
+        "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
+        "releases": get_latest_python_releases(),
+    }
+    index_file.parent.mkdir(parents=True, exist_ok=True)
+    if index_file.is_dir():
+        shutil.rmtree(index_file)
+    index_file.write_text(json.dumps(index), encoding="utf-8")
     return index
 
 
-class _PythonIndex(TypedDict):
-    fetched: float
-    releases: list[tuple[str, str]]
+def _load_cached_index(index_file: Path) -> _PythonIndex | None:
+    if not index_file.is_file():
+        return None
+    try:
+        if not _is_valid_python_index(loaded := json.loads(index_file.read_text(encoding="utf-8"))):
+            return None
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    try:
+        fetched: Final[dt.datetime] = dt.datetime.fromtimestamp(loaded["fetched"], tz=dt.UTC)
+    except (OSError, ValueError, OverflowError):
+        return None
+    return loaded if dt.datetime.now(tz=dt.UTC) - fetched <= dt.timedelta(days=30) else None
 
 
 def _is_valid_python_index(index: object) -> TypeIs[_PythonIndex]:
@@ -216,6 +224,11 @@ def _is_valid_python_index(index: object) -> TypeIs[_PythonIndex]:
             )
         case _:
             return False
+
+
+class _PythonIndex(TypedDict):
+    fetched: float
+    releases: list[tuple[str, str]]
 
 
 def get_latest_python_releases() -> list[tuple[str, str]]:
