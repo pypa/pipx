@@ -1,1 +1,1 @@
-Refresh an empty, unreadable or corrupted standalone Python index cache instead of failing with a ``JSONDecodeError``.
+Fetch fresh standalone Python release data when the cached index is invalid or unreadable.

@@ -72,56 +72,70 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
         pytest.param("[]", id="json-array"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_corrupt_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyPatch, corrupt_content: str) -> None:
-    current_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
-    (index_file := cache_dir / "index.json").write_text(corrupt_content, encoding="utf-8")
-    monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
+def test_corrupt_standalone_python_index_is_refreshed(
+    cached_index: tuple[Path, list[tuple[str, str]]], corrupt_content: str
+) -> None:
+    index_file: Final[Path] = cached_index[0]
+    index_file.write_text(corrupt_content, encoding="utf-8")
 
     assert (
         standalone_python.get_or_update_index()["releases"],
         json.loads(index_file.read_text(encoding="utf-8"))["releases"],
-    ) == (current_releases, [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
+    ) == (cached_index[1], [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_directory_at_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyPatch) -> None:
-    current_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
-    (index_file := cache_dir / "index.json").mkdir()
-    monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
+def test_directory_at_standalone_python_index_is_refreshed(cached_index: tuple[Path, list[tuple[str, str]]]) -> None:
+    index_file: Final[Path] = cached_index[0]
+    index_file.mkdir()
 
     assert (
         standalone_python.get_or_update_index()["releases"],
         json.loads(index_file.read_text(encoding="utf-8"))["releases"],
-    ) == (current_releases, [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
+    ) == (cached_index[1], [[_DARWIN_LINK, f"sha256:{'0' * 64}"]])
+
+
+def test_invalid_encoding_standalone_python_index_is_refreshed(
+    cached_index: tuple[Path, list[tuple[str, str]]],
+) -> None:
+    cached_index[0].write_bytes(b"\xff")
+
+    assert standalone_python.get_or_update_index()["releases"] == cached_index[1]
+
+
+def test_unreadable_standalone_python_index_is_refreshed(
+    cached_index: tuple[Path, list[tuple[str, str]]], mocker: MockerFixture
+) -> None:
+    cached_index[0].write_text("{}", encoding="utf-8")
+    mocker.patch.object(Path, "read_text", autospec=True, side_effect=PermissionError)
+
+    assert standalone_python.get_or_update_index()["releases"] == cached_index[1]
+
+
+@pytest.fixture
+def cached_index(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the cache path belongs to the isolated home
+    mocker: MockerFixture,
+) -> tuple[Path, list[tuple[str, str]]]:
+    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
+    mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True, return_value=releases)
+    return cache_dir / "index.json", releases
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_valid_fresh_standalone_python_index_is_reused(monkeypatch: pytest.MonkeyPatch) -> None:
-    cached_releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'1' * 64}")]
+def test_valid_fresh_standalone_python_index_is_reused(mocker: MockerFixture) -> None:
     (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
             "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
-            "releases": cached_releases,
+            "releases": [(_DARWIN_LINK, f"sha256:{'1' * 64}")],
         }),
         encoding="utf-8",
     )
-    called = False
+    fetch: Final[MagicMock] = mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True)
 
-    def fail_if_called() -> list[tuple[str, str]]:
-        nonlocal called
-        called = True
-        return []
-
-    monkeypatch.setattr(standalone_python, "get_latest_python_releases", fail_if_called)
-
-    assert (standalone_python.get_or_update_index()["releases"], called) == (
-        [[_DARWIN_LINK, f"sha256:{'1' * 64}"]],
-        False,
-    )
+    assert standalone_python.get_or_update_index()["releases"] == [[_DARWIN_LINK, f"sha256:{'1' * 64}"]]
+    fetch.assert_not_called()
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
