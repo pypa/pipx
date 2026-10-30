@@ -1,1 +1,1 @@
-``pipx pin`` now prints a confirmation summary when pinning an environment's packages without ``--injected-only`` or ``--skip``.
+``pipx pin`` now lists the packages it pins without ``--injected-only`` or ``--skip``.
