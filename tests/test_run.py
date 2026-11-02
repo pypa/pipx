@@ -1539,11 +1539,30 @@ def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) ->
     assert maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
 
 
-@pytest.mark.parametrize("app", [pytest.param("demo==1.0", id="exact"), pytest.param("demo~=1.0", id="compatible")])
+@pytest.mark.parametrize(
+    "app",
+    [
+        pytest.param("demo==1.0", id="exact"),
+        pytest.param("demo~=1.0", id="compatible"),
+        pytest.param("demo[extra]", id="extras", marks=pytest.mark.skipif(WIN, reason="invalid Windows filename")),
+        pytest.param(
+            'demo; python_version >= "3.11"',
+            id="marker",
+            marks=pytest.mark.skipif(WIN, reason="invalid Windows filename"),
+        ),
+        pytest.param(
+            "demo @ https://example.invalid/tool",
+            id="direct-url",
+            marks=pytest.mark.skipif(WIN, reason="invalid Windows filename"),
+        ),
+    ],
+)
 def test_maybe_script_content_ignores_requirement_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, app: str
 ) -> None:
-    (tmp_path / app).write_text("print('planted')", encoding="utf-8")
+    planted = tmp_path / app
+    planted.parent.mkdir(parents=True, exist_ok=True)
+    planted.write_text("print('planted')", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
     assert maybe_script_content(app, is_path=False) is None

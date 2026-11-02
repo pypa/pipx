@@ -143,7 +143,8 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
     app_path: Final[Path] = Path(app)
     if not is_path:
         try:
-            if Requirement(app).specifier:
+            requirement: Final[Requirement] = Requirement(app)
+            if requirement.extras or requirement.specifier or requirement.marker or requirement.url:
                 return None
         except InvalidRequirement:
             pass
