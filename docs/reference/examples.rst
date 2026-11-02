@@ -97,6 +97,9 @@ A bare filename is ambiguous: pipx runs it as a local file when the file exists,
     pipx run --path test.py         # always a local file
     pipx run --spec test-py test.py # always a PyPI package
 
+A versioned requirement such as ``black==26.1.0`` always selects the package, even when the working directory contains
+a file with that name. Use ``--path`` or an explicit relative path to run such a file.
+
 Scripts can declare dependencies with :pep:`723` inline metadata; pipx installs them into the temporary environment. See
 :doc:`Run scripts <../how-to/run-scripts>`.
 
