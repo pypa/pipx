@@ -1735,7 +1735,7 @@ sha256 = "530179cc51a1816d512b15635b3dc931295ae12efb183783ad31190a5d425d2b"
 [[packages]]
 name = "pyyaml"
 version = "6.0.3"
-marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"release\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"type\" in dependency_groups"
+marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"lint\" in dependency_groups or \"type\" in dependency_groups"
 requires-python = ">=3.8"
 index = "https://pypi.org/simple/"
 
@@ -1750,7 +1750,7 @@ sha256 = "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"
 
 [[packages]]
 name = "release-creator"
-version = "4.1.0"
+version = "4.4.0"
 marker = "\"release\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups"
 requires-python = ">=3.15"
 dependencies = [
@@ -1759,28 +1759,27 @@ dependencies = [
     { name = "mdformat" },
     { name = "mdformat-gfm" },
     { name = "packaging" },
-    { name = "pyyaml" },
     { name = "towncrier" },
 ]
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "release_creator-4.1.0.tar.gz"
-upload-time = 2026-10-26 18:24:45.805437+00:00
-url = "https://files.pythonhosted.org/packages/7f/fd/05d7f3c604476a238d67d5aaa2a4085312e7078c193dbd7ad99ad48d560d/release_creator-4.1.0.tar.gz"
-size = 186016
+name = "release_creator-4.4.0.tar.gz"
+upload-time = 2026-11-02 21:44:48.475063+00:00
+url = "https://files.pythonhosted.org/packages/d8/cf/8f376cc925c26fa5434d327ba03f4ed709b80d2077edda865fc3b2fe1940/release_creator-4.4.0.tar.gz"
+size = 171450
 
 [packages.sdist.hashes]
-sha256 = "c783037f5ca2efc16fa7cccfb1c2abf0a442f116a63ca82bd7bfb7e2a8343a15"
+sha256 = "263d518ddee6371fa13d25bd07f7b5af0fa7a6e421b16f1e8143b0a9443bc84d"
 
 [[packages.wheels]]
-name = "release_creator-4.1.0-py3-none-any.whl"
-upload-time = 2026-10-26 18:24:44.353933+00:00
-url = "https://files.pythonhosted.org/packages/30/d0/38480e99025c021d07e0710af02547562dfadbd798bef26dc01869a3f81e/release_creator-4.1.0-py3-none-any.whl"
-size = 52922
+name = "release_creator-4.4.0-py3-none-any.whl"
+upload-time = 2026-11-02 21:44:47.195366+00:00
+url = "https://files.pythonhosted.org/packages/7b/29/6f2a3158b082b3bf8a94eb93662d80b4db4212abea0fc1fae07ac9a043da/release_creator-4.4.0-py3-none-any.whl"
+size = 54784
 
 [packages.wheels.hashes]
-sha256 = "67deae16d11ac261a1512f18a22c0cf13418f43afc3e56cb74e58ad4422062e3"
+sha256 = "560ed208cca0dc53bc227878e5596e3e26e44fa277658c5d0dc662901d95f8cb"
 
 [[packages]]
 name = "requests"
@@ -3301,9 +3300,6 @@ command-line = [
     "--all-groups",
     "--all-extras",
     "--no-cache",
-    "pyproject.toml",
-    "--output",
-    "pylock.toml",
 ]
 input-path = "pyproject.toml"
 mode = "universal"
