@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import signal
-import time
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -94,7 +93,7 @@ def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
 
 
 def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path, mocker: MockerFixture) -> None:
-    mocker.patch.object(time, "sleep", autospec=True)
+    mocker.patch.object(transaction, "_sleep", autospec=True)
     mocker.patch.object(Path, "rename", autospec=True, side_effect=PermissionError(32, "in use"))
 
     with (
@@ -107,7 +106,7 @@ def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path
 
 
 def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: Path, mocker: MockerFixture) -> None:
-    mocker.patch.object(time, "sleep", autospec=True)
+    mocker.patch.object(transaction, "_sleep", autospec=True)
     real_rename: Final = Path.rename
     attempts: Final[list[Path]] = []
 
