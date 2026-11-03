@@ -15,6 +15,8 @@
 <p align="center">
 <a href="https://github.com/pypa/pipx/actions/workflows/tests.yml">
 <img src="https://github.com/pypa/pipx/actions/workflows/tests.yml/badge.svg?event=push&branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://static.pepy.tech/badge/pipx"></a>
+<a href="https://scorecard.dev/viewer/?uri=github.com/pypa/pipx"><img src="https://api.scorecard.dev/projects/github.com/pypa/pipx/badge" alt="OpenSSF Scorecard"></a>
+<a href="https://www.bestpractices.dev/projects/16273"><img src="https://www.bestpractices.dev/projects/16273/badge" alt="OpenSSF Best Practices"></a>
 
 </p>
 

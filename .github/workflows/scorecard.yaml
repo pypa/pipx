@@ -1,0 +1,26 @@
+name: 🛡️ scorecard
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "30 7 * * 2"
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  analysis:
+    name: 🛡️ Scorecard analysis
+    if: github.repository == 'pypa/pipx'
+    permissions:
+      actions: read # read workflow runs for the Packaging check
+      checks: read # read check runs for the CI-Tests and SAST checks
+      contents: read # check out and scan the repository
+      id-token: write # authenticate the results published to the scorecard API
+      issues: read # read issue activity for the Maintained check
+      pull-requests: read # read reviews for the Code-Review check
+      security-events: write # upload the SARIF results to code scanning
+      statuses: read # read commit statuses for the CI-Tests check
+    uses: tox-dev/github-workflows/.github/workflows/scorecard.yaml@e0ddedd1f8d78ed93d5eb8290f37675f6092bddf
