@@ -25,12 +25,12 @@ import platform
 import re
 import shutil
 import tarfile
-import time
 import urllib.error
 from contextlib import contextmanager
 from functools import partial
 from http import HTTPStatus
 from pathlib import Path, PurePosixPath
+from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final, TypedDict, cast
 from urllib.request import Request, urlopen
 
@@ -261,7 +261,7 @@ def _backoff_or_raise(error: Exception, attempt: int, url: str) -> None:
     if not retryable or attempt >= fetch_attempts:
         raise error
     _LOGGER.debug("fetch attempt %d/%d for %s failed (%s); retrying", attempt, fetch_attempts, url, error)
-    time.sleep(0.5 * 2 ** (attempt - 1))
+    _sleep(0.5 * 2 ** (attempt - 1))
 
 
 @contextmanager

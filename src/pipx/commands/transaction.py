@@ -3,11 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.trash", "pipx.util", "pipx.venv", "shutil", "tempfile"]
 
 import sys
-import time
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from shutil import Error, copytree
 from tempfile import mkdtemp
+from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
@@ -145,7 +145,7 @@ def rename_once_released(source: Path, target: Path) -> None:
         try:
             source.rename(target)
         except PermissionError:
-            time.sleep(delay)
+            _sleep(delay)
         else:
             return
     source.rename(target)

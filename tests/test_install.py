@@ -1026,7 +1026,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.SHARED_LIBS, "has_been_updated_this_run", False)
     mocker.patch(
-        "pipx.shared_libs.time.time",
+        "pipx.shared_libs._time",
         return_value=shared_libs.SHARED_LIBS.pip_path.stat().st_mtime + shared_libs.SHARED_LIBS_MAX_AGE_SEC + 1,
     )
     run_subprocess: Final = mocker.patch(
