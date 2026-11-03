@@ -14,6 +14,19 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-12:
+
+`1.18.12 <https://github.com/pypa/pipx/tree/1.18.12>`_ - 2026-11-03
+===================================================================
+
+.. _release-1-18-12-security:
+
+Security
+--------
+
+- ``pipx run`` now treats requirements with a version, extras, a marker or a direct URL as packages, and script URLs as
+  downloads, even when the working directory contains a matching file (:pr:`2408`) by :user:`gaborbernat`.
+
 .. _release-1-18-11:
 
 `1.18.11 <https://github.com/pypa/pipx/tree/1.18.11>`_ - 2026-10-30
