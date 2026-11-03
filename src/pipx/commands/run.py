@@ -141,17 +141,27 @@ def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
 
 def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
     app_path: Final[Path] = Path(app)
-    if app_path.is_file():
+    if not is_path:
+        try:
+            requirement: Final[Requirement] = Requirement(app)
+            if requirement.extras or requirement.specifier or requirement.marker or requirement.url:
+                return None
+        except InvalidRequirement:
+            pass
+
+    parsed: Final = urllib.parse.urlparse(app)
+    local_path: Final[bool] = is_path or not (parsed.scheme and "://" in app)
+    if local_path and app_path.is_file():
         return app_path
     # a named pipe yields its content once, so read it here for both the metadata check and the interpreter
-    if app_path.is_fifo():
+    if local_path and app_path.is_fifo():
         return app_path.read_text(encoding="utf-8")
 
     if is_path:
         msg = f"The specified path {app} does not exist"
         raise PipxError(msg)
 
-    if (parsed := urllib.parse.urlparse(app)).scheme:
+    if parsed.scheme:
         if _is_vcs_url(app):
             return None
         # match on the URL path so a query string such as ``script.py?raw=1`` is still recognised

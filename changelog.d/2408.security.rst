@@ -1,0 +1,2 @@
+``pipx run`` now treats requirements with a version, extras, a marker or a direct URL as packages, and script URLs as
+downloads, even when the working directory contains a matching file.

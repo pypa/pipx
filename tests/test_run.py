@@ -1539,6 +1539,62 @@ def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) ->
     assert maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
 
 
+@pytest.mark.parametrize(
+    "app",
+    [
+        pytest.param("demo==1.0", id="exact"),
+        pytest.param("demo~=1.0", id="compatible"),
+        pytest.param("demo[extra]", id="extras", marks=pytest.mark.skipif(WIN, reason="invalid Windows filename")),
+        pytest.param(
+            'demo; python_version >= "3.11"',
+            id="marker",
+            marks=pytest.mark.skipif(WIN, reason="invalid Windows filename"),
+        ),
+        pytest.param(
+            "demo @ https://example.invalid/tool",
+            id="direct-url",
+            marks=pytest.mark.skipif(WIN, reason="invalid Windows filename"),
+        ),
+    ],
+)
+def test_maybe_script_content_ignores_requirement_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, app: str
+) -> None:
+    planted = tmp_path / app
+    planted.parent.mkdir(parents=True, exist_ok=True)
+    planted.write_text("print('planted')", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert maybe_script_content(app, is_path=False) is None
+    assert maybe_script_content(app, is_path=True) == Path(app)
+
+
+@pytest.mark.parametrize(
+    ("filename", "app"),
+    [pytest.param("demo", f".{os.sep}demo", id="relative-path"), pytest.param("demo.py", "demo.py", id="bare-py")],
+)
+def test_maybe_script_content_accepts_local_script(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, filename: str, app: str
+) -> None:
+    (tmp_path / filename).write_text("print('script')", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert maybe_script_content(app, is_path=False) == Path(app)
+
+
+@pytest.mark.skipif(WIN, reason="Windows does not allow a colon in a file name")
+def test_maybe_script_content_ignores_url_shaped_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
+) -> None:
+    mocker.patch("pipx.commands.run.download_script", autospec=True, return_value="print('downloaded')")
+    planted = tmp_path / "https:" / "example.invalid" / "tool.py"
+    planted.parent.mkdir(parents=True)
+    planted.write_text("print('planted')", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    assert maybe_script_content("https://example.invalid/tool.py", is_path=False) == "print('downloaded')"
+
+
 @pytest.mark.parametrize("command", [pytest.param("install", id="install"), pytest.param("run", id="run")])
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_script_url_cut_short_is_rejected(
