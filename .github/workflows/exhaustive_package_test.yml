@@ -51,7 +51,6 @@ jobs:
           merge-multiple: true
       - name: 📊 Collate reports
         run: |
-          ls # DEBUG
           mkdir reports
           cat all_packages_report_legend.txt > all_nodeps_reports_lf.txt
           cat all_packages_nodeps_report_* >> all_nodeps_reports_lf.txt
