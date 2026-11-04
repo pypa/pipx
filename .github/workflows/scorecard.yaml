@@ -23,4 +23,4 @@ jobs:
       pull-requests: read # read reviews for the Code-Review check
       security-events: write # upload the SARIF results to code scanning
       statuses: read # read commit statuses for the CI-Tests check
-    uses: tox-dev/github-workflows/.github/workflows/scorecard.yaml@534a196a132a52365c464e1227d4c46f30968f29 # 6.4.0
+    uses: tox-dev/github-workflows/.github/workflows/scorecard.yaml@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
