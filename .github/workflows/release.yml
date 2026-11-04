@@ -23,14 +23,14 @@ jobs:
       - name: ⚙️ Set source timestamp
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >>"$GITHUB_ENV"
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: 📦 Select locked build backend
         id: constraints
-        uses: tox-dev/github-workflows/export-build-constraints@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
+        uses: tox-dev/github-workflows/export-build-constraints@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
       - name: 🏗️ Build sdist and wheel
         env:
           BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
@@ -63,13 +63,13 @@ jobs:
           artifact-ids: ${{ needs.build-package.outputs.artifact-id }}
           path: ${{ runner.temp }}/dist
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
           enable-cache: false
       - name: 📦 Install locked zipapp tools
-        uses: tox-dev/github-workflows/install-locked-tools@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
+        uses: tox-dev/github-workflows/install-locked-tools@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
         with:
           groups: zipapp
           venv: ${{ runner.temp }}/tools
@@ -117,7 +117,7 @@ jobs:
         os: [ubuntu-26.04, windows-2025]
     steps:
       - name: 🐍 Set up Python 3.11
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         env:
           UV_VENV_SEED: "true"
         with:
@@ -138,44 +138,16 @@ jobs:
           python "$RUNNER_TEMP/zipapp/pipx.pyz" install black
   notes:
     name: 📝 Render GitHub Release notes
-    runs-on: ubuntu-26.04
+    uses: tox-dev/github-workflows/.github/workflows/release-notes.yaml@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
     permissions:
       contents: read
-    outputs:
-      artifact-id: ${{ steps.upload.outputs.artifact-id }}
-    steps:
-      - name: 📥 Check out code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
-        with:
-          version: latest-known
-          python-version: "3.15"
-          enable-cache: false
-      - name: 📦 Install locked release tools
-        uses: tox-dev/github-workflows/install-locked-tools@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
-        with:
-          groups: release-notes
-          venv: ${{ runner.temp }}/tools
-      - name: 📝 Render release notes
-        uses: tox-dev/github-workflows/render-release-notes@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
-        with:
-          tag: ${{ github.ref_name }}
-          changelog: docs/changelog.rst
-          artifact-url: https://pypi.org/project/pipx/${{ github.ref_name }}/
-      - name: 📤 Store release notes
-        id: upload
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: github-release-notes
-          path: ${{ runner.temp }}/release-notes.md
-          if-no-files-found: error
+    with:
+      tag: ${{ github.ref_name }}
+      changelog: docs/changelog.rst
+      artifact-url: https://pypi.org/project/pipx/${{ github.ref_name }}/
   pypi-publish:
     name: 🚀 Publish to PyPI
-    needs: [build-package, notes, zipapp-test]
+    needs: [build-package, zipapp-test]
     runs-on: ubuntu-26.04
     environment:
       name: release
@@ -196,11 +168,12 @@ jobs:
     name: 🚀 Publish GitHub Release
     needs: [build-package, notes, zipapp, pypi-publish]
     runs-on: ubuntu-26.04
+    environment: release
     permissions:
       contents: write
     steps:
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
@@ -222,13 +195,13 @@ jobs:
           artifact-ids: ${{ needs.zipapp.outputs.artifact-id }}
           path: ${{ runner.temp }}/zipapp
       - name: 🔍 Verify PyPI artifacts
-        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
         with:
           project: pipx
           version: ${{ github.ref_name }}
           dist: dist
       - name: 🚀 Publish GitHub release
-        uses: tox-dev/github-workflows/publish-github-release@57a765127aae73adf7d0e24a7fe0f067f2d3ea3e # 6.2.1
+        uses: tox-dev/github-workflows/publish-github-release@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
         env:
           GH_TOKEN: ${{ github.token }}
         with:
