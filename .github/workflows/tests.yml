@@ -7,7 +7,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "43 9 * * *"
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
