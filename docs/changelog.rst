@@ -14,6 +14,13 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-13:
+
+`1.18.13 <https://github.com/pypa/pipx/tree/1.18.13>`_ - 2026-11-04
+===================================================================
+
+No user-facing changes.
+
 .. _release-1-18-12:
 
 `1.18.12 <https://github.com/pypa/pipx/tree/1.18.12>`_ - 2026-11-03
