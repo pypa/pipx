@@ -90,28 +90,28 @@ sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
 
 [[packages]]
 name = "filelock"
-version = "4.2.2"
+version = "4.2.4"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.11"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "filelock-4.2.2.tar.gz"
-upload-time = 2026-10-18 07:26:44.624023+00:00
-url = "https://files.pythonhosted.org/packages/d4/08/d8f81287742010e38daf3632380c8d80ede7b4df2716f8ca3d0a2b087d44/filelock-4.2.2.tar.gz"
-size = 651339
+name = "filelock-4.2.4.tar.gz"
+upload-time = 2026-10-19 01:57:51.001795+00:00
+url = "https://files.pythonhosted.org/packages/d8/28/3893324bcadf8f89b1616637468d766af3f625008c0735bf704fdfa86617/filelock-4.2.4.tar.gz"
+size = 652444
 
 [packages.sdist.hashes]
-sha256 = "b29ff2ae9140bb17b3bc77c648dc4f010d9ac0955eccabff4f2b01dde859f787"
+sha256 = "c6d8663535e1650ee430507b4ffbac7b464dd64b7647ea0112a9f406499d163d"
 
 [[packages.wheels]]
-name = "filelock-4.2.2-py3-none-any.whl"
-upload-time = 2026-10-18 07:26:43.115949+00:00
-url = "https://files.pythonhosted.org/packages/4e/53/35698fff350cb99c49ee01ae5cb1eb4408567792a286314ea984b53b5002/filelock-4.2.2-py3-none-any.whl"
-size = 162415
+name = "filelock-4.2.4-py3-none-any.whl"
+upload-time = 2026-10-19 01:57:49.419460+00:00
+url = "https://files.pythonhosted.org/packages/e0/1b/5e74289a1878e666bb4b65fe5805a04cafcac2aa5f519ef1ead67ef91c56/filelock-4.2.4-py3-none-any.whl"
+size = 162475
 
 [packages.wheels.hashes]
-sha256 = "1851d2f14ca2901e98069d68333b33ad7409f56904e17b48cc0c32a0db8ed73a"
+sha256 = "301241438c57936ef93f4243a94f2559022268bfcf9b375a9a72eb0f8db8358e"
 
 [[packages]]
 name = "packaging"
@@ -140,28 +140,28 @@ sha256 = "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
 
 [[packages]]
 name = "platformdirs"
-version = "4.13.4"
+version = "4.13.6"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.11"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "platformdirs-4.13.4.tar.gz"
-upload-time = 2026-10-17 19:31:53.690937+00:00
-url = "https://files.pythonhosted.org/packages/b7/89/dfd269de936e76319cf27787d9eaaca513491f635d49b0fbe7cdb6d3bf6f/platformdirs-4.13.4.tar.gz"
-size = 62364
+name = "platformdirs-4.13.6.tar.gz"
+upload-time = 2026-10-27 08:19:11.538584+00:00
+url = "https://files.pythonhosted.org/packages/1a/43/8c4b5fe23f0e119cf4e1b16c2d16240ab9057cdbb138568c91d5a48abf81/platformdirs-4.13.6.tar.gz"
+size = 62750
 
 [packages.sdist.hashes]
-sha256 = "dd96496961684a7f42041923f842ec7494e09f5e87aded99117e1109cd40570e"
+sha256 = "211d176e24674b5895dedf9021c262bcf9fad008a70610bfb147d4a8d6d8fe1b"
 
 [[packages.wheels]]
-name = "platformdirs-4.13.4-py3-none-any.whl"
-upload-time = 2026-10-17 19:31:52.293703+00:00
-url = "https://files.pythonhosted.org/packages/58/51/5614d0537dd830ca64d95a2f254bd66bdf3ac61d41cffcccaec62121fcfd/platformdirs-4.13.4-py3-none-any.whl"
-size = 32782
+name = "platformdirs-4.13.6-py3-none-any.whl"
+upload-time = 2026-10-27 08:19:10.405474+00:00
+url = "https://files.pythonhosted.org/packages/a8/24/b312a9466839b1f708eed42790b47e927dc7f774a528bb49b1cdf8b734b9/platformdirs-4.13.6-py3-none-any.whl"
+size = 32767
 
 [packages.wheels.hashes]
-sha256 = "502ce08e9d36cf90579ee44e1e764838842fa658e4975ef47344fd053011d2c8"
+sha256 = "21fc198fb09f3e78cadcdfd8a6ae4fd65cadc64a3cba78b694321c2996114a3e"
 
 [[packages]]
 name = "userpath"
@@ -192,8 +192,8 @@ size = 9065
 sha256 = "2cbf01a23d655a1ff8fc166dfb78da1b641d1ceabf0fe5f970767d380b14e89d"
 
 [tool.nab]
-nab-version = "0.0.22"
-created-at = 2026-10-26 00:00:43.449500+00:00
+nab-version = "0.0.23"
+created-at = 2026-11-03 21:20:33.376182+00:00
 command-line = [
     "nab",
     "lock",
