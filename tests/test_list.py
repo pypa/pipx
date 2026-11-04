@@ -522,6 +522,27 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
     assert "black 22.8.0 (injected in venv isort)" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_short_packages_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"], PKG["nox"]["spec"]])
+    assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--short", "--include-injected"])
+    captured: Final = capsys.readouterr()
+
+    assert "nox 2023.4.22" in captured.out
+    assert "isort 5.6.4" in captured.out
+    assert "black 22.8.0 (injected in venv isort)" in captured.out
+
+    assert not run_pipx_cli(["list", "--short"])
+    captured_default: Final = capsys.readouterr()
+
+    assert "nox 2023.4.22" in captured_default.out
+    assert "isort 5.6.4" in captured_default.out
+    assert "black 22.8.0" not in captured_default.out
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:
     (tmp_path / "fake_venv").mkdir()

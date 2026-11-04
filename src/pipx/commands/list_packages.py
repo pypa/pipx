@@ -44,7 +44,7 @@ def list_packages(venv_container: VenvContainer, venv_dirs: Collection[Path], op
     if options.json_format:
         all_venv_problems = _list_json(locked_venv_dirs)
     elif options.short_format:
-        all_venv_problems = _list_short(locked_venv_dirs)
+        all_venv_problems = _list_short(locked_venv_dirs, include_injected=options.include_injected)
     elif options.pinned_only:
         all_venv_problems = _list_pinned(locked_venv_dirs, include_injected=options.include_injected)
     else:
@@ -118,7 +118,7 @@ def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, 
     return venv.pipx_metadata, venv_problems, ""
 
 
-def _list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
+def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool = False) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
         venv_metadata, venv_problems, warning_message = _venv_metadata_summary(venv_dir)
@@ -129,6 +129,11 @@ def _list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
                 venv_metadata.main_package.package,
                 venv_metadata.main_package.package_version,
             )
+            if include_injected:
+                for package_name, package in venv_metadata.injected_packages.items():
+                    print(  # ruff:ignore[print]  # user-facing CLI output
+                        package_name, package.package_version, f"(injected in venv {venv_dir.name})"
+                    )
         all_venv_problems = all_venv_problems.or_(venv_problems)
 
     return all_venv_problems
