@@ -2023,6 +2023,15 @@ dependencies = [
 ]
 index = "https://pypi.org/simple/"
 
+[packages.sdist]
+name = "sphinx-9.2.0.tar.gz"
+upload-time = 2026-10-21 00:05:15.019079+00:00
+url = "https://files.pythonhosted.org/packages/64/d4/413466f0be8b1cb0e3e43893a148b96d7462d0923d82b4166b21afc5f30c/sphinx-9.2.0.tar.gz"
+size = 8782438
+
+[packages.sdist.hashes]
+sha256 = "90470459f3cab15d9dfed146c71cf77694b0445df17b2e0e69059cb9f7fc9ee4"
+
 [[packages.wheels]]
 name = "sphinx-9.2.0-py3-none-any.whl"
 upload-time = 2026-10-21 00:05:12.241734+00:00
@@ -3300,7 +3309,6 @@ command-line = [
     "--all-groups",
     "--all-extras",
     "--no-cache",
-    "--upgrade",
 ]
 input-path = "pyproject.toml"
 mode = "universal"
