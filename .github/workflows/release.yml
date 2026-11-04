@@ -30,7 +30,7 @@ jobs:
           enable-cache: false
       - name: 📦 Select locked build backend
         id: constraints
-        uses: tox-dev/github-workflows/export-build-constraints@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
+        uses: tox-dev/github-workflows/export-build-constraints@13381289334b15375958be7f7438f3c3d860e575 # 6.5.5
       - name: 🏗️ Build sdist and wheel
         env:
           BUILD_CONSTRAINTS: ${{ steps.constraints.outputs.path }}
@@ -69,7 +69,7 @@ jobs:
           python-version: "3.15"
           enable-cache: false
       - name: 📦 Install locked zipapp tools
-        uses: tox-dev/github-workflows/install-locked-tools@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
+        uses: tox-dev/github-workflows/install-locked-tools@13381289334b15375958be7f7438f3c3d860e575 # 6.5.5
         with:
           groups: zipapp
           venv: ${{ runner.temp }}/tools
@@ -138,7 +138,7 @@ jobs:
           python "$RUNNER_TEMP/zipapp/pipx.pyz" install black
   notes:
     name: 📝 Render GitHub Release notes
-    uses: tox-dev/github-workflows/.github/workflows/release-notes.yaml@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
+    uses: tox-dev/github-workflows/.github/workflows/release-notes.yaml@13381289334b15375958be7f7438f3c3d860e575 # 6.5.5
     permissions:
       contents: read
     with:
@@ -147,7 +147,7 @@ jobs:
       artifact-url: https://pypi.org/project/pipx/${{ github.ref_name }}/
   pypi-publish:
     name: 🚀 Publish to PyPI
-    needs: [build-package, zipapp-test]
+    needs: [build-package, zipapp-test, notes]
     runs-on: ubuntu-26.04
     environment:
       name: release
@@ -195,13 +195,13 @@ jobs:
           artifact-ids: ${{ needs.zipapp.outputs.artifact-id }}
           path: ${{ runner.temp }}/zipapp
       - name: 🔍 Verify PyPI artifacts
-        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
+        uses: tox-dev/github-workflows/reconcile-pypi-artifacts@13381289334b15375958be7f7438f3c3d860e575 # 6.5.5
         with:
           project: pipx
           version: ${{ github.ref_name }}
           dist: dist
       - name: 🚀 Publish GitHub release
-        uses: tox-dev/github-workflows/publish-github-release@bceb5c005e19823dc8835f536f53f172ae223927 # 6.5.0
+        uses: tox-dev/github-workflows/publish-github-release@13381289334b15375958be7f7438f3c3d860e575 # 6.5.5
         env:
           GH_TOKEN: ${{ github.token }}
         with:
