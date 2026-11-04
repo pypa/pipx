@@ -23,7 +23,7 @@ jobs:
       - name: ⚙️ Set source timestamp
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >>"$GITHUB_ENV"
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
@@ -63,7 +63,7 @@ jobs:
           artifact-ids: ${{ needs.build-package.outputs.artifact-id }}
           path: ${{ runner.temp }}/dist
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
@@ -117,7 +117,7 @@ jobs:
         os: [ubuntu-26.04, windows-2025]
     steps:
       - name: 🐍 Set up Python 3.11
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         env:
           UV_VENV_SEED: "true"
         with:
@@ -150,7 +150,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
@@ -200,7 +200,7 @@ jobs:
       contents: write
     steps:
       - name: 🐍 Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: latest-known
           python-version: "3.15"
