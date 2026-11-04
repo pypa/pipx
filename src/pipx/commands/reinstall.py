@@ -386,8 +386,6 @@ def _remove_stale_reinstall_resources(resource_paths: set[Path]) -> None:
     for path in sorted(resource_paths):
         with contextlib.suppress(FileNotFoundError):
             safe_unlink(path)
-            if path.is_symlink():
-                path.unlink()
 
 
 def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir: Path) -> None:
