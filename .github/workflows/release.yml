@@ -196,6 +196,7 @@ jobs:
     name: 🚀 Publish GitHub Release
     needs: [build-package, notes, zipapp, pypi-publish]
     runs-on: ubuntu-26.04
+    environment: release
     permissions:
       contents: write
     steps:
