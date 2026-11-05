@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.commands.reinstall", "pipx.subprocess_runner", "pipx.util"]
+__lazy_modules__ = ["pipx.commands.reinstall", "pipx.subprocess_runner", "pipx.util", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -11,6 +11,7 @@ from pipx.constants import ExitCode
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError, get_venv_paths
+from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -116,7 +117,12 @@ def repair(
     for venv_dir in venv_dirs:
         with venv_container.venv_lock(venv_dir) as venv_lock:
             environment = _check_health(venv_dir)
-            if environment.status is _HealthStatus.HEALTHY:
+            if (
+                environment.status is _HealthStatus.HEALTHY
+                # a killed install can lose the environment's record while its interpreter still runs; reinstall
+                # refuses it rather than guess its source, so repair must not skip it as healthy
+                and Venv(venv_dir).pipx_metadata.read_metadata_version is not None
+            ):
                 skipped.append(_SkippedRepair(environment=venv_dir.name, reason="healthy"))
                 messages.append(OutputMessage(text=f"{venv_dir.name}: healthy"))
                 continue

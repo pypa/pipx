@@ -180,6 +180,29 @@ def test_repair_skips_healthy_interpreter(capsys: pytest.CaptureFixture[str]) ->
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_refuses_lost_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    (venv_dir / "pipx_metadata.json").unlink()
+    (venv_dir / "pipx_unfinished").touch()
+
+    assert run_pipx_cli(["repair", "pycowsay"]) == 1
+
+    captured: Final = capsys.readouterr()
+    assert "pycowsay: Not reinstalling pycowsay" in captured.err
+    assert "has no internal pipx metadata" in captured.err
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_health_reports_healthy_for_lost_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    # health checks interpreter startability only, so a lost record shows up in `pipx list` and `pipx repair` instead
+    (paths.CTX.venvs / "pycowsay" / "pipx_metadata.json").unlink()
+
+    assert run_pipx_cli(["health", "pycowsay"]) == 0
+
+    assert capsys.readouterr().out == "pycowsay: healthy\n"
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_repair_respects_pin(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["pin", "pycowsay"]) == 0
     remove_venv_interpreter("pycowsay")
