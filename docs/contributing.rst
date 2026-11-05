@@ -188,9 +188,12 @@ When a test installs or injects a package and version that no other test uses, a
 ``testdata/tests_packages``:
 
 #. Add the package to ``testdata/tests_packages/primary_packages.txt``.
-#. Run the *Create tests package lists for offline tests* workflow from the ``GitHub Actions`` tab, which generates the
-   lists for every platform.
-#. Download each ``lists-<os>-<python>`` artifact and put its files into ``testdata/tests_packages/``.
+#. On each platform and Python version the tests run on, regenerate that platform's list:
+
+   .. code-block:: console
+
+       $ python scripts/list_test_packages.py testdata/tests_packages/primary_packages.txt testdata/tests_packages
+
 #. Commit the new or modified list files in ``testdata/tests_packages``.
 
 **********************************************

@@ -337,8 +337,8 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
 def _block_external_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     # a test reaching the internet flakes on someone else's rate limit: a 403 from github.com once left an unclosed
     # SSLSocket whose ResourceWarning the GC pinned on whichever test ran next; the local pypiserver is on loopback, and
-    # --net-pypiserver and --all-packages want real indexes
-    if request.config.option.net_pypiserver or request.config.option.all_packages:
+    # --net-pypiserver wants the real index
+    if request.config.option.net_pypiserver:
         return
     connect: Final = socket.socket.connect
 
@@ -465,27 +465,12 @@ def mocked_github_api(
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
-        "--all-packages",
-        action="store_true",
-        dest="all_packages",
-        default=False,
-        help="Run only the long, slow tests installing the maximum list of packages.",
-    )
-    parser.addoption(
         "--net-pypiserver",
         action="store_true",
         dest="net_pypiserver",
         default=False,
         help="Start local pypi server and use in tests.",
     )
-
-
-def pytest_configure(config: pytest.Config) -> None:
-    markexpr: Final[str] = getattr(config.option, "markexpr", "")
-    if config.option.all_packages:
-        config.option.markexpr = (f"{markexpr} or " if markexpr else "") + "all_packages"
-    else:
-        config.option.markexpr = (f"{markexpr} and " if markexpr else "") + "not all_packages"
 
 
 @pytest.fixture(scope="session", autouse=True)
