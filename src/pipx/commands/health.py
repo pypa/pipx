@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.commands.reinstall", "pipx.subprocess_runner", "pipx.util", "pipx.venv"]
+__lazy_modules__ = [
+    "pipx.commands.reinstall",
+    "pipx.commands.transaction",
+    "pipx.pipx_metadata_file",
+    "pipx.subprocess_runner",
+    "pipx.util",
+]
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx.commands.reinstall import reinstall
+from pipx.commands.transaction import is_unfinished
 from pipx.constants import ExitCode
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError, get_venv_paths
-from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -117,12 +124,7 @@ def repair(
     for venv_dir in venv_dirs:
         with venv_container.venv_lock(venv_dir) as venv_lock:
             environment = _check_health(venv_dir)
-            if (
-                environment.status is _HealthStatus.HEALTHY
-                # a killed install can lose the environment's record while its interpreter still runs; reinstall
-                # refuses it rather than guess its source, so repair must not skip it as healthy
-                and Venv(venv_dir).pipx_metadata.read_metadata_version is not None
-            ):
+            if environment.status is _HealthStatus.HEALTHY and not _lost_record(venv_dir):
                 skipped.append(_SkippedRepair(environment=venv_dir.name, reason="healthy"))
                 messages.append(OutputMessage(text=f"{venv_dir.name}: healthy"))
                 continue
@@ -159,6 +161,14 @@ def repair(
         ),
         succeeded=bool(repaired),
     )
+
+
+def _lost_record(venv_dir: Path) -> bool:
+    # a killed install or a newer pipx leaves a running interpreter without a usable record, which reinstall refuses
+    # rather than guess the source; an environment from pipx before 0.15.0.0 never had one and stays healthy
+    if (venv_dir / PIPX_INFO_FILENAME).exists():
+        return PipxMetadata(venv_dir=venv_dir).read_metadata_version is None
+    return is_unfinished(venv_dir)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
