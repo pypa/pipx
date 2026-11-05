@@ -299,17 +299,22 @@ def test_list_short(capsys: pytest.CaptureFixture[str]) -> None:
     assert "isort 5.6.4" in captured.out
 
 
+@pytest.mark.parametrize(
+    ("extra_args", "expected"),
+    [
+        pytest.param(["--include-injected"], "isort 5.6.4\nblack 22.8.0 (injected in venv isort)\n", id="injected"),
+        pytest.param([], "isort 5.6.4\n", id="main-only"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_short_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
+def test_list_short_injected(capsys: pytest.CaptureFixture[str], extra_args: list[str], expected: str) -> None:
     assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
     assert not run_pipx_cli(["inject", "isort", PKG["black"]["spec"]])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "--short", "--include-injected"])
-    captured: Final = capsys.readouterr()
+    assert not run_pipx_cli(["list", "--short", *extra_args])
 
-    assert "isort 5.6.4" in captured.out
-    assert "black 22.8.0 (injected in venv isort)" in captured.out
+    assert capsys.readouterr().out == expected
 
 
 @pytest.mark.parametrize("option", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
