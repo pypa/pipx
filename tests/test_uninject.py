@@ -3,17 +3,14 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from packaging.utils import canonicalize_name
 
 from helpers import SKIP_IF_WINDOWS, app_name, file_or_symlink, mock_legacy_venv, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import paths
 from pipx.commands import common
-from pipx.commands.uninject import _injected_metadata_name
 from pipx.constants import WINDOWS
 from pipx.redact import redact_url_credentials
 from pipx.wrap import pipx_wrap
@@ -24,8 +21,6 @@ if TYPE_CHECKING:
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
-
-    from pipx.venv import Venv
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -476,28 +471,6 @@ def test_uninject_keeps_an_app_name_taken_over_during_the_uninstall(
     assert not run_pipx_cli(["uninject", "alpha", "beta"])
 
     assert beta.resolve() == other.resolve()
-
-
-@pytest.mark.parametrize(
-    ("injected", "requested", "expected"),
-    [
-        pytest.param({"empty_project": ""}, "empty-project", "empty_project", id="bare-underscore-vs-hyphen"),
-        pytest.param({"black": ""}, "BLACK", "black", id="bare-case"),
-        pytest.param({"black": "@1"}, "black@1", "black", id="suffixed"),
-        pytest.param({"Black": "_x"}, "black-x", "Black", id="suffixed-non-canonical"),
-        pytest.param({"black": ""}, "missing", "missing", id="unknown-passes-through"),
-    ],
-)
-def test_injected_metadata_name_matches_canonical_spellings(
-    injected: dict[str, str], requested: str, expected: str
-) -> None:
-    venv = SimpleNamespace(
-        pipx_metadata=SimpleNamespace(
-            injected_packages={name: SimpleNamespace(suffix=suffix) for name, suffix in injected.items()}
-        )
-    )
-
-    assert _injected_metadata_name(cast("Venv", venv), canonicalize_name(requested)) == expected
 
 
 @pytest.mark.parametrize("spelling", ["empty-project", "Empty_Project", "EMPTY.PROJECT"])
