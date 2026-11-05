@@ -208,7 +208,6 @@ lint.per-file-ignores."tests/**/*.py" = [
   "too-many-arguments",                   # pytest injects each fixture as an argument
 ]
 lint.isort = { known-first-party = [
-  "all_packages",
   "helpers",
   "package_info",
   "pipx",
@@ -234,9 +233,6 @@ rules.unused-ignore-comment = "error"
 ini_options.minversion = "8"
 ini_options.testpaths = [ "tests" ]
 ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
-ini_options.markers = [
-  "all_packages: test install with maximum number of packages",
-]
 ini_options.filterwarnings = [
   "error",
   # importlib.metadata warns before returning None for a dist-info carrying no Name; venv_inspect handles that case
