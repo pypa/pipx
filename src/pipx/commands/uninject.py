@@ -142,7 +142,7 @@ def _uninject_dep(
 ) -> OperationResult[InjectionData]:
     package_name = _injected_metadata_name(venv, canonicalize_name(package_name))
 
-    if package_name == venv.pipx_metadata.main_package.package:
+    if canonicalize_name(package_name) == canonicalize_name(venv.main_package_name):
         return _uninject_failure(
             venv.name,
             package_name,
@@ -225,7 +225,10 @@ def _injected_metadata_name(venv: Venv, package_name: str) -> str:
     if package_name in venv.pipx_metadata.injected_packages:
         return package_name
     for name, injected_package in venv.pipx_metadata.injected_packages.items():
-        if injected_package.suffix and package_name == canonicalize_name(f"{name}{injected_package.suffix}"):
+        if package_name in {
+            canonicalize_name(name),
+            canonicalize_name(f"{name}{injected_package.suffix}"),
+        }:
             return name
     return package_name
 
