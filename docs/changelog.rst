@@ -14,6 +14,22 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-14:
+
+`1.18.14 <https://github.com/pypa/pipx/tree/1.18.14>`_ - 2026-11-05
+===================================================================
+
+.. _release-1-18-14-fixed:
+
+Fixed
+-----
+
+- ``pipx list --short --include-injected`` now lists injected packages, as ``--pinned --include-injected`` already does
+  (:pr:`2415`) by :user:`Pixeless001` and :user:`gaborbernat`.
+- ``pipx uninject`` matches package names in any spelling, so ``mixed-case`` finds a package that pip recorded as
+  ``Mixed_Case``, and it refuses the main package however the name is spelled (:pr:`2420`) by :user:`guransh0925` and
+  :user:`gaborbernat`.
+
 .. _release-1-18-13:
 
 `1.18.13 <https://github.com/pypa/pipx/tree/1.18.13>`_ - 2026-11-04
