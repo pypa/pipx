@@ -471,3 +471,46 @@ def test_uninject_keeps_an_app_name_taken_over_during_the_uninstall(
     assert not run_pipx_cli(["uninject", "alpha", "beta"])
 
     assert beta.resolve() == other.resolve()
+
+
+@pytest.mark.parametrize(
+    "spelling", [pytest.param("Mixed_Case", id="declared"), pytest.param("mixed-case", id="canonical")]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_main_package_any_spelling(capsys: pytest.CaptureFixture[str], tmp_path: Path, spelling: str) -> None:
+    # pip records the name the package declares, so pipx keeps the non-canonical Mixed_Case
+    assert not run_pipx_cli(["install", str(write_wheel(tmp_path, "Mixed_Case", "1"))])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["uninject", "--output", "json", "mixed-case", spelling])
+
+    assert [error["message"] for error in json.loads(capsys.readouterr().out)["errors"]] == [
+        pipx_wrap(
+            """
+            mixed-case is the main package of mixed-case
+            venv. Use `pipx uninstall mixed-case` to uninstall instead of uninject.
+            """,
+            subsequent_indent=" " * 4,
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "spelling",
+    [
+        pytest.param("Mixed_Case", id="declared"),
+        pytest.param("mixed-case", id="canonical"),
+        pytest.param("MIXED.CASE", id="other"),
+    ],
+)
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_injected_package_any_spelling(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, spelling: str
+) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", str(write_wheel(tmp_path, "Mixed_Case", "1"))])
+
+    assert not run_pipx_cli(["uninject", "pycowsay", spelling])
+
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--short", "--include-injected"])
+    assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
