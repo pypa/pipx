@@ -41,7 +41,9 @@ def pin(
         for package_name, package in venv.package_metadata.items():
             if package_name == venv.main_package_name:
                 continue
-            if package_name in skip_names or canonicalize_name(f"{package_name}{package.suffix}") in skip_names:
+            # metadata keys a package by the name the installer reported, which pip leaves as declared (Mixed_Case),
+            # so both spellings are canonicalized before they are compared
+            if skip_names & {canonicalize_name(package_name), canonicalize_name(f"{package_name}{package.suffix}")}:
                 skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
                 continue
             if package.pinned:
