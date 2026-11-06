@@ -39,9 +39,12 @@ def pin(
     if injected_only or skip:
         skip_names: Final[set[str]] = {canonicalize_name(requested) for requested in skip}
         for package_name, package in venv.package_metadata.items():
-            if package_name == venv.main_package_name:
+            if canonicalize_name(package_name) == canonicalize_name(venv.main_package_name):
                 continue
-            if package_name in skip_names or canonicalize_name(f"{package_name}{package.suffix}") in skip_names:
+            if (
+                canonicalize_name(package_name) in skip_names
+                or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
+            ):
                 skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
                 continue
             if package.pinned:
@@ -58,7 +61,7 @@ def pin(
             _update_pin_info(
                 venv,
                 package_name,
-                is_main_package=package_name == venv.main_package_name,
+                is_main_package=canonicalize_name(package_name) == canonicalize_name(venv.main_package_name),
                 pinned=True,
             )
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
@@ -92,7 +95,7 @@ def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
         _update_pin_info(
             venv,
             package_name,
-            is_main_package=package_name == venv.main_package_name,
+            is_main_package=canonicalize_name(package_name) == canonicalize_name(venv.main_package_name),
             pinned=False,
         )
         packages.append(_changed_package(venv, package_name, _PinStatus.UNPINNED))
@@ -141,7 +144,7 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
         package=f"{package.package}{package.suffix}",
         version=package.package_version,
         status=status,
-        injected=package_name != venv.main_package_name,
+        injected=canonicalize_name(package_name) != canonicalize_name(venv.main_package_name),
         location=str(venv.root),
     )
 
