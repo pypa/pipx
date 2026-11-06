@@ -14,6 +14,22 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-15:
+
+`1.18.15 <https://github.com/pypa/pipx/tree/1.18.15>`_ - 2026-11-06
+===================================================================
+
+.. _release-1-18-15-fixed:
+
+Fixed
+-----
+
+- ``pipx pin --skip`` accepts case and punctuation variants of injected package names, with or without their suffix
+  (:pr:`2425`) by :user:`kowellaloo9698-afk` and :user:`gaborbernat`.
+- ``pipx repair`` now refuses an environment whose ``pipx_metadata.json`` a killed install lost or a newer pipx wrote,
+  as ``pipx reinstall`` and ``pipx reinstall-all`` do, instead of reporting it healthy (:pr:`2423`) by
+  :user:`AP24110011695` and :user:`gaborbernat`.
+
 .. _release-1-18-14:
 
 `1.18.14 <https://github.com/pypa/pipx/tree/1.18.14>`_ - 2026-11-05
