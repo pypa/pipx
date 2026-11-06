@@ -179,7 +179,7 @@ jobs:
       dry-run: true
   hooks:
     name: 🧹 Hooks under the cooldown
-    uses: tox-dev/github-workflows/.github/workflows/cooled-hooks.yaml@e9dabf0e11825edd2b7ac6c152d9f4900f188815 # 6.7.0
+    uses: tox-dev/github-workflows/.github/workflows/cooled-hooks.yaml@e1361e2efa1e9dd9705bb9be719d923cd9154707 # 6.7.1
     permissions:
       contents: read
   gate:
