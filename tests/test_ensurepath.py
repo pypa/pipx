@@ -24,15 +24,13 @@ _SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide
 
 @pytest.fixture
 def mock_userpath(mocker: MockerFixture) -> MagicMock:
-    mocked: Final = mocker.create_autospec(
-        userpath,
-        **{
-            "need_shell_restart.return_value": False,
-            "in_current_path.return_value": False,
-            "append.return_value": True,
-            "prepend.return_value": True,
-        },
-    )
+    # the returns are set on the children directly: create_autospec's dotted-key arguments configure the children only
+    # on Python 3.12+, and 3.11 leaves their defaults in place, which are truthy mocks
+    mocked: Final = mocker.create_autospec(userpath)
+    mocked.need_shell_restart.return_value = False
+    mocked.in_current_path.return_value = False
+    mocked.append.return_value = True
+    mocked.prepend.return_value = True
     mocker.patch.object(ensure_path_module, "userpath", mocked)
     return mocked
 
