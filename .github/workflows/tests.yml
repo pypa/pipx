@@ -169,10 +169,18 @@ jobs:
         run: |
           python .\pipx.pyz --version
           python .\pipx.pyz install black
+  release:
+    name: 🏷️ Release dry run
+    uses: $/.github/workflows/pre-release.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      dry-run: true
   gate:
     name: 🚦 Required checks pass
     if: always()
-    needs: [test, check, man, zipapp, zipapp-windows]
+    needs: [test, check, man, zipapp, zipapp-windows, release]
     runs-on: ubuntu-26.04
     steps:
       - name: 🚦 Require all needed jobs to pass
