@@ -91,11 +91,14 @@ def test_ensure_pipx_paths_already_in_path_does_not_claim_addition(
     )
 
     captured: Final = capsys.readouterr()
+    # pipx_wrap breaks lines wherever the binary directory's path pushes them, so compare whitespace-flattened text
+    out_flat: Final[str] = " ".join(captured.out.split())
+    err_flat: Final[str] = " ".join(captured.err.split())
     assert (exit_code, mock_userpath.append.called, mock_userpath.prepend.called) == (EXIT_CODE_OK, False, False)
-    assert "is already in PATH" in captured.out
-    logged: Final = " ".join(str(call.args[1]) for call in warning.call_args_list if len(call.args) > 1)
+    assert "is already in PATH" in out_flat
+    logged: Final[str] = " ".join(" ".join(str(arg) for arg in call.args) for call in warning.call_args_list)
     assert "are already in PATH" in logged
-    assert "have been appended to PATH" not in captured.out + captured.err + logged
+    assert "have been appended to PATH" not in out_flat + err_flat + logged
 
 
 @pytest.mark.parametrize(
