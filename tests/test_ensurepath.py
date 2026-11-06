@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import stat
 from pathlib import Path
@@ -82,9 +83,10 @@ def test_ensure_pipx_paths_dry_run_footer(mock_userpath: MagicMock, capsys: pyte
 
 
 def test_ensure_pipx_paths_already_in_path_does_not_claim_addition(
-    mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    mock_userpath: MagicMock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     mock_userpath.in_current_path.return_value = True
+    warning: Final = mocker.patch.object(logging.getLogger("pipx.commands.ensure_path"), "warning")
 
     exit_code: Final = ensure_path_module.ensure_pipx_paths(
         force=False, prepend=False, all_shells=False, dry_run=False, is_global=False
@@ -93,8 +95,9 @@ def test_ensure_pipx_paths_already_in_path_does_not_claim_addition(
     captured: Final = capsys.readouterr()
     assert (exit_code, mock_userpath.append.called, mock_userpath.prepend.called) == (EXIT_CODE_OK, False, False)
     assert "is already in PATH" in captured.out
-    assert "are already in PATH" in caplog.text
-    assert "have been appended to PATH" not in captured.out + captured.err + caplog.text
+    logged: Final = " ".join(str(call.args[1]) for call in warning.call_args_list if len(call.args) > 1)
+    assert "are already in PATH" in logged
+    assert "have been appended to PATH" not in captured.out + captured.err + logged
 
 
 @pytest.mark.parametrize(
