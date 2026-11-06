@@ -357,6 +357,7 @@ def test_pin_skip_spelling(
         pytest.param("Mixed_Case", id="declared"),
         pytest.param("mixed-case", id="canonical"),
         pytest.param("MIXED.CASE", id="other"),
+        pytest.param("MIXED.CASE@1", id="other-suffixed"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
