@@ -22,6 +22,9 @@ version.
 - ``pipx pin PACKAGE --skip PKG_A PKG_B`` pins injected packages except the listed ones (implies ``--injected-only``).
 - ``pipx unpin PACKAGE`` unpins the main package and every pinned injected package in that environment.
 
+``--skip`` matches injected package names regardless of capitalization or whether they use hyphens, underscores, or
+periods. For a package injected with ``--with-suffix``, pass either its name or its name with the suffix.
+
 Pass ``--output json`` to read the changed and skipped packages from a script, or ``--quiet`` to omit confirmations.
 
 .. note::

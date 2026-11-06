@@ -41,7 +41,10 @@ def pin(
         for package_name, package in venv.package_metadata.items():
             if package_name == venv.main_package_name:
                 continue
-            if package_name in skip_names or canonicalize_name(f"{package_name}{package.suffix}") in skip_names:
+            if (
+                canonicalize_name(package_name) in skip_names
+                or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
+            ):
                 skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
                 continue
             if package.pinned:

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import run_pipx_cli
+from helpers import run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -349,3 +349,36 @@ def test_pin_skip_spelling(
         [package["package"] for package in data["packages"]],
         data["skipped"],
     ) == (False, {"empty-project": pinned, "black": True}, reported, skipped)
+
+
+@pytest.mark.parametrize(
+    "spelling",
+    [
+        pytest.param("Mixed_Case", id="declared"),
+        pytest.param("mixed-case", id="canonical"),
+        pytest.param("MIXED.CASE", id="other"),
+        pytest.param("MIXED.CASE@1", id="other-suffixed"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_skip_non_canonical_injected_package_with_suffix(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, spelling: str
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "pycowsay@1", str(write_wheel(tmp_path, "Mixed_Case", "1")), "--with-suffix"])
+    assert not run_pipx_cli(["inject", "pycowsay@1", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "pycowsay@1", "--skip", spelling, "--output", "json"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay@1")
+    data: Final = json.loads(capsys.readouterr().out)["data"]
+    assert (
+        {name: package.pinned for name, package in metadata.injected_packages.items()},
+        [package["package"] for package in data["packages"]],
+        data["skipped"],
+    ) == (
+        {"Mixed_Case": False, "black": True},
+        ["black"],
+        [{"environment": "pycowsay@1", "package": "Mixed_Case", "reason": "requested"}],
+    )
