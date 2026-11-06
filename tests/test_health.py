@@ -13,6 +13,7 @@ from helpers import remove_venv_interpreter, run_pipx_cli
 from pipx import paths, util
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
     from types import ModuleType
 
@@ -175,6 +176,49 @@ def test_repair_preserves_uv_backend(capsys: pytest.CaptureFixture[str]) -> None
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_repair_skips_healthy_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["repair", "pycowsay"]) == 0
+
+    assert capsys.readouterr().out == "pycowsay: healthy\n"
+
+
+def _kill_install(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").unlink()
+    (venv_dir / "pipx_unfinished").touch()
+
+
+def _corrupt_record(venv_dir: Path) -> None:
+    (venv_dir / "pipx_metadata.json").write_text("{", encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "lose_record", [pytest.param(_kill_install, id="killed-install"), pytest.param(_corrupt_record, id="unreadable")]
+)
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_refuses_lost_metadata(capsys: pytest.CaptureFixture[str], lose_record: Callable[[Path], None]) -> None:
+    lose_record(paths.CTX.venvs / "pycowsay")
+
+    assert run_pipx_cli(["repair", "pycowsay"]) == 1
+
+    captured: Final = capsys.readouterr()
+    assert "pycowsay: Not reinstalling pycowsay" in captured.err
+    assert "has no internal pipx metadata" in captured.err
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_skips_healthy_environment_without_record(capsys: pytest.CaptureFixture[str]) -> None:
+    # pipx before 0.15.0.0 wrote no record; rebuilding it from the bare name would upgrade a working app
+    (paths.CTX.venvs / "pycowsay" / "pipx_metadata.json").unlink()
+
+    assert run_pipx_cli(["repair", "pycowsay"]) == 0
+
+    assert capsys.readouterr().out == "pycowsay: healthy\n"
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_health_reports_healthy_for_lost_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    # health checks interpreter startability only, so a lost record shows up in `pipx list` and `pipx repair` instead
+    (paths.CTX.venvs / "pycowsay" / "pipx_metadata.json").unlink()
+
+    assert run_pipx_cli(["health", "pycowsay"]) == 0
 
     assert capsys.readouterr().out == "pycowsay: healthy\n"
 
