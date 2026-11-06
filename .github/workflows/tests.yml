@@ -177,10 +177,15 @@ jobs:
       pull-requests: read
     with:
       dry-run: true
+  hooks:
+    name: 🧹 Hooks under the cooldown
+    uses: tox-dev/github-workflows/.github/workflows/cooled-hooks.yaml@e9dabf0e11825edd2b7ac6c152d9f4900f188815 # 6.7.0
+    permissions:
+      contents: read
   gate:
     name: 🚦 Required checks pass
     if: always()
-    needs: [test, check, man, zipapp, zipapp-windows, release]
+    needs: [test, check, man, zipapp, zipapp-windows, release, hooks]
     runs-on: ubuntu-26.04
     steps:
       - name: 🚦 Require all needed jobs to pass
