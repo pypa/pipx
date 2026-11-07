@@ -92,25 +92,6 @@ class _PathContext:
         for attribute in ("bin_dir", "completion_dir", "home", "man_dir", "shared_libs"):
             self.__dict__.pop(attribute, None)
 
-    def make_global(self) -> None:
-        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")
-        self._default_home = DEFAULT_PIPX_GLOBAL_HOME
-        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
-        self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
-        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
-        self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
-        self._base_completion = OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR or get_expanded_environ(
-            "PIPX_GLOBAL_COMPLETION_DIR"
-        )
-        self._default_completion = Path("/usr/local/share")
-        self._default_log = self._default_home / "logs"
-        self._default_cache = self._default_home / ".cache"
-        self._default_trash = self._default_home / "trash"
-        self._base_shared_libs = OVERRIDE_PIPX_GLOBAL_SHARED_LIBS
-        self._fallback_home = None
-        self._home_exists = self._base_home is not None
-        self._clear_cached_paths()
-
     @property
     def venvs(self) -> Path:
         return self.home / "venvs"
@@ -153,6 +134,25 @@ class _PathContext:
     @property
     def standalone_python_cachedir(self) -> Path:
         return self.home / "py"
+
+    def make_global(self) -> None:
+        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")
+        self._default_home = DEFAULT_PIPX_GLOBAL_HOME
+        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
+        self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
+        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
+        self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._base_completion = OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR or get_expanded_environ(
+            "PIPX_GLOBAL_COMPLETION_DIR"
+        )
+        self._default_completion = Path("/usr/local/share")
+        self._default_log = self._default_home / "logs"
+        self._default_cache = self._default_home / ".cache"
+        self._default_trash = self._default_home / "trash"
+        self._base_shared_libs = OVERRIDE_PIPX_GLOBAL_SHARED_LIBS
+        self._fallback_home = None
+        self._home_exists = self._base_home is not None
+        self._clear_cached_paths()
 
     def log_warnings(self) -> None:
         if self._fallback_home is not None and self._fallback_home.exists() and self.home != self._fallback_home:
