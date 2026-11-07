@@ -130,6 +130,18 @@ class _SkippedInstall:
     reason: str
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstallRun:
+    options: InstallOptions
+    lock_file: Path | None
+    venv_container: VenvContainer
+    venv_lock: BaseFileLock | None
+    messages: list[OutputMessage]
+    packages: list[_InstalledPackage]
+    skipped: list[_SkippedInstall]
+    failures: list[_FailedInstall]
+
+
 def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
     """Install every package listed in a metadata file, one environment per package.
 
@@ -351,7 +363,7 @@ def _resolve_cooldown(
     return _first_cooldown(requested.cli_days, requested.env_days, stored)
 
 
-def install(  # ruff:ignore[too-many-locals, too-many-statements]  # one pass resolves, builds and exposes each venv under its lock
+def install(
     venv_dir: Path | None,
     package_names: list[str] | None,
     package_specs: list[str],
@@ -370,148 +382,81 @@ def install(  # ruff:ignore[too-many-locals, too-many-statements]  # one pass re
     """
     validate_suffix(options.exposure.suffix)
     messages: Final[list[OutputMessage]] = []
-    packages: Final[list[_InstalledPackage]] = []
-    skipped: Final[list[_SkippedInstall]] = []
-    failures: Final[list[_FailedInstall]] = []
-    try:
-        lock_file: Final[Path | None] = _validate_install_options(package_specs, options)
-        python: Final[str] = options.python or get_default_python()
-    except PipxError as error:
-        return _finish_install(_failed_install_result(package_specs[0], error), emit_output=options.emit_output)
-
-    package_names, resolution_failure, interpreters = _resolve_package_names(
-        package_names, package_specs, python, options, messages=messages
-    )
-    if resolution_failure is not None:
-        package_spec, resolution_error = resolution_failure
-        return _finish_install(_failed_install_result(package_spec, resolution_error), emit_output=options.emit_output)
+    prepared: Final[_PreparedInstall] = _prepare_install(package_names, package_specs, options, messages=messages)
+    if prepared.failure is not None:
+        package_spec, prepare_error = prepared.failure
+        return _finish_install(
+            OperationResult(
+                command=("install",),
+                data=InstallData(packages=(), skipped=()),
+                messages=(OutputMessage(text=str(prepare_error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+                exit_code=ExitCode(1),
+                errors=(
+                    OperationError(
+                        code="package_install_failed",
+                        message=_error_report(prepare_error),
+                        environment=redact_url_credentials(package_spec),
+                    ),
+                ),
+            ),
+            emit_output=options.emit_output,
+        )
 
     venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else CTX.venvs)
-    for package_name, package_spec, package_python in zip(package_names, package_specs, interpreters, strict=False):
+    run: Final[_InstallRun] = _InstallRun(
+        options=options,
+        lock_file=prepared.lock_file,
+        venv_container=venv_container,
+        venv_lock=venv_lock,
+        messages=messages,
+        packages=[],
+        skipped=[],
+        failures=[],
+    )
+    for package_name, package_spec, package_python in zip(
+        prepared.package_names, package_specs, prepared.interpreters, strict=False
+    ):
         if venv_dir is None:
             venv_dir = venv_container.get_venv_dir(f"{package_name}{options.exposure.suffix}")
-
-        with venv_lock or venv_container.venv_lock(venv_dir):
-            exists: Final[bool] = venv_dir.exists() and any(venv_dir.iterdir())
-            installs_pip: Final[bool] = canonicalize_name(package_name) == "pip"
-            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole existing-venv resolution
-                venv = Venv(
-                    venv_dir,
-                    python=package_python,
-                    verbose=options.verbose,
-                    # `pipx install pip` needs pip, which uv venvs lack; an explicit --backend uv still reaches
-                    # assert_not_pip_under_uv and fails
-                    backend=BackendOptions(cli=options.backend.cli or PIP) if installs_pip else options.backend,
-                )
-                recorded_lock: Final[Path | None] = venv.pipx_metadata.main_package.lock_file
-                required_lock: Final[Path | None] = lock_file if options.replace_lock else lock_file or recorded_lock
-                build: Final[_EnvironmentBuild] = _EnvironmentBuild(
-                    venv_args=options.venv_args,
-                    pip_args=options.pip_args,
-                    override_shared=installs_pip,
-                    exposure_enabled=venv.pipx_metadata.exposure_enabled
-                    if options.exposure_enabled is None
-                    else options.exposure_enabled,
-                    preinstall_packages=options.preinstall_packages,
-                    package_name=package_name,
-                    package_spec=package_spec,
-                    force_reinstall=options.force and exists,
-                    exposure=options.exposure,
-                    expected_apps=tuple(
-                        dict.fromkeys(
-                            options.expected_apps
-                            if options.replace_expected_apps
-                            else options.expected_apps or venv.pipx_metadata.main_package.expected_apps
-                        )
-                    ),
-                    lock_file=required_lock,
-                    cooldown_days=_resolve_cooldown(
-                        required_lock,
-                        options.cooldown,
-                        venv.pipx_metadata.main_package.cooldown_days,
-                        modifies_existing=exists and options.force,
-                    ),
-                    pinned=venv.pipx_metadata.main_package.pinned if options.pinned is None else options.pinned,
-                )
-                if exists:
-                    existing: Final[_ExistingInstall] = _handle_existing_install(
-                        venv, build, options, python=package_python
-                    )
-                    messages.extend(existing.messages)
-                    packages.extend(existing.packages)
-                    skipped.extend(existing.skipped)
-                    if not existing.continue_install:
-                        venv_dir = None
-                        continue
-                    # --force reuses the environment, so --python does not switch it; `pipx reinstall --python` does
-                    if (
-                        options.python_flag_passed
-                        and (recorded := venv.pipx_metadata.source_interpreter) is not None
-                        and recorded.is_file()
-                    ):
-                        venv.python = str(recorded)
-            except PipxError as error:
-                _record_install_failure(failures, messages, venv_dir.name, error)
-                break
-
-            previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
-                venv, options.local_bin_dir, options.local_man_dir
-            )
-            preserve_existing_venv: Final[bool] = exists and (
-                options.preserve_existing
-                or bool(build.expected_apps or options.exposure.include_resources_from)
-                or required_lock is not None
-            )
-            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
-                with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
-                    venv.check_upgrade_shared_libs(pip_args=options.pip_args, verbose=options.verbose)
-                    if exists and (required_lock is not None or (options.replace_lock and recorded_lock is not None)):
-                        rmdir(venv_dir)
-                        venv = Venv(
-                            venv_dir,
-                            python=venv.python,
-                            verbose=options.verbose,
-                            backend=BackendOptions(cli=venv.backend_name),
-                        )
-                    venv = _install_on_supported_python(
-                        venv, build, options, venv_backup=venv_backup, messages=messages
-                    )
-                    validate_expected_apps(venv, package_name, build.expected_apps)
-                    messages.extend(
-                        run_post_install_actions(
-                            venv,
-                            package_name,
-                            options.local_bin_dir,
-                            options.local_man_dir,
-                            venv_dir,
-                            force=options.force,
-                            previous_resource_paths=previous_resource_paths,
-                        )
-                    )
-            except (Exception, KeyboardInterrupt) as error:
-                # any failure, an interrupt included, rolls back a new environment; pipx reports only a PipxError
-                if not exists:
-                    venv.remove_venv()
-                if not isinstance(error, PipxError):
-                    raise
-                _record_install_failure(failures, messages, venv.name, error)
-                break
-            packages.append(_installed_package(venv, package_name))
+        proceed: Final[bool] = _install_into_venv(run, venv_dir, package_name, package_spec, package_python)
         venv_dir = None
+        if not proceed:
+            break
 
     return _finish_install(
         OperationResult(
             command=("install",),
-            data=InstallData(packages=tuple(packages), skipped=tuple(skipped)),
-            messages=tuple(messages),
-            exit_code=ExitCode(1 if failures else 0),
+            data=InstallData(packages=tuple(run.packages), skipped=tuple(run.skipped)),
+            messages=tuple(run.messages),
+            exit_code=ExitCode(1 if run.failures else 0),
             errors=tuple(
                 OperationError(code="package_install_failed", message=f.error, environment=f.environment)
-                for f in failures
+                for f in run.failures
             ),
-            succeeded=bool(packages or skipped),
+            succeeded=bool(run.packages or run.skipped),
         ),
         emit_output=options.emit_output,
+    )
+
+
+def _prepare_install(
+    package_names: list[str] | None,
+    package_specs: list[str],
+    options: InstallOptions,
+    *,
+    messages: list[OutputMessage],
+) -> _PreparedInstall:
+    try:
+        lock_file: Final[Path | None] = _validate_install_options(package_specs, options)
+        python: Final[str] = options.python or get_default_python()
+    except PipxError as error:
+        return _PreparedInstall(lock_file=None, package_names=[], interpreters=[], failure=(package_specs[0], error))
+
+    names, resolution_failure, interpreters = _resolve_package_names(
+        package_names, package_specs, python, options, messages=messages
+    )
+    return _PreparedInstall(
+        lock_file=lock_file, package_names=names, interpreters=interpreters, failure=resolution_failure
     )
 
 
@@ -546,38 +491,12 @@ def _validate_install_options(package_specs: Sequence[str], options: InstallOpti
     return lock_file
 
 
-def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
-    if not emit_output:
-        return result
-    if result.errors:
-        render_messages(
-            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
-            quiet=0,
-        )
-        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
-    render_result(result, output=OutputFormat.HUMAN, quiet=0)
-    return result
-
-
-def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
-    return OperationResult(
-        command=("install",),
-        data=InstallData(packages=(), skipped=()),
-        messages=(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-        exit_code=ExitCode(1),
-        errors=(
-            OperationError(
-                code="package_install_failed",
-                message=_error_report(error),
-                environment=redact_url_credentials(environment),
-            ),
-        ),
-    )
-
-
-def _error_report(error: PipxError) -> str:
-    # a JSON consumer reads only the envelope, which needs the installer's reason the terminal showed beside it
-    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PreparedInstall:
+    lock_file: Path | None
+    package_names: list[str]
+    interpreters: list[str]
+    failure: tuple[str, PipxError] | None
 
 
 def _resolve_package_names(
@@ -663,6 +582,103 @@ def _supported_python(
         OutputMessage(text=f"This package needs Python {constraint}, so pipx used {interpreter}.", notice=True)
     )
     return interpreter
+
+
+def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
+    if not emit_output:
+        return result
+    if result.errors:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(next(message.text for message in result.messages if message.level is OutputLevel.ERROR))
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
+
+
+def _error_report(error: PipxError) -> str:
+    # a JSON consumer reads only the envelope, which needs the installer's reason the terminal showed beside it
+    return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+
+
+def _install_into_venv(
+    run: _InstallRun,
+    venv_dir: Path,
+    package_name: str,
+    package_spec: str,
+    package_python: str,
+) -> bool:
+    options: Final[InstallOptions] = run.options
+    with run.venv_lock or run.venv_container.venv_lock(venv_dir):
+        exists: Final[bool] = venv_dir.exists() and any(venv_dir.iterdir())
+        installs_pip: Final[bool] = canonicalize_name(package_name) == "pip"
+        try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole existing-venv resolution
+            venv = Venv(
+                venv_dir,
+                python=package_python,
+                verbose=options.verbose,
+                # `pipx install pip` needs pip, which uv venvs lack; an explicit --backend uv still reaches
+                # assert_not_pip_under_uv and fails
+                backend=BackendOptions(cli=options.backend.cli or PIP) if installs_pip else options.backend,
+            )
+            recorded_lock: Final[Path | None] = venv.pipx_metadata.main_package.lock_file
+            required_lock: Final[Path | None] = (
+                run.lock_file if options.replace_lock else run.lock_file or recorded_lock
+            )
+            build: Final[_EnvironmentBuild] = _EnvironmentBuild(
+                venv_args=options.venv_args,
+                pip_args=options.pip_args,
+                override_shared=installs_pip,
+                exposure_enabled=venv.pipx_metadata.exposure_enabled
+                if options.exposure_enabled is None
+                else options.exposure_enabled,
+                preinstall_packages=options.preinstall_packages,
+                package_name=package_name,
+                package_spec=package_spec,
+                force_reinstall=options.force and exists,
+                exposure=options.exposure,
+                expected_apps=tuple(
+                    dict.fromkeys(
+                        options.expected_apps
+                        if options.replace_expected_apps
+                        else options.expected_apps or venv.pipx_metadata.main_package.expected_apps
+                    )
+                ),
+                lock_file=required_lock,
+                cooldown_days=_resolve_cooldown(
+                    required_lock,
+                    options.cooldown,
+                    venv.pipx_metadata.main_package.cooldown_days,
+                    modifies_existing=exists and options.force,
+                ),
+                pinned=venv.pipx_metadata.main_package.pinned if options.pinned is None else options.pinned,
+            )
+            if exists:
+                existing: Final[_ExistingInstall] = _handle_existing_install(
+                    venv, build, options, python=package_python
+                )
+                run.messages.extend(existing.messages)
+                run.packages.extend(existing.packages)
+                run.skipped.extend(existing.skipped)
+                if not existing.continue_install:
+                    return True
+                # --force reuses the environment, so --python does not switch it; `pipx reinstall --python` does
+                if (
+                    options.python_flag_passed
+                    and (recorded := venv.pipx_metadata.source_interpreter) is not None
+                    and recorded.is_file()
+                ):
+                    venv.python = str(recorded)
+        except PipxError as error:
+            _record_install_failure(run.failures, run.messages, venv_dir.name, error)
+            return False
+
+        built: Final[Venv | None] = _build_and_expose(run, venv, venv_dir, build, exists=exists)
+        if built is None:
+            return False
+        run.packages.append(_installed_package(built, package_name))
+        return True
 
 
 # holds everything needed to fill a venv, letting pipx repeat it when the first interpreter turns out unsupported
@@ -845,10 +861,57 @@ def _record_install_failure(
     messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedInstall:
-    environment: str
-    error: str
+def _build_and_expose(
+    run: _InstallRun,
+    venv: Venv,
+    venv_dir: Path,
+    build: _EnvironmentBuild,
+    *,
+    exists: bool,
+) -> Venv | None:
+    options: Final[InstallOptions] = run.options
+    recorded_lock: Final[Path | None] = venv.pipx_metadata.main_package.lock_file
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
+        venv, options.local_bin_dir, options.local_man_dir
+    )
+    preserve_existing_venv: Final[bool] = exists and (
+        options.preserve_existing
+        or bool(build.expected_apps or options.exposure.include_resources_from)
+        or build.lock_file is not None
+    )
+    try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
+        with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
+            venv.check_upgrade_shared_libs(pip_args=options.pip_args, verbose=options.verbose)
+            if exists and (build.lock_file is not None or (options.replace_lock and recorded_lock is not None)):
+                rmdir(venv_dir)
+                venv = Venv(
+                    venv_dir,
+                    python=venv.python,
+                    verbose=options.verbose,
+                    backend=BackendOptions(cli=venv.backend_name),
+                )
+            venv = _install_on_supported_python(venv, build, options, venv_backup=venv_backup, messages=run.messages)
+            validate_expected_apps(venv, build.package_name, build.expected_apps)
+            run.messages.extend(
+                run_post_install_actions(
+                    venv,
+                    build.package_name,
+                    options.local_bin_dir,
+                    options.local_man_dir,
+                    venv_dir,
+                    force=options.force,
+                    previous_resource_paths=previous_resource_paths,
+                )
+            )
+    except (Exception, KeyboardInterrupt) as error:
+        # any failure, an interrupt included, rolls back a new environment; pipx reports only a PipxError
+        if not exists:
+            venv.remove_venv()
+        if not isinstance(error, PipxError):
+            raise
+        _record_install_failure(run.failures, run.messages, venv.name, error)
+        return None
+    return venv
 
 
 def _install_on_supported_python(
@@ -906,6 +969,12 @@ def _generate_package_spec(package_info: PackageInfo) -> str:
 
 def _first_cooldown(*candidates: int | None) -> int | None:
     return next((candidate for candidate in candidates if candidate is not None), None)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedInstall:
+    environment: str
+    error: str
 
 
 __all__ = [
