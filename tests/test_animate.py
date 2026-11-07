@@ -4,7 +4,6 @@ import io
 import sys
 import threading
 import time
-from timeit import default_timer
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -34,10 +33,20 @@ def test_delay_suppresses_output(
 ) -> None:
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setenv("COLUMNS", "80")
+    delay: Final[float] = 0.9
+    delay_started: Final[threading.Event] = threading.Event()
 
-    # stays inside the 0.9 s delay, so no frame may appear yet
-    with pipx.animate.animate("asdf", do_animation=True, delay=0.9):
-        time.sleep(0.5)
+    class _WaitSignalingEvent(threading.Event):
+        def wait(self, timeout: float | None = None) -> bool:
+            if timeout == delay:
+                delay_started.set()
+            return super().wait(timeout)
+
+    monkeypatch.setattr(pipx.animate, "Event", _WaitSignalingEvent)
+
+    # the block ends inside the delay, so no frame may appear
+    with pipx.animate.animate("asdf", do_animation=True, delay=delay):
+        assert delay_started.wait(timeout=5)
 
     assert "asdf" not in capsys.readouterr().err
 
@@ -114,18 +123,30 @@ def test_line_lengths_emoji(
 def check_animate_output(monkeypatch: pytest.MonkeyPatch) -> Callable[[list[str], int], None]:
     def check(frame_strings: list[str], frames_to_test: int) -> None:
         # draining capsys while the animation thread writes loses a frame written between the read and the truncation
-        stderr: Final[io.StringIO] = io.StringIO()
-        monkeypatch.setattr(sys, "stderr", stderr)
         chars_to_test: Final[int] = len("".join(frame_strings[:frames_to_test]))
-        deadline: Final[float] = default_timer() + 5
+        enough_written: Final[threading.Event] = threading.Event()
+        stderr: Final[_NotifyingStringIO] = _NotifyingStringIO(chars_to_test, enough_written)
+        monkeypatch.setattr(sys, "stderr", stderr)
 
         with pipx.animate.animate(_TEST_STRING_40_CHAR, do_animation=True):
-            while default_timer() < deadline and len(stderr.getvalue()) < chars_to_test:
-                time.sleep(0.01)
+            assert enough_written.wait(timeout=5)
 
         assert stderr.getvalue()[:chars_to_test] == "".join(frame_strings)[:chars_to_test]
 
     return check
+
+
+class _NotifyingStringIO(io.StringIO):
+    def __init__(self, chars: int, reached: threading.Event) -> None:
+        super().__init__()
+        self._chars = chars
+        self._reached = reached
+
+    def write(self, text: str, /) -> int:
+        written: Final = super().write(text)
+        if len(self.getvalue()) >= self._chars:
+            self._reached.set()
+        return written
 
 
 @pytest.mark.parametrize(
@@ -193,16 +214,18 @@ def test_animate_skips_spinner_of_task_waiting_its_turn(
 
 
 def test_animate_spins_for_task_whose_turn_it_is(
-    capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setenv("COLUMNS", "80")
+    spinning: Final[threading.Event] = threading.Event()
+    stderr: Final[_NotifyingStringIO] = _NotifyingStringIO(len("its turn"), spinning)
+    monkeypatch.setattr(sys, "stderr", stderr)
 
     def first() -> None:
         with pipx.animate.animate("its turn", do_animation=True):
-            time.sleep(0.3)
+            assert spinning.wait(timeout=5)
 
     fan_out([first, lambda: None], sequential=False)
 
-    assert "its turn" in capsys.readouterr().err
+    assert "its turn" in stderr.getvalue()

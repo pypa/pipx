@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import FileLock, Timeout
 
-from helpers import SKIP_IF_WINDOWS
+from helpers import SKIP_IF_WINDOWS, wait_for_log
 from pipx.fanout import (
     fan_out,
     finished_on_interrupt,
@@ -364,12 +364,12 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
     def finishing() -> str:
         with finished_on_interrupt():
             signal.pthread_kill(main_thread, signal.SIGINT)
-            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            wait_for_log(caplog, "Finishing the 1 environment(s)")
             run_subprocess([sys.executable, "-c", "pass"])
         return "finished"
 
     def not_started() -> str:
-        _wait_for_log(caplog, "Finishing the 1 environment(s)")
+        wait_for_log(caplog, "Finishing the 1 environment(s)")
         with finished_on_interrupt():
             return "started"
 
@@ -377,12 +377,6 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
         assert fan_out(
             [finishing, not_started], sequential=False, interrupted=lambda index: f"interrupted {index}"
         ) == ["finished", "interrupted 1"]
-
-
-def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
-    deadline: Final[float] = time.monotonic() + 5
-    while not any(text in message for message in caplog.messages) and time.monotonic() < deadline:
-        time.sleep(0.01)
 
 
 @SKIP_IF_WINDOWS
@@ -393,7 +387,7 @@ def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptur
     def finishing() -> str:
         with finished_on_interrupt():
             signal.pthread_kill(main_thread, signal.SIGINT)
-            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            wait_for_log(caplog, "Finishing the 1 environment(s)")
             signal.pthread_kill(main_thread, signal.SIGINT)
             run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
         return "finished"

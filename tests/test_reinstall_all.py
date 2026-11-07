@@ -16,7 +16,13 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, SKIP_IF_WINDOWS, mock_legacy_venv, run_pipx_cli
+from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
+    SKIP_IF_WINDOWS,
+    hold_first_venv_until_others_start,
+    mock_legacy_venv,
+    run_pipx_cli,
+)
 from package_info import PKG
 from pipx import constants, shared_libs
 from pipx.paths import CTX
@@ -133,7 +139,7 @@ def test_reinstall_all_prints_progress_in_venv_order(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
     venv_names: list[str],
 ) -> None:
-    before_venv_subprocess(CTX.venvs / venv_names[0], lambda: time.sleep(0.3))
+    hold_first_venv_until_others_start(before_venv_subprocess, venv_names)
 
     assert not run_pipx_cli(["reinstall-all"])
 

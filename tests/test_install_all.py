@@ -5,14 +5,13 @@ import os
 import re
 import shutil
 import sys
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
+from helpers import SKIP_IF_WINDOWS, current_log_file, hold_first_venv_until_others_start, run_pipx_cli
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
@@ -546,7 +545,7 @@ def test_install_all_prints_progress_in_spec_order(
     spec_file: Path,
 ) -> None:
     venv_names: Final[list[str]] = list(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"])
-    before_venv_subprocess(CTX.venvs / venv_names[0], lambda: time.sleep(0.3))
+    hold_first_venv_until_others_start(before_venv_subprocess, venv_names)
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
@@ -603,8 +602,9 @@ def test_install_all_gives_shared_man_page_to_the_first_venv(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
 ) -> None:
     spec_file: Final[Path] = make_snapshot([["install", "pycowsay"], ["install", "pycowsay", "--suffix=_x"]])
-    first: Final[Path] = CTX.venvs / next(iter(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"]))
-    before_venv_subprocess(first, lambda: time.sleep(0.5))
+    venv_names: Final[list[str]] = list(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"])
+    hold_first_venv_until_others_start(before_venv_subprocess, venv_names)
+    first: Final[Path] = CTX.venvs / venv_names[0]
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 

@@ -19,6 +19,7 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    wait_for_log,
 )
 from package_info import PKG
 from pipx.constants import EXIT_CODE_LIST_PROBLEM
@@ -496,11 +497,8 @@ def _interrupting(call: Callable[_P, _R], presses: int, caplog: pytest.LogCaptur
         if pending[0] and "--upgrade" in (command := str(args[0])) and f"{os.sep}black" in command:
             for press in range(pending.pop()):
                 os.kill(os.getpid(), signal.SIGINT)
-                deadline: Final[float] = time.monotonic() + 5
-                while press == 0 and not any("Finishing" in message for message in caplog.messages):
-                    if time.monotonic() > deadline:
-                        break
-                    time.sleep(0.01)
+                if press == 0:
+                    wait_for_log(caplog, "Finishing")
             pending.append(0)
         return call(*args, **kwargs)
 

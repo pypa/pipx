@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
 import sys
 import sysconfig
+import threading
 import zipfile
 from dataclasses import replace
 from typing import TYPE_CHECKING, Final, Protocol, TypedDict
@@ -22,6 +24,7 @@ from pipx.util import get_venv_paths
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 WIN: Final[bool] = sys.platform.startswith("win")
@@ -286,6 +289,40 @@ def file_or_symlink(path: Path) -> bool:
     return path.exists() or path.is_symlink()
 
 
+def wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+    logged: Final[threading.Event] = threading.Event()
+    handler: Final[logging.Handler] = _SetOnLogMatch(text, logged)
+    logging.getLogger().addHandler(handler)
+    try:
+        assert any(text in message for message in caplog.messages) or logged.wait(timeout=5)
+    finally:
+        logging.getLogger().removeHandler(handler)
+
+
+class _SetOnLogMatch(logging.Handler):
+    def __init__(self, text: str, logged: threading.Event) -> None:
+        super().__init__()
+        self._text = text
+        self._logged = logged
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if self._text in record.getMessage():
+            self._logged.set()
+
+
+def hold_first_venv_until_others_start(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
+) -> None:
+    others_started: Final[dict[str, threading.Event]] = {name: threading.Event() for name in venv_names[1:]}
+    for name, started in others_started.items():
+        before_venv_subprocess(CTX.venvs / name, started.set)
+
+    def hold() -> None:
+        assert all(started.wait(timeout=5) for started in others_started.values())
+
+    before_venv_subprocess(CTX.venvs / venv_names[0], hold)
+
+
 __all__ = [
     "LEGACY_MAIN_PACKAGE",
     "PACKAGE_CACHE_DIR_NAME",
@@ -302,12 +339,14 @@ __all__ = [
     "current_log_file",
     "drop_extra_app",
     "file_or_symlink",
+    "hold_first_venv_until_others_start",
     "mock_legacy_venv",
     "module_version",
     "pipx_subprocess_env",
     "remove_venv_interpreter",
     "run_pipx_cli",
     "unwrap_log_text",
+    "wait_for_log",
     "write_dist_info",
     "write_import_probe",
     "write_wheel",
