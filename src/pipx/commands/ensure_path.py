@@ -43,7 +43,7 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
             )
         elif written:
             print(  # ruff:ignore[print]  # user-facing CLI output
-                pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect.") + "\n"
+                pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect."), end="\n\n"
             )
 
         print(f"Otherwise pipx is ready to go! {STARS}")  # ruff:ignore[print]  # user-facing CLI output
@@ -75,8 +75,8 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
                 Consider adding shell completions for pipx. Run 'pipx
                 completions' for instructions.
                 """
-            )
-            + "\n"
+            ),
+            end="\n\n",
         )
     elif not need_shell_restart and all(userpath.in_current_path(str(bin_path)) for bin_path in bin_paths):
         sys.stdout.flush()
@@ -98,8 +98,8 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
                 changes to take effect. Alternatively, you can source your shell's
                 config file with e.g. 'source ~/.bashrc'.
                 """
-            )
-            + "\n"
+            ),
+            end="\n\n",
         )
 
     print(f"Otherwise pipx is ready to go! {STARS}")  # ruff:ignore[print]  # user-facing CLI output

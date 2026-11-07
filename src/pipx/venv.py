@@ -269,17 +269,15 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 SHARED_LIBS.create(verbose=verbose, pip_args=pip_args)
 
             if not SHARED_LIBS.is_valid:
-                raise PipxError(
-                    pipx_wrap(
-                        f"""
-                        Error: pipx's shared venv {SHARED_LIBS.root} is invalid
-                        and needs re-installation. To fix this, install or
-                        reinstall a package. For example:
-                        """
-                    )
-                    + f"\n  pipx install {self.root.name} --force",
-                    wrap_message=False,
+                message: Final = pipx_wrap(
+                    f"""
+                    Error: pipx's shared venv {SHARED_LIBS.root} is invalid
+                    and needs re-installation. To fix this, install or
+                    reinstall a package. For example:
+                    """
                 )
+                msg: Final = f"{message}\n  pipx install {self.root.name} --force"
+                raise PipxError(msg, wrap_message=False)
 
     @property
     def uses_shared_libs(self) -> bool:

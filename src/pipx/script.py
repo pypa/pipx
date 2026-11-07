@@ -301,7 +301,10 @@ __all__ = [
             _write_member(archive, name, data)
         archive.writestr(
             record,
-            "".join(f"{name},sha256={_digest(data)},{len(data)}\n" for name, data in members.items()) + f"{record},,\n",
+            "".join([
+                *(f"{name},sha256={_digest(data)},{len(data)}\n" for name, data in members.items()),
+                f"{record},,\n",
+            ]),
         )
     return wheel
 
@@ -311,7 +314,7 @@ def _metadata(package_name: str, version: str, metadata: ScriptMetadata) -> byte
     if metadata.requires_python is not None:
         lines.append(f"Requires-Python: {metadata.requires_python}")
     lines.extend(f"Requires-Dist: {dependency}" for dependency in metadata.dependencies)
-    return ("\n".join(lines) + "\n\n").encode()
+    return "\n".join([*lines, "", ""]).encode()
 
 
 def _write_member(archive: ZipFile, name: str, data: bytes) -> None:

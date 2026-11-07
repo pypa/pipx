@@ -640,11 +640,8 @@ def test_reinstall_records_injected_local_project_under_its_new_name(
     assert not run_pipx_cli(["install", "--backend", "pip", str(empty_project_wheel)])
     assert not run_pipx_cli(["inject", "--include-apps", "empty-project", str(local_extras_project)])
     pyproject: Final[Path] = local_extras_project / "pyproject.toml"
-    pyproject.write_text(
-        pyproject.read_text(encoding="utf-8").replace('name = "repeatme"', 'name = "renamed"')
-        + '[tool.flit.module]\nname = "repeatme"\n',
-        encoding="utf-8",
-    )
+    renamed: Final[str] = pyproject.read_text(encoding="utf-8").replace('name = "repeatme"', 'name = "renamed"')
+    pyproject.write_text(f'{renamed}[tool.flit.module]\nname = "repeatme"\n', encoding="utf-8")
 
     assert not run_pipx_cli(["reinstall", "empty-project"])
 
