@@ -63,7 +63,10 @@ def test_install_wheel_from_file_url(dotted_app_wheel: Path, tmp_path: Path, bac
 
 @pytest.mark.parametrize(
     ("package_name", "package_spec"),
-    [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
+    [
+        pytest.param("pycowsay", "pycowsay", id="pycowsay"),
+        pytest.param("black", PKG["black"]["spec"], id="black"),
+    ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_easy_packages(
@@ -144,7 +147,10 @@ def test_install_rejects_unsafe_suffix(capsys: pytest.CaptureFixture[str], suffi
 
 @pytest.mark.parametrize(
     ("package_name", "package_spec"),
-    [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
+    [
+        pytest.param("pycowsay", "pycowsay", id="pycowsay"),
+        pytest.param("black", PKG["black"]["spec"], id="black"),
+    ],
 )
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1114,6 +1120,7 @@ def test_install_include_resources_from_missing_dependency_rolls_back(
         pytest.param(
             "zest-releaser",
             PKG["zest-releaser"]["spec"],
+            id="zest-releaser",
             marks=[
                 pytest.mark.skipif(
                     sys.platform == "darwin",
@@ -1125,7 +1132,7 @@ def test_install_include_resources_from_missing_dependency_rolls_back(
                 ),
             ],
         ),
-        pytest.param("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
+        pytest.param("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"], id="tox-ini-fmt"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1919,9 +1926,12 @@ def test_install_run_in_separate_directory(
 @pytest.mark.parametrize(
     "python_version",
     [
-        str(sys.version_info.major),
-        f"{sys.version_info.major}.{sys.version_info.minor}",
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        pytest.param(str(sys.version_info.major), id="major"),
+        pytest.param(f"{sys.version_info.major}.{sys.version_info.minor}", id="major-minor"),
+        pytest.param(
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            id="major-minor-micro",
+        ),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
