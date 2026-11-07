@@ -3,20 +3,23 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
-    "pipx.backends.pip",
-    "pipx.backends.registry",
-    "pipx.interpreter",
-    "pipx.package_specifier",
-    "pipx.pipx_metadata_file",
-    "pipx.redact",
-    "pipx.requires_python",
-    "pipx.script",
-    "pipx.shared_libs",
-    "pipx.subprocess_runner",
-    "pipx.trash",
-    "pipx.util",
-    "pipx.wrap",
     "shutil",
+    f"{__spec__.parent}.animate",
+    f"{__spec__.parent}.backends.pip",
+    f"{__spec__.parent}.backends.registry",
+    f"{__spec__.parent}.constants",
+    f"{__spec__.parent}.emojis",
+    f"{__spec__.parent}.interpreter",
+    f"{__spec__.parent}.package_specifier",
+    f"{__spec__.parent}.pipx_metadata_file",
+    f"{__spec__.parent}.redact",
+    f"{__spec__.parent}.requires_python",
+    f"{__spec__.parent}.script",
+    f"{__spec__.parent}.shared_libs",
+    f"{__spec__.parent}.subprocess_runner",
+    f"{__spec__.parent}.trash",
+    f"{__spec__.parent}.util",
+    f"{__spec__.parent}.wrap",
 ]
 
 import logging
@@ -33,25 +36,25 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
     from packaging.utils import NormalizedName
 
-    from pipx.backends._base import Backend, OutdatedPackage
-    from pipx.venv_inspect import VenvMetadata
+    from .backends._base import Backend, OutdatedPackage
+    from .venv_inspect import VenvMetadata
 
 from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
-from pipx.animate import animate
-from pipx.backends.pip import subprocess_post_check_handle_pip_error
-from pipx.backends.registry import (
+from .animate import animate
+from .backends.pip import subprocess_post_check_handle_pip_error
+from .backends.registry import (
     assert_not_pip_under_uv,
     env_default_backend,
     get_backend,
     resolve_backend_name,
 )
-from pipx.constants import PIPX_SHARED_PTH, ExitCode
-from pipx.emojis import HAZARD
-from pipx.interpreter import get_default_python, recordable_interpreter
-from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
-from pipx.package_specifier import (
+from .constants import PIPX_SHARED_PTH, ExitCode
+from .emojis import HAZARD
+from .interpreter import get_default_python, recordable_interpreter
+from .options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
+from .package_specifier import (
     absolute_path_pip_args,
     fix_package_name,
     get_extras,
@@ -61,19 +64,19 @@ from pipx.package_specifier import (
     recordable_pip_args,
     valid_pypi_name,
 )
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.redact import redact_url_credentials
-from pipx.requires_python import IncompatiblePythonError, rejected_constraint
-from pipx.script import installable_script, local_script
-from pipx.shared_libs import (
+from .pipx_metadata_file import PackageInfo, PipxMetadata
+from .redact import redact_url_credentials
+from .requires_python import IncompatiblePythonError, rejected_constraint
+from .script import installable_script, local_script
+from .shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     SHARED_LIBS,
     shared_libs_auto_upgrade_disabled,
 )
-from pipx.subprocess_runner import exec_app, get_site_packages, subprocess_post_check
-from pipx.trash import rmdir
-from pipx.util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
-from pipx.wrap import pipx_wrap
+from .subprocess_runner import exec_app, get_site_packages, subprocess_post_check
+from .trash import rmdir
+from .util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
+from .wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
@@ -198,18 +201,14 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return resolve_backend_name(cli_value=cli_backend, env_value=env_backend, metadata_value=metadata_backend)
 
     @property
-    def backend(self) -> Backend:
-        if self._backend is None:
-            self._backend = get_backend(self._backend_name)
-        return self._backend
-
-    @property
-    def backend_name(self) -> str:
-        return self._backend_name
-
-    @property
     def backend_source(self) -> str:
         return self._backend_source
+
+    @property
+    def name(self) -> str:
+        if (package := self.pipx_metadata.main_package.package) is None:
+            return self.root.name
+        return f"{package}{self.pipx_metadata.main_package.suffix}"
 
     def check_upgrade_shared_libs(self, *, verbose: bool, pip_args: list[str]) -> None:
         if self._existing and self.uses_shared_libs:
@@ -252,24 +251,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return uses_shared
 
     @property
-    def name(self) -> str:
-        if (package := self.pipx_metadata.main_package.package) is None:
-            return self.root.name
-        return f"{package}{self.pipx_metadata.main_package.suffix}"
-
-    @property
-    def package_metadata(self) -> dict[str, PackageInfo]:
-        packages: Final[dict[str, PackageInfo]] = self.pipx_metadata.injected_packages.copy()
-        if (main_package := self.pipx_metadata.main_package).package is not None:
-            packages[main_package.package] = main_package
-        return packages
-
-    @property
-    def main_package_name(self) -> str:
-        if (package := self.pipx_metadata.main_package.package) is None:
-            # without a record this venv comes from pipx before 0.15, which named it after the main package
-            return self.root.name
-        return package
+    def backend(self) -> Backend:
+        if self._backend is None:
+            self._backend = get_backend(self._backend_name)
+        return self._backend
 
     def create_venv(self, venv_args: list[str], pip_args: list[str], *, override_shared: bool = False) -> None:
         _LOGGER.info("Creating virtual environment")
@@ -440,6 +425,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def _with_cooldown(self, pip_args: list[str], cooldown_days: int | None) -> list[str]:
         return [*pip_args, *self.backend.cooldown_args(cooldown_days)]
 
+    @property
+    def backend_name(self) -> str:
+        return self._backend_name
+
     @staticmethod
     def _as_displayed(output: str) -> str:
         # a progress bar redraws its line after each carriage return, so a terminal keeps only the text after the last
@@ -606,7 +595,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return venv_package_metadata
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
-        from pipx.venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
+        from .venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
         data_start: Final[float] = time.time()
         venv_metadata: Final[VenvMetadata] = inspect_venv(
@@ -614,6 +603,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         )
         _LOGGER.info("get_venv_metadata_for_package: %.0fms", 1e3 * (time.time() - data_start))
         return venv_metadata
+
+    @property
+    def package_metadata(self) -> dict[str, PackageInfo]:
+        packages: Final[dict[str, PackageInfo]] = self.pipx_metadata.injected_packages.copy()
+        if (main_package := self.pipx_metadata.main_package).package is not None:
+            packages[main_package.package] = main_package
+        return packages
 
     def install_unmanaged_packages(
         self, requirements: list[str], pip_args: list[str], cooldown_days: int | None
@@ -769,6 +765,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                     if group == "pipx.run" and Path(app).exists() and dist.metadata["Name"] == entry_point.name:
                         return entry_point
         return None
+
+    @property
+    def main_package_name(self) -> str:
+        if (package := self.pipx_metadata.main_package.package) is None:
+            # without a record this venv comes from pipx before 0.15, which named it after the main package
+            return self.root.name
+        return package
 
     def has_app(self, app: str, filename: str) -> bool:
         if self._find_entry_point(app, "pipx.run") is not None:

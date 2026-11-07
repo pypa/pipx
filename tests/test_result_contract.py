@@ -13,22 +13,6 @@ if TYPE_CHECKING:
 _JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
 
 
-class _Error(TypedDict):
-    code: str
-    message: str
-    environment: str | None
-    package: str | None
-
-
-class _Envelope(TypedDict):
-    pipx_result_version: str
-    command: list[str]
-    status: str
-    exit_code: int
-    data: dict[str, _JsonValue]
-    errors: list[_Error]
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_contract_success_envelope(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
@@ -52,6 +36,15 @@ def _envelope(captured: str) -> _Envelope:
     return document
 
 
+class _Envelope(TypedDict):
+    pipx_result_version: str
+    command: list[str]
+    status: str
+    exit_code: int
+    data: dict[str, _JsonValue]
+    errors: list[_Error]
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_contract_error_envelope_names_the_failure(
     capsys: pytest.CaptureFixture[str],
@@ -65,6 +58,13 @@ def test_contract_error_envelope_names_the_failure(
         set(_Error.__annotations__),
         "package_install_failed",
     )
+
+
+class _Error(TypedDict):
+    code: str
+    message: str
+    environment: str | None
+    package: str | None
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

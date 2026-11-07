@@ -227,6 +227,10 @@ def give_back_shared_links(resource_paths: set[Path], venv_dir: Path) -> None:
                 path.symlink_to(dangling)
 
 
+def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
+    return in_turn(lambda: path not in _SHARED_RESOURCES.get())
+
+
 def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver inputs are independent scalars, not a cohesive struct
     package_spec: str,
     python: str,
@@ -448,10 +452,6 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
         rewritten.replace(path)
 
 
-def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
-    return in_turn(lambda: path not in _SHARED_RESOURCES.get())
-
-
 def _symlink_package_resource(
     dest_dir: Path,
     path: Path,
@@ -571,28 +571,11 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
     return None
 
 
-def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
-    new_name: Final[str] = add_suffix(path.name, suffix)
-    for legacy in (dest_dir / name for name in exposed_app_names(path.name, suffix) - {new_name}):
-        if legacy.is_symlink():
-            owned = legacy.resolve() == path.resolve()
-        else:
-            # a launcher rebuilt since then no longer matches byte for byte, but its shebang still names this venv
-            owned = legacy.is_file() and (
-                filecmp.cmp(legacy, path, shallow=False) or _directory_id(path.parent) in _launcher_owner_ids(legacy)
-            )
-        if owned and drop_copies_claimed_elsewhere({legacy}, path.parent):
-            legacy.unlink()
-            _LOGGER.warning(
-                "%s  Renamed %s to %s, as pipx now puts --suffix at the end of app names", HAZARD, legacy.name, new_name
-            )
-
-
-def exposed_app_names(name: str, suffix: str) -> set[str]:
-    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), and an app exposed back then
-    # keeps that name until pipx exposes it again
-    app: Final[Path] = Path(name)
-    return {add_suffix(name, suffix), f"{app.stem}{suffix}{app.suffix}"}
+def _directory_id_or_none(path: Path) -> tuple[int, int] | None:
+    try:
+        return _directory_id(path)
+    except OSError:
+        return None
 
 
 def _directory_id(path: Path) -> tuple[int, int]:
@@ -636,6 +619,30 @@ def _shebang_interpreter(line: bytes, next_line: bytes) -> str:
     return os.fsdecode(parts[0]) if (parts := line.split()) else ""
 
 
+def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
+    new_name: Final[str] = add_suffix(path.name, suffix)
+    for legacy in (dest_dir / name for name in exposed_app_names(path.name, suffix) - {new_name}):
+        if legacy.is_symlink():
+            owned = legacy.resolve() == path.resolve()
+        else:
+            # a launcher rebuilt since then no longer matches byte for byte, but its shebang still names this venv
+            owned = legacy.is_file() and (
+                filecmp.cmp(legacy, path, shallow=False) or _directory_id(path.parent) in _launcher_owner_ids(legacy)
+            )
+        if owned and drop_copies_claimed_elsewhere({legacy}, path.parent):
+            legacy.unlink()
+            _LOGGER.warning(
+                "%s  Renamed %s to %s, as pipx now puts --suffix at the end of app names", HAZARD, legacy.name, new_name
+            )
+
+
+def exposed_app_names(name: str, suffix: str) -> set[str]:
+    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), and an app exposed back then
+    # keeps that name until pipx exposes it again
+    app: Final[Path] = Path(name)
+    return {add_suffix(name, suffix), f"{app.stem}{suffix}{app.suffix}"}
+
+
 def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
     # a static script copies byte for byte, so the copy another venv exposes under a name this venv also answers to
     # (tool's run.cmd for tool@2) matches by content; unless its shebang names this venv, it belongs to the other one
@@ -644,13 +651,6 @@ def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path
         path for path in resource_paths if not path.is_symlink() and own_id not in _launcher_owner_ids(path)
     }
     return resource_paths - (copies & _claimed_by_other_venvs(venv_bin_path)) if copies else resource_paths
-
-
-def _directory_id_or_none(path: Path) -> tuple[int, int] | None:
-    try:
-        return _directory_id(path)
-    except OSError:
-        return None
 
 
 def _claimed_by_other_venvs(venv_bin_path: Path) -> set[Path]:
@@ -709,14 +709,14 @@ def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_
 
 def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     owned: set[Path] = get_exposed_paths_for_package(
-        venv.bin_path, local_bin_dir, group_app_paths(venv.package_metadata.values())
+        venv.bin_path, local_bin_dir, _group_app_paths(venv.package_metadata.values())
     )
     man_paths: Final[list[Path]] = [
         path for package in venv.package_metadata.values() for path in package.man_paths_to_expose
     ]
     for man_section in MAN_SECTIONS:
-        owned |= get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
-    completion_paths: Final[dict[str, list[Path]]] = group_resource_paths(
+        owned |= _get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
+    completion_paths: Final[dict[str, list[Path]]] = _group_resource_paths(
         (path.name, path) for package in venv.package_metadata.values() for path in package.completion_paths_to_expose
     )
     for completion_section in COMPLETION_SECTIONS:
@@ -808,8 +808,8 @@ def _copy_matches_source(
         return False
 
 
-def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
-    return group_resource_paths(
+def _group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
+    return _group_resource_paths(
         (name, path)
         for package in packages
         for path in package.app_paths_to_expose
@@ -817,14 +817,7 @@ def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
     )
 
 
-def group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
-    grouped: Final[dict[str, list[Path]]] = {}
-    for name, path in resource_paths:
-        grouped.setdefault(name, []).append(path)
-    return grouped
-
-
-def get_exposed_man_paths_for_package(
+def _get_exposed_man_paths_for_package(
     venv_man_path: Path,
     local_man_dir: Path,
     package_man_paths: Sequence[Path],
@@ -832,8 +825,17 @@ def get_exposed_man_paths_for_package(
     return get_exposed_paths_for_package(
         venv_man_path,
         local_man_dir,
-        group_resource_paths((path.name, path) for path in package_man_paths if path.parent.name == venv_man_path.name),
+        _group_resource_paths(
+            (path.name, path) for path in package_man_paths if path.parent.name == venv_man_path.name
+        ),
     )
+
+
+def _group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
+    grouped: Final[dict[str, list[Path]]] = {}
+    for name, path in resource_paths:
+        grouped.setdefault(name, []).append(path)
+    return grouped
 
 
 def get_venv_summary(
@@ -970,7 +972,7 @@ def _get_exposed_resource_names(
     )
     exposed_binary_names: Final[list[str]] = sorted(
         path.name
-        for path in get_exposed_paths_for_package(venv.bin_path, paths.CTX.bin_dir, group_app_paths(resource_packages))
+        for path in get_exposed_paths_for_package(venv.bin_path, paths.CTX.bin_dir, _group_app_paths(resource_packages))
     )
     unavailable_binary_names: Final[list[str]] = sorted({
         add_suffix(name, package_metadata.suffix)
@@ -981,7 +983,7 @@ def _get_exposed_resource_names(
     exposed_man_pages: Final[list[str]] = sorted(
         str(Path(path.parent.name) / path.name)
         for man_section in MAN_SECTIONS
-        for path in get_exposed_man_paths_for_package(
+        for path in _get_exposed_man_paths_for_package(
             venv.man_path / man_section, paths.CTX.man_dir / man_section, man_paths
         )
     )
@@ -1098,11 +1100,11 @@ def get_venv_resource_paths(
 
 
 def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
-    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, _group_app_paths((package_info,)))
 
 
 def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
-    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
+    return _get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
 
 
 def get_package_completion_paths(
@@ -1113,14 +1115,13 @@ def get_package_completion_paths(
     return get_exposed_paths_for_package(
         venv_completion_path,
         local_completion_dir,
-        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
+        _group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
     )
 
 
 __all__ = [
     "VenvProblems",
     "add_suffix",
-    "can_symlink",
     "drop_copies_claimed_elsewhere",
     "drop_links_taken_over",
     "expose_package_resources",
@@ -1129,7 +1130,6 @@ __all__ = [
     "exposed_app_names",
     "force_replaces_only",
     "get_expected_venv_resource_paths",
-    "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_package_bin_dir_app_paths",
     "get_package_completion_paths",
@@ -1138,8 +1138,6 @@ __all__ = [
     "get_venv_resource_paths",
     "get_venv_summary",
     "give_back_shared_links",
-    "group_app_paths",
-    "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",
     "remove_stale_venv_resources",

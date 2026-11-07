@@ -9,9 +9,7 @@ import sys
 from dataclasses import asdict, dataclass
 from typing import Any, Final, Generic, TypeVar
 
-from pipx.constants import EXIT_CODE_OK, ExitCode
-
-_PIPX_RESULT_VERSION: Final[str] = "1"
+from .constants import EXIT_CODE_OK, ExitCode
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -20,11 +18,6 @@ class OutputLevel(enum.IntEnum):
     NORMAL = 0
     ERROR = 1
     CRITICAL = 2
-
-
-class OutputFormat(enum.StrEnum):
-    HUMAN = "human"
-    JSON = "json"
 
 
 class OutputStream(enum.StrEnum):
@@ -92,6 +85,11 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
     return result.exit_code
 
 
+class OutputFormat(enum.StrEnum):
+    HUMAN = "human"
+    JSON = "json"
+
+
 def _render_envelope(
     command: tuple[str, ...],
     status: str,
@@ -101,7 +99,7 @@ def _render_envelope(
 ) -> str:
     return json.dumps(
         {
-            "pipx_result_version": _PIPX_RESULT_VERSION,
+            "pipx_result_version": "1",
             "command": list(command),
             "status": status,
             "exit_code": int(exit_code),

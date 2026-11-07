@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, Self
 
-from pipx.constants import FetchPythonOptions
+from .constants import FetchPythonOptions
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Sequence
     from pathlib import Path
 
-    from pipx.pipx_metadata_file import PackageInfo
+    from .pipx_metadata_file import PackageInfo
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -33,7 +33,7 @@ class CooldownOptions:
         return self.cli_days if self.cli_days is not None else self.env_days
 
 
-DEFAULT_COOLDOWN_OPTIONS: Final[CooldownOptions] = CooldownOptions()
+_DEFAULT_COOLDOWN_OPTIONS: Final[CooldownOptions] = CooldownOptions()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -72,7 +72,7 @@ class InstallOptions:
     exposure_enabled: bool | None = None
     upgrade: bool = False
     upgrade_strategy: str | None = None
-    cooldown: CooldownOptions = DEFAULT_COOLDOWN_OPTIONS
+    cooldown: CooldownOptions = _DEFAULT_COOLDOWN_OPTIONS
     pinned: bool | None = None
     preserve_existing: bool = False
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
@@ -182,7 +182,6 @@ class RunOptions:
 
 __all__ = [
     "DEFAULT_BACKEND_OPTIONS",
-    "DEFAULT_COOLDOWN_OPTIONS",
     "BackendOptions",
     "CooldownOptions",
     "ExposureOptions",

@@ -6,10 +6,6 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx.commands.common",
-    "pipx.commands.expose",
-    "pipx.commands.install",
-    "pipx.commands.uninstall",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -19,6 +15,10 @@ __lazy_modules__ = [
     "subprocess",
     "tempfile",
     "tomllib",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.expose",
+    f"{__spec__.parent}.install",
+    f"{__spec__.parent}.uninstall",
 ]
 
 import subprocess
@@ -35,10 +35,6 @@ from typing import TYPE_CHECKING, Final, TypeAlias
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
-from pipx.commands.common import force_replaces_only
-from pipx.commands.expose import expose, unexpose
-from pipx.commands.install import install
-from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.options import ExposureOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
@@ -53,6 +49,11 @@ from pipx.result import (
     OutputStream,
 )
 from pipx.util import PipxError
+
+from .common import force_replaces_only
+from .expose import expose, unexpose
+from .install import install
+from .uninstall import uninstall
 
 if TYPE_CHECKING:
     from typing import TypeIs
@@ -359,31 +360,9 @@ def _is_pylock_name(name: str) -> bool:
     )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _ManifestTool:
-    environment: str
-    package: str
-    package_name: str
-    suffix: str
-    apps: tuple[str, ...]
-    include_dependencies: bool
-    include_resources_from: tuple[str, ...]
-    expose: bool
-    lock_file: Path | None
-
-
 def _duplicate_lock_files(tools: list[_ManifestTool]) -> tuple[Path, ...]:
     counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
     return tuple(sorted(lock_file for lock_file, count in counts.items() if count > 1))
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Manifest:
-    path: Path
-    tools: tuple[_ManifestTool, ...]
-
-
-_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -414,6 +393,28 @@ def _prune_environments(
 class ManifestData(OperationData):
     environments: tuple[str, ...]
     locks: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ManifestTool:
+    environment: str
+    package: str
+    package_name: str
+    suffix: str
+    apps: tuple[str, ...]
+    include_dependencies: bool
+    include_resources_from: tuple[str, ...]
+    expose: bool
+    lock_file: Path | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Manifest:
+    path: Path
+    tools: tuple[_ManifestTool, ...]
+
+
+_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
 
 
 def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:

@@ -52,8 +52,7 @@ def create_test_packages_list(package_list_dir_path: Path, primary_package_list_
     exit_code = 0
     downloaded: Final[set[str]] = set()
     with ThreadPoolExecutor(max_workers=12) as pool:
-        futures = {pool.submit(_download, package) for package in primary_test_packages}
-        for future in as_completed(futures):
+        for future in as_completed({pool.submit(_download, package) for package in primary_test_packages}):
             try:
                 downloaded.update(future.result())
             except subprocess.CalledProcessError as error:

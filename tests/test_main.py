@@ -509,16 +509,6 @@ class _Envelope(TypedDict):
     errors: list[dict[str, str | None]]
 
 
-def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None]]:
-    document: Final[_Envelope] = json.loads(stdout)
-    return (
-        document["command"],
-        document["status"],
-        document["exit_code"],
-        [error["code"] for error in document["errors"]],
-    )
-
-
 @pytest.mark.parametrize(
     "patches",
     [
@@ -539,6 +529,16 @@ def test_json_output_reports_invalid_environment_variable_in_envelope(
     assert run_pipx_cli(["cache", "dir", "--output", "json"]) == 1
 
     assert _envelope_failure(capsys.readouterr().out) == (["cache", "dir"], "error", 1, ["pipx_error"])
+
+
+def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None]]:
+    document: Final[_Envelope] = json.loads(stdout)
+    return (
+        document["command"],
+        document["status"],
+        document["exit_code"],
+        [error["code"] for error in document["errors"]],
+    )
 
 
 @pytest.mark.parametrize(

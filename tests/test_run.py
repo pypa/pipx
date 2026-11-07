@@ -47,6 +47,11 @@ def test_help_text(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) ->
     assert "Download the latest version of a package" in capsys.readouterr().out
 
 
+@pytest.fixture
+def exec_via_subprocess(mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
+
+
 def execvpe_via_subprocess(_cmd_path: str, cmd_args: Sequence[str], env: Mapping[str, str]) -> None:
     sys.exit(
         subprocess.run(
@@ -58,18 +63,6 @@ def execvpe_via_subprocess(_cmd_path: str, cmd_args: Sequence[str], env: Mapping
             check=False,
         ).returncode
     )
-
-
-@pytest.fixture
-def exec_via_subprocess(mocker: MockerFixture) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
-
-
-def run_pipx_cli_exit(pipx_cmd_list: list[str], assert_exit: int | None = None) -> None:
-    with pytest.raises(SystemExit) as sys_exit:
-        run_pipx_cli(pipx_cmd_list)
-    if assert_exit is not None:
-        assert sys_exit.value.code == assert_exit
 
 
 @pytest.mark.parametrize(
@@ -85,6 +78,13 @@ def test_simple_run(capsys: pytest.CaptureFixture[str], package_name: str) -> No
     run_pipx_cli_exit(["run", package_name, "--help"])
 
     assert "Download the latest version of a package" not in capsys.readouterr().out
+
+
+def run_pipx_cli_exit(pipx_cmd_list: list[str], assert_exit: int | None = None) -> None:
+    with pytest.raises(SystemExit) as sys_exit:
+        run_pipx_cli(pipx_cmd_list)
+    if assert_exit is not None:
+        assert sys_exit.value.code == assert_exit
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])

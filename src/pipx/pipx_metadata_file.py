@@ -2,12 +2,13 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "pathlib",
-    "pipx.backends._base",
-    "pipx.package_specifier",
-    "pipx.redact",
-    "pipx.util",
-    "pipx.wrap",
     "tempfile",
+    f"{__spec__.parent}.backends._base",
+    f"{__spec__.parent}.emojis",
+    f"{__spec__.parent}.package_specifier",
+    f"{__spec__.parent}.redact",
+    f"{__spec__.parent}.util",
+    f"{__spec__.parent}.wrap",
 ]
 
 import json
@@ -18,12 +19,12 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 
-from pipx.backends._base import KNOWN_BACKENDS
-from pipx.emojis import HAZARD
-from pipx.package_specifier import replayable_pip_args
-from pipx.redact import redact_url_credentials
-from pipx.util import PipxError
-from pipx.wrap import pipx_wrap
+from .backends._base import KNOWN_BACKENDS
+from .emojis import HAZARD
+from .package_specifier import replayable_pip_args
+from .redact import redact_url_credentials
+from .util import PipxError
+from .wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Generator

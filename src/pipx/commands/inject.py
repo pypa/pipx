@@ -7,8 +7,6 @@ __lazy_modules__ = [
     "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
-    "pipx.commands.common",
-    "pipx.commands.transaction",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.redact",
@@ -16,6 +14,8 @@ __lazy_modules__ = [
     "pipx.venv",
     "pipx.wrap",
     "re",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.transaction",
 ]
 
 import logging
@@ -33,12 +33,6 @@ from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import assert_not_pip_under_uv
 from pipx.colors import BOLD
-from pipx.commands.common import (
-    get_expected_venv_resource_paths,
-    package_name_from_spec,
-    run_post_install_actions,
-)
-from pipx.commands.transaction import marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
 from pipx.options import ExposureOptions
@@ -59,6 +53,13 @@ from pipx.util import InstalledNameMismatchError, PipxError
 from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
 
+from .common import (
+    get_expected_venv_resource_paths,
+    package_name_from_spec,
+    run_post_install_actions,
+)
+from .transaction import marked_unfinished, preserve_venv, runs_from_venv
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
 
@@ -67,6 +68,97 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+
+
+def inject(
+    venv_dir: Path,
+    package_specs: Iterable[str],
+    requirement_files: Iterable[str],
+    options: InjectOptions,
+) -> OperationResult[InjectionData]:
+    package_set: Final[set[str]] = set(package_specs)
+    for filename in requirement_files:
+        package_set.update(_parse_requirements(filename))
+    packages: Final[list[str]] = sorted(package_set)
+
+    if not packages:
+        error: Final[str] = "No packages to inject; pass a package spec or --requirement."
+        return _finish_inject(
+            OperationResult(
+                command=("inject",),
+                data=InjectionData(packages=(), skipped=()),
+                messages=(OutputMessage(text=error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+                exit_code=EXIT_CODE_INJECT_ERROR,
+                errors=(OperationError(code="package_inject_failed", message=error, environment=venv_dir.name),),
+            ),
+            emit_output=options.emit_output,
+        )
+    _LOGGER.info("Injecting packages: %r", [redact_url_credentials(package) for package in packages])
+
+    dependency_options: Final[InjectOptions] = replace(
+        options,
+        include_apps=options.include_apps or options.include_dependencies or bool(options.include_resources_from),
+        emit_output=False,
+    )
+    changed: Final[list[InjectionPackage]] = []
+    errors: Final[list[OperationError]] = []
+    messages: Final[list[OutputMessage]] = []
+    skipped: Final[list[_InjectionSkip]] = []
+    for dependency in packages:
+        try:
+            result: OperationResult[InjectionData] = inject_dep(venv_dir, None, dependency, dependency_options)
+        except PipxError as error:
+            errors.append(
+                OperationError(
+                    code="package_inject_failed",
+                    message=error.raw_message,
+                    environment=venv_dir.name,
+                    package=redact_url_credentials(dependency),
+                )
+            )
+            messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+            break
+        changed.extend(result.data.packages)
+        skipped.extend(result.data.skipped)
+        messages.extend(result.messages)
+
+    return _finish_inject(
+        OperationResult(
+            command=("inject",),
+            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped)),
+            messages=tuple(messages),
+            exit_code=EXIT_CODE_INJECT_ERROR if errors else EXIT_CODE_OK,
+            errors=tuple(errors),
+            succeeded=bool(changed or skipped),
+        ),
+        emit_output=options.emit_output,
+    )
+
+
+def _parse_requirements(filename: str) -> Iterator[str]:
+    # strips comments the way pip does: https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
+    comment: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
+    with Path(filename).open(encoding="utf-8") as requirements:
+        for line in requirements:
+            if spec := comment.sub("", line).strip():
+                yield spec
+
+
+def _finish_inject(
+    result: OperationResult[InjectionData],
+    *,
+    emit_output: bool,
+) -> OperationResult[InjectionData]:
+    if not emit_output:
+        return result
+    if result.errors:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(result.errors[0].message)
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
 
 
 def inject_dep(
@@ -256,23 +348,6 @@ def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
     return add_extras(recorded, venv.main_package_name, extras)
 
 
-def _finish_inject(
-    result: OperationResult[InjectionData],
-    *,
-    emit_output: bool,
-) -> OperationResult[InjectionData]:
-    if not emit_output:
-        return result
-    if result.errors:
-        render_messages(
-            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
-            quiet=0,
-        )
-        raise PipxError(result.errors[0].message)
-    render_result(result, output=OutputFormat.HUMAN, quiet=0)
-    return result
-
-
 def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:
     try:
         install(package_name)
@@ -281,80 +356,6 @@ def _install_under_installed_name(install: Callable[[str], VenvMetadata], packag
         install(error.installed_name)
         return error.installed_name
     return package_name
-
-
-def inject(
-    venv_dir: Path,
-    package_specs: Iterable[str],
-    requirement_files: Iterable[str],
-    options: InjectOptions,
-) -> OperationResult[InjectionData]:
-    package_set: Final[set[str]] = set(package_specs)
-    for filename in requirement_files:
-        package_set.update(_parse_requirements(filename))
-    packages: Final[list[str]] = sorted(package_set)
-
-    if not packages:
-        error: Final[str] = "No packages to inject; pass a package spec or --requirement."
-        return _finish_inject(
-            OperationResult(
-                command=("inject",),
-                data=InjectionData(packages=(), skipped=()),
-                messages=(OutputMessage(text=error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-                exit_code=EXIT_CODE_INJECT_ERROR,
-                errors=(OperationError(code="package_inject_failed", message=error, environment=venv_dir.name),),
-            ),
-            emit_output=options.emit_output,
-        )
-    _LOGGER.info("Injecting packages: %r", [redact_url_credentials(package) for package in packages])
-
-    dependency_options: Final[InjectOptions] = replace(
-        options,
-        include_apps=options.include_apps or options.include_dependencies or bool(options.include_resources_from),
-        emit_output=False,
-    )
-    changed: Final[list[InjectionPackage]] = []
-    errors: Final[list[OperationError]] = []
-    messages: Final[list[OutputMessage]] = []
-    skipped: Final[list[_InjectionSkip]] = []
-    for dependency in packages:
-        try:
-            result: OperationResult[InjectionData] = inject_dep(venv_dir, None, dependency, dependency_options)
-        except PipxError as error:
-            errors.append(
-                OperationError(
-                    code="package_inject_failed",
-                    message=error.raw_message,
-                    environment=venv_dir.name,
-                    package=redact_url_credentials(dependency),
-                )
-            )
-            messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
-            break
-        changed.extend(result.data.packages)
-        skipped.extend(result.data.skipped)
-        messages.extend(result.messages)
-
-    return _finish_inject(
-        OperationResult(
-            command=("inject",),
-            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped)),
-            messages=tuple(messages),
-            exit_code=EXIT_CODE_INJECT_ERROR if errors else EXIT_CODE_OK,
-            errors=tuple(errors),
-            succeeded=bool(changed or skipped),
-        ),
-        emit_output=options.emit_output,
-    )
-
-
-def _parse_requirements(filename: str) -> Iterator[str]:
-    # strips comments the way pip does: https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    comment: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
-    with Path(filename).open(encoding="utf-8") as requirements:
-        for line in requirements:
-            if spec := comment.sub("", line).strip():
-                yield spec
 
 
 class InjectionStatus(StrEnum):

@@ -265,6 +265,12 @@ def empty_project_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) ->
     return _build_wheel(root / "testdata/empty_project", tmp_path_factory.mktemp("wheel"))
 
 
+def _build_wheel(project: Path, wheel_dir: Path) -> Path:
+    # pip and uv build an installed directory in a fresh isolated environment, which takes seconds on Windows; tests
+    # that do not exercise the source tree install this in-process build instead
+    return make_wheel_in(project / "pyproject.toml", wheel_dir).file
+
+
 @pytest.fixture(scope="session")
 def local_extras_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build_wheel(root / "testdata/test_package_specifier/local_extras", tmp_path_factory.mktemp("wheel"))
@@ -278,12 +284,6 @@ def local_completion_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory)
 @pytest.fixture(scope="session")
 def local_manpage_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build_wheel(root / "testdata/test_package_specifier/local_manpage", tmp_path_factory.mktemp("wheel"))
-
-
-def _build_wheel(project: Path, wheel_dir: Path) -> Path:
-    # pip and uv build an installed directory in a fresh isolated environment, which takes seconds on Windows; tests
-    # that do not exercise the source tree install this in-process build instead
-    return make_wheel_in(project / "pyproject.toml", wheel_dir).file
 
 
 @pytest.fixture
@@ -592,31 +592,6 @@ def pipx_temp_env(
     paths.CTX.make_local()
 
 
-@pytest.fixture
-def installed_pycowsay(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    capsys: pytest.CaptureFixture[str],
-) -> Path:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-    return paths.CTX.venvs / "pycowsay"
-
-
-@pytest.fixture
-def pipx_ultra_temp_env(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    request: pytest.FixtureRequest,
-    utils_path_dirs: list[Path],
-    pipx_local_pypiserver: str,
-) -> Iterator[None]:
-    # every test starts as if pipx had never run, shared libs included
-    _activate_temp_env(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
-    yield
-    monkeypatch.undo()
-    paths.CTX.make_local()
-
-
 def _activate_temp_env(
     pipx_shared_dir: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -653,6 +628,31 @@ def _activate_temp_env(
     if not request.config.option.net_pypiserver:
         monkeypatch.setenv("PIP_INDEX_URL", pypi)
         monkeypatch.setenv("UV_INDEX_URL", pypi)  # uv ignores PIP_INDEX_URL, so uv-backend tests would reach PyPI
+
+
+@pytest.fixture
+def installed_pycowsay(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    capsys: pytest.CaptureFixture[str],
+) -> Path:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    return paths.CTX.venvs / "pycowsay"
+
+
+@pytest.fixture
+def pipx_ultra_temp_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    utils_path_dirs: list[Path],
+    pipx_local_pypiserver: str,
+) -> Iterator[None]:
+    # every test starts as if pipx had never run, shared libs included
+    _activate_temp_env(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
+    yield
+    monkeypatch.undo()
+    paths.CTX.make_local()
 
 
 @pytest.fixture

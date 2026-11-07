@@ -6,12 +6,12 @@ __lazy_modules__ = [
     "json",
     "pathlib",
     "pipx",
-    "pipx.backends.pip",
     "pipx.subprocess_runner",
     "pipx.trash",
     "pipx.util",
     "shutil",
     "subprocess",
+    f"{__spec__.parent}.pip",
 ]
 
 import json
@@ -29,12 +29,13 @@ from packaging.version import InvalidVersion, Version
 
 from pipx import paths
 from pipx.animate import animate
-from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
-from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.constants import WINDOWS
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
 from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
+
+from ._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
+from .pip import subprocess_post_check_handle_pip_error
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence

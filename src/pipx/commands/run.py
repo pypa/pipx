@@ -12,8 +12,6 @@ __lazy_modules__ = [
     "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
-    "pipx.commands.common",
-    "pipx.commands.run_uv",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.redact",
@@ -28,6 +26,8 @@ __lazy_modules__ = [
     "shutil",
     "tempfile",
     "urllib.parse",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.run_uv",
 ]
 
 import datetime as dt
@@ -52,8 +52,6 @@ from packaging.utils import canonicalize_name
 from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import resolve_backend_name
-from pipx.commands.common import package_name_from_spec
-from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
@@ -66,6 +64,9 @@ from pipx.trash import rmdir
 from pipx.util import PipxError, get_pypackage_bin_path
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
+
+from .common import package_name_from_spec
+from .run_uv import run_script_via_uv_run, run_via_uv_tool_run
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -475,6 +476,35 @@ def _running_uv_script_venv(venv: Venv, *, use_cache: bool, refresh: bool) -> Ge
         Path(running.lock_file).unlink(missing_ok=True)
 
 
+def _in_use(venv_dir: Path) -> bool:
+    from filelock import FileLock, Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    in_use = False
+    for lock_file in venv_dir.parent.glob(f".{venv_dir.name}.run-*.lock"):
+        lock = FileLock(lock_file)
+        try:
+            lock.acquire(timeout=0)
+        except Timeout:
+            in_use = True
+            continue
+        # the run that held it has ended or, on POSIX, handed its process over to uv
+        lock.release()
+        lock_file.unlink(missing_ok=True)
+    return in_use
+
+
+def _exec_script(
+    python_path: Path,
+    content: str | Path,
+    app_args: list[str],
+    python_args: list[str],
+) -> NoReturn:
+    if isinstance(content, Path):
+        exec_app([python_path, *python_args, content, *app_args])
+    else:
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
+
+
 @contextmanager
 def _locked_venv_cache(venv_dir: Path) -> Generator[None, None, None]:
     from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
@@ -510,23 +540,6 @@ def _remove_expired_venv(venv_dir: Path) -> None:
         rmdir(venv_dir)
 
 
-def _in_use(venv_dir: Path) -> bool:
-    from filelock import FileLock, Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
-
-    in_use = False
-    for lock_file in venv_dir.parent.glob(f".{venv_dir.name}.run-*.lock"):
-        lock = FileLock(lock_file)
-        try:
-            lock.acquire(timeout=0)
-        except Timeout:
-            in_use = True
-            continue
-        # the run that held it has ended or, on POSIX, handed its process over to uv
-        lock.release()
-        lock_file.unlink(missing_ok=True)
-    return in_use
-
-
 def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, refresh: bool) -> None:
     venv_dir: Final[Path] = venv.root
     if refresh and venv_dir.exists():
@@ -535,18 +548,6 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, r
     elif not use_cache and (bin_path is None or bin_path.exists()):
         _LOGGER.info("Removing cached venv %s", venv_dir)
         rmdir(venv_dir)
-
-
-def _exec_script(
-    python_path: Path,
-    content: str | Path,
-    app_args: list[str],
-    python_args: list[str],
-) -> NoReturn:
-    if isinstance(content, Path):
-        exec_app([python_path, *python_args, content, *app_args])
-    else:
-        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
 def run_package(

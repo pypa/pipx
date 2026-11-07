@@ -379,6 +379,12 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
         ) == ["finished", "interrupted 1"]
 
 
+def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+    deadline: Final[float] = time.monotonic() + 5
+    while not any(text in message for message in caplog.messages) and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptureFixture) -> None:
@@ -396,12 +402,6 @@ def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptur
         assert fan_out([finishing], sequential=False, interrupted=lambda index: f"interrupted {index}") == [
             "interrupted 0"
         ]
-
-
-def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
-    deadline: Final[float] = time.monotonic() + 5
-    while not any(text in message for message in caplog.messages) and time.monotonic() < deadline:
-        time.sleep(0.01)
 
 
 def test_fan_out_runs_off_the_main_thread() -> None:

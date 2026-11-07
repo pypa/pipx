@@ -6,10 +6,6 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
-    "pipx.commands.common",
-    "pipx.commands.inject",
-    "pipx.commands.install",
-    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.options",
     "pipx.package_specifier",
@@ -19,6 +15,10 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "tempfile",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.inject",
+    f"{__spec__.parent}.install",
+    f"{__spec__.parent}.transaction",
 ]
 
 import contextlib
@@ -32,27 +32,6 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.commands.common import (
-    add_suffix,
-    drop_copies_claimed_elsewhere,
-    drop_links_taken_over,
-    expose_shared_resources_in_order,
-    force_replaces_only,
-    get_venv_package_infos,
-    get_venv_resource_paths,
-    give_back_shared_links,
-)
-from pipx.commands.inject import inject_dep
-from pipx.commands.install import install
-from pipx.commands.transaction import (
-    REINSTALL_BACKUP_SUFFIX,
-    import_from_copy,
-    is_unfinished,
-    release_copy,
-    rename_once_released,
-    repoint_imports,
-    runs_from_venv,
-)
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,
@@ -71,6 +50,28 @@ from pipx.result import OperationData, OperationError, OperationResult, OutputLe
 from pipx.trash import rmdir, safe_unlink
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
+
+from .common import (
+    add_suffix,
+    drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
+    expose_shared_resources_in_order,
+    force_replaces_only,
+    get_venv_package_infos,
+    get_venv_resource_paths,
+    give_back_shared_links,
+)
+from .inject import inject_dep
+from .install import install
+from .transaction import (
+    REINSTALL_BACKUP_SUFFIX,
+    import_from_copy,
+    is_unfinished,
+    release_copy,
+    rename_once_released,
+    repoint_imports,
+    runs_from_venv,
+)
 
 if TYPE_CHECKING:
     from filelock import BaseFileLock

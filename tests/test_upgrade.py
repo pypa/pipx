@@ -539,6 +539,16 @@ def test_upgrade_uv_replaces_the_running_launcher(
     assert (exit_code, _installed_tool_versions()) == (0, ["tool-2.0.dist-info"])
 
 
+def _upgrade_tool_started_from(launcher: Path, mocker: MockerFixture) -> int:
+    # the Windows launcher names itself to Python without its .exe suffix
+    mocker.patch.object(sys, "argv", [str(launcher.with_suffix("")), "upgrade", "tool"])
+    return cli()
+
+
+def _installed_tool_versions() -> list[str]:
+    return sorted(path.name for path in (paths.CTX.venvs / "tool").rglob("tool-*.dist-info"))
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 def test_upgrade_uv_puts_back_the_launcher_it_did_not_replace(uv_tool_launcher: Path, mocker: MockerFixture) -> None:
     mocker.patch.object(uv_backend, "WINDOWS", True)
@@ -562,16 +572,6 @@ def test_upgrade_uv_proceeds_when_the_launcher_cannot_move(
         0,
         ["tool-2.0.dist-info"],
     )
-
-
-def _upgrade_tool_started_from(launcher: Path, mocker: MockerFixture) -> int:
-    # the Windows launcher names itself to Python without its .exe suffix
-    mocker.patch.object(sys, "argv", [str(launcher.with_suffix("")), "upgrade", "tool"])
-    return cli()
-
-
-def _installed_tool_versions() -> list[str]:
-    return sorted(path.name for path in (paths.CTX.venvs / "tool").rglob("tool-*.dist-info"))
 
 
 @pytest.mark.parametrize(

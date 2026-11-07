@@ -1843,7 +1843,9 @@ def _cmd_environment(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
     return environment(value=args.value)
 
 
-_COMPLETION_INSTRUCTIONS: Final[str] = """
+def _cmd_completions(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
+    del args, ctx
+    completion_instructions: str = """
 If your shell reports register-python-argcomplete as not found,
 or you run pipx as a zipapp, first run
 
@@ -1880,11 +1882,7 @@ fish:
     register-python-argcomplete --shell fish pipx >~/.config/fish/completions/pipx.fish
 
 """
-
-
-def _cmd_completions(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
-    del args, ctx
-    print(textwrap.dedent(_COMPLETION_INSTRUCTIONS))  # ruff:ignore[print]  # user-facing CLI output
+    print(textwrap.dedent(completion_instructions))  # ruff:ignore[print]  # user-facing CLI output
     return ExitCode(0)
 
 

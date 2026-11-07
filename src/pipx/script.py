@@ -5,11 +5,11 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
-    "pipx.redact",
-    "pipx.util",
     "tempfile",
     "tomllib",
     "urllib.parse",
+    f"{__spec__.parent}.redact",
+    f"{__spec__.parent}.util",
 ]
 
 import base64
@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING, Final
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 
-from pipx.redact import redact_url_credentials
-from pipx.util import PipxError
+from .redact import redact_url_credentials
+from .util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -129,11 +129,6 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     return _Script(app=_script_app(package_or_url, expected_apps), content=content, metadata=metadata)
 
 
-# a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
-# cannot hang pipx or exhaust memory
-_MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
-
-
 def download_script(url: str) -> str:
     from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
@@ -230,19 +225,6 @@ def _normalize_requires_python(value: object) -> str | None:
         raise PipxError(msg) from error
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ScriptMetadata:
-    dependencies: tuple[str, ...]
-    requires_python: str | None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Script:
-    app: str
-    content: str
-    metadata: ScriptMetadata
-
-
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
     import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
     from zipfile import ZIP_DEFLATED, ZipFile  # ruff:ignore[import-outside-top-level]  # slows startup
@@ -305,6 +287,24 @@ def _digest(data: bytes) -> str:
     import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
 
     return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+
+
+# a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
+# cannot hang pipx or exhaust memory
+_MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ScriptMetadata:
+    dependencies: tuple[str, ...]
+    requires_python: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Script:
+    app: str
+    content: str
+    metadata: ScriptMetadata
 
 
 __all__ = [

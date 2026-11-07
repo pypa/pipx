@@ -5,9 +5,6 @@ __lazy_modules__ = [
     "fcntl",
     "itertools",
     "pathlib",
-    "pipx.fanout",
-    "pipx.redact",
-    "pipx.util",
     "pty",
     "re",
     "select",
@@ -15,6 +12,10 @@ __lazy_modules__ = [
     "struct",
     "subprocess",
     "termios",
+    f"{__spec__.parent}.animate",
+    f"{__spec__.parent}.fanout",
+    f"{__spec__.parent}.redact",
+    f"{__spec__.parent}.util",
 ]
 
 import codecs
@@ -39,11 +40,11 @@ from typing import (
     TextIO,
 )
 
-from pipx.animate import show_cursor
-from pipx.constants import WINDOWS
-from pipx.fanout import output_is_held, stop_process_group, stopped_on_interrupt
-from pipx.redact import redact_command_line, redact_url_credentials
-from pipx.util import PipxError
+from .animate import show_cursor
+from .constants import WINDOWS
+from .fanout import output_is_held, stop_process_group, stopped_on_interrupt
+from .redact import redact_command_line, redact_url_credentials
+from .util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
@@ -342,16 +343,16 @@ class _StreamChannel:
     child: int
     terminal: bool
 
-    def close_child(self) -> None:
-        if self.child != -1:
-            os.close(self.child)
-            self.child = -1
-
     def close(self) -> None:
         self.close_child()
         if self.reader != -1:
             os.close(self.reader)
             self.reader = -1
+
+    def close_child(self) -> None:
+        if self.child != -1:
+            os.close(self.child)
+            self.child = -1
 
 
 def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) -> None:

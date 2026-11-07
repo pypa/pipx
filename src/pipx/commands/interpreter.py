@@ -3,11 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging",
     "pipx",
-    "pipx.commands.reinstall",
     "pipx.options",
     "pipx.trash",
     "pipx.venv",
     "subprocess",
+    f"{__spec__.parent}.reinstall",
 ]
 
 import logging
@@ -19,11 +19,12 @@ from packaging import version
 
 from pipx import constants, paths
 from pipx.animate import animate
-from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
+
+from .reinstall import reinstall
 
 if TYPE_CHECKING:
     from pathlib import Path

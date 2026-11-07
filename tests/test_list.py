@@ -443,6 +443,62 @@ def test_list_waits_for_install(tmp_path: Path) -> None:
     )
 
 
+@contextmanager
+def _install_paused_under_lock(
+    tmp_path: Path, name: str, release: Path
+) -> Generator[subprocess.Popen[str], None, None]:
+    entered: Final[Path] = tmp_path / f"{name}-entered"
+    # the wheel's .pth imports its module whenever the environment's python starts, and pipx starts it to inspect the
+    # new environment while holding the lock
+    pause: Final[str] = (
+        "from pathlib import Path\n"
+        "from time import sleep\n"
+        f"Path({str(entered)!r}).touch()\n"
+        f"while not Path({str(release)!r}).exists():\n"
+        "    sleep(0.01)\n"
+    )
+    install: Final[subprocess.Popen[str]] = _start_pipx(
+        "install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance"
+    )
+    try:
+        while not entered.exists():
+            if install.poll() is not None:
+                pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
+            time.sleep(0.01)
+        yield install
+    finally:
+        release.touch()
+        if install.returncode is None:
+            install.communicate()
+
+
+def _create_wheel(tmp_path: Path, name: str, module_prefix: str = "") -> Path:
+    # a prebuilt wheel skips the isolated build a project directory needs, which takes seconds on Windows
+    module: Final[str] = name.replace("-", "_")
+    dist_info: Final[str] = f"{module}-1.dist-info"
+    with zipfile.ZipFile(wheel := tmp_path / f"{module}-1-py3-none-any.whl", "w") as archive:
+        for path, content in {
+            f"{module}.py": f"{module_prefix}def main() -> None:\n    print({name!r})\n",
+            f"{module}.pth": f"import {module}\n",
+            f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: 1\n",
+            f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+            f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {module}:main\n",
+            f"{dist_info}/RECORD": "",
+        }.items():
+            archive.writestr(path, content)
+    return wheel
+
+
+def _start_pipx(*args: str) -> subprocess.Popen[str]:
+    return subprocess.Popen(
+        [sys.executable, "-m", "pipx", *args],
+        env=pipx_subprocess_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
     with _install_paused_under_lock(tmp_path, "blocked-app", tmp_path / "release") as blocked_install:
@@ -562,59 +618,3 @@ def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess
     assert "Failed to execute" in rendered
     assert "Process exited with return code 1" in rendered
     assert "unit test stderr" in rendered
-
-
-@contextmanager
-def _install_paused_under_lock(
-    tmp_path: Path, name: str, release: Path
-) -> Generator[subprocess.Popen[str], None, None]:
-    entered: Final[Path] = tmp_path / f"{name}-entered"
-    # the wheel's .pth imports its module whenever the environment's python starts, and pipx starts it to inspect the
-    # new environment while holding the lock
-    pause: Final[str] = (
-        "from pathlib import Path\n"
-        "from time import sleep\n"
-        f"Path({str(entered)!r}).touch()\n"
-        f"while not Path({str(release)!r}).exists():\n"
-        "    sleep(0.01)\n"
-    )
-    install: Final[subprocess.Popen[str]] = _start_pipx(
-        "install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance"
-    )
-    try:
-        while not entered.exists():
-            if install.poll() is not None:
-                pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
-            time.sleep(0.01)
-        yield install
-    finally:
-        release.touch()
-        if install.returncode is None:
-            install.communicate()
-
-
-def _create_wheel(tmp_path: Path, name: str, module_prefix: str = "") -> Path:
-    # a prebuilt wheel skips the isolated build a project directory needs, which takes seconds on Windows
-    module: Final[str] = name.replace("-", "_")
-    dist_info: Final[str] = f"{module}-1.dist-info"
-    with zipfile.ZipFile(wheel := tmp_path / f"{module}-1-py3-none-any.whl", "w") as archive:
-        for path, content in {
-            f"{module}.py": f"{module_prefix}def main() -> None:\n    print({name!r})\n",
-            f"{module}.pth": f"import {module}\n",
-            f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: 1\n",
-            f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
-            f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {module}:main\n",
-            f"{dist_info}/RECORD": "",
-        }.items():
-            archive.writestr(path, content)
-    return wheel
-
-
-def _start_pipx(*args: str) -> subprocess.Popen[str]:
-    return subprocess.Popen(
-        [sys.executable, "-m", "pipx", *args],
-        env=pipx_subprocess_env(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )

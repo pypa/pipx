@@ -266,7 +266,7 @@ def test_sync_manifest_replays_recorded_install_options(
     ("content", "expected_error"),
     [
         pytest.param("invalid", "Cannot read manifest", id="toml"),
-        pytest.param(_manifest() + "\n[extra]\n", "Unknown manifest table", id="root"),
+        pytest.param(f"{_manifest()}\n[extra]\n", "Unknown manifest table", id="root"),
         pytest.param("project = []\n", "Manifest project must be a table", id="project-type"),
         pytest.param(
             _manifest().replace("dependencies = []", "dependencies = []\nextra = true"),
@@ -313,8 +313,8 @@ def test_sync_manifest_replays_recorded_install_options(
             "Manifest tool must be a table",
             id="tool-type",
         ),
-        pytest.param(_manifest() + "\n[tool.other]\n", "Unknown manifest tool table", id="tool-table"),
-        pytest.param(_manifest() + "\n[tool]\nnab = true\n", "tool.nab must be a table", id="nab"),
+        pytest.param(f"{_manifest()}\n[tool.other]\n", "Unknown manifest tool table", id="tool-table"),
+        pytest.param(f"{_manifest()}\n[tool]\nnab = true\n", "tool.nab must be a table", id="nab"),
         pytest.param(
             _manifest().replace('[tool.pipx]\nversion = "1.0"', "[tool.nab]"),
             "tool.pipx must be a table",
@@ -325,16 +325,16 @@ def test_sync_manifest_replays_recorded_install_options(
             "tool.pipx must be a table",
             id="pipx-type",
         ),
-        pytest.param(_manifest() + "unknown = true\n", "Unknown tool.pipx key", id="pipx-key"),
+        pytest.param(f"{_manifest()}unknown = true\n", "Unknown tool.pipx key", id="pipx-key"),
         pytest.param(_manifest().replace('version = "1.0"', 'version = "2.0"'), "Manifest version", id="version"),
-        pytest.param(_manifest() + "tools = []\n", "tool.pipx.tools must be a table", id="tools-type"),
+        pytest.param(f"{_manifest()}tools = []\n", "tool.pipx.tools must be a table", id="tools-type"),
         pytest.param(
-            _manifest() + "\n[tool.pipx.tools.ruff]\n",
+            f"{_manifest()}\n[tool.pipx.tools.ruff]\n",
             "Missing dependency groups for manifest tools",
             id="tool-group",
         ),
         pytest.param(
-            _manifest() + '\n[tool.pipx.tools]\nblack = "black"\n',
+            f'{_manifest()}\n[tool.pipx.tools]\nblack = "black"\n',
             "Manifest tool black must be a table",
             id="tool-value",
         ),

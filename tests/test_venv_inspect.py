@@ -41,6 +41,13 @@ def test_inspect_venv_indexes_distribution_names_once(
     )
 
 
+def _write_dist_info(site_packages: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
+    (dist_info := site_packages / f"{canonicalize_name(name)}-1.0.dist-info").mkdir(parents=True)
+    metadata: Final[list[str]] = [f"Name: {name}", "Version: 1.0"]
+    metadata.extend(f"Requires-Dist: {requirement}" for requirement in requirements)
+    (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
+
+
 @pytest.fixture
 def venv_sys_path(mocker: MockerFixture) -> list[str]:
     sys_path: Final[list[str]] = []
@@ -51,13 +58,6 @@ def venv_sys_path(mocker: MockerFixture) -> list[str]:
         return_value=(sys_path, {"python_full_version": "3.10.0"}, "3.10.0"),
     )
     return sys_path
-
-
-def _write_dist_info(site_packages: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
-    (dist_info := site_packages / f"{canonicalize_name(name)}-1.0.dist-info").mkdir(parents=True)
-    metadata: Final[list[str]] = [f"Name: {name}", "Version: 1.0"]
-    metadata.extend(f"Requires-Dist: {requirement}" for requirement in requirements)
-    (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -143,6 +143,14 @@ def test_inspect_venv_copies_editable_man_pages_only_from_the_project(
     )
 
 
+def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
+    (project / "setup.cfg").write_text(f"[options.data_files]\nshare/man/man1 =\n    {source}\n", encoding="utf-8")
+    venv: Final[Path] = project.parent
+    return venv_inspect.inspect_venv(
+        "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
+    ).man_pages
+
+
 @pytest.fixture
 def editable_project(root_package_venv: Path) -> Path:
     project: Final[Path] = root_package_venv / "project"
@@ -155,6 +163,11 @@ def editable_project(root_package_venv: Path) -> Path:
     return project
 
 
+def _write_root_metadata(venv: Path, files: Mapping[str, str]) -> None:
+    for name, content in files.items():
+        (venv / "lib" / "site-packages" / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
+
+
 @pytest.fixture
 def root_package_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
     site_packages: Final[Path] = tmp_path / "lib" / "site-packages"
@@ -162,19 +175,6 @@ def root_package_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
     (tmp_path / "bin").mkdir()
     venv_sys_path.append(str(site_packages))
     return tmp_path
-
-
-def _write_root_metadata(venv: Path, files: Mapping[str, str]) -> None:
-    for name, content in files.items():
-        (venv / "lib" / "site-packages" / "root-package-1.0.dist-info" / name).write_text(content, encoding="utf-8")
-
-
-def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
-    (project / "setup.cfg").write_text(f"[options.data_files]\nshare/man/man1 =\n    {source}\n", encoding="utf-8")
-    venv: Final[Path] = project.parent
-    return venv_inspect.inspect_venv(
-        "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
-    ).man_pages
 
 
 @SKIP_IF_WINDOWS
@@ -214,6 +214,29 @@ def test_inspect_venv_follows_extras_of_revisited_dependency(
     assert sorted(result.apps_of_dependencies) == expected
 
 
+def _inspect_extras_venv(
+    venv_root: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...] = ()
+) -> venv_inspect.VenvMetadata:
+    _write_app(venv_root, "root", root_requirements)
+    _write_dist_info(
+        venv_root / "site-packages",
+        "shared",
+        ('first-app; extra == "first"', 'second-app; extra == "second"', *shared_requirements),
+    )
+    return venv_inspect.inspect_venv(
+        "root", set(), venv_root / "bin", venv_root / "python", venv_root / "share" / "man"
+    )
+
+
+def _write_app(venv_root: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
+    site_packages: Final[Path] = venv_root / "site-packages"
+    _write_dist_info(site_packages, name, requirements)
+    (site_packages / f"{name}-1.0.dist-info" / "entry_points.txt").write_text(
+        f"[console_scripts]\n{name} = app:main\n", encoding="utf-8"
+    )
+    (venv_root / "bin" / name).touch()
+
+
 @pytest.fixture
 def extras_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
     site_packages: Final[Path] = tmp_path / "site-packages"
@@ -232,29 +255,6 @@ def extras_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
     )
     venv_sys_path.append(str(site_packages))
     return tmp_path
-
-
-def _write_app(venv_root: Path, name: str, requirements: tuple[str, ...] = ()) -> None:
-    site_packages: Final[Path] = venv_root / "site-packages"
-    _write_dist_info(site_packages, name, requirements)
-    (site_packages / f"{name}-1.0.dist-info" / "entry_points.txt").write_text(
-        f"[console_scripts]\n{name} = app:main\n", encoding="utf-8"
-    )
-    (venv_root / "bin" / name).touch()
-
-
-def _inspect_extras_venv(
-    venv_root: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...] = ()
-) -> venv_inspect.VenvMetadata:
-    _write_app(venv_root, "root", root_requirements)
-    _write_dist_info(
-        venv_root / "site-packages",
-        "shared",
-        ('first-app; extra == "first"', 'second-app; extra == "second"', *shared_requirements),
-    )
-    return venv_inspect.inspect_venv(
-        "root", set(), venv_root / "bin", venv_root / "python", venv_root / "share" / "man"
-    )
 
 
 def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_venv: Path) -> None:
@@ -285,14 +285,14 @@ def test_inspect_venv_reads_installed_files_only_without_record(
     assert _inspect_root_package(other_app_venv).apps == expected
 
 
+def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
+    return venv_inspect.inspect_venv("root-package", set(), venv / "bin", venv / "python", venv / "man")
+
+
 @pytest.fixture
 def other_app_venv(root_package_venv: Path) -> Path:
     (root_package_venv / "bin" / "other").touch()
     return root_package_venv
-
-
-def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
-    return venv_inspect.inspect_venv("root-package", set(), venv / "bin", venv / "python", venv / "man")
 
 
 @SKIP_IF_WINDOWS

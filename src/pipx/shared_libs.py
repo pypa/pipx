@@ -11,6 +11,15 @@ __lazy_modules__ = [
     "pipx.subprocess_runner",
     "pipx.util",
     "threading",
+    f"{__spec__.parent}",
+    f"{__spec__.parent}.animate",
+    f"{__spec__.parent}.constants",
+    f"{__spec__.parent}.emojis",
+    f"{__spec__.parent}.fanout",
+    f"{__spec__.parent}.interpreter",
+    f"{__spec__.parent}.package_specifier",
+    f"{__spec__.parent}.subprocess_runner",
+    f"{__spec__.parent}.util",
 ]
 
 import datetime as dt
@@ -79,6 +88,54 @@ class _SharedLibs:
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
+    @property
+    def needs_upgrade(self) -> bool:
+        if self.has_been_updated_this_run:
+            return False
+
+        if not self.pip_path.is_file() or self._pip_below_floor():
+            return True
+
+        time_since_last_update_sec: Final[float] = _time() - self.pip_path.stat().st_mtime
+        if not self.has_been_logged_this_run:
+            _LOGGER.info(
+                "Time since last upgrade of shared libs, in seconds: %.0f. "
+                "Upgrade will be run by pipx if greater than %.0f.",
+                time_since_last_update_sec,
+                SHARED_LIBS_MAX_AGE_SEC,
+            )
+            self.has_been_logged_this_run = True
+        return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
+
+    @property
+    def pip_path(self) -> Path:
+        bin_path, _, _ = get_venv_paths(self.root)
+        return bin_path / ("pip.exe" if WINDOWS else "pip")
+
+    @property
+    def root(self) -> Path:
+        return paths.CTX.shared_libs
+
+    def _pip_below_floor(self) -> bool:
+        from importlib.metadata import distributions  # ruff:ignore[import-outside-top-level]  # slows startup
+
+        return any(
+            Version(dist.version) < Version(_PIP_FLOOR)
+            for dist in distributions(name="pip", path=[str(path) for path in self.site_packages])
+        )
+
+    @property
+    def site_packages(self) -> list[Path]:
+        if self.python_path not in self._site_packages:
+            self._site_packages[self.python_path] = get_site_packages(self.python_path)
+
+        return self._site_packages[self.python_path]
+
+    @property
+    def python_path(self) -> Path:
+        _, python_path, _ = get_venv_paths(self.root)
+        return python_path
+
     def create(self, pip_args: list[str], *, verbose: bool) -> None:
         with in_turn(lambda: self._is_valid is True), self._lock, self._maintenance_lock():
             self._create(pip_args, verbose=verbose)
@@ -88,10 +145,6 @@ class _SharedLibs:
 
         self.root.parent.mkdir(parents=True, exist_ok=True)
         return FileLock(self.root.with_name(f".{self.root.name}.lock"))
-
-    @property
-    def root(self) -> Path:
-        return paths.CTX.shared_libs
 
     def _create(self, pip_args: list[str], *, verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
@@ -174,11 +227,6 @@ class _SharedLibs:
             )
         return compatible
 
-    @property
-    def python_path(self) -> Path:
-        _, python_path, _ = get_venv_paths(self.root)
-        return python_path
-
     @staticmethod
     def _base_interpreter_exists(python_path: Path) -> bool:
         # on Windows the venv's python.exe is a launcher that finds the base interpreter through pyvenv.cfg, so it
@@ -193,18 +241,6 @@ class _SharedLibs:
             _LOGGER.info("Shared libs venv references a missing Python interpreter: %s", original_python)
             return False
         return True
-
-    @property
-    def pip_path(self) -> Path:
-        bin_path, _, _ = get_venv_paths(self.root)
-        return bin_path / ("pip.exe" if WINDOWS else "pip")
-
-    @property
-    def site_packages(self) -> list[Path]:
-        if self.python_path not in self._site_packages:
-            self._site_packages[self.python_path] = get_site_packages(self.python_path)
-
-        return self._site_packages[self.python_path]
 
     def _install_pip(self, *, pip_args: list[str], verbose: bool, raises: bool, pythonpath: str | None = None) -> None:
         cooldown_days: Final[int | None] = _COOLDOWN_DAYS.get()
@@ -224,14 +260,6 @@ class _SharedLibs:
             verbose=verbose,
             raises=raises and not floor_first,
             pythonpath=pythonpath,
-        )
-
-    def _pip_below_floor(self) -> bool:
-        from importlib.metadata import distributions  # ruff:ignore[import-outside-top-level]  # slows startup
-
-        return any(
-            Version(dist.version) < Version(_PIP_FLOOR)
-            for dist in distributions(name="pip", path=[str(path) for path in self.site_packages])
         )
 
     def _run_pip_install(
@@ -323,25 +351,6 @@ class _SharedLibs:
                 log_stderr=False,
             ).returncode
         )
-
-    @property
-    def needs_upgrade(self) -> bool:
-        if self.has_been_updated_this_run:
-            return False
-
-        if not self.pip_path.is_file() or self._pip_below_floor():
-            return True
-
-        time_since_last_update_sec: Final[float] = _time() - self.pip_path.stat().st_mtime
-        if not self.has_been_logged_this_run:
-            _LOGGER.info(
-                "Time since last upgrade of shared libs, in seconds: %.0f. "
-                "Upgrade will be run by pipx if greater than %.0f.",
-                time_since_last_update_sec,
-                SHARED_LIBS_MAX_AGE_SEC,
-            )
-            self.has_been_logged_this_run = True
-        return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, *, pip_args: list[str], verbose: bool, raises: bool = False) -> None:
         with in_turn(lambda: self.has_been_updated_this_run), self._lock, self._maintenance_lock():

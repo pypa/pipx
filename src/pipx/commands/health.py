@@ -1,24 +1,25 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
-    "pipx.commands.reinstall",
-    "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
     "pipx.subprocess_runner",
     "pipx.util",
+    f"{__spec__.parent}.reinstall",
+    f"{__spec__.parent}.transaction",
 ]
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
-from pipx.commands.reinstall import reinstall
-from pipx.commands.transaction import is_unfinished
 from pipx.constants import ExitCode
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError, get_venv_paths
+
+from .reinstall import reinstall
+from .transaction import is_unfinished
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -172,6 +173,12 @@ def _lost_record(venv_dir: Path) -> bool:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedRepair:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _SkippedRepair:
     environment: str
     reason: str
@@ -181,12 +188,6 @@ class _SkippedRepair:
 class _RepairedEnvironment:
     environment: str
     interpreter: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedRepair:
-    environment: str
-    error: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

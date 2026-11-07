@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
+__lazy_modules__ = ["pathlib", f"{__spec__.parent}.redact", f"{__spec__.parent}.wrap"]
 
 import logging
 import os
@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from pipx.constants import MINGW, WINDOWS
-from pipx.redact import redact_url_credentials
-from pipx.wrap import pipx_wrap
+from .constants import MINGW, WINDOWS
+from .redact import redact_url_credentials
+from .wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

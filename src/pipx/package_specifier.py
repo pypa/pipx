@@ -4,13 +4,14 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
-    "pipx.backends._base",
-    "pipx.redact",
-    "pipx.util",
-    "pipx.wrap",
     "re",
     "tomllib",
     "urllib.parse",
+    f"{__spec__.parent}.backends._base",
+    f"{__spec__.parent}.emojis",
+    f"{__spec__.parent}.redact",
+    f"{__spec__.parent}.util",
+    f"{__spec__.parent}.wrap",
 ]
 
 import logging
@@ -27,11 +28,11 @@ from typing import TYPE_CHECKING, Final, TypeAlias
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
-from pipx.backends._base import PIP
-from pipx.emojis import HAZARD
-from pipx.redact import redact_url_credentials
-from pipx.util import PipxError
-from pipx.wrap import pipx_wrap
+from .backends._base import PIP
+from .emojis import HAZARD
+from .redact import redact_url_credentials
+from .util import PipxError
+from .wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -290,24 +291,6 @@ def _is_archive_name(name: str) -> bool:
     ))
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Pep508:
-    requirement: Requirement
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Url:
-    url: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _LocalPath:
-    path: str
-
-
-_ParsedPackage: TypeAlias = _Pep508 | _Url | _LocalPath
-
-
 def _split_path_extras(package_spec: str) -> tuple[str, str]:
     # a bracket can be part of a directory name, so only a trailing group on a path that does not exist is extras
     if Path(package_spec).expanduser().exists():
@@ -415,20 +398,6 @@ def _long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
     return _PipArgument(name=name, value=next(arguments, None))
 
 
-def _unresolved_long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
-    spelled, separator, value = argument.partition("=")
-    # an older pip, with fewer options, can take a prefix this table finds ambiguous, so keep it as typed, with the
-    # value the option it names there takes; a prefix that could also name a flag, as --b could
-    # --break-system-packages, may take none, so the next argument stays its own
-    candidates: Final[frozenset[str]] = _prefixed_options(spelled, _PIP_VALUE_OPTIONS | _PIP_LONG_FLAGS)
-    if separator and candidates & _PIP_VALUE_OPTIONS:
-        return _PipArgument(name=spelled, value=value, separator=separator)
-    if candidates and candidates <= _PIP_VALUE_OPTIONS:
-        return _PipArgument(name=spelled, value=next(arguments, None))
-    # pip rejects an unknown option, so keep it as typed
-    return _PipArgument(name=argument)
-
-
 def _long_option_name(spelled: str) -> str | None:
     # uv's own options taking a value; uv takes no abbreviations, and its full names must not be read as one of pip's,
     # such as --index for --index-url
@@ -488,20 +457,18 @@ def _prefixed_options(spelled: str, options: frozenset[str]) -> frozenset[str]:
     return frozenset(option for option in options if option.startswith(spelled)) if spelled != "--" else frozenset()
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _PipArgument:
-    name: str
-    value: str | None = None
-    # "=" or "" when the value shares the option's token, None when the value is a token of its own
-    separator: str | None = None
-
-    @property
-    def tokens(self) -> list[str]:
-        if self.value is None:
-            return [self.name]
-        if self.separator is None:
-            return [self.name, self.value]
-        return [f"{self.name}{self.separator}{self.value}"]
+def _unresolved_long_option(argument: str, arguments: Iterator[str]) -> _PipArgument:
+    spelled, separator, value = argument.partition("=")
+    # an older pip, with fewer options, can take a prefix this table finds ambiguous, so keep it as typed, with the
+    # value the option it names there takes; a prefix that could also name a flag, as --b could
+    # --break-system-packages, may take none, so the next argument stays its own
+    candidates: Final[frozenset[str]] = _prefixed_options(spelled, _PIP_VALUE_OPTIONS | _PIP_LONG_FLAGS)
+    if separator and candidates & _PIP_VALUE_OPTIONS:
+        return _PipArgument(name=spelled, value=value, separator=separator)
+    if candidates and candidates <= _PIP_VALUE_OPTIONS:
+        return _PipArgument(name=spelled, value=next(arguments, None))
+    # pip rejects an unknown option, so keep it as typed
+    return _PipArgument(name=argument)
 
 
 def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument]:
@@ -521,6 +488,40 @@ def _short_options(argument: str, arguments: Iterator[str]) -> list[_PipArgument
             return [*flags, _PipArgument(name=name, value=attached[1:])]
         return [*flags, _PipArgument(name=name, value=attached, separator="")]
     return [_PipArgument(name=argument)]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PipArgument:
+    name: str
+    value: str | None = None
+    # "=" or "" when the value shares the option's token, None when the value is a token of its own
+    separator: str | None = None
+
+    @property
+    def tokens(self) -> list[str]:
+        if self.value is None:
+            return [self.name]
+        if self.separator is None:
+            return [self.name, self.value]
+        return [f"{self.name}{self.separator}{self.value}"]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Pep508:
+    requirement: Requirement
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Url:
+    url: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _LocalPath:
+    path: str
+
+
+_ParsedPackage: TypeAlias = _Pep508 | _Url | _LocalPath
 
 
 def install_specs(install_args: list[str]) -> list[tuple[str, bool]]:
@@ -695,18 +696,6 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=True)
 
 
-def get_extras(package_spec: str) -> set[str]:
-    match _parse_specifier(package_spec):
-        case _Pep508(requirement=requirement):
-            return requirement.extras
-        case _LocalPath(path=path):
-            from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
-
-            return Requirement(f"notapackage{_split_path_extras(path)[1]}").extras
-        case _Url():
-            return set()
-
-
 def source_without_extras(package_spec: str) -> str:
     match _parse_specifier(package_spec):
         case _Pep508(requirement=requirement):
@@ -727,6 +716,18 @@ def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
     if isinstance(parsed_package, _Url):
         return f"{package_name}[{merged}] @ {parsed_package.url}"
     return f"{_split_path_extras(parsed_package.path)[0]}[{merged}]"
+
+
+def get_extras(package_spec: str) -> set[str]:
+    match _parse_specifier(package_spec):
+        case _Pep508(requirement=requirement):
+            return requirement.extras
+        case _LocalPath(path=path):
+            from packaging.requirements import Requirement  # ruff:ignore[import-outside-top-level]  # parser slows startup
+
+            return Requirement(f"notapackage{_split_path_extras(path)[1]}").extras
+        case _Url():
+            return set()
 
 
 def valid_pypi_name(package_spec: str) -> str | None:

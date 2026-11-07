@@ -279,7 +279,7 @@ def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:
         capture_stderr=False,
         stream_output=True,
     )
-    expected: Final[str] = "x" * (read_size - 1) + "\n"
+    expected: Final[str] = f"{'x' * (read_size - 1)}\n"
 
     assert (destination.getvalue(), result.stdout) == (expected, expected)
 

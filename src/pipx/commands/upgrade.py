@@ -3,11 +3,6 @@ from __future__ import annotations
 __lazy_modules__ = [
     "functools",
     "pipx",
-    "pipx.commands.common",
-    "pipx.commands.install",
-    "pipx.commands.outdated",
-    "pipx.commands.reinstall",
-    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.options",
@@ -20,6 +15,11 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.install",
+    f"{__spec__.parent}.outdated",
+    f"{__spec__.parent}.reinstall",
+    f"{__spec__.parent}.transaction",
 ]
 
 import logging
@@ -30,18 +30,6 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.colors import BOLD, RED
-from pipx.commands.common import (
-    expose_package_resources,
-    expose_shared_resources_in_order,
-    get_expected_venv_resource_paths,
-    locked_package_message,
-    remove_stale_venv_resources,
-    validate_expected_apps,
-)
-from pipx.commands.install import install as install_package
-from pipx.commands.outdated import inspect_outdated
-from pipx.commands.reinstall import reinstall
-from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
@@ -58,15 +46,29 @@ from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 
+from .common import (
+    expose_package_resources,
+    expose_shared_resources_in_order,
+    get_expected_venv_resource_paths,
+    locked_package_message,
+    remove_stale_venv_resources,
+    validate_expected_apps,
+)
+from .install import install as install_package
+from .outdated import inspect_outdated
+from .reinstall import reinstall
+from .transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
+
 if TYPE_CHECKING:
     from collections.abc import Collection
     from pathlib import Path
 
     from filelock import BaseFileLock
 
-    from pipx.commands.outdated import OutdatedData
     from pipx.options import BackendOptions, UpgradeOptions
     from pipx.pipx_metadata_file import PackageInfo
+
+    from .outdated import OutdatedData
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -359,6 +361,12 @@ def _upgrade_package(
     )
 
 
+def _local_source(package_metadata: PackageInfo) -> str | None:
+    if package_metadata.package_or_url is not None and valid_pypi_name(package_metadata.package_or_url) is None:
+        return redact_url_credentials(package_metadata.package_or_url)
+    return None
+
+
 def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _PackageUpgradeResult:
     package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
     return _PackageUpgradeResult(
@@ -373,12 +381,6 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
         backend=venv.pipx_metadata.backend,
         source=_local_source(package_metadata),
     )
-
-
-def _local_source(package_metadata: PackageInfo) -> str | None:
-    if package_metadata.package_or_url is not None and valid_pypi_name(package_metadata.package_or_url) is None:
-        return redact_url_credentials(package_metadata.package_or_url)
-    return None
 
 
 def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> tuple[OutputMessage, ...]:
@@ -605,6 +607,11 @@ def upgrade_shared(pip_args: list[str], *, verbose: bool) -> OperationResult[Sha
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SharedData(OperationData):
+    location: str
+
+
 class _UpgradeStatus(StrEnum):
     LOCKED = "locked"
     PINNED = "pinned"
@@ -651,11 +658,6 @@ class _VenvUpgrade:
 class UpgradeData(OperationData):
     packages: tuple[_PackageUpgradeResult, ...]
     skipped: tuple[_SkippedUpgrade, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class SharedData(OperationData):
-    location: str
 
 
 __all__ = [

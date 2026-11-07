@@ -23,14 +23,14 @@ _REPO_ROOT: Final[Path] = Path(__file__).parent.parent
 
 sys.path.insert(0, str(Path(__file__).parent / "_ext"))
 
-project = "pipx"
-author = "pipx contributors"
-project_copyright = f"{datetime.now(tz=UTC):%Y}, pipx contributors"
+project: Final[str] = "pipx"
+author: Final[str] = "pipx contributors"
+project_copyright: Final[str] = f"{datetime.now(tz=UTC):%Y}, pipx contributors"
 release = distribution_version("pipx")
 version = ".".join(release.split(".")[:2])
 
 # Recipes across the how-to guides share one implicit import, so set it up once for every doctest group.
-doctest_global_setup = "import pipx"
+doctest_global_setup: Final[str] = "import pipx"
 
 extensions = [
     "sphinx_llm.txt",
@@ -55,38 +55,38 @@ extensions = [
     "llms_txt",  # generate llms.txt and llms-full.txt from the built tree at build-finished (docs/_ext)
 ]
 
-html_theme = "furo"
-html_title = "pipx"
+html_theme: Final[str] = "furo"
+html_title: Final[str] = "pipx"
 # the logo is the pipx wordmark, so furo need not repeat the project name beside it in the sidebar
 html_theme_options = {"sidebar_hide_name": True}
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
-html_logo = "_static/logo.svg"
-html_favicon = "_static/logo.svg"
+html_logo: Final[str] = "_static/logo.svg"
+html_favicon: Final[str] = "_static/logo.svg"
 # Read the Docs sets the versioned canonical URL; the fallback keeps canonical links and the sitemap working on a local
 # or CI build. Sphinx emits a <link rel="canonical"> per page from this, and the sitemap and OpenGraph tags reuse it.
 html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "https://pipx.pypa.io/latest/")
 
 # sphinx-sitemap reuses html_baseurl; the URL already carries the version segment, so the per-page scheme is the bare
 # page path. sphinxext-opengraph and sphinx-notfound-page derive their absolute URLs from the same base.
-sitemap_url_scheme = "{link}"
+sitemap_url_scheme: Final[str] = "{link}"
 ogp_site_url = html_baseurl
 notfound_urls_prefix = urlsplit(html_baseurl).path
 
 # autosectionlabel would collide on identical section titles across pages (several guides open with a "Verify it
 # worked" heading), so scope each label to its document and only label the top two heading levels.
-autosectionlabel_prefix_document = True
-autosectionlabel_maxdepth = 2
+autosectionlabel_prefix_document: Final[bool] = True
+autosectionlabel_maxdepth: Final[int] = 2
 
 # codeautolink threads the names in one page's code blocks together, so a name bound in an early block still resolves in
 # a later one.
-codeautolink_concat_default = True
+codeautolink_concat_default: Final[bool] = True
 
 # The console blocks keep a literal "$ " prompt so Pygments detects the prompt and highlights the command after it
 # (custom.css restyles that glyph). Strip the prompt on copy and drop the output lines, so the clipboard holds only the
 # command. The trailing space keeps the match from catching shell variables like $HOME.
-copybutton_prompt_text = "$ "
-copybutton_prompt_is_regexp = False
+copybutton_prompt_text: Final[str] = "$ "
+copybutton_prompt_is_regexp: Final[bool] = False
 
 # Read the Docs builds from a shallow clone, so sphinx-last-updated-by-git cannot see far enough back to stamp some
 # pages and warns "Git clone too shallow"; under -W that would fail the build. The stamp still resolves for pages within
@@ -95,17 +95,17 @@ suppress_warnings = ["git.too_shallow"]
 
 # sphinx-reredirects maps a moved page's old docname to its new location. The MkDocs-to-Sphinx move kept every docname,
 # so there is nothing to redirect yet; add an entry here whenever a page's path changes.
-redirects: dict[str, str] = {}
+redirects: Final[dict[str, str]] = {}
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
-nitpicky = True
-always_document_param_types = True
-python_use_unqualified_type_names = True
-autodoc_member_order = "bysource"
+nitpicky: Final[bool] = True
+always_document_param_types: Final[bool] = True
+python_use_unqualified_type_names: Final[bool] = True
+autodoc_member_order: Final[str] = "bysource"
 
-issues_github_path = "pypa/pipx"
-towncrier_draft_autoversion_mode = "draft"
-towncrier_draft_include_empty = True
+issues_github_path: Final[str] = "pypa/pipx"
+towncrier_draft_autoversion_mode: Final[str] = "draft"
+towncrier_draft_include_empty: Final[bool] = True
 towncrier_draft_working_directory = _REPO_ROOT
 
 

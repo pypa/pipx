@@ -8,13 +8,14 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx.requires_python",
-    "pipx.subprocess_runner",
-    "pipx.util",
     "shutil",
     "textwrap",
     "tomllib",
     "urllib.parse",
+    f"{__spec__.parent}.constants",
+    f"{__spec__.parent}.requires_python",
+    f"{__spec__.parent}.subprocess_runner",
+    f"{__spec__.parent}.util",
 ]
 
 import ast
@@ -34,10 +35,10 @@ from urllib.parse import urlparse
 from packaging.requirements import Requirement
 from packaging.utils import InvalidName, canonicalize_name
 
-from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
-from pipx.requires_python import unsatisfied_constraint
-from pipx.subprocess_runner import run_subprocess
-from pipx.util import PipxError, is_file_name
+from .constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+from .requires_python import unsatisfied_constraint
+from .subprocess_runner import run_subprocess
+from .util import PipxError, is_file_name
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
@@ -184,10 +185,12 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
     return venv_info["sys_path"], venv_info["environment"], venv_info["python_version"]
 
 
-class _VenvInfo(TypedDict):
-    sys_path: list[str]
-    environment: dict[str, str]
-    python_version: str
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvInspectInformation:
+    distributions: Mapping[str, metadata.Distribution]
+    env: dict[str, str]
+    bin_path: Path
+    man_path: Path
 
 
 def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
@@ -209,11 +212,10 @@ def _distribution_name(dist: metadata.Distribution) -> str | None:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class _VenvInspectInformation:
-    distributions: Mapping[str, metadata.Distribution]
-    env: dict[str, str]
-    bin_path: Path
-    man_path: Path
+class _DependencyResources:
+    app_paths: dict[str, list[Path]]
+    man_paths: dict[str, list[Path]]
+    completion_paths: dict[str, list[Path]]
 
 
 def _dfs_package_resources(
@@ -245,13 +247,6 @@ def _dfs_package_resources(
                 resources.completion_paths[dep_name] = [share_path / name for name in completion_names]
         dep_visited.setdefault(dep_name, set()).update(dep_req.extras)
         _dfs_package_resources(dep_dist, dep_req, venv_inspect_info, resources, dep_visited)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _DependencyResources:
-    app_paths: dict[str, list[Path]]
-    man_paths: dict[str, list[Path]]
-    completion_paths: dict[str, list[Path]]
 
 
 def _get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
@@ -535,6 +530,12 @@ class VenvMetadata:
     package_version: str
     python_version: str
     unsupported_python: SpecifierSet | None
+
+
+class _VenvInfo(TypedDict):
+    sys_path: list[str]
+    environment: dict[str, str]
+    python_version: str
 
 
 def list_not_required_packages(venv_python: Path) -> set[str]:

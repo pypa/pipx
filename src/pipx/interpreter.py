@@ -5,10 +5,11 @@ __lazy_modules__ = [
     "importlib.util",
     "packaging",
     "pathlib",
-    "pipx.self_install",
     "re",
     "shutil",
     "subprocess",
+    f"{__spec__.parent}.constants",
+    f"{__spec__.parent}.self_install",
 ]
 
 import logging
@@ -26,9 +27,9 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from pipx.constants import WINDOWS, FetchPythonOptions
-from pipx.self_install import get_environment_value
-from pipx.util import PipxError
+from .constants import WINDOWS, FetchPythonOptions
+from .self_install import get_environment_value
+from .util import PipxError
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -74,41 +75,12 @@ def _has_path_separator(python: str) -> bool:
 
 
 def _fetch_standalone_interpreter(python_version: str) -> str:
-    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+    from . import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
     try:
         return standalone_python.download_python_build_standalone(python_version)
     except PipxError as e:
         raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
-
-
-class InterpreterResolutionError(PipxError):
-    def __init__(self, source: str, version: str) -> None:
-        message = (
-            f"No executable for the provided Python version '{version}' found in {source}."
-            " Check that the provided version is "
-        )
-        match source:
-            case "py launcher":
-                message += "listed when running `py --list`."
-            case "PATH":
-                message += "on your PATH or the file path is valid. "
-                if "/" in version:
-                    message += "The provided version looks like a path, but no executable was found there."
-                elif "python" not in version:
-                    message += (
-                        "The provided version looks like a version, "
-                        "but neither the python command nor the Python Launcher is on PATH."
-                    )
-            case "the python-build-standalone project":
-                message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
-            case "PIPX_DEFAULT_PYTHON":
-                message += (
-                    "on your PATH or the file path is valid. "
-                    "Try setting it to an executable name (e.g. python3.10) "
-                    "or a full path (e.g. /usr/bin/python3.10)."
-                )
-        super().__init__(message)
 
 
 def _find_unix_command_python(python_version: str) -> str | None:
@@ -167,6 +139,35 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
             check=True,
         ).stdout.strip()
     return py
+
+
+class InterpreterResolutionError(PipxError):
+    def __init__(self, source: str, version: str) -> None:
+        message = (
+            f"No executable for the provided Python version '{version}' found in {source}."
+            " Check that the provided version is "
+        )
+        match source:
+            case "py launcher":
+                message += "listed when running `py --list`."
+            case "PATH":
+                message += "on your PATH or the file path is valid. "
+                if "/" in version:
+                    message += "The provided version looks like a path, but no executable was found there."
+                elif "python" not in version:
+                    message += (
+                        "The provided version looks like a version, "
+                        "but neither the python command nor the Python Launcher is on PATH."
+                    )
+            case "the python-build-standalone project":
+                message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
+            case "PIPX_DEFAULT_PYTHON":
+                message += (
+                    "on your PATH or the file path is valid. "
+                    "Try setting it to an executable name (e.g. python3.10) "
+                    "or a full path (e.g. /usr/bin/python3.10)."
+                )
+        super().__init__(message)
 
 
 def get_default_python_spec() -> str:

@@ -362,14 +362,6 @@ def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(
     )
 
 
-def _python_archive_bytes() -> bytes:
-    archive: Final[io.BytesIO] = io.BytesIO()
-    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
-        for name in ("python/bin/python3", "python/python.exe"):
-            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
-    return archive.getvalue()
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_replaces_existing_build(
     published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
@@ -382,6 +374,14 @@ def test_standalone_python_upgrade_replaces_existing_build(
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99", override=True)
 
     assert (Path(python_path).is_file(), stale.exists()) == (True, False)
+
+
+def _python_archive_bytes() -> bytes:
+    archive: Final[io.BytesIO] = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        for name in ("python/bin/python3", "python/python.exe"):
+            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
+    return archive.getvalue()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

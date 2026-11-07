@@ -3,11 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = [
     "json",
     "pipx",
-    "pipx.commands.common",
-    "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
     "pipx.self_install",
     "pipx.venv",
+    f"{__spec__.parent}.common",
+    f"{__spec__.parent}.transaction",
 ]
 
 import json
@@ -17,13 +17,14 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.colors import BOLD
-from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
-from pipx.commands.transaction import is_unfinished
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
 from pipx.emojis import SLEEP
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
+
+from .common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
+from .transaction import is_unfinished
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable
@@ -100,6 +101,14 @@ def _list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
     return all_venv_problems
 
 
+def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
+    venv: Final[Venv] = Venv(venv_dir)
+    venv_problems, warning_message = venv_health_check(venv)
+    if venv_problems.any_():
+        return PipxMetadata(venv_dir, read=False), venv_problems, warning_message
+    return venv.pipx_metadata, venv_problems, ""
+
+
 def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:
     # pipx is self-managed only on POSIX, where its venv links bin/python to the interpreter it is built on
     return (
@@ -108,14 +117,6 @@ def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:
         and (recorded := venv_metadata.source_interpreter) is not None
         and not backs_self_managed_venv(recorded, venv_metadata.venv_dir)
     )
-
-
-def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
-    venv: Final[Venv] = Venv(venv_dir)
-    venv_problems, warning_message = venv_health_check(venv)
-    if venv_problems.any_():
-        return PipxMetadata(venv_dir, read=False), venv_problems, warning_message
-    return venv.pipx_metadata, venv_problems, ""
 
 
 def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvProblems:
