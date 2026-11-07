@@ -185,29 +185,7 @@ def inject_dep(
     """
     _LOGGER.debug("Injecting package %s", redact_url_credentials(package_spec))
 
-    if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
-        msg = f"""
-            Can't inject {redact_url_credentials(package_spec)!r} into nonexistent Virtual Environment
-            {venv_dir.name!r}. Be sure to install the package first with 'pipx
-            install {venv_dir.name}' before injecting into it.
-            """
-        raise PipxError(msg)
-
-    venv: Final[Venv] = Venv(venv_dir, verbose=options.verbose, backend=options.backend)
-    if not venv.package_metadata:
-        msg = f"""
-            Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
-            {venv.name!r}. {venv.name!r} has no internal pipx metadata, which
-            pipx versions before 0.15.0.0 did not record. Uninstall and install
-            {venv.name!r}, or run 'pipx reinstall-all', to fix it.
-            """
-        raise PipxError(msg)
-    if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
-        msg = (
-            f"Cannot inject into locked environment {venv.name}. "
-            f"Update {lock_file} and run `pipx reinstall {venv.name}`."
-        )
-        raise PipxError(msg)
+    venv: Final[Venv] = _open_injection_target(venv_dir, package_spec, options)
     cooldown_days: Final[int | None] = (
         venv.pipx_metadata.main_package.cooldown_days if options.cooldown_days is None else options.cooldown_days
     )
@@ -246,7 +224,7 @@ def inject_dep(
                         text=pipx_wrap(
                             f"""
                             {HAZARD} {package_name} is already installed in {venv.name!r}.
-                            Not modifying existing installation in '{venv_dir}'.
+                            Not modifying existing installation in '{venv.root}'.
                             Pass '--force' to force installation.
                             """
                         )
@@ -256,7 +234,64 @@ def inject_dep(
             emit_output=options.emit_output,
         )
 
-    package_spec = main_spec or package_spec
+    return _install_into(venv, package_name, main_spec or package_spec, cooldown_days, options)
+
+
+def _open_injection_target(venv_dir: Path, package_spec: str, options: InjectOptions) -> Venv:
+    if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
+        msg = f"""
+            Can't inject {redact_url_credentials(package_spec)!r} into nonexistent Virtual Environment
+            {venv_dir.name!r}. Be sure to install the package first with 'pipx
+            install {venv_dir.name}' before injecting into it.
+            """
+        raise PipxError(msg)
+
+    venv: Final[Venv] = Venv(venv_dir, verbose=options.verbose, backend=options.backend)
+    if not venv.package_metadata:
+        msg = f"""
+            Can't inject {redact_url_credentials(package_spec)!r} into Virtual Environment
+            {venv.name!r}. {venv.name!r} has no internal pipx metadata, which
+            pipx versions before 0.15.0.0 did not record. Uninstall and install
+            {venv.name!r}, or run 'pipx reinstall-all', to fix it.
+            """
+        raise PipxError(msg)
+    if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
+        msg = (
+            f"Cannot inject into locked environment {venv.name}. "
+            f"Update {lock_file} and run `pipx reinstall {venv.name}`."
+        )
+        raise PipxError(msg)
+    return venv
+
+
+def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
+    # without --force only extras may change, so naming the package cannot swap the recorded path or URL for the index's
+    if not (extras := get_extras(package_spec)) or (recorded := venv.pipx_metadata.main_package.package_or_url) is None:
+        return None
+    try:
+        recorded_source: Final[str] = source_without_extras(recorded)
+    except PipxError as error:
+        msg = (
+            f"The recorded source {redact_url_credentials(recorded)} of {venv.name!r} no longer exists. "
+            f"Pass '--force' to install {redact_url_credentials(package_spec)!r} in its place."
+        )
+        raise PipxError(msg) from error
+    name: Final[str] = canonicalize_name(venv.main_package_name)
+    # NAME[extra] @ URL names the same source as a bare recorded URL
+    if source_without_extras(package_spec) not in {name, recorded_source, f"{name} @ {recorded_source}"}:
+        return None
+    return add_extras(recorded, venv.main_package_name, extras)
+
+
+def _install_into(
+    venv: Venv,
+    package_name: str,
+    package_spec: str,
+    cooldown_days: int | None,
+    options: InjectOptions,
+) -> OperationResult[InjectionData]:
+    venv_dir: Final[Path] = venv.root
+    is_main_package: Final[bool] = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
     main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
     pip_args: Final[list[str]] = (
         options.pip_args or trusted_recorded_pip_args(main_package.pip_args, venv_dir)
@@ -341,25 +376,6 @@ def inject_dep(
         ),
         emit_output=options.emit_output,
     )
-
-
-def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
-    # without --force only extras may change, so naming the package cannot swap the recorded path or URL for the index's
-    if not (extras := get_extras(package_spec)) or (recorded := venv.pipx_metadata.main_package.package_or_url) is None:
-        return None
-    try:
-        recorded_source: Final[str] = source_without_extras(recorded)
-    except PipxError as error:
-        msg = (
-            f"The recorded source {redact_url_credentials(recorded)} of {venv.name!r} no longer exists. "
-            f"Pass '--force' to install {redact_url_credentials(package_spec)!r} in its place."
-        )
-        raise PipxError(msg) from error
-    name: Final[str] = canonicalize_name(venv.main_package_name)
-    # NAME[extra] @ URL names the same source as a bare recorded URL
-    if source_without_extras(package_spec) not in {name, recorded_source, f"{name} @ {recorded_source}"}:
-        return None
-    return add_extras(recorded, venv.main_package_name, extras)
 
 
 def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:
