@@ -13,7 +13,7 @@ __lazy_modules__ = [
 import json
 import logging
 import sys
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from pipx import paths
 from pipx.colors import BOLD
@@ -107,12 +107,18 @@ def _list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
     return all_venv_problems
 
 
-def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
+def _venv_metadata_summary(venv_dir: Path) -> _VenvMetadataSummary:
     venv: Final[Venv] = Venv(venv_dir)
     venv_problems, warning_message = venv_health_check(venv)
     if venv_problems.any_():
-        return PipxMetadata(venv_dir, read=False), venv_problems, warning_message
-    return venv.pipx_metadata, venv_problems, ""
+        return _VenvMetadataSummary(PipxMetadata(venv_dir, read=False), venv_problems, warning_message)
+    return _VenvMetadataSummary(venv.pipx_metadata, venv_problems, "")
+
+
+class _VenvMetadataSummary(NamedTuple):
+    metadata: PipxMetadata
+    problems: VenvProblems
+    warning: str
 
 
 def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:

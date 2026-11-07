@@ -44,7 +44,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 from shutil import which
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NamedTuple, NoReturn
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -655,7 +655,7 @@ def _prepare_venv(
     options: RunOptions,
     *,
     infer_app_name: bool,
-) -> tuple[Venv, str, str]:
+) -> _PreparedVenv:
     app, app_filename = app_names
     pip_args: Final[list[str]] = options.pip_args
     venv: Final[Venv] = Venv(venv_dir, python=options.python, verbose=options.verbose, backend=options.backend)
@@ -716,7 +716,13 @@ def _prepare_venv(
         # the next run's cache sweep removes a venv built without the cache
         (venv_dir / _VENV_EXPIRED_FILENAME).touch()
 
-    return venv, app, app_filename
+    return _PreparedVenv(venv, app, app_filename)
+
+
+class _PreparedVenv(NamedTuple):
+    venv: Venv
+    app: str
+    app_filename: str
 
 
 __all__ = [

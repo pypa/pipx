@@ -5,7 +5,7 @@ import platform
 import shutil
 import subprocess
 import sys
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 from venv import EnvBuilder
 
 import pytest
@@ -29,8 +29,14 @@ if TYPE_CHECKING:
     from pipx.constants import ExitCode
 
 
+class _SitePackagesVenv(NamedTuple):
+    venv: Venv
+    site_packages: tuple[Path, Path]
+    run_subprocess: MockType
+
+
 @pytest.fixture
-def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv, tuple[Path, Path], MockType]:
+def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePackagesVenv:
     venv: Final[Venv] = Venv(tmp_path / "demo")
     venv.python_path.parent.mkdir(parents=True)
     venv.python_path.touch()
@@ -50,15 +56,15 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
     )
-    return venv, (purelib_demo, platlib_demo), run_subprocess
+    return _SitePackagesVenv(venv, (purelib_demo, platlib_demo), run_subprocess)
 
 
-def test_has_package(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType]) -> None:
+def test_has_package(venv_with_site_packages: _SitePackagesVenv) -> None:
     venv, _, _ = venv_with_site_packages
     assert (venv.has_package("demo"), venv.has_package("demo2")) == (True, True)
 
 
-def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType]) -> None:
+def test_has_app_caches_site_packages(venv_with_site_packages: _SitePackagesVenv) -> None:
     venv, (purelib_demo, _), run_subprocess = venv_with_site_packages
     (purelib_demo / "entry_points.txt").write_text("[pipx.run]\ndemo = demo:main\n", encoding="utf-8")
 
@@ -66,7 +72,7 @@ def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple
 
 
 def test_run_app_rejects_python_args_without_entry_point(
-    venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType],
+    venv_with_site_packages: _SitePackagesVenv,
 ) -> None:
     venv, _, _ = venv_with_site_packages
 

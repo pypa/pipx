@@ -30,7 +30,7 @@ import re
 import sys
 from dataclasses import dataclass, replace
 from functools import partial
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
@@ -587,9 +587,11 @@ def _resolve_package_names(
     options: InstallOptions,
     *,
     messages: list[OutputMessage],
-) -> tuple[list[str], tuple[str, PipxError] | None, list[str]]:
+) -> _ResolvedPackageNames:
     if package_names is not None and len(package_names) == len(package_specs):
-        return package_names, None, [python] * len(package_specs)
+        return _ResolvedPackageNames(
+            names=package_names, resolution_failure=None, interpreters=[python] * len(package_specs)
+        )
 
     # a lock file already pins every version, leaving PIPX_COOLDOWN nothing to constrain
     cooldown_days: Final[int | None] = None if options.lock_file is not None else options.cooldown.days
@@ -631,8 +633,16 @@ def _resolve_package_names(
             resolved.append(name)
             interpreters.append(interpreter)
         except PipxError as error:
-            return resolved, (package_spec, error), interpreters
-    return resolved, None, interpreters
+            return _ResolvedPackageNames(
+                names=resolved, resolution_failure=(package_spec, error), interpreters=interpreters
+            )
+    return _ResolvedPackageNames(names=resolved, resolution_failure=None, interpreters=interpreters)
+
+
+class _ResolvedPackageNames(NamedTuple):
+    names: list[str]
+    resolution_failure: tuple[str, PipxError] | None
+    interpreters: list[str]
 
 
 def _supported_python(

@@ -28,7 +28,7 @@ import tomllib
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Final, TypedDict
+from typing import TYPE_CHECKING, Final, NamedTuple, TypedDict
 from urllib.parse import urlparse
 
 from packaging.requirements import Requirement
@@ -288,9 +288,7 @@ def _get_package_dependencies(dist: metadata.Distribution, extras: set[str], env
     return dependencies
 
 
-def _get_resources(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> tuple[list[str], list[str], list[str]]:
+def _get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> _Resources:
     entry_point_apps: Final[set[str]] = _get_apps_from_entry_points(dist, bin_path)
     dist_file_apps, dist_file_man_pages, dist_file_completions = _get_resources_from_dist_files(
         dist, bin_path, man_path
@@ -298,10 +296,12 @@ def _get_resources(
     inst_file_apps, inst_file_man_pages, inst_file_completions = _get_resources_from_inst_files(
         dist, bin_path, man_path
     )
-    return (
-        sorted(entry_point_apps | dist_file_apps | inst_file_apps),
-        sorted(dist_file_man_pages | inst_file_man_pages | _get_man_pages_from_editable_project(dist, man_path)),
-        sorted(dist_file_completions | inst_file_completions),
+    return _Resources(
+        apps=sorted(entry_point_apps | dist_file_apps | inst_file_apps),
+        man_pages=sorted(
+            dist_file_man_pages | inst_file_man_pages | _get_man_pages_from_editable_project(dist, man_path)
+        ),
+        completions=sorted(dist_file_completions | inst_file_completions),
     )
 
 
@@ -327,9 +327,7 @@ def _owns_entry_points(dist: metadata.Distribution) -> bool:
     return any(path.name == "entry_points.txt" and path.parent.suffix == ".dist-info" for path in dist.files or [])
 
 
-def _get_resources_from_dist_files(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> tuple[set[str], set[str], set[str]]:
+def _get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> _ResourceNames:
     app_names: Final[set[str]] = set()
     man_names: Final[set[str]] = set()
     completion_names: Final[set[str]] = set()
@@ -349,7 +347,7 @@ def _get_resources_from_dist_files(
             pass
         if completion_name := _get_completion_name(dist_file_path, man_path.parent):
             completion_names.add(completion_name)
-    return app_names, man_names, completion_names
+    return _ResourceNames(apps=app_names, man_pages=man_names, completions=completion_names)
 
 
 def _get_completion_name(file_path: Path, share_path: Path) -> str | None:
@@ -367,9 +365,13 @@ def _same_file(left: Path, right: Path) -> bool:
         return False
 
 
-def _get_resources_from_inst_files(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> tuple[set[str], set[str], set[str]]:
+class _ResourceNames(NamedTuple):
+    apps: set[str]
+    man_pages: set[str]
+    completions: set[str]
+
+
+def _get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> _ResourceNames:
     app_names: Final[set[str]] = set()
     man_names: Final[set[str]] = set()
     completion_names: Final[set[str]] = set()
@@ -387,7 +389,13 @@ def _get_resources_from_inst_files(
             pass
         if completion_name := _get_completion_name(inst_file_path, man_path.parent):
             completion_names.add(completion_name)
-    return app_names, man_names, completion_names
+    return _ResourceNames(apps=app_names, man_pages=man_names, completions=completion_names)
+
+
+class _Resources(NamedTuple):
+    apps: list[str]
+    man_pages: list[str]
+    completions: list[str]
 
 
 def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: Path) -> set[str]:

@@ -41,7 +41,7 @@ from importlib.machinery import all_suffixes
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final, Literal
+from typing import TYPE_CHECKING, Final, Literal, NamedTuple
 
 import userpath
 from packaging.utils import canonicalize_name
@@ -1108,7 +1108,7 @@ def _get_exposed_resource_names(
     package_metadata: PackageInfo,
     *,
     new_install: bool,
-) -> tuple[list[str], list[str], list[str], list[str]]:
+) -> _ExposedResourceNames:
     resource_packages: Final[tuple[PackageInfo, ...]] = (
         (package_metadata,)
         if new_install
@@ -1132,7 +1132,19 @@ def _get_exposed_resource_names(
         )
     )
     unavailable_man_pages: Final[list[str]] = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
-    return exposed_binary_names, unavailable_binary_names, exposed_man_pages, unavailable_man_pages
+    return _ExposedResourceNames(
+        exposed_binary_names=exposed_binary_names,
+        unavailable_binary_names=unavailable_binary_names,
+        exposed_man_pages=exposed_man_pages,
+        unavailable_man_pages=unavailable_man_pages,
+    )
+
+
+class _ExposedResourceNames(NamedTuple):
+    exposed_binary_names: list[str]
+    unavailable_binary_names: list[str]
+    exposed_man_pages: list[str]
+    unavailable_man_pages: list[str]
 
 
 def _warn_if_not_on_path(local_bin_dir: Path) -> OutputMessage | None:

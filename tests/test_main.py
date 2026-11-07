@@ -9,7 +9,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Protocol, TypedDict
+from typing import TYPE_CHECKING, Final, NamedTuple, Protocol, TypedDict
 
 import pytest
 from docutils.core import publish_string
@@ -530,14 +530,21 @@ def test_json_output_reports_invalid_environment_variable_in_envelope(
     assert _envelope_failure(capsys.readouterr().out) == (["cache", "dir"], "error", 1, ["pipx_error"])
 
 
-def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None]]:
+def _envelope_failure(stdout: str) -> _EnvelopeFailure:
     document: Final[_Envelope] = json.loads(stdout)
-    return (
+    return _EnvelopeFailure(
         document["command"],
         document["status"],
         document["exit_code"],
         [error["code"] for error in document["errors"]],
     )
+
+
+class _EnvelopeFailure(NamedTuple):
+    command: list[str]
+    status: str
+    exit_code: int
+    error_codes: list[str | None]
 
 
 @pytest.mark.parametrize(
