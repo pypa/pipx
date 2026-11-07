@@ -14,6 +14,28 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-16:
+
+`1.18.16 <https://github.com/pypa/pipx/tree/1.18.16>`_ - 2026-11-07
+===================================================================
+
+.. _release-1-18-16-changes:
+
+Changes
+-------
+
+- ``pipx ensurepath`` no longer claims it added the binary directories to PATH when they were already there; the summary
+  now says so and points at ``--force`` for adding them again (:pr:`2431`) by :user:`AP24110011695` and
+  :user:`gaborbernat`.
+
+.. _release-1-18-16-fixed:
+
+Fixed
+-----
+
+- Rebuild shared pip environments created with Python older than 3.10, and refresh existing applications' references to
+  the rebuilt environment before running their installers (:pr:`2437`) by :user:`gaborbernat`. (:issue:`2435`)
+
 .. _release-1-18-15:
 
 `1.18.15 <https://github.com/pypa/pipx/tree/1.18.15>`_ - 2026-11-06

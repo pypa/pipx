@@ -1,2 +1,0 @@
-Rebuild shared pip environments created with Python older than 3.10, and refresh existing applications' references to
-the rebuilt environment before running their installers.
