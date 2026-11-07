@@ -43,12 +43,23 @@ _ERROR_LOG_LOCK: Final[Lock] = Lock()
 
 
 class PipBackend(Backend):
+    """Backend that installs packages with pip, in the interpreter of each environment."""
+
     name = PIP
 
     def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+        """Return whether environments need the shared pip libraries.
+
+        :returns: always True, as pip environments run the shared libraries.
+        """
         return True
 
     def upgrade_packaging_libraries(self, venv_python: Path, pip_args: list[str]) -> None:
+        """Upgrade pip and the other packaging libraries of an environment that ships its own pip.
+
+        :param venv_python: the interpreter of the environment.
+        :param pip_args: extra arguments for the installer.
+        """
         # only venvs that ship their own pip (`pipx install pip`) reach this; shared-libs venvs upgrade through
         # shared_libs.upgrade
         self._drop_site_config(venv_python.parent.parent)
@@ -81,6 +92,16 @@ class PipBackend(Backend):
         include_pip: bool,
         verbose: bool,
     ) -> None:
+        """Create a virtual environment and install the shared pip libraries into it.
+
+        :param root: the directory of the environment.
+        :param python: the interpreter to create the environment with.
+        :param venv_args: extra arguments for the venv module.
+        :param pip_args: extra arguments for the installer.
+        :param include_pip: whether the environment ships its own pip.
+        :param verbose: show the progress of the creation.
+        :raises PipxError: when the environment cannot be created.
+        """
         cmd: Final = [python, "-m", "venv", *([] if include_pip else ["--without-pip"]), *venv_args, str(root)]
         with animate("creating virtual environment", do_animation=not verbose):
             venv_process: Final = run_subprocess(cmd, run_dir=str(root))
@@ -105,6 +126,18 @@ class PipBackend(Backend):
         log_pip_errors: bool = True,
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Install requirements into an environment with pip.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param requirements: the requirements to install, including option pairs such as ``--requirement`` and a file.
+        :param pip_args: extra arguments for pip.
+        :param no_deps: skip the dependencies of the requirements.
+        :param upgrade_package: the package to upgrade, if any.
+        :param log_pip_errors: log the output of pip when it fails.
+        :param verbose: show the progress of the installation.
+        :returns: the completed pip process.
+        """
         cmd: list[str] = [str(venv_python), "-m", "pip", "--no-input", "install"]
         if upgrade_package is not None:
             cmd.append("--upgrade")
@@ -138,6 +171,16 @@ class PipBackend(Backend):
         pip_args: list[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Install the packages of a lock file with pip, which needs pip 26.1 or newer.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param lock_file: the lock file to install from.
+        :param pip_args: extra arguments for pip.
+        :param verbose: show the output of pip.
+        :returns: the completed pip process.
+        :raises PipxError: when pip is missing or older than 26.1.
+        """
         process: Final = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess([str(venv_python), "-m", "pip", "--version"], run_dir=str(venv_root)),
             pip_args=pip_args,
@@ -162,6 +205,11 @@ class PipBackend(Backend):
 
     @staticmethod
     def cooldown_args(cooldown_days: int | None) -> list[str]:
+        """Return the pip arguments that exclude releases uploaded within the last cooldown days.
+
+        :param cooldown_days: the number of days a release must have been out, or None to skip the cooldown.
+        :returns: the pip arguments.
+        """
         return [] if not cooldown_days else ["--uploaded-prior-to", f"P{cooldown_days}D"]
 
     def uninstall(
@@ -172,6 +220,15 @@ class PipBackend(Backend):
         packages: Sequence[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Uninstall packages from an environment with pip.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param packages: the names of the packages to uninstall.
+        :param verbose: show the output of pip.
+        :returns: the completed pip process.
+        :raises PipxError: when pip fails.
+        """
         cmd: Final = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages, *([] if verbose else ["-q"])]
         self._drop_site_config(venv_root)
         process: Final = SHARED_LIBS.run_repairing_pip(
@@ -187,6 +244,14 @@ class PipBackend(Backend):
         venv_python: Path,
         not_required: bool,
     ) -> set[str]:
+        """Return the names of the packages installed in an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param not_required: return only the packages that no other package requires.
+        :returns: the normalized names of the packages.
+        :raises PipxError: when pip cannot list the packages.
+        """
         if not_required:
             from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
@@ -211,6 +276,14 @@ class PipBackend(Backend):
         index_args: list[str],
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
+        """Return the installed packages that have a newer version in the index.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param index_args: the index arguments to query.
+        :param exclude: the names of the packages to leave out of the check.
+        :returns: the outdated packages.
+        """
         self._drop_site_config(venv_root)
         process: Final = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess(
@@ -242,6 +315,17 @@ class PipBackend(Backend):
         verbose: bool,
         in_working_dir: bool = False,
     ) -> CompletedProcess[str]:
+        """Run a pip command in an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param args: the arguments to pass to pip.
+        :param capture_stdout: capture the standard output instead of showing it.
+        :param capture_stderr: capture the standard error instead of showing it.
+        :param verbose: show the output of pip.
+        :param in_working_dir: run in the current working directory instead of the environment's root.
+        :returns: the completed pip process.
+        """
         cmd: Final = [str(venv_python), "-m", "pip", *args, *([] if verbose else ["-q"])]
         self._drop_site_config(venv_root)
         return SHARED_LIBS.run_repairing_pip(
@@ -264,6 +348,13 @@ def subprocess_post_check_handle_pip_error(
     *,
     streamed: bool,
 ) -> None:
+    """Log the output of a failed pip or uv process to its error file and report the failure.
+
+    :param completed_process: the process that failed.
+    :param tool_name: the installer that failed, ``pip`` or ``uv``.
+    :param streamed: whether the output was already shown on the terminal.
+    :raises PipxError: when logging is not set up, so there is no error file.
+    """
     if not completed_process.returncode:
         return
     _LOGGER.info("%r failed", redact_command_line(completed_process.args))

@@ -44,6 +44,15 @@ class Backend(ABC):
         pip_args: list[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Install the packages of a lock file into an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param lock_file: the lock file to install from.
+        :param pip_args: extra arguments for the installer.
+        :param verbose: show the output of the installer.
+        :returns: the completed installer process.
+        """
         return self.install(
             venv_root=venv_root,
             venv_python=venv_python,
