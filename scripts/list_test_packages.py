@@ -27,7 +27,7 @@ class _TestPackage:
     no_deps: bool
 
 
-def main(argv: list[str]) -> int:
+def _main(argv: list[str]) -> int:
     parser: Final = argparse.ArgumentParser(
         description="Create list of needed test packages for pipx tests and local pypiserver."
     )
@@ -115,7 +115,7 @@ def _download(test_package: _TestPackage) -> set[str]:
 
 if __name__ == "__main__":
     try:
-        sys.exit(main(sys.argv))
+        sys.exit(_main(sys.argv))
     except KeyboardInterrupt:
         sys.exit(130)
 
