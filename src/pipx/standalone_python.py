@@ -100,7 +100,14 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
     python_version = re.sub(r"[c]?python", "", python_version)
     # the version names the cache directory that a failed attempt is cleared from below, so a path, "." or ".." would
     # point that rmtree outside the cache; one to three numeric parts is all resolve_python_version can match anyway
-    if not re.fullmatch(r"[0-9]+(\.[0-9]+){0,2}", python_version):
+    if not re.fullmatch(
+        r"""
+        [0-9]+                 # major version
+        (?:\.[0-9]+){0,2}       # up to two more numeric parts
+        """,
+        python_version,
+        re.VERBOSE,
+    ):
         msg = f"Cannot fetch a standalone python build for {python_version!r}: expected a version such as '3.13'."
         raise PipxError(msg)
 

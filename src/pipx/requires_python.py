@@ -42,8 +42,11 @@ def rejected_constraint(backend_output: str) -> SpecifierSet | None:
     # pip and uv print these and install nothing; uv only checks lower bounds, so the metadata check covers the rest
     match: Final[re.Match[str] | None] = re.search(
         r"""
+        # a requirement the interpreter does not meet, worded as pip words it
         requires\ a\ different\ Python:\s*\S+\s*not\ in\ '(?P<pip>[^']*)'
+        # a single range the interpreter does not meet, worded as uv words it
         | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+Python(?P<uv>\S+?),?(?=\s|$)
+        # a list of ranges the interpreter does not meet, one range per line, worded as uv words it
         | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+all\s+of:\n
           (?P<uv_union>(?:[ \t]*Python\S+[ \t]*\n?)+)
         """,

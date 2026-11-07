@@ -412,13 +412,15 @@ def _analyze_pip_output(pip_stdout: str, pip_stderr: str, *, streamed: bool) -> 
         "conflict_": re.compile(r"conflict", re.IGNORECASE),
         # error: can't copy 'lib\ansible\module_utils\ansible_release.py': doesn't exist ...
         "error_": re.compile(
-            r"error:"
-            r"(?!.+Command errored out)"
-            r"(?!.+failed building wheel for)"
-            r"(?!.+could not build wheels? for)"
-            r"(?!.+failed to build one or more wheels)"
-            r".+[^:]$",
-            re.IGNORECASE,
+            r"""
+            error:                                        # the error marker
+            (?!.+Command\ errored\ out)                   # a build that failed in a subprocess
+            (?!.+failed\ building\ wheel\ for)           # a wheel that failed to build
+            (?!.+could\ not\ build\ wheels?\ for)       # a wheel that could not be built
+            (?!.+failed\ to\ build\ one\ or\ more\ wheels)  # several wheels that failed to build
+            .+[^:]$                                       # a message that does not end with a colon
+            """,
+            re.IGNORECASE | re.VERBOSE,
         ),
     }
 

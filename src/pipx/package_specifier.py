@@ -306,14 +306,14 @@ def _split_path_extras(package_spec: str) -> tuple[str, str]:
         return package_spec, ""
     if extras_match := re.search(
         r"""
-        (.+)           # the path
-        (\[[^\[\]]+\])  # one trailing [extras] group
+        (?P<path>.+)                # the path
+        (?P<extras>\[[^\[\]]+\])  # one trailing [extras] group
         $
         """,
         package_spec,
         re.VERBOSE,
     ):
-        return extras_match.group(1), extras_match.group(2)
+        return extras_match["path"], extras_match["extras"]
     return package_spec, ""
 
 

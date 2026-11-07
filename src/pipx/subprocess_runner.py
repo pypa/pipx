@@ -426,7 +426,18 @@ def _without_terminal_escapes(output: str | None) -> str | None:
     # reads out of the captured copy
     if output is None:
         return None
-    return re.sub(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])", "", output)
+    return re.sub(
+        r"""
+        \x1b(?:
+            \[[0-?]*[\ -/]*[@-~]         # control sequence: parameters, intermediates, final byte
+          | \][^\x07\x1b]*(?:\x07|\x1b\\)  # operating system command: text ended by BEL or ST
+          | [@-Z\\-_]                     # two-byte escape
+        )
+        """,
+        "",
+        output,
+        flags=re.VERBOSE,
+    )
 
 
 @contextmanager

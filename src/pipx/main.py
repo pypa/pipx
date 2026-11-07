@@ -2138,14 +2138,21 @@ def _rotate_logs(current: Path, max_logs: int) -> None:
     # error log, so 0 keeps that one log
     keep_old: Final[int] = max(max_logs - 1, 0)
     name_pattern: Final[re.Pattern[str]] = re.compile(
-        r"cmd_(\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)(?:_(\d+))?(_[a-z]+_errors)?\.log"
+        r"""
+        cmd_
+        (?P<started>\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)  # start time of the run
+        (?:_(?P<counter>\d+))?                              # counter for runs that start in the same second
+        (?P<error_kind>_[a-z]+_errors)?                      # kind of an error log, such as _pip_errors
+        \.log
+        """,
+        re.VERBOSE,
     )
     command_logs: dict[tuple[str, int], Path] = {}
     error_logs: list[tuple[tuple[str, int], Path]] = []
     for path in current.parent.glob("cmd_*.log"):
         if path != current and (match := name_pattern.fullmatch(path.name)):
-            run = (match[1], int(match[2] or 0))
-            if match[3]:
+            run = (match["started"], int(match["counter"] or 0))
+            if match["error_kind"]:
                 error_logs.append((run, path))
             else:
                 command_logs[run] = path

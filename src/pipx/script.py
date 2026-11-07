@@ -40,9 +40,9 @@ if TYPE_CHECKING:
 
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     r"""
-    ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
-    (?P<content> (^\#(|\ .*)$ \s)+ )
-    ^\#\ ///$
+    ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s  # opening line naming the metadata type
+    (?P<content> (^\#(?:|\ .*)$ \s)+ )       # each commented line, empty ones included
+    ^\#\ ///$                                # closing line
     """,
     re.VERBOSE | re.MULTILINE,
 )

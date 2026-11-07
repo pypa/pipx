@@ -1560,11 +1560,11 @@ def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
 
     err: Final[str] = capsys.readouterr().err
-    pip_log_file_match: Final = re.search(r"Full pip output in file:\s+(\S.+)$", err, re.MULTILINE)
+    pip_log_file_match: Final = re.search(r"Full pip output in file:\s+(?P<log>\S.+)$", err, re.MULTILINE)
     assert pip_log_file_match
     assert (
         "Fatal error from pip" in err,
-        Path(pip_log_file_match[1]).exists(),
+        Path(pip_log_file_match["log"]).exists(),
         re.search(r"pip failed (to build|while processing) package", err) is not None,
     ) == (True, True, True)
 

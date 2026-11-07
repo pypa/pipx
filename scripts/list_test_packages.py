@@ -63,11 +63,27 @@ def create_test_packages_list(package_list_dir_path: Path, primary_package_list_
         return exit_code
 
     package_specs: Final[list[str]] = sorted(
-        f"{match.group(1)}=={match.group(2)}"
+        f"{match['name']}=={match['version']}"
         for downloaded_path in downloaded
         if (
-            match := re.search(r"([^-]+)-([^-]+)-([^-]+)\-([^-]+)-([^-]+)(-[^-]+)?\.whl$", downloaded_path)
-            or re.search(r"(.+)-([^-]+)\.(?:tar.gz|zip)$", downloaded_path)
+            match := re.search(
+                r"""
+                (?P<name>[^-]+)-(?P<version>[^-]+)  # distribution name and version
+                -[^-]+-[^-]+-[^-]+                  # python tag, ABI tag and platform tag
+                (?:-[^-]+)?                         # optional build tag
+                \.whl$                              # wheel suffix
+                """,
+                downloaded_path,
+                re.VERBOSE,
+            )
+            or re.search(
+                r"""
+                (?P<name>.+)-(?P<version>[^-]+)  # distribution name and version
+                \.(?:tar.gz|zip)$               # source distribution suffix
+                """,
+                downloaded_path,
+                re.VERBOSE,
+            )
         )
     )
     with get_platform_list_path(package_list_dir_path).open("w") as package_list_fh:

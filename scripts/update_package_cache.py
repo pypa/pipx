@@ -65,10 +65,10 @@ def _update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_
     packages_dir_missing: Final[list[str]] = []
     with platform_package_list_fh:
         for line in platform_package_list_fh:
-            if not (package_spec_match := re.search(r"^(.+)==(.+)$", package_spec := line.strip())):
+            if not (package_spec_match := re.search(r"^(?P<name>.+)==(?P<version>.+)$", package_spec := line.strip())):
                 exit_code = 1
                 continue
-            package_name, package_version = package_spec_match.groups()
+            package_name, package_version = package_spec_match["name"], package_spec_match["version"]
             package_dist_pattern = rf"{re.escape(package_name)}-{re.escape(package_version)}(.tar.gz|.zip|-)"
             if matches := [path for path in packages_dir_files if re.search(package_dist_pattern, path.name)]:
                 for matched_file in matches:
