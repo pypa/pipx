@@ -453,8 +453,8 @@ def test_disable_shared_libs_auto_upgrade(
 @pytest.mark.timeout(60)
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_reinstall_all_rebuilds_broken_shared_pip_once(caplog: pytest.LogCaptureFixture) -> None:
-    for suffix in ("_a", "_b"):
-        assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay", "--suffix=_a"])
+    assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay", "--suffix=_b"])
     _truncate_pip_main()
     caplog.clear()
 

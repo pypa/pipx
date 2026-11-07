@@ -114,24 +114,23 @@ def test_install_all_restores_pins(
 
 
 @pytest.mark.parametrize(
-    ("python_arg", "use_recorded"),
+    ("python_arg", "source"),
     [
-        pytest.param([], True, id="recorded"),
-        pytest.param(["--python", sys.executable], False, id="explicit"),
+        pytest.param([], "recorded", id="recorded"),
+        pytest.param(["--python", sys.executable], "explicit", id="explicit"),
     ],
 )
 def test_install_all_selects_interpreter(
     recorded_snapshot: tuple[Path, Path],
     mocker: MockerFixture,
     python_arg: list[str],
-    use_recorded: bool,
+    source: str,
 ) -> None:
     spec_file, recorded = recorded_snapshot
     install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
     assert not run_pipx_cli(["install-all", str(spec_file), *python_arg])
-    assert Path(install.call_args.args[3].python).resolve() == (
-        recorded if use_recorded else Path(sys.executable).resolve()
-    )
+    expected: Final[dict[str, Path]] = {"recorded": recorded, "explicit": Path(sys.executable).resolve()}
+    assert Path(install.call_args.args[3].python).resolve() == expected[source]
 
 
 @pytest.fixture
@@ -445,7 +444,8 @@ def test_install_all_translates_recorded_pip_args_for_another_backend(
         ["install", "--backend", recorded_backend, f"--pip-args={recorded_args.format(**values)}", "pycowsay"]
     ])
 
-    assert not run_pipx_cli(["install-all", "--backend", "uv" if recorded_backend == "pip" else "pip", str(spec_file)])
+    other_backend: Final[str] = {"pip": "uv", "uv": "pip"}[recorded_backend]
+    assert not run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
 
     assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args == expected_args.format(**values).split()
 
@@ -475,7 +475,7 @@ def test_install_all_refuses_untranslatable_index_args(
     spec_file: Final[Path] = make_snapshot([
         ["install", "--backend", recorded_backend, f"--pip-args={recorded_args}", "pycowsay"]
     ])
-    other_backend: Final[str] = "uv" if recorded_backend == "pip" else "pip"
+    other_backend: Final[str] = {"pip": "uv", "uv": "pip"}[recorded_backend]
 
     result: Final[int] = run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
 

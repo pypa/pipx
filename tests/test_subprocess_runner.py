@@ -460,10 +460,9 @@ def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp
         text=True,
     ).stdout.splitlines()
     purelib, platlib = (Path(path) for path in output)
+    distinct_dirs: Final[set[Path]] = {purelib.resolve(), platlib.resolve()}
 
-    assert get_site_packages(interpreter) == (
-        [purelib] if purelib.resolve() == platlib.resolve() else [purelib, platlib]
-    )
+    assert get_site_packages(interpreter) == [purelib, platlib][: len(distinct_dirs)]
 
 
 @pytest.mark.parametrize(

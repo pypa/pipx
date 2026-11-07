@@ -772,10 +772,22 @@ def test_upgrade_standalone_interpreter(
     assert ("Successfully upgraded the interpreter(s):" in out, "pycowsay" in out) == (True, True)
 
 
+@pytest.mark.parametrize(
+    "executable",
+    [
+        pytest.param(
+            ("bin", "python3"), id="posix", marks=pytest.mark.skipif(constants.WINDOWS, reason="POSIX layout")
+        ),
+        pytest.param(
+            ("python.exe",), id="windows", marks=pytest.mark.skipif(not constants.WINDOWS, reason="Windows layout")
+        ),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
     monkeypatch: pytest.MonkeyPatch,
     standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+    executable: tuple[str, ...],
 ) -> None:
     assert not run_pipx_cli([
         "install",
@@ -792,21 +804,24 @@ def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
     interpreter_dir: Final[Path] = CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
-    expected: Final[Path] = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
+    expected: Final[Path] = interpreter_dir.joinpath(*executable)
     assert PipxMetadata(CTX.venvs / "pycowsay").source_interpreter == expected
 
 
-@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+@pytest.mark.parametrize(
+    ("windows", "executable"),
+    [pytest.param(False, ("bin", "python3"), id="posix"), pytest.param(True, ("python.exe",), id="windows")],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreters_reads_each_venv_once(
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     windows: bool,
+    executable: tuple[str, ...],
 ) -> None:
     monkeypatch.setattr(constants, "WINDOWS", windows)
     for python_version in ("3.11", "3.12"):
-        interpreter_dir = CTX.standalone_python_cachedir / python_version
-        interpreter_python = interpreter_dir / "python.exe" if windows else interpreter_dir / "bin" / "python3"
+        interpreter_python = (CTX.standalone_python_cachedir / python_version).joinpath(*executable)
         interpreter_python.parent.mkdir(parents=True)
         interpreter_python.touch()
 
@@ -821,8 +836,7 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
         metadata.write()
 
     def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
-        python_path = Path(command[0])
-        python_version = python_path.parent.name if windows else python_path.parent.parent.name
+        python_version = Path(command[0]).relative_to(CTX.standalone_python_cachedir).parts[0]
         return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
 
     mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1"], autospec=True)

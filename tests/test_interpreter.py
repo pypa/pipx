@@ -308,8 +308,17 @@ def test_find_python_interpreter_unresolvable_raises(python_version: str) -> Non
         pytest.param(FetchPythonOptions.ALWAYS, id="always"),
     ],
 )
+@pytest.mark.parametrize(
+    "executable_name",
+    [
+        pytest.param("python.exe", id="windows", marks=pytest.mark.skipif(not WINDOWS, reason="Windows only")),
+        pytest.param("python3", id="posix", marks=pytest.mark.skipif(WINDOWS, reason="POSIX only")),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
-def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: FetchPythonOptions) -> None:
+def test_fetch_missing_python(
+    monkeypatch: pytest.MonkeyPatch, fetch_python: FetchPythonOptions, executable_name: str
+) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
     target_python: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -317,7 +326,7 @@ def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: Fet
 
     assert target_python in python_path
     assert str(CTX.standalone_python_cachedir) in python_path
-    assert python_path.endswith("python.exe" if WINDOWS else "python3")
+    assert python_path.endswith(executable_name)
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
 
@@ -537,4 +546,4 @@ def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, e
     (bin_dir := bootstrap / "bin").mkdir()
     (python := bin_dir / "python3").touch()
 
-    assert recordable_interpreter(python) == (None if expected is None else base_dir / expected)
+    assert recordable_interpreter(python) == {name: base_dir / name for name in ("python3", "python3.14")}.get(expected)

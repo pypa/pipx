@@ -70,6 +70,13 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
 
 @SKIP_IF_WINDOWS
 @pytest.mark.parametrize(
+    "kernel_limit",
+    [
+        pytest.param(127, id="posix", marks=pytest.mark.skipif(MACOS, reason="macOS has its own shebang limit")),
+        pytest.param(512, id="macos", marks=pytest.mark.skipif(not MACOS, reason="macOS has its own shebang limit")),
+    ],
+)
+@pytest.mark.parametrize(
     ("overflow", "separator", "flag"),
     [
         pytest.param(0, b"\n", b" -E", id="flag-fits"),
@@ -78,10 +85,10 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
     ],
 )
 def test_expose_app_scripts_keep_shebang_within_kernel_limit(
-    tmp_path: Path, overflow: int, separator: bytes, flag: bytes
+    tmp_path: Path, kernel_limit: int, overflow: int, separator: bytes, flag: bytes
 ) -> None:
     shebang: Final[bytes] = (
-        b"#!/" + b"x" * ((512 if MACOS else 127) + overflow - len(b"#!/python -E") - len(separator)) + b"python"
+        b"#!/" + b"x" * (kernel_limit + overflow - len(b"#!/python -E") - len(separator)) + b"python"
     )
     (app_path := tmp_path / "demo").write_bytes(shebang + separator)
 
@@ -369,17 +376,17 @@ def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: Mocker
 
 
 @pytest.mark.parametrize(
-    "owned",
-    [pytest.param(True, id="shebang-into-venv"), pytest.param(False, id="shebang-elsewhere")],
+    ("shebang_dir_name", "owned"),
+    [pytest.param("venv_bin", True, id="shebang-into-venv"), pytest.param("other", False, id="shebang-elsewhere")],
 )
-def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: MockerFixture, owned: bool) -> None:
+def test_get_exposed_paths_matches_copied_launcher(
+    tmp_path: Path, mocker: MockerFixture, shebang_dir_name: str, owned: bool
+) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     (venv_resource_path := tmp_path / "venv_bin").mkdir()
     (local_resource_dir := tmp_path / "bin").mkdir()
-    (elsewhere := tmp_path / "other").mkdir()
-    (launcher := local_resource_dir / "myapp").write_text(
-        f"#!{(venv_resource_path if owned else elsewhere) / 'python'}\n"
-    )
+    (tmp_path / "other").mkdir()
+    (launcher := local_resource_dir / "myapp").write_text(f"#!{tmp_path / shebang_dir_name / 'python'}\n")
 
     assert (launcher in get_exposed_paths_for_package(venv_resource_path, local_resource_dir)) is owned
 

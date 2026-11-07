@@ -192,10 +192,18 @@ def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_ve
     assert f"shell completions are exposed at {CTX.completion_dir}" in captured.out
 
 
+@pytest.mark.parametrize(
+    "venv_bin_dir",
+    [
+        pytest.param("bin", id="posix", marks=pytest.mark.skipif(constants.WINDOWS, reason="POSIX venv layout")),
+        pytest.param(
+            "Scripts", id="windows", marks=pytest.mark.skipif(not constants.WINDOWS, reason="Windows venv layout")
+        ),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_dir: str) -> None:
     pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
-    venv_bin_dir: Final[str] = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])

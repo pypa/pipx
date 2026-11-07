@@ -489,15 +489,23 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
         ),
     ],
 )
+@pytest.mark.parametrize(
+    "site_config_name",
+    [
+        pytest.param("pip.conf", id="posix", marks=pytest.mark.skipif(WINDOWS, reason="pip reads pip.conf on POSIX")),
+        pytest.param(
+            "pip.ini", id="windows", marks=pytest.mark.skipif(not WINDOWS, reason="pip reads pip.ini on Windows")
+        ),
+    ],
+)
 def test_pip_backend_starts_pip_without_site_config(
     run_pip: Callable[[Path, Path], set[str] | tuple[OutdatedPackage, ...] | subprocess.CompletedProcess[str] | None],
+    site_config_name: str,
     tmp_path: Path,
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    (site_config := tmp_path / ("pip.ini" if WINDOWS else "pip.conf")).write_text(
-        "[install]\ntarget = ..\n", encoding="utf-8"
-    )
+    (site_config := tmp_path / site_config_name).write_text("[install]\ntarget = ..\n", encoding="utf-8")
     seen_by_pip: Final[list[bool]] = []
 
     def record(

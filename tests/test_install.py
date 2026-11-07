@@ -518,22 +518,27 @@ def test_install_rejects_invalid_cooldown(value: str, capsys: pytest.CaptureFixt
     assert "--cooldown must be a non-negative integer" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("editable", [pytest.param(False, id="wheel"), pytest.param(True, id="editable")])
+@pytest.mark.parametrize(
+    "editable_args",
+    [pytest.param([], id="wheel"), pytest.param(["--editable"], id="editable")],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_source_from_pylock(
-    make_pylock: Callable[[str, str], Path], make_project_with_dependency: Callable[[str], Path], editable: bool
+    make_pylock: Callable[[str, str], Path],
+    make_project_with_dependency: Callable[[str], Path],
+    editable_args: list[str],
 ) -> None:
     project: Final[Path] = make_project_with_dependency("pycowsay==0.0.0.2")
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
 
-    assert not run_pipx_cli(["install", *(["--editable"] if editable else []), "--lock", str(lock_file), str(project)])
+    assert not run_pipx_cli(["install", *editable_args, "--lock", str(lock_file), str(project)])
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (metadata.package_version, metadata.lock_file, metadata.apps, metadata.pip_args) == (
         "0.1.0",
         lock_file.resolve(),
         [app_name("empty-project")],
-        ["--editable"] if editable else [],
+        editable_args,
     )
 
 
@@ -858,9 +863,9 @@ def test_install_force_preserves_expected_app() -> None:
 def test_install_force_keeps_pin(make_pylock: MakePylock, locked: bool) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["pin", "pycowsay"])
-    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
+    lock_args: Final[dict[bool, list[str]]] = {False: [], True: ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))]}
 
-    assert not run_pipx_cli(["install", "--force", *lock_args, PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", "--force", *lock_args[locked], PKG["pycowsay"]["spec"]])
 
     assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pinned
 
@@ -1346,15 +1351,15 @@ def test_pip_args_with_wrong_constraint_fail(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_suffix(capsys: pytest.CaptureFixture[str]) -> None:
-    outputs: Final[list[str]] = []
-    for suffix in ("_a", "_b"):
-        assert not run_pipx_cli(["install", PKG["pbr"]["spec"], f"--suffix={suffix}"])
-        outputs.append(capsys.readouterr().out)
+    assert not run_pipx_cli(["install", PKG["pbr"]["spec"], "--suffix=_a"])
+    output_a: Final[str] = capsys.readouterr().out
+    assert not run_pipx_cli(["install", PKG["pbr"]["spec"], "--suffix=_b"])
+    output_b: Final[str] = capsys.readouterr().out
 
     name_a, name_b = app_name("pbr_a"), app_name("pbr_b")
     assert (
-        f"- {name_a}" in outputs[0],
-        f"- {name_b}" in outputs[1],
+        f"- {name_a}" in output_a,
+        f"- {name_b}" in output_b,
         (CTX.bin_dir / name_a).exists(),
         (CTX.bin_dir / name_b).exists(),
     ) == (True, True, True, True)
@@ -1880,8 +1885,8 @@ def test_force_install_python_warning_suggests_reinstall_of_environment(capsys: 
 def test_force_install_keeps_existing_interpreter(
     tmp_path: Path, make_pylock: Callable[[str, str], Path], locked: bool
 ) -> None:
-    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
-    assert not run_pipx_cli(["install", *lock_args, PKG["pycowsay"]["spec"]])
+    lock_args: Final[dict[bool, list[str]]] = {False: [], True: ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))]}
+    assert not run_pipx_cli(["install", *lock_args[locked], PKG["pycowsay"]["spec"]])
     venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     recorded: Final[Path | None] = PipxMetadata(venv_dir).source_interpreter
     (other_python := tmp_path / "python-other").symlink_to(sys.executable)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -24,7 +23,17 @@ from pipx.paths import CTX
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
+    from _pytest.mark.structures import ParameterSet
     from pytest_mock import MockerFixture
+
+_METADATA_VERSIONS: Final[list[ParameterSet]] = [
+    pytest.param(
+        None,
+        marks=pytest.mark.skipif(WIN, reason="without metadata and python, Windows cannot tell the app binaries apart"),
+        id="no-metadata",
+    ),
+    *(pytest.param(version) for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None),
+]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -342,7 +351,7 @@ def test_uninstall_removes_venv_it_cannot_inspect(
     ) == (0, True, False, False)
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
+@pytest.mark.parametrize("metadata_version", _METADATA_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninstall_with_missing_interpreter(metadata_version: str | None) -> None:
     executable_path: Final[Path] = CTX.bin_dir / app_name("pycowsay")
@@ -354,9 +363,7 @@ def test_uninstall_with_missing_interpreter(metadata_version: str | None) -> Non
     remove_venv_interpreter("pycowsay")
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
-    # on Windows, without metadata and python, pipx cannot tell which app binaries the environment owns
-    if not (sys.platform.startswith("win") and metadata_version is None):
-        assert not file_or_symlink(executable_path)
+    assert not file_or_symlink(executable_path)
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
@@ -380,7 +387,7 @@ def test_uninstall_proper_dep_behavior(metadata_version: str | None) -> None:
     ) == (False, True)
 
 
-@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
+@pytest.mark.parametrize("metadata_version", _METADATA_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninstall_proper_dep_behavior_missing_interpreter(metadata_version: str | None) -> None:
     # isort is a dependency of pylint, so its apps are in both environments
@@ -397,9 +404,7 @@ def test_uninstall_proper_dep_behavior_missing_interpreter(metadata_version: str
 
     assert not run_pipx_cli(["uninstall", "pylint"])
 
-    # on Windows, without metadata and python, pipx cannot tell which app binaries the environment owns
-    if not (sys.platform.startswith("win") and metadata_version is None):
-        assert not any(file_or_symlink(path) for path in pylint_app_paths)
+    assert not any(file_or_symlink(path) for path in pylint_app_paths)
     assert all(path.exists() for path in isort_app_paths)
 
 

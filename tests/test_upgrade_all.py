@@ -70,8 +70,9 @@ def test_upgrade_all_checks_current_packages_concurrently(
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
-    for suffix in ("_one", "_two", "_three"):
-        assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_one"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_two"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_three"])
     capsys.readouterr()
     barrier: Final[Barrier] = Barrier(3)
 
