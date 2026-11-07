@@ -5,7 +5,6 @@ __lazy_modules__ = [
     "importlib.util",
     "packaging",
     "pathlib",
-    "pipx.constants",
     "pipx.self_install",
     "re",
     "shutil",
@@ -27,9 +26,9 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from .constants import WINDOWS, FetchPythonOptions
-from .self_install import get_environment_value
-from .util import PipxError
+from pipx.constants import WINDOWS, FetchPythonOptions
+from pipx.self_install import get_environment_value
+from pipx.util import PipxError
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -75,7 +74,7 @@ def _has_path_separator(python: str) -> bool:
 
 
 def _fetch_standalone_interpreter(python_version: str) -> str:
-    from . import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
     try:
         return standalone_python.download_python_build_standalone(python_version)

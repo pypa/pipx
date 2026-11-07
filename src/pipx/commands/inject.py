@@ -33,6 +33,12 @@ from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import assert_not_pip_under_uv
 from pipx.colors import BOLD
+from pipx.commands.common import (
+    get_expected_venv_resource_paths,
+    package_name_from_spec,
+    run_post_install_actions,
+)
+from pipx.commands.transaction import marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
 from pipx.options import ExposureOptions
@@ -52,13 +58,6 @@ from pipx.result import (
 from pipx.util import InstalledNameMismatchError, PipxError
 from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
-
-from .common import (
-    get_expected_venv_resource_paths,
-    package_name_from_spec,
-    run_post_install_actions,
-)
-from .transaction import marked_unfinished, preserve_venv, runs_from_venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator

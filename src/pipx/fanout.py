@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["concurrent.futures", "functools", "pipx.constants", "signal"]
+__lazy_modules__ = ["concurrent.futures", "functools", "signal"]
 
 import logging
 import os
@@ -14,7 +14,7 @@ from functools import partial
 from threading import Condition, Event, RLock, current_thread, main_thread
 from typing import TYPE_CHECKING, Final, NoReturn, TextIO, TypeVar, cast
 
-from .constants import WINDOWS
+from pipx.constants import WINDOWS
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
@@ -159,72 +159,6 @@ class _Turn(Condition):
     __exit__ = property(lambda self: self._lock.__exit__)
 
 
-def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT]:
-    # executor threads do not inherit the submitter's context, which carries pipx's switches as well as the slot
-    context: Final[Context] = copy_context()
-    context.run(_SLOT.set, slot)
-    return partial(context.run, task)
-
-
-def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
-    # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
-    # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
-    try:
-        slot.children.submitted.wait()
-        if slot.children.stopping:
-            raise KeyboardInterrupt
-        return task()
-    finally:
-        # a task that ends without taking a lock must not hold back the later tasks waiting to take theirs
-        slot.pass_lock()
-
-
-def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
-    for future, next_slot in zip(futures, slots[1:], strict=False):
-        _wait_interruptibly((future,))
-        # the first failure in task order propagates, so the tasks not started yet must not start
-        if not future.cancelled() and future.exception() is not None:
-            for later in futures:
-                later.cancel()
-        next_slot.go_live()
-    # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
-    _wait_interruptibly(futures)
-
-
-def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
-    # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
-    # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
-    while wait(futures, timeout=0.1).not_done:
-        if _UNRAISED_INTERRUPT.is_set():
-            raise KeyboardInterrupt
-
-
-def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
-    _UNRAISED_INTERRUPT.clear()
-    # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
-    for future in futures:
-        future.cancel()
-    if finishing := children.stop():
-        _LOGGER.warning(
-            "Finishing the %d environment(s) already being changed; press Ctrl-C again to stop them too.", finishing
-        )
-
-
-def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
-    # a further Ctrl-C must not cut short the wait for tasks rolling back: Python 3.12 marks a thread whose join was
-    # interrupted as stopped, so the interpreter exits without waiting and kills the task mid rollback
-    while True:
-        try:
-            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
-            for slot in slots:
-                slot.go_live()
-            _wait_interruptibly(futures)
-        except KeyboardInterrupt:
-            _interrupt(futures, children)
-        else:
-            return
-
-
 @dataclass(slots=True, kw_only=True)
 class _Children:
     lock: Condition
@@ -337,6 +271,72 @@ class _RoutedStream:
     def flush(self) -> None:
         if (slot := _SLOT.get()) is None or slot.live:
             self._target.flush()
+
+
+def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT]:
+    # executor threads do not inherit the submitter's context, which carries pipx's switches as well as the slot
+    context: Final[Context] = copy_context()
+    context.run(_SLOT.set, slot)
+    return partial(context.run, task)
+
+
+def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
+    # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
+    # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
+    try:
+        slot.children.submitted.wait()
+        if slot.children.stopping:
+            raise KeyboardInterrupt
+        return task()
+    finally:
+        # a task that ends without taking a lock must not hold back the later tasks waiting to take theirs
+        slot.pass_lock()
+
+
+def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
+    for future, next_slot in zip(futures, slots[1:], strict=False):
+        _wait_interruptibly((future,))
+        # the first failure in task order propagates, so the tasks not started yet must not start
+        if not future.cancelled() and future.exception() is not None:
+            for later in futures:
+                later.cancel()
+        next_slot.go_live()
+    # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
+    _wait_interruptibly(futures)
+
+
+def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
+    # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
+    # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
+    while wait(futures, timeout=0.1).not_done:
+        if _UNRAISED_INTERRUPT.is_set():
+            raise KeyboardInterrupt
+
+
+def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
+    _UNRAISED_INTERRUPT.clear()
+    # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
+    for future in futures:
+        future.cancel()
+    if finishing := children.stop():
+        _LOGGER.warning(
+            "Finishing the %d environment(s) already being changed; press Ctrl-C again to stop them too.", finishing
+        )
+
+
+def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
+    # a further Ctrl-C must not cut short the wait for tasks rolling back: Python 3.12 marks a thread whose join was
+    # interrupted as stopped, so the interpreter exits without waiting and kills the task mid rollback
+    while True:
+        try:
+            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
+            for slot in slots:
+                slot.go_live()
+            _wait_interruptibly(futures)
+        except KeyboardInterrupt:
+            _interrupt(futures, children)
+        else:
+            return
 
 
 def output_is_held() -> bool:

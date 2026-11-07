@@ -7,7 +7,6 @@ __lazy_modules__ = [
     "json",
     "pathlib",
     "pipx",
-    "pipx.animate",
     "pipx.util",
     "platform",
     "re",
@@ -35,9 +34,9 @@ from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final, TypedDict, cast
 from urllib.request import Request, urlopen
 
-from . import constants, paths
-from .animate import animate
-from .util import PipxError
+from pipx import constants, paths
+from pipx.animate import animate
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator

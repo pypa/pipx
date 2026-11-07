@@ -8,7 +8,6 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx.constants",
     "pipx.requires_python",
     "pipx.subprocess_runner",
     "pipx.util",
@@ -35,10 +34,10 @@ from urllib.parse import urlparse
 from packaging.requirements import Requirement
 from packaging.utils import InvalidName, canonicalize_name
 
-from .constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
-from .requires_python import unsatisfied_constraint
-from .subprocess_runner import run_subprocess
-from .util import PipxError, is_file_name
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+from pipx.requires_python import unsatisfied_constraint
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError, is_file_name
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping

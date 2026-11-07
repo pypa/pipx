@@ -52,6 +52,8 @@ from packaging.utils import canonicalize_name
 from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import resolve_backend_name
+from pipx.commands.common import package_name_from_spec
+from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
@@ -64,9 +66,6 @@ from pipx.trash import rmdir
 from pipx.util import PipxError, get_pypackage_bin_path
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
-
-from .common import package_name_from_spec
-from .run_uv import run_script_via_uv_run, run_via_uv_tool_run
 
 if TYPE_CHECKING:
     from collections.abc import Generator

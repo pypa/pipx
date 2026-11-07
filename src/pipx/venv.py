@@ -3,11 +3,8 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
-    "pipx.animate",
     "pipx.backends.pip",
     "pipx.backends.registry",
-    "pipx.constants",
-    "pipx.emojis",
     "pipx.interpreter",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -36,25 +33,25 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
     from packaging.utils import NormalizedName
 
-    from .backends._base import Backend, OutdatedPackage
-    from .venv_inspect import VenvMetadata
+    from pipx.backends._base import Backend, OutdatedPackage
+    from pipx.venv_inspect import VenvMetadata
 
 from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
-from .animate import animate
-from .backends.pip import subprocess_post_check_handle_pip_error
-from .backends.registry import (
+from pipx.animate import animate
+from pipx.backends.pip import subprocess_post_check_handle_pip_error
+from pipx.backends.registry import (
     assert_not_pip_under_uv,
     env_default_backend,
     get_backend,
     resolve_backend_name,
 )
-from .constants import PIPX_SHARED_PTH, ExitCode
-from .emojis import HAZARD
-from .interpreter import get_default_python, recordable_interpreter
-from .options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
-from .package_specifier import (
+from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.emojis import HAZARD
+from pipx.interpreter import get_default_python, recordable_interpreter
+from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
+from pipx.package_specifier import (
     absolute_path_pip_args,
     fix_package_name,
     get_extras,
@@ -64,19 +61,19 @@ from .package_specifier import (
     recordable_pip_args,
     valid_pypi_name,
 )
-from .pipx_metadata_file import PackageInfo, PipxMetadata
-from .redact import redact_url_credentials
-from .requires_python import IncompatiblePythonError, rejected_constraint
-from .script import installable_script, local_script
-from .shared_libs import (
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.redact import redact_url_credentials
+from pipx.requires_python import IncompatiblePythonError, rejected_constraint
+from pipx.script import installable_script, local_script
+from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     SHARED_LIBS,
     shared_libs_auto_upgrade_disabled,
 )
-from .subprocess_runner import exec_app, get_site_packages, subprocess_post_check
-from .trash import rmdir
-from .util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
-from .wrap import pipx_wrap
+from pipx.subprocess_runner import exec_app, get_site_packages, subprocess_post_check
+from pipx.trash import rmdir
+from pipx.util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
+from pipx.wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
@@ -595,7 +592,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return venv_package_metadata
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
-        from .venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
+        from pipx.venv_inspect import inspect_venv  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
         data_start: Final[float] = time.time()
         venv_metadata: Final[VenvMetadata] = inspect_venv(

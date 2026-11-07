@@ -30,6 +30,18 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.colors import BOLD, RED
+from pipx.commands.common import (
+    expose_package_resources,
+    expose_shared_resources_in_order,
+    get_expected_venv_resource_paths,
+    locked_package_message,
+    remove_stale_venv_resources,
+    validate_expected_apps,
+)
+from pipx.commands.install import install as install_package
+from pipx.commands.outdated import inspect_outdated
+from pipx.commands.reinstall import reinstall
+from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
@@ -46,29 +58,15 @@ from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
 
-from .common import (
-    expose_package_resources,
-    expose_shared_resources_in_order,
-    get_expected_venv_resource_paths,
-    locked_package_message,
-    remove_stale_venv_resources,
-    validate_expected_apps,
-)
-from .install import install as install_package
-from .outdated import inspect_outdated
-from .reinstall import reinstall
-from .transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
-
 if TYPE_CHECKING:
     from collections.abc import Collection
     from pathlib import Path
 
     from filelock import BaseFileLock
 
+    from pipx.commands.outdated import OutdatedData
     from pipx.options import BackendOptions, UpgradeOptions
     from pipx.pipx_metadata_file import PackageInfo
-
-    from .outdated import OutdatedData
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 

@@ -7,13 +7,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
+from pipx.commands.common import get_venv_package_infos, get_venv_resource_paths
+from pipx.commands.uninstall import UninstallData, uninstall_all
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
 from pipx.trash import rmdir
 from pipx.venv import Venv
-
-from .common import get_venv_package_infos, get_venv_resource_paths
-from .uninstall import UninstallData, uninstall_all
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING, Final
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 
-from .redact import redact_url_credentials
-from .util import PipxError
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator

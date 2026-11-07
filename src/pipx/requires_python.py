@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "pipx.constants", "pipx.interpreter", "pipx.subprocess_runner", "re"]
+__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "pipx.subprocess_runner", "re"]
 
 import logging
 import re
@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
-from .constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
-from .interpreter import InterpreterResolutionError, find_python_interpreter
-from .subprocess_runner import run_subprocess
-from .util import PipxError
+from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
+from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
+from pipx.subprocess_runner import run_subprocess
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -72,6 +72,12 @@ def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
     return any(constraint.contains(f"{minor}.{patch}", prereleases=True) for patch in range(40))
 
 
+def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
+    if not requires_python or (constraint := _parse(requires_python)) is None:
+        return None
+    return None if constraint.contains(python_version, prereleases=True) else constraint
+
+
 def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
     # an interpreter whose version pipx cannot read passes
     if (version := _interpreter_version(interpreter)) is None:
@@ -86,12 +92,6 @@ def _interpreter_version(interpreter: str) -> str | None:
         log_stdout=False,
     )
     return process.stdout.strip() or None if process.returncode == 0 else None
-
-
-def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
-    if not requires_python or (constraint := _parse(requires_python)) is None:
-        return None
-    return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
@@ -131,7 +131,6 @@ def _matching_interpreter(minor: str, constraint: SpecifierSet, fetch_python: Fe
 
 
 __all__ = [
-    "IncompatiblePythonError",
     "interpreter_for",
     "rejected_constraint",
     "unsatisfied_by_interpreter",

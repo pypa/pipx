@@ -5,7 +5,6 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx.backends._base",
-    "pipx.emojis",
     "pipx.redact",
     "pipx.util",
     "pipx.wrap",
@@ -28,11 +27,11 @@ from typing import TYPE_CHECKING, Final, TypeAlias
 from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
-from .backends._base import PIP
-from .emojis import HAZARD
-from .redact import redact_url_credentials
-from .util import PipxError
-from .wrap import pipx_wrap
+from pipx.backends._base import PIP
+from pipx.emojis import HAZARD
+from pipx.redact import redact_url_credentials
+from pipx.util import PipxError
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator

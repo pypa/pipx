@@ -5,7 +5,6 @@ __lazy_modules__ = [
     "fcntl",
     "itertools",
     "pathlib",
-    "pipx.animate",
     "pipx.fanout",
     "pipx.redact",
     "pipx.util",
@@ -40,11 +39,11 @@ from typing import (
     TextIO,
 )
 
-from .animate import show_cursor
-from .constants import WINDOWS
-from .fanout import output_is_held, stop_process_group, stopped_on_interrupt
-from .redact import redact_command_line, redact_url_credentials
-from .util import PipxError
+from pipx.animate import show_cursor
+from pipx.constants import WINDOWS
+from pipx.fanout import output_is_held, stop_process_group, stopped_on_interrupt
+from pipx.redact import redact_command_line, redact_url_credentials
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence

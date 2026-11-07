@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, Self
 
-from .constants import FetchPythonOptions
+from pipx.constants import FetchPythonOptions
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Sequence
     from pathlib import Path
 
-    from .pipx_metadata_file import PackageInfo
+    from pipx.pipx_metadata_file import PackageInfo
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

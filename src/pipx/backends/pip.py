@@ -23,14 +23,13 @@ from packaging.version import InvalidVersion, Version
 
 from pipx import paths
 from pipx.animate import animate
+from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.redact import redact_command_line
 from pipx.shared_libs import SHARED_LIBS
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
 from pipx.trash import safe_unlink
 from pipx.util import PipxError, get_venv_paths, open_owner_only
-
-from ._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

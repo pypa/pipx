@@ -13,6 +13,13 @@ if TYPE_CHECKING:
     from pipx.pipx_metadata_file import PackageInfo
 
 from pipx import paths
+from pipx.commands.common import (
+    drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
+    get_venv_package_infos,
+    get_venv_resource_paths,
+    reuse_resource_dir_scans,
+)
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,
@@ -24,14 +31,6 @@ from pipx.emojis import HAZARD, SLEEP, STARS
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.trash import rmdir_via_trash, safe_unlink
 from pipx.venv import Venv, VenvContainer
-
-from .common import (
-    drop_copies_claimed_elsewhere,
-    drop_links_taken_over,
-    get_venv_package_infos,
-    get_venv_resource_paths,
-    reuse_resource_dir_scans,
-)
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -134,6 +133,11 @@ def uninstall(
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UninstallData(OperationData):
+    packages: tuple[_UninstalledPackage, ...]
+
+
 def _remove_resource(path: Path) -> None:
     try:
         safe_unlink(path)
@@ -141,11 +145,6 @@ def _remove_resource(path: Path) -> None:
         _LOGGER.info("pipx did not find resource %s", path)
     else:
         _LOGGER.info("pipx removed resource %s", path)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class UninstallData(OperationData):
-    packages: tuple[_UninstalledPackage, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

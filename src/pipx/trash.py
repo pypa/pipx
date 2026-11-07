@@ -11,28 +11,12 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from . import paths
+from pipx import paths
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-
-
-def rmdir_via_trash(path: Path) -> None:
-    # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
-    try:
-        path.rename(trash := _get_trash_file(path))
-    except OSError:
-        rmdir(path)
-    else:
-        rmdir(trash)
-
-
-def _get_trash_file(path: Path) -> Path:
-    paths.CTX.trash.mkdir(exist_ok=True)
-    prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
-    return paths.CTX.trash / f"{prefix}.{path.name}"
 
 
 def rmdir(path: Path, *, safe_rm: bool = True) -> None:
@@ -54,6 +38,22 @@ def rmdir(path: Path, *, safe_rm: bool = True) -> None:
                 _LOGGER.warning("Failed to move %s to the trash; remove it by hand (%s).", path, error)
         else:
             _LOGGER.warning("Failed to delete %s. You may need to delete it manually.", path)
+
+
+def _get_trash_file(path: Path) -> Path:
+    paths.CTX.trash.mkdir(exist_ok=True)
+    prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
+    return paths.CTX.trash / f"{prefix}.{path.name}"
+
+
+def rmdir_via_trash(path: Path) -> None:
+    # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
+    try:
+        path.rename(trash := _get_trash_file(path))
+    except OSError:
+        rmdir(path)
+    else:
+        rmdir(trash)
 
 
 def safe_unlink(file: Path) -> None:

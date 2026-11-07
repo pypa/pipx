@@ -21,6 +21,20 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import BOLD
+from pipx.commands.common import (
+    drop_copies_claimed_elsewhere,
+    drop_links_taken_over,
+    exposed_app_names,
+    get_expected_venv_resource_paths,
+    get_package_bin_dir_app_paths,
+    get_package_completion_paths,
+    get_package_man_paths,
+)
+from pipx.commands.inject import (
+    InjectionData,
+    InjectionPackage,
+    InjectionStatus,
+)
 from pipx.constants import (
     COMPLETION_SECTIONS,
     EXIT_CODE_OK,
@@ -39,21 +53,6 @@ from pipx.venv_inspect import (
     not_required_packages,
 )
 from pipx.wrap import pipx_wrap
-
-from .common import (
-    drop_copies_claimed_elsewhere,
-    drop_links_taken_over,
-    exposed_app_names,
-    get_expected_venv_resource_paths,
-    get_package_bin_dir_app_paths,
-    get_package_completion_paths,
-    get_package_man_paths,
-)
-from .inject import (
-    InjectionData,
-    InjectionPackage,
-    InjectionStatus,
-)
 
 if TYPE_CHECKING:
     from importlib import metadata

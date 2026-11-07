@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from .constants import MINGW, WINDOWS
-from .redact import redact_url_credentials
-from .wrap import pipx_wrap
+from pipx.constants import MINGW, WINDOWS
+from pipx.redact import redact_url_credentials
+from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

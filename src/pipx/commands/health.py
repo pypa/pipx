@@ -12,14 +12,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
+from pipx.commands.reinstall import reinstall
+from pipx.commands.transaction import is_unfinished
 from pipx.constants import ExitCode
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError, get_venv_paths
-
-from .reinstall import reinstall
-from .transaction import is_unfinished
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

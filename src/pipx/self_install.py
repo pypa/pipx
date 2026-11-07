@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Final, TypeAlias
 
 _JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
+_PIPX_METADATA_FILENAME: Final[str] = "pipx_metadata.json"
 DEFAULT_PIPX_GLOBAL_HOME: Final[Path] = Path("/opt/pipx")
 
 
@@ -22,7 +23,7 @@ def discover_self_managed_environment() -> dict[str, str]:
         return {}
 
     try:
-        metadata: Final[_JsonValue] = json.loads((venv / "pipx_metadata.json").read_text(encoding="utf-8"))
+        metadata: Final[_JsonValue] = json.loads((venv / _PIPX_METADATA_FILENAME).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
     if not isinstance(metadata, dict):

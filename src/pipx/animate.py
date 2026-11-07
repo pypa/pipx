@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["logging", "pipx.emojis", "pipx.fanout", "shutil", "threading"]
+__lazy_modules__ = ["logging", "pipx.fanout", "shutil", "threading"]
 
 import logging
 import shutil
@@ -10,9 +10,9 @@ from dataclasses import dataclass
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Final
 
-from .constants import WINDOWS
-from .emojis import EMOJI_SUPPORT
-from .fanout import output_is_held
+from pipx.constants import WINDOWS
+from pipx.emojis import EMOJI_SUPPORT
+from pipx.fanout import output_is_held
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -97,16 +97,16 @@ def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner
                 break
 
 
+def _clear_line() -> None:
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _Spinner:
     frames: tuple[str, ...]
     period: float
     at_line_start: bool
-
-
-def _clear_line() -> None:
-    sys.stderr.write(f"\r{CLEAR_LINE}")
-    sys.stdout.write(f"\r{CLEAR_LINE}")
 
 
 def hide_cursor() -> None:
@@ -142,6 +142,7 @@ __all__ = [
     "CLEAR_LINE",
     "EMOJI_ANIMATION_FRAMES",
     "NONEMOJI_ANIMATION_FRAMES",
+    "STDERR_IS_TTY",
     "animate",
     "hide_cursor",
     "show_cursor",

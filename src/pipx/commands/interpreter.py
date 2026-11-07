@@ -19,12 +19,11 @@ from packaging import version
 
 from pipx import constants, paths
 from pipx.animate import animate
+from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
-
-from .reinstall import reinstall
 
 if TYPE_CHECKING:
     from pathlib import Path

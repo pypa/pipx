@@ -17,14 +17,13 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.colors import BOLD
+from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
+from pipx.commands.transaction import is_unfinished
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
 from pipx.emojis import SLEEP
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
-
-from .common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
-from .transaction import is_unfinished
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable

@@ -35,6 +35,10 @@ from typing import TYPE_CHECKING, Final, TypeAlias
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
+from pipx.commands.common import force_replaces_only
+from pipx.commands.expose import expose, unexpose
+from pipx.commands.install import install
+from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.options import ExposureOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
@@ -49,11 +53,6 @@ from pipx.result import (
     OutputStream,
 )
 from pipx.util import PipxError
-
-from .common import force_replaces_only
-from .expose import expose, unexpose
-from .install import install
-from .uninstall import uninstall
 
 if TYPE_CHECKING:
     from typing import TypeIs

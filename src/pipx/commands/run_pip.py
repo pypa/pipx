@@ -16,13 +16,12 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
+from pipx.commands.common import package_name_from_spec
+from pipx.commands.transaction import preserve_venv, runs_from_venv
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, extract_index_options, install_specs, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
-
-from .common import package_name_from_spec
-from .transaction import preserve_venv, runs_from_venv
 
 if TYPE_CHECKING:
     from pipx.constants import ExitCode

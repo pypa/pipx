@@ -36,6 +36,19 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.backends._base import PIP
+from pipx.commands.common import (
+    expose_package_resources,
+    expose_shared_resources_in_order,
+    get_expected_venv_resource_paths,
+    locked_package_message,
+    package_name_from_spec,
+    remove_stale_venv_resources,
+    run_post_install_actions,
+    validate_expected_apps,
+    validate_suffix,
+)
+from pipx.commands.inject import inject
+from pipx.commands.transaction import VenvBackup, marked_unfinished, preserve_venv
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
@@ -66,20 +79,6 @@ from pipx.trash import rmdir
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 from pipx.wrap import pipx_wrap
-
-from .common import (
-    expose_package_resources,
-    expose_shared_resources_in_order,
-    get_expected_venv_resource_paths,
-    locked_package_message,
-    package_name_from_spec,
-    remove_stale_venv_resources,
-    run_post_install_actions,
-    validate_expected_apps,
-    validate_suffix,
-)
-from .inject import inject
-from .transaction import VenvBackup, marked_unfinished, preserve_venv
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
