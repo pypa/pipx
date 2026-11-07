@@ -8,10 +8,8 @@ from pipx import paths
 from pipx.trash import rmdir, rmdir_via_trash, safe_unlink
 
 if TYPE_CHECKING:
-    from unittest.mock import MagicMock
-
     import pytest
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
@@ -21,7 +19,7 @@ def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
 ) -> None:
     (locked_dir := tmp_path / "locked").mkdir()
     (locked_dir / "locked.dll").write_text("locked")
-    rmtree: Final[MagicMock] = mocker.patch("pipx.trash.shutil.rmtree", autospec=True)
+    rmtree: Final[MockType] = mocker.patch("pipx.trash.shutil.rmtree", autospec=True)
 
     with caplog.at_level(logging.WARNING, logger="pipx.trash"):
         rmdir(locked_dir, safe_rm=False)

@@ -24,9 +24,8 @@ from pipx.venv import Venv
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
@@ -118,7 +117,7 @@ def test_shared_libs_create_does_not_warn_about_missing_setuptools(capfd: pytest
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="venvs bundle setuptools before Python 3.12")
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_create_skips_setuptools_uninstall_when_absent(mocker: MockerFixture) -> None:
-    spy: Final[MagicMock] = mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=run_subprocess)
+    spy: Final[MockType] = mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=run_subprocess)
 
     shared_libs.SHARED_LIBS.create(pip_args=[], verbose=False)
 
@@ -356,7 +355,7 @@ def test_install_failure_with_working_pip_keeps_shared_libs() -> None:
     assert (return_code, sentinel.exists()) == (1, True)
 
 
-def test_shared_libs_upgrade_enforces_pip_floor(upgrade_subprocess: MagicMock) -> None:
+def test_shared_libs_upgrade_enforces_pip_floor(upgrade_subprocess: MockType) -> None:
     shared_libs.SHARED_LIBS.upgrade(pip_args=["pip==20"], verbose=True, raises=True)
 
     install_command: Final[list[str]] = upgrade_subprocess.call_args.args[0]
@@ -368,7 +367,7 @@ def test_shared_libs_upgrade_enforces_pip_floor(upgrade_subprocess: MagicMock) -
 
 
 @pytest.fixture
-def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> MagicMock:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
+def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> MockType:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
     shared_libs.SHARED_LIBS.create(verbose=True, pip_args=[])
     shared_libs.SHARED_LIBS.has_been_updated_this_run = False
     return mocker.patch(
@@ -378,14 +377,14 @@ def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> Magi
     )
 
 
-def test_shared_libs_upgrade_runs_pip_in_shared_root(upgrade_subprocess: MagicMock) -> None:
+def test_shared_libs_upgrade_runs_pip_in_shared_root(upgrade_subprocess: MockType) -> None:
     shared_libs.SHARED_LIBS.upgrade(pip_args=["--find-links", "wheels"], verbose=True, raises=True)
 
     assert upgrade_subprocess.call_args.kwargs["run_dir"] == str(shared_libs.SHARED_LIBS.root)
 
 
 def test_shared_libs_upgrade_resolves_relative_cert_against_cwd(
-    upgrade_subprocess: MagicMock, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    upgrade_subprocess: MockType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -442,7 +441,7 @@ def test_disable_shared_libs_auto_upgrade(
     monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, env_value)
     monkeypatch.setattr(type(shared_libs.SHARED_LIBS), "is_valid", property(lambda _self: True))
     monkeypatch.setattr(type(shared_libs.SHARED_LIBS), "needs_upgrade", property(lambda _self: True))
-    upgrade: Final[MagicMock] = mocker.patch.object(shared_libs.SHARED_LIBS, "upgrade", autospec=True)
+    upgrade: Final[MockType] = mocker.patch.object(shared_libs.SHARED_LIBS, "upgrade", autospec=True)
 
     venv.check_upgrade_shared_libs(verbose=True, pip_args=[])
 
@@ -505,7 +504,7 @@ def test_install_cooldown_applies_to_new_shared_pip(package_cache_dir: Path, cap
     ]
 
 
-def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(upgrade_subprocess: MagicMock) -> None:
+def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(upgrade_subprocess: MockType) -> None:
     with shared_libs.shared_pip_cooldown(7):
         shared_libs.SHARED_LIBS.upgrade(pip_args=[], verbose=True, raises=True)
 

@@ -20,9 +20,8 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_import_defers_default_python_resolution() -> None:
@@ -451,7 +450,7 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
 def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
     mocker: MockerFixture, python_version: str
 ) -> None:
-    launcher: Final[MagicMock] = mocker.patch.object(subprocess, "run", autospec=True)
+    launcher: Final[MockType] = mocker.patch.object(subprocess, "run", autospec=True)
 
     with pytest.raises(InterpreterResolutionError, match="found in PATH"):
         find_python_interpreter(python_version, FetchPythonOptions.NEVER)

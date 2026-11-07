@@ -18,9 +18,8 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_known_backends() -> None:
@@ -201,7 +200,7 @@ def test_find_uv_binary_missing(mocker: MockerFixture) -> None:
 def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
     mocker.patch("pipx.backends.uv._binary_runs", return_value=True, autospec=True)
-    which_mock: Final[MagicMock] = mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
+    which_mock: Final[MockType] = mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     find_uv_binary()
     find_uv_binary()
     find_uv_binary()
@@ -211,7 +210,7 @@ def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
 def test_resolve_uv_binary_runs_uv_version_once(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
-    run: Final[MagicMock] = mocker.patch(
+    run: Final[MockType] = mocker.patch(
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess(["uv", "--version"], 0, stdout="uv 0.11.28", stderr=""),
         autospec=True,
@@ -266,7 +265,7 @@ def uv_binary(tmp_path: Path, mocker: MockerFixture) -> Path:
 def uv_run_subprocess(
     uv_binary: Path,  # ruff:ignore[unused-function-argument]  # UvBackend() must find the patched uv
     mocker: MockerFixture,
-) -> MagicMock:
+) -> MockType:
     return mocker.patch(
         "pipx.backends.uv.run_subprocess",
         autospec=True,
@@ -275,7 +274,7 @@ def uv_run_subprocess(
 
 
 @pytest.fixture
-def pip_run_subprocess(mocker: MockerFixture) -> MagicMock:
+def pip_run_subprocess(mocker: MockerFixture) -> MockType:
     return mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
@@ -288,7 +287,7 @@ def pip_run_subprocess(mocker: MockerFixture) -> MagicMock:
     [pytest.param(True, ["--progress-bar=on"], id="verbose-streams"), pytest.param(False, [], id="quiet-captures")],
 )
 def test_pip_backend_install_streams_output_only_when_verbose(
-    verbose: bool, flags: list[str], tmp_path: Path, pip_run_subprocess: MagicMock
+    verbose: bool, flags: list[str], tmp_path: Path, pip_run_subprocess: MockType
 ) -> None:
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
@@ -307,7 +306,7 @@ def test_pip_backend_install_streams_output_only_when_verbose(
     [pytest.param(True, "--verbose", id="verbose-streams"), pytest.param(False, "--quiet", id="quiet-captures")],
 )
 def test_uv_backend_install_streams_output_only_when_verbose(
-    verbose: bool, flag: str, tmp_path: Path, uv_run_subprocess: MagicMock
+    verbose: bool, flag: str, tmp_path: Path, uv_run_subprocess: MockType
 ) -> None:
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
@@ -321,7 +320,7 @@ def test_uv_backend_install_streams_output_only_when_verbose(
     )
 
 
-def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
+def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MockType) -> None:
     with pytest.raises(PipxError, match=r"^--index-url is empty"):
         UvBackend().install(
             venv_root=tmp_path,
@@ -333,7 +332,7 @@ def test_uv_install_rejects_recorded_empty_index(tmp_path: Path, uv_run_subproce
     uv_run_subprocess.assert_not_called()
 
 
-def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
+def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_subprocess: MockType) -> None:
     with pytest.raises(PipxError, match=r"^--default-index is empty"):
         UvBackend().list_outdated(
             venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", index_args=["--default-index="], exclude=[]
@@ -341,7 +340,7 @@ def test_uv_list_outdated_rejects_recorded_empty_index(tmp_path: Path, uv_run_su
     uv_run_subprocess.assert_not_called()
 
 
-def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: MagicMock) -> None:
+def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: MockType) -> None:
     UvBackend().install(
         venv_root=tmp_path, venv_python=tmp_path / "bin" / "python", requirements=["demo"], pip_args=[], verbose=False
     )
@@ -377,7 +376,7 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: Mag
     ],
 )
 def test_uv_install_passes_index_url_as_default_index(
-    pip_args: list[str], expected: list[str], tmp_path: Path, uv_run_subprocess: MagicMock
+    pip_args: list[str], expected: list[str], tmp_path: Path, uv_run_subprocess: MockType
 ) -> None:
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
@@ -407,7 +406,7 @@ def test_uv_install_passes_index_url_as_default_index(
     ],
 )
 def test_uv_run_raw_pip_verbosity(
-    verbose: bool, args: list[str], flags: list[str], tmp_path: Path, uv_run_subprocess: MagicMock
+    verbose: bool, args: list[str], flags: list[str], tmp_path: Path, uv_run_subprocess: MockType
 ) -> None:
     venv_python: Final[Path] = tmp_path / "bin" / "python"
 
@@ -440,7 +439,7 @@ def test_assert_not_pip_under_uv_allows(package_name: str, backend_name: str) ->
 
 
 def test_uv_list_installed_not_required_uses_distribution_metadata(
-    site_packages: Path, tmp_path: Path, uv_run_subprocess: MagicMock
+    site_packages: Path, tmp_path: Path, uv_run_subprocess: MockType
 ) -> None:
     write_dist_info(site_packages, "root-package")
     write_dist_info(site_packages, "top-package", ["child-package>=1"])
@@ -524,7 +523,7 @@ def outdated_process() -> subprocess.CompletedProcess[str]:
 def test_pip_backend_list_outdated_forwards_index_settings(
     tmp_path: Path, mocker: MockerFixture, outdated_process: subprocess.CompletedProcess[str]
 ) -> None:
-    run_subprocess: Final[MagicMock] = mocker.patch(
+    run_subprocess: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess", autospec=True, return_value=outdated_process
     )
 
@@ -555,7 +554,7 @@ def test_pip_backend_list_outdated_forwards_index_settings(
 def test_uv_backend_list_outdated_forwards_index_settings(
     tmp_path: Path, uv_binary: Path, mocker: MockerFixture, outdated_process: subprocess.CompletedProcess[str]
 ) -> None:
-    run_subprocess: Final[MagicMock] = mocker.patch(
+    run_subprocess: Final[MockType] = mocker.patch(
         "pipx.backends.uv.run_subprocess", autospec=True, return_value=outdated_process
     )
 
@@ -613,7 +612,7 @@ def test_backend_cooldown_args(
 def test_pip_backend_install_lock_refuses_pip_without_lock_support(
     version_output: str, reported: str, tmp_path: Path, mocker: MockerFixture
 ) -> None:
-    run: Final[MagicMock] = mocker.patch(
+    run: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=version_output, stderr=""),
@@ -635,7 +634,7 @@ def test_pip_backend_install_lock_refuses_pip_without_lock_support(
 
 
 def test_pip_backend_install_lock_passes_lock_to_pip_with_lock_support(tmp_path: Path, mocker: MockerFixture) -> None:
-    run: Final[MagicMock] = mocker.patch(
+    run: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="pip 26.1 from /pip\n", stderr=""),

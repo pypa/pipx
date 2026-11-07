@@ -35,9 +35,8 @@ from pipx.version import version
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 _ROOT: Final[Path] = Path(__file__).parents[1]
 _MANPAGE_RST: Final[Path] = _ROOT / "docs" / "man" / "pipx.1.rst"
@@ -48,7 +47,7 @@ _ENVIRONMENT_VALUE: Final[list[str]] = ["environment", "--value", "PIPX_HOME"]
 
 
 @pytest.fixture
-def exit_early(mocker: MockerFixture) -> MagicMock:
+def exit_early(mocker: MockerFixture) -> MockType:
     # the real sys.exit would end the test run, so raise instead and let each test catch it
     return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"), autospec=True)
 
@@ -61,7 +60,7 @@ def exit_early(mocker: MockerFixture) -> MagicMock:
         pytest.param(["help", "install"], "usage: pipx install", id="help-for-subcommand"),
     ],
 )
-def test_help_text(exit_early: MagicMock, capsys: pytest.CaptureFixture[str], argv: list[str], expected: str) -> None:
+def test_help_text(exit_early: MockType, capsys: pytest.CaptureFixture[str], argv: list[str], expected: str) -> None:
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(argv)
 
@@ -69,7 +68,7 @@ def test_help_text(exit_early: MagicMock, capsys: pytest.CaptureFixture[str], ar
     assert expected in capsys.readouterr().out
 
 
-def test_version(exit_early: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+def test_version(exit_early: MockType, capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["--version"])
 
@@ -572,7 +571,7 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
-    find_uv_binary: Final[MagicMock] = mocker.patch(
+    find_uv_binary: Final[MockType] = mocker.patch(
         "pipx.backends.registry.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
     )
 

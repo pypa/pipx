@@ -12,9 +12,7 @@ from pipx import paths
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
-    from unittest.mock import MagicMock
-
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.mark.parametrize(
@@ -38,7 +36,7 @@ def test_execute_runs_recorded_app(
 ) -> None:
     for setup_command in setup_commands:
         assert not run_pipx_cli(setup_command)
-    boundary: Final[MagicMock] = mocker.patch.object(
+    boundary: Final[MockType] = mocker.patch.object(
         importlib.import_module("pipx.commands.execute"),
         "exec_app",
         autospec=True,

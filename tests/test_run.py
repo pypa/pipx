@@ -22,9 +22,8 @@ from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 import pipx.main
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
@@ -377,7 +376,7 @@ def test_run_cooldown_separates_cache(package_cache_dir: Path, caplog: pytest.Lo
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_no_path_check(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
-    which: Final[MagicMock] = mocker.create_autospec(shutil.which, return_value="/fake/bin/pycowsay")
+    which: Final[MockType] = mocker.create_autospec(shutil.which, return_value="/fake/bin/pycowsay")
     mocker.patch("pipx.commands.run.which", new=which)
     mocker.patch("pipx.commands.run_uv.which", new=which)
 

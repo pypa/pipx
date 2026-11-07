@@ -32,10 +32,9 @@ from pipx.redact import redact_url_credentials
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -233,7 +232,7 @@ def test_reinstall_legacy_venv(metadata_version: str | None) -> None:
 def test_reinstall_legacy_venv_inspects_once_for_resources(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay")
-    run_subprocess: Final[MagicMock] = mocker.spy(venv_inspect, "run_subprocess")
+    run_subprocess: Final[MockType] = mocker.spy(venv_inspect, "run_subprocess")
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
@@ -286,7 +285,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     lose_record(paths.CTX.venvs / "pycowsay")
-    install: Final[MagicMock] = mocker.patch("pipx.commands.reinstall.install", autospec=True)
+    install: Final[MockType] = mocker.patch("pipx.commands.reinstall.install", autospec=True)
     capsys.readouterr()
 
     assert run_pipx_cli(command)

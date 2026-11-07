@@ -11,9 +11,8 @@ from pipx import paths
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.mark.parametrize(
@@ -30,7 +29,7 @@ def test_context_resolves_base_path_once(
     attribute: str,
     override_name: str,
 ) -> None:
-    resolve: Final[MagicMock] = mocker.spy(Path, "resolve")
+    resolve: Final[MockType] = mocker.spy(Path, "resolve")
     paths.CTX.make_local()
     expected: Final[Path | None] = getattr(paths, override_name)
     assert expected is not None

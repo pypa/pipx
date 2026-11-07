@@ -28,10 +28,9 @@ from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
-    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 _P = ParamSpec("_P")
@@ -93,7 +92,7 @@ def test_upgrade_all_checks_current_packages_concurrently(
         barrier.wait(timeout=5)
         return subprocess.CompletedProcess(cmd, returncode=0, stdout="[]", stderr="")
 
-    check: Final[MagicMock] = mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, side_effect=check_package)
+    check: Final[MockType] = mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, side_effect=check_package)
 
     assert (run_pipx_cli(["upgrade-all"]), check.call_count) == (0, 3)
 
@@ -110,7 +109,7 @@ def test_upgrade_all_does_not_copy_current_environment(
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
     )
-    backup: Final[MagicMock] = mocker.patch("pipx.commands.transaction.copytree", autospec=True)
+    backup: Final[MockType] = mocker.patch("pipx.commands.transaction.copytree", autospec=True)
 
     assert (run_pipx_cli(["upgrade-all"]), backup.call_count) == (0, 0)
 
@@ -166,7 +165,7 @@ def test_upgrade_all_reports_outdated_check_failure(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(
@@ -191,7 +190,7 @@ def test_upgrade_all_skips_pinned_package_check(
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
     caplog.clear()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
@@ -262,7 +261,7 @@ def test_upgrade_all_pylock_json(
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
     capsys.readouterr()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
@@ -352,7 +351,7 @@ def test_upgrade_all_json_editable_skip(capsys: pytest.CaptureFixture[str], empt
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_with_index_args(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),

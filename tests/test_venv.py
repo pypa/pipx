@@ -23,15 +23,14 @@ from pipx.venv import Venv, reset_backend_override_warnings
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
     from pipx.constants import ExitCode
 
 
 @pytest.fixture
-def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv, tuple[Path, Path], MagicMock]:
+def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv, tuple[Path, Path], MockType]:
     venv: Final[Venv] = Venv(tmp_path / "demo")
     venv.python_path.parent.mkdir(parents=True)
     venv.python_path.touch()
@@ -46,7 +45,7 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
     platlib_demo.mkdir(parents=True)
     (platlib_demo / "METADATA").write_text("Name: demo2\nVersion: 1.0\n", encoding="utf-8")
 
-    run_subprocess: Final[MagicMock] = mocker.patch(
+    run_subprocess: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
@@ -54,12 +53,12 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
     return venv, (purelib_demo, platlib_demo), run_subprocess
 
 
-def test_has_package(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:
+def test_has_package(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType]) -> None:
     venv, _, _ = venv_with_site_packages
     assert (venv.has_package("demo"), venv.has_package("demo2")) == (True, True)
 
 
-def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:
+def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType]) -> None:
     venv, (purelib_demo, _), run_subprocess = venv_with_site_packages
     (purelib_demo / "entry_points.txt").write_text("[pipx.run]\ndemo = demo:main\n", encoding="utf-8")
 
@@ -67,7 +66,7 @@ def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple
 
 
 def test_run_app_rejects_python_args_without_entry_point(
-    venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock],
+    venv_with_site_packages: tuple[Venv, tuple[Path, Path], MockType],
 ) -> None:
     venv, _, _ = venv_with_site_packages
 
@@ -144,7 +143,7 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
 def test_venv_without_pyvenv_cfg_refuses_installer(
     operation: Callable[[Venv], set[str] | ExitCode | None], tmp_path: Path, mocker: MockerFixture
 ) -> None:
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True)
     mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
     venv: Final[Venv] = Venv(tmp_path / "demo")
 
@@ -214,7 +213,7 @@ def test_venv_without_record_resolves_like_a_fresh_one(
 def test_package_name_determination_preserves_install_error(mocker: MockerFixture, tmp_path: Path) -> None:
     (tmp_path / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(tmp_path)
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True)
     # Python before 3.14 ignores a keyword argument naming a method of an autospec
     backend.cooldown_args.return_value = []
     backend.install.return_value = subprocess.CompletedProcess(
@@ -262,7 +261,7 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
     (root := site_packages / "probe-venv").mkdir()
     (root / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(root)
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
     # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
     backend.install.side_effect = install
     mocker.patch.object(venv, "_backend", backend)

@@ -29,10 +29,9 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from unittest.mock import MagicMock
 
     from _pytest.mark.structures import ParameterSet
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @SKIP_IF_WINDOWS
@@ -587,14 +586,14 @@ def lookalikes_below_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.fixture
-def probe_venv(mocker: MockerFixture) -> MagicMock:
-    venv: Final[MagicMock] = mocker.patch.object(common, "Venv", autospec=True)
+def probe_venv(mocker: MockerFixture) -> MockType:
+    venv: Final[MockType] = mocker.patch.object(common, "Venv", autospec=True)
     # Python 3.11's create_autospec drops a return value passed as a keyword for a child method
     venv.return_value.install_package_no_deps.return_value = "acme-tool"
     return venv
 
 
-def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: MagicMock) -> None:
+def test_package_name_from_spec_creates_probe_venv_with_pip_args(probe_venv: MockType) -> None:
     package_name_from_spec(
         "https://files.example/acme_tool-1.0-py3-none-any.whl",
         sys.executable,

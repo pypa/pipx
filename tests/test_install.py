@@ -34,10 +34,9 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
-    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
@@ -1684,7 +1683,7 @@ def test_install_inline_script_app_override(inline_script: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -> None:
-    response: Final[MagicMock] = mocker.MagicMock(
+    response: Final[MockType] = mocker.MagicMock(
         length=0,
         **{
             "read.return_value": inline_script.read_bytes(),

@@ -21,10 +21,9 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
-    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.write(1, b'after\\n')"
@@ -36,7 +35,7 @@ _STREAM_ENCODING: Final[dict[str, str]] = {"PYTHONIOENCODING": "cp850", "PYTHONL
 
 def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("pipx.subprocess_runner.WINDOWS", False)
-    execvpe: Final[MagicMock] = mocker.patch(
+    execvpe: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.os.execvpe", autospec=True, side_effect=RuntimeError
     )
 
@@ -48,7 +47,7 @@ def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monk
 
 def test_exec_app_preserves_stream_encoding_on_windows(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("pipx.subprocess_runner.WINDOWS", True)
-    run: Final[MagicMock] = mocker.patch(
+    run: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.subprocess.run", autospec=True, side_effect=RuntimeError
     )
 
