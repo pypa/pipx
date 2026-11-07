@@ -7,6 +7,7 @@ __lazy_modules__ = [
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.package_specifier",
+    "pipx.requires_python",
     "pipx.subprocess_runner",
     "pipx.util",
     "threading",
@@ -22,7 +23,7 @@ from threading import RLock
 from time import time as _time
 from typing import TYPE_CHECKING, Final
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 from pipx import paths
 from pipx.animate import animate
@@ -31,6 +32,7 @@ from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python, read_pyvenv_cfg
 from pipx.package_specifier import absolute_path_pip_args
+from pipx.requires_python import unsatisfied_by_interpreter
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
 from pipx.util import PipxError, get_venv_paths
 
@@ -93,6 +95,13 @@ class _SharedLibs:
 
     def _create(self, pip_args: list[str], *, verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
+            python: Final[str] = get_default_python()
+            if unsatisfied_by_interpreter(">=3.10", python) is not None:
+                msg = (
+                    "Shared pip requires Python 3.10 or newer. Set PIPX_DEFAULT_PYTHON to a compatible interpreter "
+                    "and run pipx upgrade-shared."
+                )
+                raise PipxError(msg)
             # Run the venv CLI, then print the pip wheel the base interpreter's ensurepip would install, checking the
             # distro wheel directory first as ensurepip does. Debian strips both locations, which prints an empty line.
             script: Final[str] = (
@@ -105,9 +114,10 @@ class _SharedLibs:
             )
             with animate("creating shared libraries", do_animation=not verbose):
                 create_process: Final[CompletedProcess[str]] = run_subprocess(
-                    [get_default_python(), "-c", script, "--without-pip", "--clear", self.root], run_dir=str(self.root)
+                    [python, "-c", script, "--without-pip", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
+            self._site_packages.clear()
             self._is_valid = None
 
             should_reinstall_pip: Final[bool] = (
@@ -144,11 +154,25 @@ class _SharedLibs:
             if self._is_valid is None:
                 self._is_valid = (
                     self.python_path.is_file()
+                    and self._python_supports_pip()
                     and self._base_interpreter_exists(self.python_path)
                     and self.pip_path.is_file()
                     and (self.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").is_file()
                 )
             return self._is_valid
+
+    def _python_supports_pip(self) -> bool:
+        if (version := read_pyvenv_cfg(self.root / "pyvenv.cfg").get("version")) is None:
+            return True
+        try:
+            compatible = Version(version) >= Version("3.10")
+        except InvalidVersion:
+            return True
+        if not compatible:
+            _LOGGER.info(
+                "Shared libraries use Python %s, but pip %s requires Python 3.10 or newer", version, _PIP_FLOOR
+            )
+        return compatible
 
     @property
     def python_path(self) -> Path:

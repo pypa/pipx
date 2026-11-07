@@ -23,8 +23,10 @@ and ``uv pip`` installs into it.
 
 pipx refreshes the shared ``pip`` once it is more than 30 days old, or right away when it is older than ``pip`` 26.2.2;
 ``pipx upgrade-shared`` refreshes it immediately. When ``pip``'s files are missing from the shared environment, pipx
-rebuilds it before running ``pip``; when a ``pip`` command fails because ``pip`` no longer imports, pipx rebuilds it and
-retries the command once.
+rebuilds it before running ``pip``. It also rebuilds shared environments created with Python older than 3.10, which
+cannot install the required ``pip`` version. Rebuilding uses the default Python interpreter; existing applications'
+``.pth`` references are refreshed before their next installer operation. When a ``pip`` command fails because ``pip``
+no longer imports, pipx rebuilds it and retries the command once.
 
 After installing the package, pipx exposes the application's resources so you can reach them from any directory. It
 handles three kinds:

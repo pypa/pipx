@@ -329,6 +329,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 f"To fix, execute: pipx reinstall {self.root.name}"
             )
             raise PipxError(msg, wrap_message=False)
+        if self.uses_shared_libs and SHARED_LIBS.is_valid:
+            shared_pth: Final[Path] = self.site_packages[0] / PIPX_SHARED_PTH
+            shared_paths: Final[str] = "".join(f"{path}\n" for path in SHARED_LIBS.site_packages)
+            # Rebuilding shared pip with another Python minor moves its site-packages on POSIX.
+            if shared_pth.is_file() and shared_pth.read_text() != shared_paths:
+                shared_pth.write_text(shared_paths)
         return self.python_path
 
     def uninstall_packages(self, *packages: str, was_injected: bool = False) -> None:

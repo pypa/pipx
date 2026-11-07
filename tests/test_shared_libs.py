@@ -17,7 +17,8 @@ from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
-from pipx.subprocess_runner import run_subprocess
+from pipx.subprocess_runner import get_site_packages, run_subprocess
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -201,6 +202,82 @@ def shared_pip_layout(pipx_ultra_temp_env: None) -> dict[str, Path]:  # ruff:ign
 @pytest.mark.usefixtures("shared_pip_layout")
 def test_shared_libs_validity_accepts_complete_layout() -> None:
     assert shared_libs.SHARED_LIBS.is_valid
+
+
+@pytest.mark.parametrize(
+    ("version", "valid"),
+    [
+        pytest.param("3.9.25", False, id="too-old"),
+        pytest.param("3.10.0", True, id="minimum"),
+        pytest.param("3.15.0", True, id="current"),
+        pytest.param("unknown", True, id="unrecognized"),
+        pytest.param("", True, id="missing"),
+    ],
+)
+@pytest.mark.usefixtures("shared_pip_layout")
+def test_shared_libs_checks_python_compatibility(version: str, *, valid: bool) -> None:
+    (shared_libs.SHARED_LIBS.root / "pyvenv.cfg").write_text(f"version = {version}\n" * bool(version), encoding="utf-8")
+
+    assert shared_libs.SHARED_LIBS.is_valid is valid
+
+
+@pytest.fixture
+def legacy_shared_pip(
+    pipx_ultra_temp_env: None,  # ruff:ignore[unused-function-argument]  # activate isolated paths before venv creation
+) -> Path:
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", shared_libs.SHARED_LIBS.root], check=True)
+    site_packages: Final[Path] = get_site_packages(shared_libs.SHARED_LIBS.python_path)[0]
+    if not WINDOWS:
+        legacy_site_packages: Final[Path] = shared_libs.SHARED_LIBS.root / "lib" / "python3.9" / "site-packages"
+        legacy_site_packages.parent.mkdir()
+        site_packages.rename(legacy_site_packages)
+        site_packages.parent.rmdir()
+    (pip_main := shared_libs.SHARED_LIBS.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").parent.mkdir(
+        parents=True
+    )
+    pip_main.touch()
+    shared_libs.SHARED_LIBS.pip_path.touch()
+    (shared_libs.SHARED_LIBS.root / "pyvenv.cfg").write_text("version = 3.9.25\n", encoding="utf-8")
+    return shared_libs.SHARED_LIBS.site_packages[0]
+
+
+def test_upgrade_shared_rebuilds_old_python_and_refreshes_existing_app(
+    legacy_shared_pip: Path, tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    app: Final[Path] = tmp_path / "app"
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", app], check=True)
+    venv: Final[Venv] = Venv(app)
+    shared_pth: Final[Path] = venv.site_packages[0] / PIPX_SHARED_PTH
+    shared_pth.write_text(f"{legacy_shared_pip}\n", encoding="utf-8")
+
+    assert run_pipx_cli(["upgrade-shared"]) == 0
+    capfd.readouterr()
+    assert venv.run_pip_get_exit_code(["--version"]) == 0
+
+    assert (
+        shared_libs.SHARED_LIBS.site_packages,
+        shared_pth.read_text(encoding="utf-8"),
+        "pip 26." in capfd.readouterr().out,
+    ) == (
+        get_site_packages(shared_libs.SHARED_LIBS.python_path),
+        "".join(f"{path}\n" for path in get_site_packages(shared_libs.SHARED_LIBS.python_path)),
+        True,
+    )
+
+
+@pytest.mark.usefixtures("legacy_shared_pip")
+def test_shared_libs_refuses_incompatible_default_before_clearing(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "pipx.requires_python.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="3.9.25\n", stderr=""),
+    )
+    (sentinel := shared_libs.SHARED_LIBS.root / "sentinel").touch()
+
+    with pytest.raises(PipxError, match=r"Shared pip requires Python 3\.10 or newer"):
+        shared_libs.SHARED_LIBS.create(pip_args=[], verbose=False)
+
+    assert sentinel.is_file()
 
 
 @pytest.mark.parametrize(
