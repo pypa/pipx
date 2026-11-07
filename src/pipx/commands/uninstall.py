@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.trash", "pipx.venv", "shutil", f"{__spec__.parent}.common"]
+__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv", "shutil"]
 
 import logging
 from dataclasses import dataclass

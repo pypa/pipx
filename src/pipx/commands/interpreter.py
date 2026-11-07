@@ -3,11 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging",
     "pipx",
+    "pipx.commands.reinstall",
     "pipx.options",
     "pipx.trash",
     "pipx.venv",
     "subprocess",
-    f"{__spec__.parent}.reinstall",
 ]
 
 import logging

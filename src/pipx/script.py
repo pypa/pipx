@@ -5,11 +5,11 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
+    "pipx.redact",
+    "pipx.util",
     "tempfile",
     "tomllib",
     "urllib.parse",
-    f"{__spec__.parent}.redact",
-    f"{__spec__.parent}.util",
 ]
 
 import base64

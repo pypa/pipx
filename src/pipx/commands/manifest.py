@@ -6,6 +6,10 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
+    "pipx.commands.common",
+    "pipx.commands.expose",
+    "pipx.commands.install",
+    "pipx.commands.uninstall",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -15,10 +19,6 @@ __lazy_modules__ = [
     "subprocess",
     "tempfile",
     "tomllib",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.expose",
-    f"{__spec__.parent}.install",
-    f"{__spec__.parent}.uninstall",
 ]
 
 import subprocess

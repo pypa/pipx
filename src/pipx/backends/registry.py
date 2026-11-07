@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.util", f"{__spec__.parent}._base", f"{__spec__.parent}.pip", f"{__spec__.parent}.uv"]
+__lazy_modules__ = ["pipx.backends._base", "pipx.backends.pip", "pipx.backends.uv", "pipx.util"]
 
 import os
 from functools import cache

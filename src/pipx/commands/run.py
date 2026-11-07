@@ -12,6 +12,8 @@ __lazy_modules__ = [
     "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
+    "pipx.commands.common",
+    "pipx.commands.run_uv",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.redact",
@@ -26,8 +28,6 @@ __lazy_modules__ = [
     "shutil",
     "tempfile",
     "urllib.parse",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.run_uv",
 ]
 
 import datetime as dt

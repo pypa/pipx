@@ -11,15 +11,6 @@ __lazy_modules__ = [
     "pipx.subprocess_runner",
     "pipx.util",
     "threading",
-    f"{__spec__.parent}",
-    f"{__spec__.parent}.animate",
-    f"{__spec__.parent}.constants",
-    f"{__spec__.parent}.emojis",
-    f"{__spec__.parent}.fanout",
-    f"{__spec__.parent}.interpreter",
-    f"{__spec__.parent}.package_specifier",
-    f"{__spec__.parent}.subprocess_runner",
-    f"{__spec__.parent}.util",
 ]
 
 import datetime as dt

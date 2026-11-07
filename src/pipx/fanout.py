@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["concurrent.futures", "functools", "signal", f"{__spec__.parent}.constants"]
+__lazy_modules__ = ["concurrent.futures", "functools", "pipx.constants", "signal"]
 
 import logging
 import os

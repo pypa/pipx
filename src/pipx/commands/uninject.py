@@ -4,13 +4,13 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
+    "pipx.commands.common",
+    "pipx.commands.inject",
     "pipx.redact",
     "pipx.trash",
     "pipx.venv",
     "pipx.venv_inspect",
     "pipx.wrap",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.inject",
 ]
 
 import logging

@@ -3,11 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = [
     "json",
     "pipx",
+    "pipx.commands.common",
+    "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
     "pipx.self_install",
     "pipx.venv",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.transaction",
 ]
 
 import json

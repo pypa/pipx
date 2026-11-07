@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["logging", "shutil", "threading", f"{__spec__.parent}.emojis", f"{__spec__.parent}.fanout"]
+__lazy_modules__ = ["logging", "pipx.emojis", "pipx.fanout", "shutil", "threading"]
 
 import logging
 import shutil

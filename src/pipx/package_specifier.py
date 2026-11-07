@@ -4,14 +4,14 @@ __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
     "pathlib",
+    "pipx.backends._base",
+    "pipx.emojis",
+    "pipx.redact",
+    "pipx.util",
+    "pipx.wrap",
     "re",
     "tomllib",
     "urllib.parse",
-    f"{__spec__.parent}.backends._base",
-    f"{__spec__.parent}.emojis",
-    f"{__spec__.parent}.redact",
-    f"{__spec__.parent}.util",
-    f"{__spec__.parent}.wrap",
 ]
 
 import logging

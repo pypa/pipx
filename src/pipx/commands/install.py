@@ -6,6 +6,9 @@ __lazy_modules__ = [
     "packaging.utils",
     "pipx",
     "pipx.backends._base",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.options",
@@ -19,9 +22,6 @@ __lazy_modules__ = [
     "pipx.venv",
     "pipx.wrap",
     "re",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.inject",
-    f"{__spec__.parent}.transaction",
 ]
 
 import json

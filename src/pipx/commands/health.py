@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "pipx.commands.reinstall",
+    "pipx.commands.transaction",
     "pipx.pipx_metadata_file",
     "pipx.subprocess_runner",
     "pipx.util",
-    f"{__spec__.parent}.reinstall",
-    f"{__spec__.parent}.transaction",
 ]
 
 from dataclasses import dataclass

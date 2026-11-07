@@ -7,6 +7,8 @@ __lazy_modules__ = [
     "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
+    "pipx.commands.common",
+    "pipx.commands.transaction",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.redact",
@@ -14,8 +16,6 @@ __lazy_modules__ = [
     "pipx.venv",
     "pipx.wrap",
     "re",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.transaction",
 ]
 
 import logging

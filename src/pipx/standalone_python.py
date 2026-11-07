@@ -6,14 +6,14 @@ __lazy_modules__ = [
     "hashlib",
     "json",
     "pathlib",
+    "pipx",
+    "pipx.animate",
+    "pipx.util",
     "platform",
     "re",
     "shutil",
     "tarfile",
     "urllib.request",
-    f"{__spec__.parent}",
-    f"{__spec__.parent}.animate",
-    f"{__spec__.parent}.util",
 ]
 
 import datetime as dt

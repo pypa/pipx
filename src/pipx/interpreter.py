@@ -5,11 +5,11 @@ __lazy_modules__ = [
     "importlib.util",
     "packaging",
     "pathlib",
+    "pipx.constants",
+    "pipx.self_install",
     "re",
     "shutil",
     "subprocess",
-    f"{__spec__.parent}.constants",
-    f"{__spec__.parent}.self_install",
 ]
 
 import logging

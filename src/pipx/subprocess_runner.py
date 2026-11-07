@@ -5,6 +5,10 @@ __lazy_modules__ = [
     "fcntl",
     "itertools",
     "pathlib",
+    "pipx.animate",
+    "pipx.fanout",
+    "pipx.redact",
+    "pipx.util",
     "pty",
     "re",
     "select",
@@ -12,10 +16,6 @@ __lazy_modules__ = [
     "struct",
     "subprocess",
     "termios",
-    f"{__spec__.parent}.animate",
-    f"{__spec__.parent}.fanout",
-    f"{__spec__.parent}.redact",
-    f"{__spec__.parent}.util",
 ]
 
 import codecs

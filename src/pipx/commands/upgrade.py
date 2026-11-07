@@ -3,6 +3,11 @@ from __future__ import annotations
 __lazy_modules__ = [
     "functools",
     "pipx",
+    "pipx.commands.common",
+    "pipx.commands.install",
+    "pipx.commands.outdated",
+    "pipx.commands.reinstall",
+    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.options",
@@ -15,11 +20,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.install",
-    f"{__spec__.parent}.outdated",
-    f"{__spec__.parent}.reinstall",
-    f"{__spec__.parent}.transaction",
 ]
 
 import logging

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "random", "shutil", "string", f"{__spec__.parent}"]
+__lazy_modules__ = ["pathlib", "pipx", "random", "shutil", "string"]
 
 import logging
 import random

@@ -8,14 +8,14 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
+    "pipx.constants",
+    "pipx.requires_python",
+    "pipx.subprocess_runner",
+    "pipx.util",
     "shutil",
     "textwrap",
     "tomllib",
     "urllib.parse",
-    f"{__spec__.parent}.constants",
-    f"{__spec__.parent}.requires_python",
-    f"{__spec__.parent}.subprocess_runner",
-    f"{__spec__.parent}.util",
 ]
 
 import ast

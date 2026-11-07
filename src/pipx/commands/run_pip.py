@@ -3,12 +3,12 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
+    "pipx.commands.common",
+    "pipx.commands.transaction",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.util",
     "pipx.venv",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.transaction",
 ]
 
 from pathlib import Path

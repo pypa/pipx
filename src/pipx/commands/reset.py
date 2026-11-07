@@ -1,13 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = [
-    "contextlib",
-    "pipx",
-    "pipx.trash",
-    "pipx.venv",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.uninstall",
-]
+__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.common", "pipx.commands.uninstall", "pipx.trash", "pipx.venv"]
 
 from contextlib import suppress
 from dataclasses import dataclass

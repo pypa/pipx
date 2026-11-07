@@ -6,6 +6,10 @@ __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
     "pipx",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.install",
+    "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.options",
     "pipx.package_specifier",
@@ -15,10 +19,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "tempfile",
-    f"{__spec__.parent}.common",
-    f"{__spec__.parent}.inject",
-    f"{__spec__.parent}.install",
-    f"{__spec__.parent}.transaction",
 ]
 
 import contextlib

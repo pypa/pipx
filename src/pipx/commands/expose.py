@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.trash", "pipx.venv", f"{__spec__.parent}.common"]
+__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum

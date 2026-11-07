@@ -6,12 +6,12 @@ __lazy_modules__ = [
     "json",
     "pathlib",
     "pipx",
+    "pipx.backends.pip",
     "pipx.subprocess_runner",
     "pipx.trash",
     "pipx.util",
     "shutil",
     "subprocess",
-    f"{__spec__.parent}.pip",
 ]
 
 import json
