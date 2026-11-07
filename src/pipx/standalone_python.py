@@ -321,7 +321,7 @@ def _download_resuming(url: str, archive: Path) -> None:
             # the CDN to continue from the bytes already on disk instead of downloading everything again
             request = Request(url, headers={"Range": f"bytes={written}-"} if written else {})  # ruff:ignore[suspicious-url-open-usage]
             try:
-                with urlopen(request, timeout=_URL_OPEN_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]
+                with urlopen(request, timeout=_URL_OPEN_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # the URL is from the pinned release index, not user input
                     if written and response.status != HTTPStatus.PARTIAL_CONTENT:
                         # the server ignored the range request and answered with the whole file
                         file_handle.seek(0)

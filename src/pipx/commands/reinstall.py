@@ -273,7 +273,7 @@ def reinstall(
     except KeyboardInterrupt:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
         give_back_shared_links(old_resource_paths, venv_dir)
-        _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]
+        _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]  # an interrupt is reported without a traceback
         raise
     except Exception:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
