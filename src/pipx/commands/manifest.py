@@ -178,7 +178,8 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
             msg = f"Manifest tool {environment} must be a table."
             raise PipxError(msg)
         tools.append(_parse_tool(environment, package, values, path.parent, require_locks=require_locks))
-    if duplicates := _duplicate_lock_files(tools):
+    lock_file_counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
+    if duplicates := sorted(lock_file for lock_file, count in lock_file_counts.items() if count > 1):
         msg = f"Lock files must be unique per tool: {', '.join(map(str, duplicates))}"
         raise PipxError(msg)
     return _Manifest(path=path, tools=tuple(tools))
@@ -364,11 +365,6 @@ def _is_pylock_name(name: str) -> bool:
         and bool(lock_name := name.removeprefix("pylock.").removesuffix(".toml"))
         and "." not in lock_name
     )
-
-
-def _duplicate_lock_files(tools: list[_ManifestTool]) -> tuple[Path, ...]:
-    counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
-    return tuple(sorted(lock_file for lock_file, count in counts.items() if count > 1))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
