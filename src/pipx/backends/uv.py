@@ -60,7 +60,10 @@ _VERSION_RE: Final[re.Pattern[str]] = re.compile(r"uv\s+(\S+)")
 
 
 class UvBackend(Backend):
-    """Backend that installs packages with ``uv pip``, into the interpreter of each environment."""
+    """Backend that installs packages with ``uv pip``, into the interpreter of each environment.
+
+    :cvar name: the name the backend is chosen by.
+    """
 
     name = UV
 

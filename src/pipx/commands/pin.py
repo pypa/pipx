@@ -192,7 +192,11 @@ class _SkippedPackage:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PinData(OperationData):
-    """Result data of the pin and unpin commands."""
+    """Result data of the pin and unpin commands.
+
+    :ivar packages: the packages whose pin changed.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
 
     packages: tuple[_ChangedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]

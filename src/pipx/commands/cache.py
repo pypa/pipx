@@ -28,7 +28,11 @@ def print_cache_dir(venv_container: VenvContainer) -> OperationResult[CacheData]
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CacheData(OperationData):
-    """Result data of the cache commands."""
+    """Result data of the cache commands.
+
+    :ivar directory: the directory of the cache.
+    :ivar removed: the names of the cached environments that were removed.
+    """
 
     directory: str
     removed: tuple[str, ...]

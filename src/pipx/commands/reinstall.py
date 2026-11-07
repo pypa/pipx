@@ -410,7 +410,10 @@ class _ReinstalledEnvironment:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ReinstallData(OperationData):
-    """Result data of the reinstall commands."""
+    """Result data of the reinstall commands.
+
+    :ivar environments: the environments that were reinstalled.
+    """
 
     environments: tuple[_ReinstalledEnvironment, ...]
 

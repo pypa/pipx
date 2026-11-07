@@ -626,7 +626,10 @@ def upgrade_shared(pip_args: list[str], *, verbose: bool) -> OperationResult[Sha
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SharedData(OperationData):
-    """Result data of the upgrade-shared command."""
+    """Result data of the upgrade-shared command.
+
+    :ivar location: the directory of the shared libraries.
+    """
 
     location: str
 
@@ -675,7 +678,11 @@ class _VenvUpgrade:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UpgradeData(OperationData):
-    """Result data of the upgrade commands."""
+    """Result data of the upgrade commands.
+
+    :ivar packages: the upgrade results of the packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
 
     packages: tuple[_PackageUpgradeResult, ...]
     skipped: tuple[_SkippedUpgrade, ...]

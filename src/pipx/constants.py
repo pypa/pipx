@@ -10,7 +10,12 @@ from typing import Final, NewType
 
 
 class FetchPythonOptions(enum.StrEnum):
-    """When to download a standalone Python: always, only when none is installed, or never."""
+    """When to download a standalone Python: always, only when none is installed, or never.
+
+    :cvar ALWAYS: download a standalone Python every time.
+    :cvar MISSING: download a standalone Python only when none is installed.
+    :cvar NEVER: never download a standalone Python.
+    """
 
     ALWAYS = "always"
     MISSING = "missing"

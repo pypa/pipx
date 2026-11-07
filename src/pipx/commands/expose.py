@@ -149,7 +149,10 @@ def _collision_outcome(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ExposureData(OperationData):
-    """Result data of the expose and unexpose commands."""
+    """Result data of the expose and unexpose commands.
+
+    :ivar environments: the exposure status of each environment.
+    """
 
     environments: tuple[_EnvironmentExposure, ...]
 

@@ -160,7 +160,10 @@ def _remove_resource(path: Path) -> None:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UninstallData(OperationData):
-    """Result data of the uninstall commands."""
+    """Result data of the uninstall commands.
+
+    :ivar packages: the uninstalled packages.
+    """
 
     packages: tuple[_UninstalledPackage, ...]
 

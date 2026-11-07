@@ -171,6 +171,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     :param verbose: show the output of the installer.
     :param python: the Python interpreter of the environment, or None for the default.
     :param backend: the backend that installs packages into the environment.
+    :ivar root: the directory of the environment.
+    :ivar python_path: the interpreter of the environment.
+    :ivar bin_path: the directory of the app launchers.
+    :ivar man_path: the directory of the man pages.
+    :ivar pipx_metadata: the metadata record of the environment.
+    :ivar do_animation: whether the progress spinner animates.
     """
 
     def __init__(

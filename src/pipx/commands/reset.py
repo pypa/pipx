@@ -114,7 +114,11 @@ def _exposed_resource_paths(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ResetData(OperationData):
-    """Result data of the reset command."""
+    """Result data of the reset command.
+
+    :ivar packages: the names of the packages whose environments were reset.
+    :ivar removed: the names of the directories that were removed.
+    """
 
     packages: tuple[str, ...]
     removed: tuple[str, ...]

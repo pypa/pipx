@@ -95,7 +95,11 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InstallData(OperationData):
-    """Result data of the install command."""
+    """Result data of the install command.
+
+    :ivar packages: the installed packages.
+    :ivar skipped: the install requests that were skipped, with the reason.
+    """
 
     packages: tuple[_InstalledPackage, ...]
     skipped: tuple[_SkippedInstall, ...]

@@ -24,6 +24,7 @@ class PipxError(Exception):
     :param message: the message to show.
     :param wrap_message: wrap the message to the width of the terminal.
     :param backend_output: the output of pip or uv, which a result envelope carries when the terminal already showed it.
+    :ivar raw_message: the message as given, without wrapping.
     """
 
     def __init__(self, message: str, *, wrap_message: bool = True, backend_output: str = "") -> None:

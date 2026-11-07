@@ -15,7 +15,12 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class OutputLevel(enum.IntEnum):
-    """Severity of an output message."""
+    """Severity of an output message.
+
+    :cvar NORMAL: an ordinary message.
+    :cvar ERROR: a message about a failure.
+    :cvar CRITICAL: a message about a failure that stops the command.
+    """
 
     NORMAL = 0
     ERROR = 1
@@ -23,7 +28,12 @@ class OutputLevel(enum.IntEnum):
 
 
 class OutputStream(enum.StrEnum):
-    """Stream that an output message is written to."""
+    """Stream that an output message is written to.
+
+    :cvar LOG: the log file.
+    :cvar STDOUT: the standard output.
+    :cvar STDERR: the standard error.
+    """
 
     LOG = "log"
     STDOUT = "stdout"
@@ -133,7 +143,11 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
 
 
 class OutputFormat(enum.StrEnum):
-    """Format of the command output."""
+    """Format of the command output.
+
+    :cvar HUMAN: text for people.
+    :cvar JSON: a JSON document for scripts.
+    """
 
     HUMAN = "human"
     JSON = "json"

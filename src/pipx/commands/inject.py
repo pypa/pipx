@@ -375,7 +375,12 @@ def _install_under_installed_name(install: Callable[[str], VenvMetadata], packag
 
 
 class InjectionStatus(StrEnum):
-    """Outcome of injecting a package."""
+    """Outcome of injecting a package.
+
+    :cvar INJECTED: the package was injected.
+    :cvar UNINJECTED: the package was removed.
+    :cvar UPDATED: the package was already injected and was updated.
+    """
 
     INJECTED = "injected"
     UNINJECTED = "uninjected"
@@ -409,7 +414,11 @@ class _InjectionSkip:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionData(OperationData):
-    """Result data of the inject and uninject commands."""
+    """Result data of the inject and uninject commands.
+
+    :ivar packages: the injected, updated or removed packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
 
     packages: tuple[InjectionPackage, ...]
     skipped: tuple[_InjectionSkip, ...]

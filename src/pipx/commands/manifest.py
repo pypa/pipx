@@ -397,7 +397,11 @@ def _prune_environments(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ManifestData(OperationData):
-    """Result data of the manifest commands."""
+    """Result data of the manifest commands.
+
+    :ivar environments: the names of the environments that were synced.
+    :ivar locks: the lock files that were written.
+    """
 
     environments: tuple[str, ...]
     locks: tuple[str, ...]

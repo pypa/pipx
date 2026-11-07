@@ -278,7 +278,13 @@ class _EnvironmentOutdated:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedData(OperationData):
-    """Result data of the outdated command."""
+    """Result data of the outdated command.
+
+    :ivar packages_checked: the number of packages that were checked.
+    :ivar packages: the packages that are outdated.
+    :ivar skipped: the packages that were skipped, with the reason.
+    :ivar failures: the environments that could not be checked.
+    """
 
     packages_checked: int
     packages: tuple[_OutdatedPackage, ...]

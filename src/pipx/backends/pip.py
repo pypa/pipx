@@ -43,7 +43,10 @@ _ERROR_LOG_LOCK: Final[Lock] = Lock()
 
 
 class PipBackend(Backend):
-    """Backend that installs packages with pip, in the interpreter of each environment."""
+    """Backend that installs packages with pip, in the interpreter of each environment.
+
+    :cvar name: the name the backend is chosen by.
+    """
 
     name = PIP
 

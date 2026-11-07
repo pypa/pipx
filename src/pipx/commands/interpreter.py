@@ -97,7 +97,12 @@ class _Interpreter:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InterpreterData(OperationData):
-    """Result data of the interpreter commands."""
+    """Result data of the interpreter commands.
+
+    :ivar interpreters: the interpreters in use.
+    :ivar removed: the names of the interpreters that were removed.
+    :ivar upgraded: the interpreters that were upgraded.
+    """
 
     interpreters: tuple[_Interpreter, ...]
     removed: tuple[str, ...]

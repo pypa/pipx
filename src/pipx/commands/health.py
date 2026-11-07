@@ -117,7 +117,10 @@ class _EnvironmentHealth:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class HealthData(OperationData):
-    """Result data of the health command."""
+    """Result data of the health command.
+
+    :ivar environments: the health of each environment.
+    """
 
     environments: tuple[_EnvironmentHealth, ...]
 
@@ -206,7 +209,11 @@ class _RepairedEnvironment:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RepairData(OperationData):
-    """Result data of the repair command."""
+    """Result data of the repair command.
+
+    :ivar repaired: the environments that were reinstalled.
+    :ivar skipped: the environments that were skipped, with the reason.
+    """
 
     repaired: tuple[_RepairedEnvironment, ...]
     skipped: tuple[_SkippedRepair, ...]
