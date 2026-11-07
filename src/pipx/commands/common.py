@@ -1019,7 +1019,14 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class VenvProblems:
-    """Flags for the problems an environment can have."""
+    """Flags for the problems an environment can have.
+
+    :param bad_venv_name: whether the environment directory has a name pipx does not accept.
+    :param invalid_interpreter: whether the interpreter of the environment cannot be used.
+    :param missing_metadata: whether the environment has no metadata record.
+    :param unreadable_metadata: whether the metadata record cannot be read.
+    :param not_installed: whether the package is not installed in the environment.
+    """
 
     bad_venv_name: bool = False
     invalid_interpreter: bool = False

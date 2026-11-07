@@ -169,6 +169,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
 
     :param path: the directory of the environment.
     :param verbose: show the output of the installer.
+    :param python: the Python interpreter of the environment, or None for the default.
+    :param backend: the backend that installs packages into the environment.
     """
 
     def __init__(
@@ -877,6 +879,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         :param app: the name of the app.
         :param filename: the file name of the app in the bin directory.
         :param app_args: the arguments to pass to the app.
+        :param python_args: the arguments to pass to the Python interpreter.
         :raises PipxError: when Python arguments are given for an app that is not a Python entry point.
         """
         entry_point = self._find_entry_point(app, "pipx.run")

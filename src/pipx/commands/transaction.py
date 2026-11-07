@@ -53,7 +53,11 @@ def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -
 
 
 class VenvBackup:
-    """Backup of an environment that a rebuild may restore or discard."""
+    """Backup of an environment that a rebuild may restore or discard.
+
+    :param venv_dir: the environment to back up.
+    :param enabled: whether the backup is made at all.
+    """
 
     def __init__(self, venv_dir: Path, *, enabled: bool) -> None:
         self._venv_dir: Final[Path] = venv_dir

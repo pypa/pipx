@@ -384,7 +384,14 @@ class InjectionStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionPackage:
-    """A package that was injected, updated or removed in an environment."""
+    """A package that was injected, updated or removed in an environment.
+
+    :param environment: the environment the package was injected into.
+    :param package: the name of the package.
+    :param version: the version of the package.
+    :param status: what happened to the package.
+    :param location: the path of the package in the environment.
+    """
 
     environment: str
     package: str

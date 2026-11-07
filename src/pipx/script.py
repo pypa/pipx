@@ -334,7 +334,11 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ScriptMetadata:
-    """Inline metadata of a script: its dependencies and the Python it requires."""
+    """Inline metadata of a script: its dependencies and the Python it requires.
+
+    :param dependencies: the requirements the script declares.
+    :param requires_python: the Python version the script requires, or None.
+    """
 
     dependencies: tuple[str, ...]
     requires_python: str | None

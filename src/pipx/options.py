@@ -14,7 +14,11 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class BackendOptions:
-    """Backend chosen on the command line and in the environment."""
+    """Backend chosen on the command line and in the environment.
+
+    :param cli: the backend named by ``--backend``, or None.
+    :param env: the backend named by ``PIPX_DEFAULT_BACKEND``, or None.
+    """
 
     cli: str | None = None
     env: str | None = None
@@ -28,7 +32,11 @@ DEFAULT_BACKEND_OPTIONS: Final[BackendOptions] = BackendOptions()
 # --cooldown and PIPX_COOLDOWN stay apart, so install can let a lock file override the machine-wide policy
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CooldownOptions:
-    """Cooldown in days, chosen on the command line and in the environment."""
+    """Cooldown in days, chosen on the command line and in the environment.
+
+    :param cli_days: the cooldown given by ``--cooldown``, or None.
+    :param env_days: the cooldown given by ``PIPX_COOLDOWN``, or None.
+    """
 
     cli_days: int | None = None
     env_days: int | None = None
@@ -47,7 +55,13 @@ _DEFAULT_COOLDOWN_OPTIONS: Final[CooldownOptions] = CooldownOptions()
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ExposureOptions:
-    """Options that choose which apps and dependencies an environment exposes."""
+    """Options that choose which apps and dependencies an environment exposes.
+
+    :param include_apps: whether to expose the apps of the environment.
+    :param include_dependencies: whether to expose the apps of its dependencies.
+    :param include_resources_from: packages whose shared resources are exposed as well.
+    :param suffix: the suffix appended to every exposed app name.
+    """
 
     include_apps: bool = True
     include_dependencies: bool = False
@@ -71,7 +85,36 @@ class ExposureOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InstallOptions:
-    """Options of the install command."""
+    """Options of the install command.
+
+    :param local_bin_dir: the directory the app links are placed in.
+    :param local_man_dir: the directory the man pages are placed in.
+    :param python: the Python interpreter to build the environment with, or None for the default.
+    :param pip_args: extra arguments passed to pip.
+    :param venv_args: extra arguments passed when creating the environment.
+    :param verbose: whether to print verbose output.
+    :param force: whether to replace an existing environment.
+    :param backend: the backend that installs the package.
+
+    :param reinstall: whether the install rebuilds an existing environment.
+    :param exposure: which apps and dependencies are exposed.
+    :param preinstall_packages: packages installed before the main package, or None.
+    :param expected_apps: apps the install must expose.
+    :param lock_file: the lock file to install from, or None.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+
+    :param exposure_enabled: whether exposure is enabled, or None to keep the recorded state.
+    :param upgrade: whether to upgrade the installed package.
+    :param upgrade_strategy: the pip upgrade strategy, or None.
+    :param cooldown: the cooldown applied to the new releases.
+    :param pinned: whether the environment is pinned, or None to keep the recorded state.
+    :param preserve_existing: whether to keep an existing environment that fails to install.
+    :param fetch_python: whether to fetch a missing Python interpreter.
+
+    :param replace_expected_apps: whether the expected apps replace the recorded ones.
+    :param replace_lock: whether to replace the lock file.
+    :param emit_output: whether to emit output messages.
+    """
 
     local_bin_dir: Path
     local_man_dir: Path
@@ -101,7 +144,22 @@ class InstallOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectOptions:
-    """Options of the inject command."""
+    """Options of the inject command.
+
+    :param pip_args: extra arguments passed to pip.
+    :param verbose: whether to print verbose output.
+    :param include_apps: whether to expose the apps of the injected package.
+    :param include_dependencies: whether to expose the apps of its dependencies.
+    :param include_resources_from: packages whose shared resources are exposed as well.
+    :param force: whether to inject even when the package is already present.
+    :param force_reinstall: whether an injected package is reinstalled.
+    :param with_suffix: whether the exposed app names carry the environment suffix.
+
+    :param backend: the backend that installs the package.
+    :param cooldown_days: the cooldown in days applied to the new releases, or None.
+    :param pinned: whether the environment is pinned, or None to keep the recorded state.
+    :param emit_output: whether to emit output messages.
+    """
 
     pip_args: list[str]
     verbose: bool
@@ -119,7 +177,13 @@ class InjectOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UninjectOptions:
-    """Options of the uninject command."""
+    """Options of the uninject command.
+
+    :param local_bin_dir: the directory the app links are placed in.
+    :param local_man_dir: the directory the man pages are placed in.
+    :param leave_deps: whether the dependencies of the injected package are kept.
+    :param verbose: whether to print verbose output.
+    """
 
     local_bin_dir: Path
     local_man_dir: Path
@@ -130,7 +194,21 @@ class UninjectOptions:
 # upgrade-all shares this record; skip applies to upgrade-all alone, install, python and venv_args to upgrade alone
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UpgradeOptions:
-    """Options of the upgrade command."""
+    """Options of the upgrade command.
+
+    :param pip_args: extra arguments passed to pip.
+    :param verbose: whether to print verbose output.
+    :param include_injected: whether the injected packages are upgraded too.
+    :param force: whether to upgrade even when the package is up to date.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+
+    :param backend: the backend that upgrades the package.
+    :param cooldown: the cooldown applied to the new releases.
+    :param install: whether to install the package when it is missing.
+    :param python: the Python interpreter to upgrade with, or None for the default.
+    :param venv_args: extra arguments passed when creating the environment.
+    :param skip: the packages to leave out of the upgrade.
+    """
 
     pip_args: list[str]
     verbose: bool
@@ -148,7 +226,16 @@ class UpgradeOptions:
 # reinstall-all, repair and the interpreter upgrade rebuild through reinstall; skip applies to reinstall-all alone
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ReinstallOptions:
-    """Options of the reinstall command."""
+    """Options of the reinstall command.
+
+    :param local_bin_dir: the directory the app links are placed in.
+    :param local_man_dir: the directory the man pages are placed in.
+    :param python: the Python interpreter to rebuild the environment with.
+    :param verbose: whether to print verbose output.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+    :param backend: the backend that installs the package.
+    :param skip: the packages to leave out of the reinstall.
+    """
 
     local_bin_dir: Path
     local_man_dir: Path
@@ -161,7 +248,15 @@ class ReinstallOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SyncOptions:
-    """Options of the manifest sync command."""
+    """Options of the manifest sync command.
+
+    :param local_bin_dir: the directory the app links are placed in.
+    :param local_man_dir: the directory the man pages are placed in.
+    :param python: the Python interpreter to build the environments with.
+    :param verbose: whether to print verbose output.
+    :param prune: whether environments missing from the manifest are removed.
+    :param backend: the backend that installs the packages.
+    """
 
     local_bin_dir: Path
     local_man_dir: Path
@@ -173,7 +268,13 @@ class SyncOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ListOptions:
-    """Options of the list command."""
+    """Options of the list command.
+
+    :param include_injected: whether the injected packages are listed too.
+    :param json_format: whether to print the list as JSON.
+    :param short_format: whether to print only the package names.
+    :param pinned_only: whether to list only the pinned packages.
+    """
 
     include_injected: bool
     json_format: bool
@@ -183,7 +284,14 @@ class ListOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedOptions:
-    """Options of the outdated command."""
+    """Options of the outdated command.
+
+    :param include_injected: whether the injected packages are checked too.
+    :param upgradable_only: whether to report only the packages that can be upgraded.
+    :param pip_args: extra arguments passed to pip.
+    :param skip: the packages to leave out of the check.
+    :param backend: the backend that looks up the newest versions.
+    """
 
     include_injected: bool
     upgradable_only: bool = False
@@ -194,7 +302,28 @@ class OutdatedOptions:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RunOptions:
-    """Options of the run command."""
+    """Options of the run command.
+
+    :param app_args: arguments passed to the app.
+    :param dependencies: extra requirements the environment is built with.
+    :param python: the Python interpreter to run with.
+    :param pip_args: extra arguments passed to pip.
+    :param venv_args: extra arguments passed when creating the environment.
+    :param is_path: whether the app is given as a path rather than a package name.
+    :param pypackages: whether to use a ``__pypackages__`` directory.
+
+    :param verbose: whether to print verbose output.
+    :param use_cache: whether to reuse a cached environment.
+    :param python_args: extra arguments passed to the Python interpreter.
+
+    :param refresh: whether to rebuild the cached environment.
+
+    :param no_path_check: whether to skip the check that the app is not on the PATH.
+    :param backend: the backend that installs the package.
+    :param cooldown: the cooldown applied to the new releases.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+    :param fetch_python: whether to fetch a missing Python interpreter.
+    """
 
     app_args: list[str]
     dependencies: list[str]

@@ -32,7 +32,13 @@ class OutputStream(enum.StrEnum):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutputMessage:
-    """A line of output with its stream and severity."""
+    """A line of output with its stream and severity.
+
+    :param text: the line of output.
+    :param stream: the stream the line is written to.
+    :param level: the severity of the line.
+    :param notice: whether the line reports a choice pipx made on the user's behalf.
+    """
 
     text: str
     stream: OutputStream = OutputStream.STDOUT
@@ -44,7 +50,13 @@ class OutputMessage:
 # scripts key on the code and the identity fields, so they stay stable across releases
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationError:
-    """An error that a command reports in its result."""
+    """An error that a command reports in its result.
+
+    :param code: the code that scripts key on.
+    :param message: the description of the error for people.
+    :param environment: the environment the error relates to, or None.
+    :param package: the package the error relates to, or None.
+    """
 
     code: str
     message: str
@@ -69,7 +81,15 @@ _PayloadT = TypeVar("_PayloadT", bound=OperationData)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationResult(Generic[_PayloadT]):
-    """The outcome of a command: its messages, its exit code and its data."""
+    """The outcome of a command: its messages, its exit code and its data.
+
+    :param command: the command that produced the result.
+    :param data: the data the command returned.
+    :param messages: the output messages the command produced.
+    :param exit_code: the exit code of the command.
+    :param errors: the errors the command reported.
+    :param succeeded: whether at least one operation produced a successful outcome.
+    """
 
     command: tuple[str, ...]
     data: _PayloadT

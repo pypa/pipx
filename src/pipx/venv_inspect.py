@@ -535,7 +535,25 @@ def _windows_extra_app_paths(app_paths: list[Path]) -> list[Path]:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class VenvMetadata:
-    """Metadata of the apps, man pages and dependencies that a virtual environment provides."""
+    """Metadata of the apps, man pages and dependencies that a virtual environment provides.
+
+    :param apps: names of the apps of the package.
+    :param app_paths: paths of the apps of the package.
+    :param apps_of_dependencies: names of the apps of the dependencies.
+    :param app_paths_of_dependencies: paths of the apps of each dependency, keyed by package name.
+    :param man_pages: names of the man pages of the package.
+    :param man_paths: paths of the man pages of the package.
+    :param man_pages_of_dependencies: names of the man pages of the dependencies.
+    :param man_paths_of_dependencies: paths of the man pages of each dependency, keyed by package name.
+
+    :param completions: names of the completion scripts of the package.
+    :param completion_paths: paths of the completion scripts of the package.
+    :param completions_of_dependencies: names of the completion scripts of the dependencies.
+    :param completion_paths_of_dependencies: paths of the completion scripts of each dependency, by package name.
+    :param package_version: the installed version of the package.
+    :param python_version: the version of the Python interpreter of the environment.
+    :param unsupported_python: the Python requirement of the package that the environment does not satisfy, or None.
+    """
 
     apps: list[str]
     app_paths: list[Path]

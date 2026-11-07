@@ -295,7 +295,37 @@ class PipxMetadata:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PackageInfo:
-    """Metadata of one package installed in an environment: its spec, its apps, its man pages and its completions."""
+    """Metadata of one package installed in an environment: its spec, its apps, its man pages and its completions.
+
+    :param package: the package name the environment was installed from, or None.
+    :param package_or_url: the package specifier or URL the environment was installed from, or None.
+    :param pip_args: extra arguments passed to pip.
+    :param include_dependencies: whether the apps of the dependencies are exposed.
+    :param include_apps: whether the apps of the package are exposed.
+
+    :param apps: names of the apps of the package.
+    :param app_paths: paths of the apps of the package.
+    :param apps_of_dependencies: names of the apps of the dependencies.
+    :param app_paths_of_dependencies: paths of the apps of each dependency, keyed by package name.
+    :param package_version: the installed version of the package.
+
+    :param expected_apps: apps the install must expose.
+    :param lock_file: the lock file the environment was installed from, or None.
+    :param include_resources_from: packages whose shared resources are exposed as well.
+    :param cooldown_days: the cooldown in days applied to the new releases, or None.
+
+    :param man_pages: names of the man pages of the package.
+    :param man_paths: paths of the man pages of the package.
+    :param man_pages_of_dependencies: names of the man pages of the dependencies.
+    :param man_paths_of_dependencies: paths of the man pages of each dependency, keyed by package name.
+    :param completions: names of the completion scripts of the package.
+
+    :param completion_paths: paths of the completion scripts of the package.
+    :param completions_of_dependencies: names of the completion scripts of the dependencies.
+    :param completion_paths_of_dependencies: paths of the completion scripts of each dependency, by package name.
+    :param suffix: the suffix appended to every exposed app name.
+    :param pinned: whether the package is pinned.
+    """
 
     package: str | None
     package_or_url: str | None
