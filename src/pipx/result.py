@@ -20,11 +20,6 @@ class OutputLevel(enum.IntEnum):
     CRITICAL = 2
 
 
-class OutputFormat(enum.StrEnum):
-    HUMAN = "human"
-    JSON = "json"
-
-
 class OutputStream(enum.StrEnum):
     LOG = "log"
     STDOUT = "stdout"
@@ -88,6 +83,11 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
 
     render_messages(result.messages, quiet=quiet)
     return result.exit_code
+
+
+class OutputFormat(enum.StrEnum):
+    HUMAN = "human"
+    JSON = "json"
 
 
 def _render_envelope(

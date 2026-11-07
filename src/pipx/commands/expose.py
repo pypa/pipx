@@ -84,11 +84,6 @@ def _failure(command: tuple[str, ...], environment: str, error: str) -> Operatio
     )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ExposureData(OperationData):
-    environments: tuple[_EnvironmentExposure, ...]
-
-
 def _success(
     command: tuple[str, ...], environment: str, status: _ExposureStatus, message: str
 ) -> OperationResult[ExposureData]:
@@ -97,17 +92,6 @@ def _success(
         data=ExposureData(environments=(_EnvironmentExposure(environment=environment, status=status),)),
         messages=(OutputMessage(text=message),),
     )
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _EnvironmentExposure:
-    environment: str
-    status: _ExposureStatus
-
-
-class _ExposureStatus(StrEnum):
-    EXPOSED = "exposed"
-    UNEXPOSED = "unexposed"
 
 
 def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
@@ -153,6 +137,22 @@ def _collision_outcome(
         ),
         succeeded=exposed_any,
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ExposureData(OperationData):
+    environments: tuple[_EnvironmentExposure, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _EnvironmentExposure:
+    environment: str
+    status: _ExposureStatus
+
+
+class _ExposureStatus(StrEnum):
+    EXPOSED = "exposed"
+    UNEXPOSED = "unexposed"
 
 
 def unexpose(

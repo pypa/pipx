@@ -35,20 +35,6 @@ class Backend(ABC):
         verbose: bool,
     ) -> None: ...
 
-    @abstractmethod
-    def install(  # ruff:ignore[too-many-arguments]  # install flags map one-to-one onto backend CLI options
-        self,
-        *,
-        venv_root: Path,
-        venv_python: Path,
-        requirements: list[str],
-        pip_args: list[str],
-        no_deps: bool = False,
-        upgrade_package: str | None = None,
-        log_pip_errors: bool = True,
-        verbose: bool,
-    ) -> CompletedProcess[str]: ...
-
     def install_lock(
         self,
         *,
@@ -65,6 +51,20 @@ class Backend(ABC):
             pip_args=pip_args,
             verbose=verbose,
         )
+
+    @abstractmethod
+    def install(  # ruff:ignore[too-many-arguments]  # install flags map one-to-one onto backend CLI options
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        requirements: list[str],
+        pip_args: list[str],
+        no_deps: bool = False,
+        upgrade_package: str | None = None,
+        log_pip_errors: bool = True,
+        verbose: bool,
+    ) -> CompletedProcess[str]: ...
 
     @staticmethod
     @abstractmethod

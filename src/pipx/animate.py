@@ -97,16 +97,16 @@ def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner
                 break
 
 
-def _clear_line() -> None:
-    sys.stderr.write(f"\r{CLEAR_LINE}")
-    sys.stdout.write(f"\r{CLEAR_LINE}")
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _Spinner:
     frames: tuple[str, ...]
     period: float
     at_line_start: bool
+
+
+def _clear_line() -> None:
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
 
 
 def hide_cursor() -> None:

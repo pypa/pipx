@@ -72,12 +72,6 @@ def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
     return any(constraint.contains(f"{minor}.{patch}", prereleases=True) for patch in range(40))
 
 
-def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
-    if not requires_python or (constraint := _parse(requires_python)) is None:
-        return None
-    return None if constraint.contains(python_version, prereleases=True) else constraint
-
-
 def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
     # an interpreter whose version pipx cannot read passes
     if (version := _interpreter_version(interpreter)) is None:
@@ -92,6 +86,12 @@ def _interpreter_version(interpreter: str) -> str | None:
         log_stdout=False,
     )
     return process.stdout.strip() or None if process.returncode == 0 else None
+
+
+def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
+    if not requires_python or (constraint := _parse(requires_python)) is None:
+        return None
+    return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:

@@ -133,11 +133,6 @@ def uninstall(
     )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class UninstallData(OperationData):
-    packages: tuple[_UninstalledPackage, ...]
-
-
 def _remove_resource(path: Path) -> None:
     try:
         safe_unlink(path)
@@ -145,6 +140,11 @@ def _remove_resource(path: Path) -> None:
         _LOGGER.info("pipx did not find resource %s", path)
     else:
         _LOGGER.info("pipx removed resource %s", path)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UninstallData(OperationData):
+    packages: tuple[_UninstalledPackage, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

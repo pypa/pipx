@@ -319,6 +319,12 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 shared_pth.write_text(shared_paths)
         return self.python_path
 
+    @property
+    def site_packages(self) -> list[Path]:
+        if self._site_packages is None:
+            self._site_packages = get_site_packages(self.python_path)
+        return self._site_packages
+
     def uninstall_packages(self, *packages: str, was_injected: bool = False) -> None:
         for package in packages:
             _LOGGER.info("Uninstalling %s", package)
@@ -489,12 +495,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         from importlib.metadata import Distribution  # ruff:ignore[import-outside-top-level]  # slows startup
 
         return iter(Distribution.discover(name=name, path=[str(path) for path in self.site_packages]))
-
-    @property
-    def site_packages(self) -> list[Path]:
-        if self._site_packages is None:
-            self._site_packages = get_site_packages(self.python_path)
-        return self._site_packages
 
     def has_package(self, package_name: str) -> bool:
         return next(self._distributions(package_name), None) is not None
