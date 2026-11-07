@@ -60,11 +60,10 @@ from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
+    from collections.abc import Iterable, Iterator
 
     from pipx.options import InjectOptions
     from pipx.pipx_metadata_file import PackageInfo
-    from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -325,19 +324,22 @@ def _install_into(
         ),
         marked_unfinished(venv_dir),
     ):
-        package_name = _install_under_installed_name(
-            partial(
-                venv.install_package,
-                package_or_url=package_spec,
-                pip_args=pip_args,
-                install_only_pip_args=reinstall_args,
-                exposure=exposure,
-                is_main_package=is_main_package,
-                pinned=main_package.pinned if is_main_package else options.pinned,
-                cooldown_days=cooldown_days,
-            ),
-            package_name,
+        install: Final = partial(
+            venv.install_package,
+            package_or_url=package_spec,
+            pip_args=pip_args,
+            install_only_pip_args=reinstall_args,
+            exposure=exposure,
+            is_main_package=is_main_package,
+            pinned=main_package.pinned if is_main_package else options.pinned,
+            cooldown_days=cooldown_days,
         )
+        try:
+            install(package_name)
+        except InstalledNameMismatchError as error:
+            # the spec built under another name than the one pipx resolved, so record the package the venv now holds
+            install(error.installed_name)
+            package_name = error.installed_name
         if exposure.include_apps:
             messages.extend(
                 run_post_install_actions(
@@ -376,16 +378,6 @@ def _install_into(
         ),
         emit_output=options.emit_output,
     )
-
-
-def _install_under_installed_name(install: Callable[[str], VenvMetadata], package_name: str) -> str:
-    try:
-        install(package_name)
-    except InstalledNameMismatchError as error:
-        # the spec built under another name than the one pipx resolved, so record the package the venv now holds
-        install(error.installed_name)
-        return error.installed_name
-    return package_name
 
 
 class InjectionStatus(StrEnum):
