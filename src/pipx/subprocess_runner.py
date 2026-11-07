@@ -184,12 +184,7 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     :param interactive: let the command use the terminal, with nothing captured.
     :returns: the completed process.
     """
-    env: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ))
-    for key, value in (env_overrides or {}).items():
-        if value is None:
-            env.pop(key, None)
-        else:
-            env[key] = value
+    env: Final[dict[str, str]] = _subprocess_env(env_overrides)
 
     _LOGGER.info("running %s", redact_command_line(cmd) if log_cmd_str is None else log_cmd_str)
     if run_dir:
@@ -222,39 +217,8 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             cwd=run_dir,
         )
     else:
-        # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
-        hold_stderr: Final[bool] = not capture_stderr and output_is_held()
-        with (
-            subprocess.Popen(
-                cmd_str_list,
-                env=env,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE if capture_stdout else None,
-                stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
-                encoding="utf-8",
-                errors="replace",
-                text=True,
-                cwd=run_dir,
-                # a terminal's Ctrl-C then reaches pipx alone, which decides whether the child finishes; a new session
-                # rather than just a new group, as the terminal stops a background group reading or writing it
-                start_new_session=True,
-                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
-            ) as process,
-            stopped_on_interrupt(process),
-        ):
-            try:
-                stdout, stderr = process.communicate()
-            except BaseException:
-                # like subprocess.run, so an interrupt does not leave the child running
-                process.kill()
-                raise
-        if hold_stderr:
-            sys.stderr.write(stderr)
-        completed_process = subprocess.CompletedProcess(
-            process.args,
-            process.returncode,
-            _without_terminal_escapes(stdout),
-            None if hold_stderr else _without_terminal_escapes(stderr),
+        completed_process = _run_captured(
+            cmd_str_list, env, run_dir=run_dir, capture_stdout=capture_stdout, capture_stderr=capture_stderr
         )
 
     # an installer quotes an operand it rejects as typed, so its output can carry the credentials of a URL
@@ -269,6 +233,16 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     _LOGGER.debug("returncode: %s", completed_process.returncode)
 
     return completed_process
+
+
+def _subprocess_env(env_overrides: dict[str, str | None] | None) -> dict[str, str]:
+    env: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ))
+    for key, value in (env_overrides or {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
+    return env
 
 
 def _run_streaming_subprocess(
@@ -437,6 +411,50 @@ def _without_terminal_escapes(output: str | None) -> str | None:
         "",
         output,
         flags=re.VERBOSE,
+    )
+
+
+def _run_captured(
+    cmd_str_list: list[str],
+    env: dict[str, str],
+    *,
+    run_dir: str | None,
+    capture_stdout: bool,
+    capture_stderr: bool,
+) -> subprocess.CompletedProcess[str]:
+    # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
+    hold_stderr: Final[bool] = not capture_stderr and output_is_held()
+    with (
+        subprocess.Popen(
+            cmd_str_list,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
+            encoding="utf-8",
+            errors="replace",
+            text=True,
+            cwd=run_dir,
+            # a terminal's Ctrl-C then reaches pipx alone, which decides whether the child finishes; a new session
+            # rather than just a new group, as the terminal stops a background group reading or writing it
+            start_new_session=True,
+            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        ) as process,
+        stopped_on_interrupt(process),
+    ):
+        try:
+            stdout, stderr = process.communicate()
+        except BaseException:
+            # like subprocess.run, so an interrupt does not leave the child running
+            process.kill()
+            raise
+    if hold_stderr:
+        sys.stderr.write(stderr)
+    return subprocess.CompletedProcess(
+        process.args,
+        process.returncode,
+        _without_terminal_escapes(stdout),
+        None if hold_stderr else _without_terminal_escapes(stderr),
     )
 
 
