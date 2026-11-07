@@ -69,16 +69,14 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
             )
             + "\n"
         )
-    elif not need_shell_restart:
+    elif not need_shell_restart and all(userpath.in_current_path(str(bin_path)) for bin_path in bin_paths):
         sys.stdout.flush()
-        path_action_str: Final[str] = "prepended to" if prepend else "appended to"
         _LOGGER.warning(
             "%s\n",
             pipx_wrap(
                 f"""
-                {HAZARD}  All pipx binary directories have been {path_action_str} PATH. If you
-                are sure you want to proceed, try again with the '--force'
-                flag.
+                {HAZARD}  All pipx binary directories are already in PATH. To add them
+                again anyway, try again with the '--force' flag.
                 """
             ),
         )

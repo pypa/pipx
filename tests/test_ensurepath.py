@@ -23,15 +23,12 @@ _SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide
 
 @pytest.fixture
 def mock_userpath(mocker: MockerFixture) -> MagicMock:
-    mocked: Final = mocker.create_autospec(
-        userpath,
-        **{
-            "need_shell_restart.return_value": False,
-            "in_current_path.return_value": False,
-            "append.return_value": True,
-            "prepend.return_value": True,
-        },
-    )
+    # Python 3.11 ignores dotted-key return values passed to create_autospec for module children.
+    mocked: Final = mocker.create_autospec(userpath)
+    mocked.need_shell_restart.return_value = False
+    mocked.in_current_path.return_value = False
+    mocked.append.return_value = True
+    mocked.prepend.return_value = True
     mocker.patch.object(ensure_path_module, "userpath", mocked)
     return mocked
 
@@ -79,6 +76,25 @@ def test_ensure_pipx_paths_dry_run_footer(mock_userpath: MagicMock, capsys: pyte
         True,
         True,
     )
+
+
+@pytest.mark.parametrize("prepend", [pytest.param(False, id="append"), pytest.param(True, id="prepend")])
+@pytest.mark.parametrize("in_path", [pytest.param(True, id="already-present"), pytest.param(False, id="failed-add")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_ensure_pipx_paths_reports_existing_paths(
+    mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str], *, prepend: bool, in_path: bool
+) -> None:
+    mock_userpath.in_current_path.return_value = in_path
+    mock_userpath.append.return_value = False
+    mock_userpath.prepend.return_value = False
+    assert run_pipx_cli(["ensurepath", *["--prepend"] * prepend]) == EXIT_CODE_OK
+    captured: Final = capsys.readouterr()
+    assert (
+        "is already in PATH" in " ".join(captured.out.split()),
+        "are already in PATH" in " ".join(captured.err.split()),
+        mock_userpath.append.called,
+        mock_userpath.prepend.called,
+    ) == (in_path, in_path, not in_path and not prepend, not in_path and prepend)
 
 
 @pytest.mark.parametrize(
