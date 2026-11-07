@@ -57,6 +57,8 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from typing import TypeIs
 
+    from filelock import BaseFileLock
+
     from pipx.options import SyncOptions
     from pipx.venv import VenvContainer
 
@@ -78,62 +80,17 @@ def sync_manifest(
     for tool in manifest.tools:
         venv_dir: Final[Path] = venv_container.get_venv_dir(tool.environment)
         with venv_container.venv_lock(venv_dir) as venv_lock:
-            existed: Final[bool] = venv_dir.is_dir()
-            recorded: Final[PipxMetadata] = PipxMetadata(venv_dir)
-            was_exposed: Final[bool] = existed and recorded.exposure_enabled
-            try:
-                if was_exposed:
-                    unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
-                # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
-                with force_replaces_only(()):
-                    outcome: Final = install(
-                        venv_dir,
-                        [tool.package_name],
-                        [tool.package],
-                        InstallOptions(
-                            local_bin_dir=options.local_bin_dir,
-                            local_man_dir=options.local_man_dir,
-                            python=options.python,
-                            pip_args=trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
-                            venv_args=recorded.venv_args,
-                            verbose=options.verbose,
-                            force=existed,
-                            reinstall=False,
-                            exposure=ExposureOptions(
-                                include_dependencies=tool.include_dependencies,
-                                include_resources_from=tool.include_resources_from,
-                                suffix=tool.suffix,
-                            ),
-                            preinstall_packages=None,
-                            expected_apps=tool.apps,
-                            lock_file=tool.lock_file,
-                            backend=options.backend,
-                            exposure_enabled=tool.expose,
-                            preserve_existing=True,
-                            replace_expected_apps=True,
-                            replace_lock=True,
-                            emit_output=False,
-                        ),
-                        venv_lock=venv_lock,
-                    )
-                error_message = outcome.errors[0].message if outcome.errors else None
-            except PipxError as error:
-                error_message = str(error)
-            except (Exception, KeyboardInterrupt):
-                # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
-                if was_exposed:
-                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
-                raise
-            # install returns a failed result rather than raising when it does not render, so check both
+            state: Final[_VenvState] = _read_venv_state(venv_dir)
+            error_message: Final[str | None] = _install_tool(tool, options, venv_dir, venv_lock, state)
             if error_message is not None:
                 failures.append(_FailedTool(environment=tool.environment, error=error_message))
                 messages.append(OutputMessage(text=error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
-                if was_exposed:
+                if state.was_exposed:
                     expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
             else:
                 synced.append(tool.environment)
                 # install links the main package alone, while unexpose also dropped the links of injected packages
-                if existed and tool.expose:
+                if state.existed and tool.expose:
                     expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
 
     if options.prune and not failures:
@@ -365,6 +322,72 @@ def _is_pylock_name(name: str) -> bool:
         and bool(lock_name := name.removeprefix("pylock.").removesuffix(".toml"))
         and "." not in lock_name
     )
+
+
+def _read_venv_state(venv_dir: Path) -> _VenvState:
+    existed: Final[bool] = venv_dir.is_dir()
+    recorded: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    return _VenvState(existed=existed, recorded=recorded, was_exposed=existed and recorded.exposure_enabled)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvState:
+    existed: bool
+    recorded: PipxMetadata
+    was_exposed: bool
+
+
+def _install_tool(
+    tool: _ManifestTool,
+    options: SyncOptions,
+    venv_dir: Path,
+    venv_lock: BaseFileLock,
+    state: _VenvState,
+) -> str | None:
+    try:
+        if state.was_exposed:
+            unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
+        # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
+        with force_replaces_only(()):
+            outcome: Final = install(
+                venv_dir,
+                [tool.package_name],
+                [tool.package],
+                InstallOptions(
+                    local_bin_dir=options.local_bin_dir,
+                    local_man_dir=options.local_man_dir,
+                    python=options.python,
+                    pip_args=trusted_recorded_pip_args(state.recorded.main_package.pip_args, venv_dir),
+                    venv_args=state.recorded.venv_args,
+                    verbose=options.verbose,
+                    force=state.existed,
+                    reinstall=False,
+                    exposure=ExposureOptions(
+                        include_dependencies=tool.include_dependencies,
+                        include_resources_from=tool.include_resources_from,
+                        suffix=tool.suffix,
+                    ),
+                    preinstall_packages=None,
+                    expected_apps=tool.apps,
+                    lock_file=tool.lock_file,
+                    backend=options.backend,
+                    exposure_enabled=tool.expose,
+                    preserve_existing=True,
+                    replace_expected_apps=True,
+                    replace_lock=True,
+                    emit_output=False,
+                ),
+                venv_lock=venv_lock,
+            )
+    except PipxError as error:
+        return str(error)
+    except (Exception, KeyboardInterrupt):
+        # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
+        if state.was_exposed:
+            expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
+        raise
+    # install returns a failed result rather than raising when it does not render, so check both
+    return outcome.errors[0].message if outcome.errors else None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
