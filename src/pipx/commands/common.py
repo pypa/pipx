@@ -82,6 +82,10 @@ _CAN_SYMLINK_CACHE: Final[dict[Path, bool]] = {}
 
 @contextmanager
 def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
+    """Let the enclosed exposures replace the given resource paths.
+
+    :param resource_paths: the paths a rebuild may replace.
+    """
     # a rebuild forces only to refresh its own exposed files, not to take names install left with their owner
     token: Final = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
     try:
@@ -94,6 +98,12 @@ def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
 def expose_shared_resources_in_order(
     venvs_metadata: Iterable[PipxMetadata], local_bin_dir: Path, local_man_dir: Path
 ) -> Generator[None]:
+    """Expose the resources that several environments share in task order.
+
+    :param venvs_metadata: the metadata of the environments in the fan-out.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    """
     # a path several environments of a fan-out expose must end up where a one-at-a-time run leaves it, so they expose
     # it in task order; only shared paths wait, as a task waiting for its turn holds one of the fan-out's workers
     counts: Final[Counter[Path]] = Counter(
@@ -139,6 +149,14 @@ def _expected_resource_paths(
 
 
 def add_suffix(name: str, suffix: str) -> str:
+    """Insert a suffix into an exposed file name.
+
+    Windows opens a file by its extension, so the suffix goes before it there, and at the end elsewhere.
+
+    :param name: the file name to suffix.
+    :param suffix: the suffix to insert.
+    :returns: the suffixed file name.
+    """
     # Windows opens a file by its extension, so hello.py becomes hello@1.py there; the 14 of pip3.14 is a version, not
     # an extension, and POSIX ignores extensions, so elsewhere the suffix goes last
     app: Final[Path] = Path(name)
@@ -149,6 +167,7 @@ def add_suffix(name: str, suffix: str) -> str:
 
 @contextmanager
 def reuse_resource_dir_scans() -> Generator[None]:
+    """Reuse directory scans and venv claims within the enclosed block."""
     # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
     # command instead of once per venv keeps them linear in the number of venvs
     token: Final = _RESOURCE_DIR_SCANS.set({})
@@ -161,6 +180,12 @@ def reuse_resource_dir_scans() -> Generator[None]:
 
 
 def drop_links_taken_over(resource_paths: set[Path], *venv_dirs: Path) -> set[Path]:
+    """Return the resource paths that still belong to the given environments.
+
+    :param resource_paths: the paths gathered for the environments.
+    :param venv_dirs: the environments whose ownership is checked.
+    :returns: the paths that link into an environment or are copies.
+    """
     # a link dangles while its venv is rebuilt or its package uninstalled, and the next package claiming a dangling name
     # takes it, so a path gathered before then is still the venv's only if it links into the venv
     venv_roots: Final[list[Path]] = [venv_dir.resolve() for venv_dir in venv_dirs]
@@ -209,6 +234,11 @@ def can_symlink(local_resource_dir: Path) -> bool:
 
 
 def give_back_shared_links(resource_paths: set[Path], venv_dir: Path) -> None:
+    """Give the dangling links of a failed rebuild back to the environment.
+
+    :param resource_paths: the shared paths the rebuild took over.
+    :param venv_dir: the environment that was rebuilt.
+    """
     # a link dangles while its venv sits in the trash for a rebuild, and an earlier fan-out task exposing the same name
     # meanwhile takes it; a failed rebuild gives the name back, as a one-at-a-time run would have left it
     for path in resource_paths & _SHARED_RESOURCES.get():
@@ -240,6 +270,18 @@ def package_name_from_spec(  # ruff:ignore[too-many-arguments]  # resolver input
     backend: BackendOptions,
     cooldown_days: int | None = None,
 ) -> str:
+    """Return the distribution name of a package spec.
+
+    A PyPI name is used as is; a local project or a URL is installed into a temporary environment to read its name.
+
+    :param package_spec: the package spec, a name, a local project path or a URL.
+    :param python: the interpreter for the temporary environment.
+    :param pip_args: extra arguments for the installer.
+    :param verbose: show the installer output.
+    :param backend: the backend options.
+    :param cooldown_days: skip releases uploaded fewer days ago than this.
+    :returns: the distribution name.
+    """
     start_time: Final[float] = time.time()
 
     if (pypi_name := valid_pypi_name(package_spec)) is not None:
@@ -284,6 +326,18 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
     force: bool,
     previous_resource_paths: set[Path],
 ) -> tuple[OutputMessage, ...]:
+    """Expose a freshly installed package and build the messages that describe it.
+
+    :param venv: the environment of the package.
+    :param package_name: the name of the package in the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param venv_dir: the directory of the environment.
+    :param force: replace resources that already exist.
+    :param previous_resource_paths: the resource paths exposed before the install.
+    :returns: the messages to print, empty when the logging level hides them.
+    :raises PipxError: when the package and its dependencies provide no apps.
+    """
     # package_name is the metadata key, so it stays the bare name; the record's suffix field renders the suffix in the
     # summary below
     package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
@@ -342,6 +396,14 @@ def expose_package_resources(
     *,
     force: bool,
 ) -> list[Path]:
+    """Expose the apps, man pages and completions of a package.
+
+    :param package_metadata: the metadata of the package.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param force: replace resources that already exist.
+    :returns: the paths pipx left in place because another file holds them.
+    """
     collisions: Final[list[Path]] = []
     if app_paths := package_metadata.app_paths_to_expose:
         collisions.extend(
@@ -365,6 +427,16 @@ def expose_resources_globally(
     force: bool,
     suffix: str = "",
 ) -> list[Path]:
+    """Expose resources of one type in their local directory.
+
+    :param resource_type: the kind of resource, ``app``, ``man`` or ``completion``.
+    :param local_resource_dir: the directory the resources are exposed in.
+    :param resource_paths: the paths of the resources in the environment.
+    :param force: replace resources that already exist.
+    :param suffix: the suffix to add to each exposed name.
+    :returns: the paths pipx left in place because another file holds them.
+    :raises PipxError: when a resource name is not a file name.
+    """
     collisions: Final[list[Path]] = []
     for path in resource_paths:
         # names come from package metadata and pipx_metadata.json; ".." or a path would escape the exposure directory
@@ -637,6 +709,12 @@ def _remove_resource_named_before_last_dot(dest_dir: Path, path: Path, suffix: s
 
 
 def exposed_app_names(name: str, suffix: str) -> set[str]:
+    """Return the names an app is exposed under, with and without its suffix.
+
+    :param name: the name of the app.
+    :param suffix: the suffix added to the exposed name.
+    :returns: the exposed names.
+    """
     # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), and an app exposed back then
     # keeps that name until pipx exposes it again
     app: Final[Path] = Path(name)
@@ -644,6 +722,12 @@ def exposed_app_names(name: str, suffix: str) -> set[str]:
 
 
 def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path) -> set[Path]:
+    """Return the copies that another environment claims.
+
+    :param resource_paths: the exposed paths to check.
+    :param venv_bin_path: the bin directory of the environment being checked.
+    :returns: the paths that remain after dropping the copies claimed elsewhere.
+    """
     # a static script copies byte for byte, so the copy another venv exposes under a name this venv also answers to
     # (tool's run.cmd for tool@2) matches by content; unless its shebang names this venv, it belongs to the other one
     own_id: Final[tuple[int, int] | None] = _directory_id_or_none(venv_bin_path)
@@ -694,6 +778,15 @@ def remove_stale_venv_resources(
     local_bin_dir: Path,
     local_man_dir: Path,
 ) -> None:
+    """Remove the resources a package no longer exposes.
+
+    Only paths the environment still owns are removed, so a file another package or the user put there stays.
+
+    :param previous_resource_paths: the resource paths exposed before the change.
+    :param venv: the environment of the package.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    """
     current_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
     # only remove a dropped destination pipx still owns, so a replacement the user or another package put there stays
     owned: Final[set[Path]] = _venv_owned_resource_paths(venv, local_bin_dir, local_man_dir)
@@ -704,6 +797,13 @@ def remove_stale_venv_resources(
 
 
 def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    """Return the resource paths an environment should expose.
+
+    :param venv: the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :returns: the expected resource paths.
+    """
     return _expected_resource_paths(venv.pipx_metadata, venv.package_metadata.values(), local_bin_dir, local_man_dir)
 
 
@@ -733,6 +833,13 @@ def get_exposed_paths_for_package(
     local_resource_dir: Path,
     package_resource_paths: Mapping[str, Sequence[Path]] | None = None,
 ) -> set[Path]:
+    """Return the resources of a package that are exposed in the local directory.
+
+    :param venv_resource_path: the directory of the resources in the environment.
+    :param local_resource_dir: the directory the resources are exposed in.
+    :param package_resource_paths: the resources of the package, by name, to match copies against.
+    :returns: the exposed paths that belong to the environment.
+    """
     if not local_resource_dir.exists():
         return set()
 
@@ -845,6 +952,14 @@ def get_venv_summary(
     new_install: bool = False,
     include_injected: bool = False,
 ) -> tuple[str, VenvProblems]:
+    """Summarize an environment for the list output.
+
+    :param venv_dir: the directory of the environment.
+    :param package_name: the package to summarize, the main package when omitted.
+    :param new_install: whether the environment was just installed.
+    :param include_injected: whether to list the injected packages.
+    :returns: the summary, or the health warning when the environment has problems, with the problems found.
+    """
     venv: Final[Venv] = Venv(venv_dir)
 
     if package_name is None:
@@ -860,6 +975,12 @@ def get_venv_summary(
 
 
 def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
+    """Check an environment for problems that stop it from being used.
+
+    :param venv: the environment to check.
+    :param package_name: the package to check, the main package when omitted.
+    :returns: the problems found and the warning to show, empty when the environment is healthy.
+    """
     venv_dir: Final[Path] = venv.root
     python_path: Final[Path] = venv.python_path.resolve()
 
@@ -898,6 +1019,8 @@ def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[Venv
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class VenvProblems:
+    """Flags for the problems an environment can have."""
+
     bad_venv_name: bool = False
     invalid_interpreter: bool = False
     missing_metadata: bool = False
@@ -905,9 +1028,14 @@ class VenvProblems:
     not_installed: bool = False
 
     def any_(self) -> bool:
+        """Return whether any problem is set."""
         return any(getattr(self, field.name) for field in fields(self))
 
     def or_(self, venv_problems: VenvProblems) -> VenvProblems:
+        """Return the problems set in either instance.
+
+        :param venv_problems: the problems to merge with these.
+        """
         return VenvProblems(**{
             field.name: getattr(self, field.name) or getattr(venv_problems, field.name) for field in fields(self)
         })
@@ -1010,6 +1138,13 @@ def _warn_if_not_on_path(local_bin_dir: Path) -> OutputMessage | None:
 
 
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:
+    """Check that a package provides the apps it is expected to.
+
+    :param venv: the environment of the package.
+    :param package_name: the name of the package.
+    :param expected_apps: the app names the package must provide, nothing is checked when empty.
+    :raises PipxError: when an expected app is missing.
+    """
     if not expected_apps:
         return
 
@@ -1027,6 +1162,12 @@ def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequenc
 
 
 def validate_suffix(suffix: str) -> str:
+    """Return the suffix when it is safe to use in exposed file names.
+
+    :param suffix: the suffix to check.
+    :returns: the suffix.
+    :raises PipxError: when the suffix holds characters outside letters, digits and ``._@+-``.
+    """
     # pipx splices a suffix straight into an exposed file name, so anything but a portable character set could steer the
     # destination out of PIPX_BIN_DIR or PIPX_MAN_DIR
     if re.fullmatch(r"[A-Za-z0-9._@+-]*", suffix) is None:
@@ -1039,10 +1180,20 @@ def validate_suffix(suffix: str) -> str:
 
 
 def locked_package_message(package_name: str) -> str:
+    """Return the message for a locked package that is not upgraded.
+
+    :param package_name: the name of the locked package.
+    :returns: the message.
+    """
     return f"Not upgrading locked package {package_name}. Update its lock file and run `pipx reinstall {package_name}`."
 
 
 def get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
+    """Return the packages of an environment, or None when they cannot be read.
+
+    :param venv: the environment.
+    :returns: the packages, or None when the environment has no readable interpreter or metadata.
+    """
     if venv.pipx_metadata.main_package.package is not None:
         return tuple(venv.package_metadata.values())
     if not venv.python_path.is_file():
@@ -1080,6 +1231,14 @@ def get_venv_resource_paths(
     local_resource_dir: Path,
     package_infos: tuple[PackageInfo, ...] | None,
 ) -> set[Path]:
+    """Return the resource paths an environment exposes for one resource type.
+
+    :param resource_type: the kind of resource, ``app``, ``man`` or ``completion``.
+    :param venv_resource_path: the directory of the resources in the environment.
+    :param local_resource_dir: the directory the resources are exposed in.
+    :param package_infos: the packages of the environment, or None to match the exposed links instead.
+    :returns: the resource paths.
+    """
     if package_infos is not None:
         get_package_resource_paths: Final[Callable[[PackageInfo, Path, Path], set[Path]]] = {
             "app": get_package_bin_dir_app_paths,
@@ -1100,10 +1259,24 @@ def get_venv_resource_paths(
 
 
 def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
+    """Return the apps of a package that are exposed in the local bin directory.
+
+    :param package_info: the package.
+    :param venv_bin_path: the bin directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :returns: the exposed app paths.
+    """
     return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, _group_app_paths((package_info,)))
 
 
 def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
+    """Return the man pages of a package that are exposed in the local man directory.
+
+    :param package_info: the package.
+    :param venv_man_path: the man directory of the environment.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :returns: the exposed man page paths.
+    """
     return _get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
 
 
@@ -1112,6 +1285,13 @@ def get_package_completion_paths(
     venv_completion_path: Path,
     local_completion_dir: Path,
 ) -> set[Path]:
+    """Return the completions of a package that are exposed in the local completion directory.
+
+    :param package_info: the package.
+    :param venv_completion_path: the completion directory of the environment.
+    :param local_completion_dir: the directory the completions are exposed in.
+    :returns: the exposed completion paths.
+    """
     return get_exposed_paths_for_package(
         venv_completion_path,
         local_completion_dir,

@@ -28,6 +28,15 @@ if TYPE_CHECKING:
 
 
 def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
+    """Run pip inside the environment of a package.
+
+    :param package: the name of the package, for the error message.
+    :param venv_dir: the directory of the environment.
+    :param pip_args: the arguments to pass to pip.
+    :param verbose: show the output of pip.
+    :returns: the exit code of pip.
+    :raises PipxError: when the environment has no interpreter.
+    """
     venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():
         msg = f"pipx has no venv for {package!r}; run 'pipx list' to see the installed packages"

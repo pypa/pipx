@@ -34,6 +34,11 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 def list_interpreters(
     venv_container: VenvContainer,
 ) -> OperationResult[InterpreterData]:
+    """List the standalone Python interpreters that pipx installed.
+
+    :param venv_container: the container of the environments, to find which ones use each interpreter.
+    :returns: the result listing the interpreters and the environments that use them.
+    """
     venvs: Final[list[Venv]] = _venvs_using_standalone_interpreter(venv_container)
     output: Final[list[str]] = [f"Standalone interpreters are in {paths.CTX.standalone_python_cachedir}"]
     listed: Final[list[_Interpreter]] = []
@@ -92,6 +97,8 @@ class _Interpreter:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InterpreterData(OperationData):
+    """Result data of the interpreter commands."""
+
     interpreters: tuple[_Interpreter, ...]
     removed: tuple[str, ...]
     upgraded: tuple[_UpgradedInterpreter, ...]
@@ -100,6 +107,11 @@ class InterpreterData(OperationData):
 def prune_interpreters(
     venv_container: VenvContainer,
 ) -> OperationResult[InterpreterData]:
+    """Remove the standalone Python interpreters that no environment uses.
+
+    :param venv_container: the container of the environments, to find which interpreters are in use.
+    :returns: the result listing the removed interpreters.
+    """
     venvs: Final[list[Venv]] = _venvs_using_standalone_interpreter(venv_container)
     removed: Final[list[str]] = []
     for interpreter in _installed_standalone_interpreters():
@@ -118,6 +130,12 @@ def prune_interpreters(
 
 
 def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> OperationResult[InterpreterData]:
+    """Upgrade the standalone Python interpreters to their latest builds.
+
+    :param venv_container: the container of the environments.
+    :param verbose: show the progress of the index lookup.
+    :returns: the result listing the upgraded interpreters.
+    """
     from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
     with animate("Getting the index of the latest standalone python builds", do_animation=not verbose):

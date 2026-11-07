@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 
 
 def print_cache_dir(venv_container: VenvContainer) -> OperationResult[CacheData]:
+    """Report the directory that holds the cached environments.
+
+    :param venv_container: the container of the cached environments.
+    :returns: the result with the directory as its only message.
+    """
     directory: Final[str] = str(venv_container)
     return OperationResult(
         command=("cache", "dir"),
@@ -23,11 +28,18 @@ def print_cache_dir(venv_container: VenvContainer) -> OperationResult[CacheData]
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CacheData(OperationData):
+    """Result data of the cache commands."""
+
     directory: str
     removed: tuple[str, ...]
 
 
 def purge_cache(venv_container: VenvContainer) -> OperationResult[CacheData]:
+    """Remove every cached environment, each while holding its lock.
+
+    :param venv_container: the container of the cached environments.
+    :returns: the result listing the removed environments.
+    """
     removed: Final[list[str]] = []
     for venv_dir in venv_container.iter_locked_venv_dirs(tuple(venv_container.iter_venv_dirs())):
         rmdir(venv_dir)

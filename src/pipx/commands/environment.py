@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
+#: Environment variables that users set to change pipx's behavior.
 ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_HOME",
     "PIPX_GLOBAL_HOME",
@@ -41,6 +42,7 @@ ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_USE_EMOJI",
     "PIPX_MAX_LOGS",
 ]
+#: Environment variables that pipx derives from the ones users set.
 DERIVED_ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_LOCAL_VENVS",
     "PIPX_LOG_DIR",
@@ -52,10 +54,17 @@ DERIVED_ENVIRONMENT_VARIABLES: Final[list[str]] = [
     "PIPX_UV_BINARY",
     "UV_CACHE_DIR",
 ]
+#: Every environment variable that the environment command accepts.
 ENVIRONMENT_VALUE_CHOICES: Final[list[str]] = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
 
 
 def environment(value: str | None) -> ExitCode:
+    """Print the environment variables pipx reads, or the value of one of them.
+
+    :param value: the variable to print, all of them when None.
+    :returns: the exit code.
+    :raises PipxError: when the variable is not one pipx reads.
+    """
     derived_values: Final[dict[str, Callable[[], Path | str]]] = _get_derived_values()
     if value is None:
         print("Environment variables (set by user):")  # ruff:ignore[print]  # user-facing CLI output

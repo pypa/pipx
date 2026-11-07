@@ -29,6 +29,12 @@ if TYPE_CHECKING:
 
 
 def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> OperationResult[HealthData]:
+    """Check the health of the given environments.
+
+    :param venv_container: the container of the environments.
+    :param venv_dirs: the directories of the environments to check.
+    :returns: the result, which fails when an environment is unhealthy.
+    """
     environments: Final[list[_EnvironmentHealth]] = []
     messages: Final[list[OutputMessage]] = []
     for venv_dir in venv_dirs:
@@ -111,12 +117,21 @@ class _EnvironmentHealth:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class HealthData(OperationData):
+    """Result data of the health command."""
+
     environments: tuple[_EnvironmentHealth, ...]
 
 
 def repair(
     venv_container: VenvContainer, venv_dirs: Iterable[Path], options: ReinstallOptions
 ) -> OperationResult[RepairData]:
+    """Reinstall the environments that are unhealthy or lost their metadata.
+
+    :param venv_container: the container of the environments.
+    :param venv_dirs: the directories of the environments to repair.
+    :param options: the options of the reinstall.
+    :returns: the result listing the repaired and skipped environments and the failures.
+    """
     failures: Final[list[_FailedRepair]] = []
     messages: Final[list[OutputMessage]] = []
     repaired: Final[list[_RepairedEnvironment]] = []
@@ -191,6 +206,8 @@ class _RepairedEnvironment:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RepairData(OperationData):
+    """Result data of the repair command."""
+
     repaired: tuple[_RepairedEnvironment, ...]
     skipped: tuple[_SkippedRepair, ...]
 

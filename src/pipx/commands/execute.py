@@ -16,6 +16,14 @@ if TYPE_CHECKING:
 
 
 def execute(package: str, venv_dir: Path, app: str, app_args: list[str]) -> NoReturn:
+    """Run an app of a managed environment, replacing the current process.
+
+    :param package: the name of the package, as shown to the user.
+    :param venv_dir: the directory of the environment.
+    :param app: the name of the app to run.
+    :param app_args: the arguments to pass to the app.
+    :raises PipxError: when the environment or the app does not exist.
+    """
     if not venv_dir.is_dir():
         msg = f"pipx does not manage environment {package!r}."
         raise PipxError(msg)

@@ -72,6 +72,12 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def upgrade(venv_dirs: dict[str, Path], options: UpgradeOptions) -> OperationResult[UpgradeData]:
+    """Upgrade the packages of the given environments, each under its lock.
+
+    :param venv_dirs: the environment directories, keyed by the package spec each was installed from.
+    :param options: the options of the upgrade.
+    :returns: the result listing the upgraded packages.
+    """
     results: Final[list[_PackageUpgradeResult]] = []
     install_messages: Final[list[OutputMessage]] = []
 
@@ -439,6 +445,12 @@ def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> 
 
 
 def upgrade_all(venv_container: VenvContainer, options: UpgradeOptions) -> OperationResult[UpgradeData]:
+    """Upgrade every environment that has a newer version of its package.
+
+    :param venv_container: the container of the environments.
+    :param options: the options of the upgrade.
+    :returns: the result listing the upgraded packages and the skipped ones.
+    """
     outdated: Final[OutdatedData] = inspect_outdated(
         venv_container,
         OutdatedOptions(
@@ -596,6 +608,13 @@ def _interrupted_upgrade(venv_dir: Path) -> _VenvUpgrade:
 
 
 def upgrade_shared(pip_args: list[str], *, verbose: bool) -> OperationResult[SharedData]:
+    """Upgrade the shared libraries that pipx's own environment uses.
+
+    :param pip_args: extra arguments for pip.
+    :param verbose: show the output of pip.
+    :returns: the result with the location of the shared libraries.
+    :raises PipxError: when the shared libraries cannot be upgraded.
+    """
     # pip-backed installs use this environment regardless of the installed environments' backends
     SHARED_LIBS.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
     return OperationResult(
@@ -607,6 +626,8 @@ def upgrade_shared(pip_args: list[str], *, verbose: bool) -> OperationResult[Sha
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SharedData(OperationData):
+    """Result data of the upgrade-shared command."""
+
     location: str
 
 
@@ -654,6 +675,8 @@ class _VenvUpgrade:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UpgradeData(OperationData):
+    """Result data of the upgrade commands."""
+
     packages: tuple[_PackageUpgradeResult, ...]
     skipped: tuple[_SkippedUpgrade, ...]
 

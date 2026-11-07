@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 
 
 def expose(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool) -> OperationResult[ExposureData]:
+    """Expose the apps and man pages of an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the exposure.
+    :returns: the result with the exposure of each environment.
+    """
     return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=True)
 
 
@@ -141,6 +149,8 @@ def _collision_outcome(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ExposureData(OperationData):
+    """Result data of the expose and unexpose commands."""
+
     environments: tuple[_EnvironmentExposure, ...]
 
 
@@ -158,6 +168,14 @@ class _ExposureStatus(StrEnum):
 def unexpose(
     venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool
 ) -> OperationResult[ExposureData]:
+    """Remove the exposed apps and man pages of an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the removal.
+    :returns: the result with the exposure of each environment.
+    """
     return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=False)
 
 

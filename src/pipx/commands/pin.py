@@ -29,6 +29,14 @@ def pin(
     verbose: bool,
     injected_only: bool,
 ) -> OperationResult[PinData]:
+    """Pin the packages of an environment so that upgrades skip them.
+
+    :param venv_dir: the directory of the environment.
+    :param skip: the packages to leave unpinned.
+    :param verbose: show the progress of the pin.
+    :param injected_only: pin only the injected packages, not the main package.
+    :returns: the result listing the pinned and skipped packages.
+    """
     venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if (main_package := venv.package_metadata.get(venv.main_package_name)) is None:
         return _missing_result(("pin",), venv)
@@ -122,6 +130,12 @@ def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> Outp
 
 
 def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
+    """Remove the pins of the packages of an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param verbose: show the progress of the unpin.
+    :returns: the result listing the unpinned packages.
+    """
     venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
     if venv.package_metadata.get(venv.main_package_name) is None:
         return _missing_result(("unpin",), venv)
@@ -178,6 +192,8 @@ class _SkippedPackage:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PinData(OperationData):
+    """Result data of the pin and unpin commands."""
+
     packages: tuple[_ChangedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]
 

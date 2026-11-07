@@ -35,6 +35,13 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def list_packages(venv_container: VenvContainer, venv_dirs: Collection[Path], options: ListOptions) -> ExitCode:
+    """Print the packages of the given environments in the requested format.
+
+    :param venv_container: the container of the environments.
+    :param venv_dirs: the directories of the environments to list.
+    :param options: the output format and the filters.
+    :returns: the exit code, which reports the environments that have problems.
+    """
     if not venv_dirs:
         print(  # ruff:ignore[print]  # user-facing CLI output
             f"nothing has been installed with pipx {SLEEP}", file=sys.stderr

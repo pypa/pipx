@@ -38,6 +38,13 @@ _UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
 
 
 def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> NoReturn:
+    """Run an app through ``uv tool run``, replacing the current process.
+
+    :param app: the app name.
+    :param package_or_url: the package spec or URL to install.
+    :param options: the options of the run.
+    :raises PipxError: when venv arguments are given, which ``uv tool run`` cannot take.
+    """
     _reject_venv_args(options.venv_args)
     if not options.no_path_check and (existing_app_path := which(app)):
         _LOGGER.warning(
@@ -81,6 +88,12 @@ def _reject_venv_args(venv_args: list[str]) -> None:
 
 
 def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
+    """Translate pip install arguments into their uv equivalents.
+
+    :param pip_args: the pip arguments to translate.
+    :returns: the uv arguments.
+    :raises PipxError: when an argument has no uv equivalent, such as ``--editable``.
+    """
     translated_bool_flags: Final[dict[str, str]] = {
         "--pre": "--prerelease=allow",
         "--no-cache-dir": "--no-cache",
@@ -148,6 +161,13 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
 
 
 def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions) -> NoReturn:
+    """Run a script through ``uv run``, replacing the current process.
+
+    :param script_path: the path of the script.
+    :param venv_dir: the directory of the environment, unused by uv.
+    :param options: the options of the run.
+    :raises PipxError: when venv arguments are given, which ``uv run`` cannot take.
+    """
     _reject_venv_args(options.venv_args)
     # uv searches for project config from --project, or else from the script's directory, which another account may own
     cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.CTX.home)]

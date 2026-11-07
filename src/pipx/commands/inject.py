@@ -75,6 +75,14 @@ def inject(
     requirement_files: Iterable[str],
     options: InjectOptions,
 ) -> OperationResult[InjectionData]:
+    """Inject packages into an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param package_specs: the package specs to inject.
+    :param requirement_files: the requirement files whose packages are injected too.
+    :param options: the options of the injection.
+    :returns: the result of the injection.
+    """
     package_set: Final[set[str]] = set(package_specs)
     for filename in requirement_files:
         package_set.update(_parse_requirements(filename))
@@ -166,6 +174,15 @@ def inject_dep(
     package_spec: str,
     options: InjectOptions,
 ) -> OperationResult[InjectionData]:
+    """Inject one package into an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param package_name: the name of the package, or None to use the spec.
+    :param package_spec: the package spec to inject.
+    :param options: the options of the injection.
+    :returns: the result of the injection.
+    :raises PipxError: when the environment does not exist, has no pipx metadata or is locked.
+    """
     _LOGGER.debug("Injecting package %s", redact_url_credentials(package_spec))
 
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
@@ -358,6 +375,8 @@ def _install_under_installed_name(install: Callable[[str], VenvMetadata], packag
 
 
 class InjectionStatus(StrEnum):
+    """Outcome of injecting a package."""
+
     INJECTED = "injected"
     UNINJECTED = "uninjected"
     UPDATED = "updated"
@@ -365,6 +384,8 @@ class InjectionStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionPackage:
+    """A package that was injected, updated or removed in an environment."""
+
     environment: str
     package: str
     version: str
@@ -381,6 +402,8 @@ class _InjectionSkip:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionData(OperationData):
+    """Result data of the inject and uninject commands."""
+
     packages: tuple[InjectionPackage, ...]
     skipped: tuple[_InjectionSkip, ...]
 

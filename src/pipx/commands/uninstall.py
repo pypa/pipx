@@ -42,6 +42,14 @@ def uninstall_all(
     *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
+    """Uninstall every environment, with the apps and man pages it exposes.
+
+    :param venv_container: the container of the environments.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the uninstall.
+    :returns: the result listing the uninstalled packages and the errors.
+    """
     errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[_UninstalledPackage]] = []
@@ -72,6 +80,14 @@ def uninstall(
     *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
+    """Uninstall an environment, with the apps and man pages it exposes.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the uninstall.
+    :returns: the result of the uninstall.
+    """
     if not venv_dir.exists():
         messages: Final[list[OutputMessage]] = [OutputMessage(text=f"Nothing to uninstall for {venv_dir.name} {SLEEP}")]
         if app := which(venv_dir.name):
@@ -144,6 +160,8 @@ def _remove_resource(path: Path) -> None:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class UninstallData(OperationData):
+    """Result data of the uninstall commands."""
+
     packages: tuple[_UninstalledPackage, ...]
 
 

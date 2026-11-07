@@ -64,6 +64,13 @@ if TYPE_CHECKING:
 def sync_manifest(
     manifest_file: Path, venv_container: VenvContainer, options: SyncOptions
 ) -> OperationResult[ManifestData]:
+    """Install and update the tools that a manifest declares.
+
+    :param manifest_file: the manifest file.
+    :param venv_container: the container of the environments.
+    :param options: the options of the sync.
+    :returns: the result listing the synced environments and the failures.
+    """
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
     messages: Final[list[OutputMessage]] = []
@@ -390,6 +397,8 @@ def _prune_environments(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ManifestData(OperationData):
+    """Result data of the manifest commands."""
+
     environments: tuple[str, ...]
     locks: tuple[str, ...]
 
@@ -417,6 +426,13 @@ _TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list
 
 
 def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
+    """Write the lock files of the tools that a manifest declares.
+
+    :param manifest_file: the manifest file.
+    :returns: the result listing the lock files that were written.
+    :raises PipxError: when the manifest declares no lock files, a lock file is outside the manifest directory, the nab
+        command is missing or the locks cannot be written.
+    """
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=False)
     if not any(tool.lock_file is not None for tool in manifest.tools):
         msg = "The manifest does not declare any lock files."

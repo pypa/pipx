@@ -24,6 +24,15 @@ _GLOBAL_PATH_FILE: Final[Path] = Path("/etc/paths.d/pipx" if MACOS else "/etc/pr
 
 
 def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: bool, is_global: bool) -> ExitCode:
+    """Add the pipx bin directory to the user or global PATH.
+
+    :param force: rewrite PATH entries that already exist.
+    :param prepend: put the bin directory at the start of PATH.
+    :param all_shells: update the startup files of every shell.
+    :param dry_run: report the changes without writing them.
+    :param is_global: update the global PATH instead of the user PATH.
+    :returns: the exit code.
+    """
     if is_global:
         written: Final[bool] = _ensure_global_path(paths.CTX.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
         print()  # ruff:ignore[print]  # user-facing CLI output
@@ -176,6 +185,15 @@ def _get_pipx_user_bin_path() -> Path | None:
 
 
 def ensure_path(location: Path, *, force: bool, prepend: bool, all_shells: bool, dry_run: bool) -> tuple[bool, bool]:
+    """Add a directory to PATH in the user's shell startup files.
+
+    :param location: the directory to add.
+    :param force: rewrite PATH entries that already exist.
+    :param prepend: put the directory at the start of PATH.
+    :param all_shells: update the startup files of every shell.
+    :param dry_run: report the changes without writing them.
+    :returns: whether the PATH was changed, and whether the shell must restart to see the change.
+    """
     location_str: Final[str] = str(location)
     need_shell_restart: Final[bool] = userpath.need_shell_restart(location_str)
     in_current_path: Final[bool] = userpath.in_current_path(location_str)

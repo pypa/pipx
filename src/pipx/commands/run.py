@@ -81,6 +81,12 @@ _RUN_KEY_BYTES: Final[int] = 32
 
 
 def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
+    """Run an app from a package in a temporary or cached environment, replacing the current process.
+
+    :param app: the app name, or the requirement, script or URL that provides it.
+    :param options: the options of the run.
+    :param spec: the package spec to install, derived from the app when None.
+    """
     requirement_name: Final[str] = _requirement_name(app)
     package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
     # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
@@ -140,6 +146,13 @@ def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
 
 
 def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
+    """Return the script that an app names, or None when the app is not a script.
+
+    :param app: the app name, a path or a URL.
+    :param is_path: whether the app was given as a path.
+    :returns: the script path, the script content for a named pipe, or None.
+    :raises PipxError: when a path does not exist, or a URL does not end with ``.py``.
+    """
     app_path: Final[Path] = Path(app)
     if not is_path:
         try:
@@ -557,6 +570,15 @@ def run_package(
     infer_app_name: bool,
     resolved_backend: str,
 ) -> NoReturn:
+    """Run an app of a package in a temporary or cached environment, replacing the current process.
+
+    :param app: the app name.
+    :param package_or_url: the package spec or URL to install.
+    :param options: the options of the run.
+    :param infer_app_name: whether the app name is inferred from the package.
+    :param resolved_backend: the backend that installs the package.
+    :raises PipxError: when the app cannot run, such as with ``--pypackages`` and no local bin directory.
+    """
     if not options.no_path_check and (app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(

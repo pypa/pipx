@@ -82,6 +82,12 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def reinstall_all(venv_container: VenvContainer, options: ReinstallOptions) -> OperationResult[ReinstallData]:
+    """Reinstall every environment that is not skipped, with its packages and their exposed resources.
+
+    :param venv_container: the container of the environments.
+    :param options: the options of the reinstall.
+    :returns: the result listing the reinstalled environments.
+    """
     venv_dirs: Final[list[Path]] = [
         venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in options.skip
     ]
@@ -404,6 +410,8 @@ class _ReinstalledEnvironment:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ReinstallData(OperationData):
+    """Result data of the reinstall commands."""
+
     environments: tuple[_ReinstalledEnvironment, ...]
 
 

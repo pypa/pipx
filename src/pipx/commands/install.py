@@ -95,6 +95,8 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InstallData(OperationData):
+    """Result data of the install command."""
+
     packages: tuple[_InstalledPackage, ...]
     skipped: tuple[_SkippedInstall, ...]
 
@@ -125,6 +127,13 @@ class _SkippedInstall:
 
 
 def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
+    """Install every package listed in a metadata file, one environment per package.
+
+    :param spec_metadata_file: the metadata file listing the environments.
+    :param options: the options of the installation.
+    :returns: the exit code.
+    :raises PipxError: when an entry is malformed or a package fails to install.
+    """
     venvs_metadata: Final[list[PipxMetadata]] = []
     malformed: PipxError | None = None
     try:
@@ -346,6 +355,15 @@ def install(  # ruff:ignore[too-many-locals, too-many-statements]  # one pass re
     *,
     venv_lock: BaseFileLock | None = None,
 ) -> OperationResult[InstallData]:
+    """Install a package into its own environment and expose its apps.
+
+    :param venv_dir: the directory of the environment, derived from the package when None.
+    :param package_names: the names of the packages to install, one per spec.
+    :param package_specs: the package specs to install.
+    :param options: the options of the installation.
+    :param venv_lock: the lock of the environment when the caller holds it already.
+    :returns: the result of the installation.
+    """
     validate_suffix(options.exposure.suffix)
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[_InstalledPackage]] = []

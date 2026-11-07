@@ -28,6 +28,15 @@ def reset(
     verbose: bool,
     dry_run: bool,
 ) -> OperationResult[ResetData]:
+    """Remove every environment, exposed resource and cached file that pipx manages.
+
+    :param venv_container: the container of the environments.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the reset.
+    :param dry_run: list what would be removed without removing it.
+    :returns: the result listing the packages and the paths removed.
+    """
     targets: Final[tuple[Path, ...]] = _reset_targets()
     if dry_run:
         # the exposed apps, manual pages, and completions live outside the pipx home, so list them too or the dry run
@@ -105,6 +114,8 @@ def _exposed_resource_paths(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ResetData(OperationData):
+    """Result data of the reset command."""
+
     packages: tuple[str, ...]
     removed: tuple[str, ...]
 
