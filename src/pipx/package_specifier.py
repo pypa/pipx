@@ -742,7 +742,7 @@ def _expand_pip_abbreviation(argument: str) -> str:
 def resolve_local_path(package_spec: str) -> str:
     """Return the local path of a package spec, or the spec itself when it names no local path.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec, which may name a local path that the path form resolves.
     :returns: the path or the spec.
     """
     return parsed.path if isinstance(parsed := _parse_specifier(package_spec), _LocalPath) else package_spec
@@ -751,7 +751,7 @@ def resolve_local_path(package_spec: str) -> str:
 def parse_specifier_for_metadata(package_spec: str) -> str:
     """Return the package spec as it is recorded in the metadata, keeping its version specifiers.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec as the user wrote it, before it is recorded.
     :returns: the recorded form of the spec.
     """
     return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=False)
@@ -760,7 +760,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
 def parse_specifier_for_upgrade(package_spec: str) -> str:
     """Return the package spec with its version specifiers removed, for upgrades.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec whose version specifiers are dropped.
     :returns: the spec without version specifiers.
     """
     return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=True)
@@ -769,7 +769,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
 def source_without_extras(package_spec: str) -> str:
     """Return the package spec without its extras.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec whose extras are dropped.
     :returns: the spec without extras.
     """
     match _parse_specifier(package_spec):
@@ -803,7 +803,7 @@ def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
 def get_extras(package_spec: str) -> set[str]:
     """Return the extras of a package spec.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec whose extras are read.
     :returns: the extras, empty when there are none.
     """
     match _parse_specifier(package_spec):
@@ -820,7 +820,7 @@ def get_extras(package_spec: str) -> set[str]:
 def valid_pypi_name(package_spec: str) -> str | None:
     """Return the normalized name of a PyPI package spec, or None when the name has to come from the package.
 
-    :param package_spec: the package spec.
+    :param package_spec: the spec whose name is normalized.
     :returns: the normalized name, or None when it has to come from the package itself.
     """
     if (package_req := _requirement(package_spec)) is None:

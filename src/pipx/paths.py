@@ -171,7 +171,7 @@ class _PathContext:
 def get_expanded_environ(env_name: str) -> Path | None:
     """Return the path that an environment variable names, expanded and made absolute.
 
-    :param env_name: the name of the variable.
+    :param env_name: the environment variable to read, such as ``PIPX_HOME``.
     :returns: the path, or None when the variable is not set.
     """
     return Path(value).expanduser().absolute() if (value := get_environment_value(env_name)) else None

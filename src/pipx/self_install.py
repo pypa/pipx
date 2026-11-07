@@ -88,7 +88,7 @@ _SELF_MANAGED_ENVIRONMENT: Final[dict[str, str]] = discover_self_managed_environ
 def get_environment_value(name: str) -> str | None:
     """Return the value of a variable, from the environment or the self-managed pipx environment.
 
-    :param name: the name of the variable.
+    :param name: the environment variable to look up, falling back to the self-managed pipx environment.
     :returns: the value, or None when the variable is set nowhere.
     """
     return os.environ.get(name, _SELF_MANAGED_ENVIRONMENT.get(name))

@@ -59,7 +59,7 @@ def mkdir(path: Path) -> None:
 def get_pypackage_bin_path(binary_name: str) -> Path:
     """Return the path of a binary in a ``__pypackages__`` directory for the running Python version.
 
-    :param binary_name: the name of the binary.
+    :param binary_name: the file name of the binary, without a directory.
     :returns: the path of the binary.
     """
     return Path("__pypackages__") / f"{sys.version_info.major}.{sys.version_info.minor}" / "lib" / "bin" / binary_name
@@ -105,7 +105,7 @@ def open_owner_only(path: str | os.PathLike[str], flags: int) -> int:
 def full_package_description(package_name: str, package_spec: str) -> str:
     """Describe a package for the user, with the credentials in its spec redacted.
 
-    :param package_name: the name of the package.
+    :param package_name: the package name, compared with the spec to decide whether to show both.
     :param package_spec: the spec the package was installed from.
     :returns: the description.
     """

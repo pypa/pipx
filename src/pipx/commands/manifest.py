@@ -66,7 +66,7 @@ def sync_manifest(
 ) -> OperationResult[ManifestData]:
     """Install and update the tools that a manifest declares.
 
-    :param manifest_file: the manifest file.
+    :param manifest_file: the manifest that declares the environments to sync.
     :param venv_container: the container of the environments.
     :param options: the options of the sync.
     :returns: the result listing the synced environments and the failures.
@@ -432,7 +432,7 @@ _TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list
 def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
     """Write the lock files of the tools that a manifest declares.
 
-    :param manifest_file: the manifest file.
+    :param manifest_file: the manifest that declares the lock files to write.
     :returns: the result listing the lock files that were written.
     :raises PipxError: when the manifest declares no lock files, a lock file is outside the manifest directory, the nab
         command is missing or the locks cannot be written.

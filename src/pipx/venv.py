@@ -115,7 +115,7 @@ class VenvContainer:
     def get_venv_dir(self, package_name: str) -> Path:
         """Return the directory of the environment of a package.
 
-        :param package_name: the name of the package.
+        :param package_name: the package whose environment directory is wanted, by its name.
         :returns: the directory of the environment.
         :raises PipxError: when the name is a path rather than a package name.
         """
@@ -443,7 +443,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     ) -> VenvMetadata:
         """Install a package into the environment, and record its metadata.
 
-        :param package_name: the name of the package.
+        :param package_name: the package the installer resolves, by the name it is known by.
         :param package_or_url: the spec or URL to install.
         :param pip_args: extra arguments for the installer.
         :param exposure: the apps and resources to expose.
@@ -596,7 +596,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def has_package(self, package_name: str) -> bool:
         """Return whether a distribution of the given name is installed in the environment.
 
-        :param package_name: the name of the package.
+        :param package_name: the package whose installation is checked.
         :returns: whether it is installed.
         """
         return next(self._distributions(package_name), None) is not None
@@ -629,7 +629,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     ) -> VenvMetadata:
         """Write the metadata of a package into the environment's pipx metadata file.
 
-        :param package_name: the name of the package.
+        :param package_name: the package whose record is written, by its name.
         :param package_or_url: the spec or URL it was installed from.
         :param pip_args: the pip arguments to record.
         :param exposure: the apps and resources to expose.
@@ -711,7 +711,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
         """Inspect the environment for the apps and resources of a package.
 
-        :param package_name: the name of the package.
+        :param package_name: the package whose recorded metadata is read.
         :param package_extras: the extras the package was installed with.
         :returns: the metadata found.
         """
@@ -943,7 +943,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def upgrade_package_no_metadata(self, package_name: str, pip_args: list[str], cooldown_days: int | None) -> None:
         """Upgrade a package of an environment that has no pipx metadata.
 
-        :param package_name: the name of the package.
+        :param package_name: the package to upgrade, as the environment records it.
         :param pip_args: extra arguments for the installer.
         :param cooldown_days: skip releases uploaded fewer days ago than this.
         """
@@ -974,7 +974,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     ) -> None:
         """Upgrade a package of the environment and update its metadata.
 
-        :param package_name: the name of the package.
+        :param package_name: the package whose record is updated, by its name.
         :param package_or_url: the package spec or URL it was installed from.
         :param pip_args: extra arguments for the installer.
         :param exposure: the apps and resources to expose.

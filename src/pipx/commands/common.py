@@ -403,7 +403,7 @@ def expose_package_resources(
 ) -> list[Path]:
     """Expose the apps, man pages and completions of a package.
 
-    :param package_metadata: the metadata of the package.
+    :param package_metadata: the recorded metadata of the installed package, with its apps and man pages.
     :param local_bin_dir: the directory the apps are exposed in.
     :param local_man_dir: the directory the man pages are exposed in.
     :param force: replace resources that already exist.
@@ -1157,7 +1157,7 @@ def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequenc
     """Check that a package provides the apps it is expected to.
 
     :param venv: the environment of the package.
-    :param package_name: the name of the package.
+    :param package_name: the package the expected apps belong to, named as the environment records it.
     :param expected_apps: the app names the package must provide, nothing is checked when empty.
     :raises PipxError: when an expected app is missing.
     """
@@ -1277,7 +1277,7 @@ def get_venv_resource_paths(
 def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
     """Return the apps of a package that are exposed in the local bin directory.
 
-    :param package_info: the package.
+    :param package_info: the metadata of the installed package whose apps are exposed.
     :param venv_bin_path: the bin directory of the environment.
     :param local_bin_dir: the directory the apps are exposed in.
     :returns: the exposed app paths.
@@ -1288,7 +1288,7 @@ def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path
 def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
     """Return the man pages of a package that are exposed in the local man directory.
 
-    :param package_info: the package.
+    :param package_info: the metadata of the installed package whose man pages are exposed.
     :param venv_man_path: the man directory of the environment.
     :param local_man_dir: the directory the man pages are exposed in.
     :returns: the exposed man page paths.
@@ -1303,7 +1303,7 @@ def get_package_completion_paths(
 ) -> set[Path]:
     """Return the completions of a package that are exposed in the local completion directory.
 
-    :param package_info: the package.
+    :param package_info: the metadata of the installed package whose completions are exposed.
     :param venv_completion_path: the completion directory of the environment.
     :param local_completion_dir: the directory the completions are exposed in.
     :returns: the exposed completion paths.

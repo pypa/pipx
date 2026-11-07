@@ -163,7 +163,7 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
 def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions) -> NoReturn:
     """Run a script through ``uv run``, replacing the current process.
 
-    :param script_path: the path of the script.
+    :param script_path: the script to run, whose inline metadata may declare its requirements.
     :param venv_dir: the directory of the environment, unused by uv.
     :param options: the options of the run.
     :raises PipxError: when venv arguments are given, which ``uv run`` cannot take.
