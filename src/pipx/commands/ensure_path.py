@@ -69,7 +69,7 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
             )
             + "\n"
         )
-    elif not need_shell_restart:
+    elif not need_shell_restart and all(userpath.in_current_path(str(bin_path)) for bin_path in bin_paths):
         sys.stdout.flush()
         _LOGGER.warning(
             "%s\n",

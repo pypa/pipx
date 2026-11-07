@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import stat
 from pathlib import Path
@@ -24,8 +23,7 @@ _SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide
 
 @pytest.fixture
 def mock_userpath(mocker: MockerFixture) -> MagicMock:
-    # the returns are set on the children directly: create_autospec's dotted-key arguments configure the children only
-    # on Python 3.12+, and 3.11 leaves their defaults in place, which are truthy mocks
+    # Python 3.11 ignores dotted-key return values passed to create_autospec for module children.
     mocked: Final = mocker.create_autospec(userpath)
     mocked.need_shell_restart.return_value = False
     mocked.in_current_path.return_value = False
@@ -80,25 +78,23 @@ def test_ensure_pipx_paths_dry_run_footer(mock_userpath: MagicMock, capsys: pyte
     )
 
 
-def test_ensure_pipx_paths_already_in_path_does_not_claim_addition(
-    mock_userpath: MagicMock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize("prepend", [pytest.param(False, id="append"), pytest.param(True, id="prepend")])
+@pytest.mark.parametrize("in_path", [pytest.param(True, id="already-present"), pytest.param(False, id="failed-add")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_ensure_pipx_paths_reports_existing_paths(
+    mock_userpath: MagicMock, capsys: pytest.CaptureFixture[str], *, prepend: bool, in_path: bool
 ) -> None:
-    mock_userpath.in_current_path.return_value = True
-    warning: Final = mocker.patch.object(logging.getLogger("pipx.commands.ensure_path"), "warning")
-
-    exit_code: Final = ensure_path_module.ensure_pipx_paths(
-        force=False, prepend=False, all_shells=False, dry_run=False, is_global=False
-    )
-
+    mock_userpath.in_current_path.return_value = in_path
+    mock_userpath.append.return_value = False
+    mock_userpath.prepend.return_value = False
+    assert run_pipx_cli(["ensurepath", *["--prepend"] * prepend]) == EXIT_CODE_OK
     captured: Final = capsys.readouterr()
-    # pipx_wrap breaks lines wherever the binary directory's path pushes them, so compare whitespace-flattened text
-    out_flat: Final[str] = " ".join(captured.out.split())
-    err_flat: Final[str] = " ".join(captured.err.split())
-    assert (exit_code, mock_userpath.append.called, mock_userpath.prepend.called) == (EXIT_CODE_OK, False, False)
-    assert "is already in PATH" in out_flat
-    logged: Final[str] = " ".join(" ".join(str(arg) for arg in call.args) for call in warning.call_args_list)
-    assert "are already in PATH" in logged
-    assert "have been appended to PATH" not in out_flat + err_flat + logged
+    assert (
+        "is already in PATH" in " ".join(captured.out.split()),
+        "are already in PATH" in " ".join(captured.err.split()),
+        mock_userpath.append.called,
+        mock_userpath.prepend.called,
+    ) == (in_path, in_path, not in_path and not prepend, not in_path and prepend)
 
 
 @pytest.mark.parametrize(
