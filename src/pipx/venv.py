@@ -449,6 +449,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         :param exposure: the apps and resources to expose.
         :param is_main_package: whether it is the environment's main package.
         :param install_only_pip_args: extra arguments for this install only.
+
         :param expected_apps: the apps the package must provide, or None to check nothing.
         :param lock_file: the lock file the package is installed from.
         :param pinned: whether to pin the package, or None to keep its state.
