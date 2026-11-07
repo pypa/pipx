@@ -44,7 +44,18 @@ def reset(
     :param dry_run: list what would be removed without removing it.
     :returns: the result listing the packages and the paths removed.
     """
-    targets: Final[tuple[Path, ...]] = _reset_targets()
+    targets: Final[tuple[Path, ...]] = tuple(
+        target
+        for target in (
+            CTX.venvs,
+            CTX.shared_libs,
+            CTX.venv_cache,
+            CTX.standalone_python_cachedir,
+            CTX.logs,
+            CTX.trash,
+        )
+        if target.is_dir()
+    )
     if dry_run:
         # the exposed apps, manual pages, and completions live outside the pipx home, so list them too or the dry run
         # understates what a real reset unlinks
@@ -79,21 +90,6 @@ def reset(
             OutputMessage(text=f"pipx is back to a fresh install under {CTX.home}.", stream=OutputStream.STDOUT),
         ),
         exit_code=uninstalled.exit_code,
-    )
-
-
-def _reset_targets() -> tuple[Path, ...]:
-    return tuple(
-        target
-        for target in (
-            CTX.venvs,
-            CTX.shared_libs,
-            CTX.venv_cache,
-            CTX.standalone_python_cachedir,
-            CTX.logs,
-            CTX.trash,
-        )
-        if target.is_dir()
     )
 
 

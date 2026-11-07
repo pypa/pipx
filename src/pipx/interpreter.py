@@ -213,14 +213,10 @@ def get_default_python() -> str:
     :returns: the path of the interpreter.
     """
     if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
-        return _get_sys_executable()
+        if WINDOWS:
+            return _find_default_windows_python()
+        return str(Path(sys.executable).resolve())
     return _resolve_python(python)
-
-
-def _get_sys_executable() -> str:
-    if WINDOWS:
-        return _find_default_windows_python()
-    return str(Path(sys.executable).resolve())
 
 
 def _find_default_windows_python() -> str:

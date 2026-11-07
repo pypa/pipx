@@ -354,16 +354,12 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     # hand the child a pseudo-terminal instead whenever the platform offers one
     if not WINDOWS and destination.isatty():
         reader, child = pty.openpty()
-        _match_terminal_size(child)
+        size: Final[os.terminal_size] = shutil.get_terminal_size()
+        with suppress(OSError):
+            fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
         return _StreamChannel(reader=reader, child=child, terminal=True)
     reader, child = os.pipe()
     return _StreamChannel(reader=reader, child=child, terminal=False)
-
-
-def _match_terminal_size(child: int) -> None:
-    size: Final[os.terminal_size] = shutil.get_terminal_size()
-    with suppress(OSError):
-        fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
 
 
 @dataclass(slots=True, kw_only=True)

@@ -48,7 +48,8 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
         yield
         return
 
-    if not do_animation or not _env_supports_animation():
+    minimum_columns: Final[int] = 16
+    if not do_animation or not STDERR_IS_TTY or shutil.get_terminal_size(fallback=(0, 0)).columns <= minimum_columns:
         sys.stderr.write(f"{message}...\n")
         yield
         return
@@ -80,11 +81,6 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
         event.set()
         thread.join()
         _clear_line()
-
-
-def _env_supports_animation() -> bool:
-    minimum_columns: Final[int] = 16
-    return STDERR_IS_TTY and shutil.get_terminal_size(fallback=(0, 0)).columns > minimum_columns
 
 
 def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner) -> None:
