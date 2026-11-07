@@ -75,7 +75,7 @@ from pipx.venv import Venv, VenvContainer
 if TYPE_CHECKING:
     from filelock import BaseFileLock
 
-    from pipx.options import ReinstallOptions
+    from pipx.options import BackendOptions, ReinstallOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -141,6 +141,14 @@ def _reinstall_locked(
 def reinstall(
     venv_dir: Path, options: ReinstallOptions, *, venv_lock: BaseFileLock | None
 ) -> OperationResult[ReinstallData]:
+    """Rebuild an environment from the package spec it was installed from, keeping its exposed apps.
+
+    :param venv_dir: the directory of the environment to rebuild.
+    :param options: the options of the reinstall.
+    :param venv_lock: the lock the caller holds on the environment, or None.
+    :returns: the outcome of the rebuild, or the reason nothing was rebuilt.
+    :raises PipxError: when the environment is pinned or has no record of the package it was installed from.
+    """
     if not venv_dir.exists():
         return _outcome(
             venv_dir.name,
@@ -234,29 +242,15 @@ def reinstall(
             _raise_first_error(installed.errors)
             messages.extend(installed.messages)
 
-            for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-                injected: Final = inject_dep(
-                    canonical_venv_dir,
-                    injected_name,
-                    _require_injected_url(injected_package, venv.name),
-                    InjectOptions(
-                        pip_args=injected_pip_args[injected_name],
-                        verbose=options.verbose,
-                        include_apps=injected_package.include_apps,
-                        include_dependencies=injected_package.include_dependencies,
-                        include_resources_from=injected_package.include_resources_from,
-                        force=True,
-                        # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
-                        # from the injected package's index when the injected package depends on it
-                        force_reinstall=False,
-                        with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
-                        backend=recorded_backend,
-                        cooldown_days=injected_package.cooldown_days,
-                        pinned=injected_package.pinned,
-                        emit_output=False,
-                    ),
+            messages.extend(
+                _reinject_packages(
+                    venv,
+                    canonical_venv_dir=canonical_venv_dir,
+                    options=options,
+                    injected_pip_args=injected_pip_args,
+                    backend=recorded_backend,
                 )
-                messages.extend(injected.messages)
+            )
 
         new_resource_paths: Final[set[Path]] = _get_expected_reinstall_resource_paths(
             Venv(canonical_venv_dir, verbose=options.verbose), options.local_bin_dir, options.local_man_dir
@@ -354,6 +348,41 @@ def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
     # raising from a helper keeps the raise out of the caller's try block
     if errors:
         raise PipxError(errors[0].message)
+
+
+def _reinject_packages(
+    venv: Venv,
+    *,
+    canonical_venv_dir: Path,
+    options: ReinstallOptions,
+    injected_pip_args: dict[str, list[str]],
+    backend: BackendOptions,
+) -> list[OutputMessage]:
+    messages: Final[list[OutputMessage]] = []
+    for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
+        injected: Final = inject_dep(
+            canonical_venv_dir,
+            injected_name,
+            _require_injected_url(injected_package, venv.name),
+            InjectOptions(
+                pip_args=injected_pip_args[injected_name],
+                verbose=options.verbose,
+                include_apps=injected_package.include_apps,
+                include_dependencies=injected_package.include_dependencies,
+                include_resources_from=injected_package.include_resources_from,
+                force=True,
+                # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
+                # from the injected package's index when the injected package depends on it
+                force_reinstall=False,
+                with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                backend=backend,
+                cooldown_days=injected_package.cooldown_days,
+                pinned=injected_package.pinned,
+                emit_output=False,
+            ),
+        )
+        messages.extend(injected.messages)
+    return messages
 
 
 def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
