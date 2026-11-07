@@ -44,6 +44,7 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
     :param fetch_python: when to fetch a standalone Python.
     :returns: the path of the interpreter.
     :raises InterpreterResolutionError: when no interpreter is found.
+    :raises PipxError: when fetching is always on and the version is not a bare Python version.
     """
     if fetch_python == FetchPythonOptions.ALWAYS:
         if _has_path_separator(python_version) or Path(python_version).is_file():

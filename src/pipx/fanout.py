@@ -411,6 +411,7 @@ def finished_on_interrupt() -> Generator[None, None, None]:
     """Let the children of a fan-out task finish when an interrupt arrives, instead of stopping them.
 
     :yields: nothing, while the enclosed block runs.
+    :raises KeyboardInterrupt: when an interrupt arrives after the children were asked to stop.
     """
     if (slot := _SLOT.get()) is None or not slot.children.finishes:
         yield
@@ -433,6 +434,7 @@ def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
 
     :param process: the child to stop.
     :yields: nothing, while the enclosed block runs.
+    :raises KeyboardInterrupt: when an interrupt arrives during the enclosed block.
     """
     # stopping ends the child's process group as a whole, so the child must run in one of its own
     if (slot := _SLOT.get()) is None:

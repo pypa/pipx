@@ -768,6 +768,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         :param cooldown_days: skip releases uploaded fewer days ago than this.
         :returns: the normalized name of the installed package.
         :raises PipxError: when the installation fails or the installed package cannot be identified.
+        :raises IncompatiblePythonError: when the package needs another Python than the environment's.
         """
         with animate(
             f"determining package name from {redact_url_credentials(package_or_url)!r}", do_animation=self.do_animation
