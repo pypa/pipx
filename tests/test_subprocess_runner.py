@@ -230,8 +230,10 @@ def test_subprocess_stream_reports_the_terminal_to_the_child(
 ) -> None:
     monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
     monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=stdout_is_a_terminal)
-    mocker.patch("pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=stdout_is_a_terminal, autospec=True)
+    mocker.patch(
+        "pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)), autospec=True
+    )
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [
             sys.executable,
@@ -255,7 +257,7 @@ def test_subprocess_stream_child_sees_a_terminal_only_behind_one(
     mocker: MockerFixture, destination_is_a_terminal: bool, expected: str
 ) -> None:
     destination: Final[StringIO] = StringIO()
-    mocker.patch.object(destination, "isatty", return_value=destination_is_a_terminal)
+    mocker.patch.object(destination, "isatty", return_value=destination_is_a_terminal, autospec=True)
     mocker.patch("pipx.subprocess_runner.sys.stdout", destination)
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
@@ -387,7 +389,7 @@ def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
 @SKIP_IF_WINDOWS
 def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
     destination: Final[StringIO] = StringIO()
-    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch.object(destination, "isatty", return_value=True, autospec=True)
     mocker.patch("pipx.subprocess_runner.sys.stdout", destination)
     destination.close()
 
@@ -408,8 +410,10 @@ def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture)
 def terminal_stdout(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
     monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=True)
-    mocker.patch("pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=True, autospec=True)
+    mocker.patch(
+        "pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)), autospec=True
+    )
 
 
 @pytest.mark.parametrize(

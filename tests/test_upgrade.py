@@ -139,7 +139,7 @@ def test_upgrade_resolves_recorded_relative_find_links_in_venv(tmp_path: Path, m
 def test_upgrade_refuses_recorded_find_links_owned_by_another_account(
     recorded_find_links: Path, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1)
+    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1, autospec=True)
     capsys.readouterr()
 
     assert run_pipx_cli(["upgrade", "pycowsay"])
@@ -168,7 +168,7 @@ def recorded_find_links(
 def test_upgrade_keeps_metadata_of_refused_find_links(recorded_find_links: Path, mocker: MockerFixture) -> None:
     metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     recorded: Final[bytes] = metadata_file.read_bytes()
-    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1)
+    mocker.patch("os.geteuid", return_value=recorded_find_links.stat().st_uid + 1, autospec=True)
 
     run_pipx_cli(["upgrade", "pycowsay"])
 

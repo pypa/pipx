@@ -159,7 +159,9 @@ def test_windows_python_no_version_no_venv_no_python(monkeypatch: pytest.MonkeyP
 )
 @pytest.mark.usefixtures("windows_store_python")
 def test_windows_python_no_venv_store_stub_rejected(mocker: MockerFixture, returncode: int, stdout: bytes) -> None:
-    mocker.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], returncode, stdout=stdout))
+    mocker.patch.object(
+        subprocess, "run", return_value=subprocess.CompletedProcess([], returncode, stdout=stdout), autospec=True
+    )
 
     with pytest.raises(PipxError):
         pipx.interpreter.get_default_python()
@@ -173,7 +175,9 @@ def windows_store_python(monkeypatch: pytest.MonkeyPatch, windows_default_python
 
 @pytest.mark.usefixtures("windows_store_python")
 def test_windows_python_no_venv_store_python_that_prints_its_version(mocker: MockerFixture) -> None:
-    mocker.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=b"3.8"))
+    mocker.patch.object(
+        subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=b"3.8"), autospec=True
+    )
 
     assert pipx.interpreter.get_default_python() == "WindowsApps"
 
@@ -338,9 +342,9 @@ def test_fetch_python_unsupported_platform_raises(
     libc: str,
     expected_platform: str,
 ) -> None:
-    mocker.patch.object(pipx.standalone_python.platform, "system", return_value=system)
-    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value=machine)
-    mocker.patch.object(pipx.standalone_python.platform, "libc_ver", return_value=(libc, ""))
+    mocker.patch.object(pipx.standalone_python.platform, "system", return_value=system, autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value=machine, autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "libc_ver", return_value=(libc, ""), autospec=True)
 
     with pytest.raises(InterpreterResolutionError, match="python-build-standalone") as error:
         find_python_interpreter("3.99", fetch_python=FetchPythonOptions.ALWAYS)
@@ -351,8 +355,8 @@ def test_fetch_python_retries_incomplete_install(
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    mocker.patch.object(pipx.standalone_python.platform, "system", return_value="Plan9")
-    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value="riscv64")
+    mocker.patch.object(pipx.standalone_python.platform, "system", return_value="Plan9", autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value="riscv64", autospec=True)
     (install_dir := pipx.paths.CTX.standalone_python_cachedir / "3.98").mkdir(parents=True)
 
     with pytest.raises(InterpreterResolutionError):
@@ -456,7 +460,9 @@ def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
 
 @pytest.fixture
 def unix_py_launcher_on_path(mocker: MockerFixture) -> None:
-    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    mocker.patch.object(
+        shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None, autospec=True
+    )
 
 
 @pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")

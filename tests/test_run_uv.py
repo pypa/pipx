@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 @pytest.fixture
 def fake_uv(mocker: MockerFixture) -> Path:
     binary: Final[Path] = Path("/opt/uv/bin/uv")
-    mocker.patch("pipx.commands.run_uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.commands.run_uv.resolve_uv_binary", return_value=binary, autospec=True)
     return binary
 
 

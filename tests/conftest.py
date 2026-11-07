@@ -85,7 +85,7 @@ def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[]
     def patch(venv_dir: Path, action: Callable[[], None]) -> None:
         # the command list is matched through its repr, which escapes the backslashes of a Windows path
         marker: Final[str] = repr(str(venv_dir))[1:-1]
-        mocker.patch.object(subprocess, "Popen", side_effect=_preceded(subprocess.Popen, marker, action))
+        mocker.patch.object(subprocess, "Popen", side_effect=_preceded(subprocess.Popen, marker, action), autospec=True)
 
     return patch
 

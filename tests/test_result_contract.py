@@ -73,7 +73,7 @@ def test_contract_dispatch_error_uses_the_envelope(
     mocker: MockerFixture,
 ) -> None:
     # a PipxError raised before a command returns a result must still speak JSON when the user selected --output json
-    mocker.patch("pipx.main.sys.stdin.isatty", return_value=False)
+    mocker.patch("pipx.main.sys.stdin.isatty", return_value=False, autospec=True)
 
     assert run_pipx_cli(["reset", "--output", "json"])
 

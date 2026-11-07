@@ -1804,7 +1804,7 @@ def test_run_cache_secret_replaces_foreign_owned(
     mocker: MockerFixture,
 ) -> None:
     secret_path: Final[Path] = plant_secret(b"a" * 32)
-    mocker.patch("os.geteuid", return_value=secret_path.stat().st_uid + 1)
+    mocker.patch("os.geteuid", return_value=secret_path.stat().st_uid + 1, autospec=True)
     cache_lock_path(["black"], [], [])
 
     assert secret_path.read_bytes() != b"a" * 32
@@ -1826,7 +1826,7 @@ def test_run_cache_secret_keeps_the_one_a_concurrent_run_wrote(
         plant_secret(b"a" * 32)
         return b"b" * size
 
-    mocker.patch("secrets.token_bytes", side_effect=concurrent_run_wins)
+    mocker.patch("secrets.token_bytes", side_effect=concurrent_run_wins, autospec=True)
 
     assert cache_lock_path(["black"], [], []) == expected != own
 
@@ -1837,7 +1837,7 @@ def test_run_cache_without_usable_secret_logs_fallback(
     caplog: pytest.LogCaptureFixture,
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch("tempfile.mkstemp", side_effect=PermissionError(13, "Permission denied"))
+    mocker.patch("tempfile.mkstemp", side_effect=PermissionError(13, "Permission denied"), autospec=True)
     caplog.set_level(logging.DEBUG)
     cache_lock_path(["black"], [], [])
 

@@ -293,7 +293,7 @@ def test_write_preserves_existing_metadata_after_os_error(
     metadata_path.write_text(previous_metadata, encoding="utf-8")
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
     metadata.main_package = _MAIN_PACKAGE
-    mocker.patch.object(Path, "replace", side_effect=OSError("disk full"))
+    mocker.patch.object(Path, "replace", side_effect=OSError("disk full"), autospec=True)
 
     metadata.write()
 

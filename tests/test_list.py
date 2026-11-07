@@ -81,11 +81,12 @@ def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) 
     lock: Final = mocker.create_autospec(BaseFileLock, instance=True)
     # Python before 3.14 ignores a keyword argument naming a method of an autospec
     lock.acquire.side_effect = PermissionError("read-only lock file")
-    mocker.patch.object(venv_container, "venv_lock", return_value=lock)
+    mocker.patch.object(venv_container, "venv_lock", return_value=lock, autospec=True)
     mocker.patch.object(
         importlib.import_module("pipx.commands.list_packages"),
         "get_venv_summary",
         return_value=("package example 1", common.VenvProblems()),
+        autospec=True,
     )
 
     assert not list_packages(

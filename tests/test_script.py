@@ -210,7 +210,7 @@ def test_installable_script_downloads_url_over_file_below_cwd(
 def urlopen(mocker: MockerFixture) -> MagicMock:
     response: Final[MagicMock] = mocker.MagicMock()
     response.__enter__.return_value = response
-    return mocker.patch("urllib.request.urlopen", return_value=response)
+    return mocker.patch("urllib.request.urlopen", return_value=response, autospec=True)
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
@@ -309,7 +309,7 @@ def test_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_ftp_script_url_passes_credentials_to_urllib(mocker: MockerFixture) -> None:
-    urlopen: Final[MagicMock] = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"))
+    urlopen: Final[MagicMock] = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"), autospec=True)
 
     assert run_pipx_cli(["run", "ftp://alice:s3cr3t@localhost/tool.py"]) == 1
 

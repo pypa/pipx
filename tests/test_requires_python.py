@@ -119,10 +119,11 @@ def fake_interpreters(mocker: MockerFixture) -> _FakeInterpreters:
                 return f"/downloaded/{fetched[minor]}"
             raise InterpreterResolutionError(source="the system", version=minor)
 
-        mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve)
+        mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve, autospec=True)
         mocker.patch(
             "pipx.requires_python.run_subprocess",
             side_effect=lambda cmd, **_: CompletedProcess(cmd, 0, stdout=f"{cmd[0].rsplit('/', 1)[1]}\n"),
+            autospec=True,
         )
 
     return install

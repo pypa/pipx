@@ -374,6 +374,7 @@ def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> Magi
     return mocker.patch(
         "pipx.shared_libs.run_subprocess",
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+        autospec=True,
     )
 
 

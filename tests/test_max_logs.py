@@ -109,7 +109,7 @@ def test_max_logs_rotates_without_lock_support(
 ) -> None:
     monkeypatch.setenv("PIPX_MAX_LOGS", "1")
     (log_dir / "cmd_2024-01-01_00.00.00.log").touch()
-    mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"))
+    mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"), autospec=True)
 
     assert not run_pipx_cli(["list"])
 

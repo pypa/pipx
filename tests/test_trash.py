@@ -38,7 +38,7 @@ def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
 ) -> None:
     (path := tmp_path / "locked").mkdir()
     mocker.patch("pipx.trash.shutil.rmtree", autospec=True)
-    mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"))
+    mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"), autospec=True)
     mocker.patch.object(type(paths.CTX), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
 
     with caplog.at_level(logging.WARNING, logger="pipx.trash"):
@@ -62,7 +62,7 @@ def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp
     (file := tmp_path / "locked").write_text("content")
     (trash_dir := tmp_path / "trash").mkdir()
     mocker.patch.object(type(paths.CTX), "trash", mocker.PropertyMock(return_value=trash_dir))
-    mocker.patch.object(Path, "unlink", side_effect=PermissionError("locked file"))
+    mocker.patch.object(Path, "unlink", side_effect=PermissionError("locked file"), autospec=True)
 
     safe_unlink(file)
 

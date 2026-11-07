@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
-    mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"))
+    mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"), autospec=True)
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["install", "--help"])
     assert "apps you can run from anywhere" in capsys.readouterr().out
@@ -1028,6 +1028,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
     mocker.patch(
         "pipx.shared_libs._time",
         return_value=shared_libs.SHARED_LIBS.pip_path.stat().st_mtime + shared_libs.SHARED_LIBS_MAX_AGE_SEC + 1,
+        autospec=True,
     )
     run_subprocess: Final = mocker.patch(
         "pipx.shared_libs.run_subprocess",

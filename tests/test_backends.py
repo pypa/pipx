@@ -71,12 +71,13 @@ def test_resolve_backend_name_rejects_unknown() -> None:
 @pytest.fixture
 def path_uv_reports(mocker: MockerFixture) -> Callable[[str], None]:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
 
     def report(version: str) -> None:
         mocker.patch(
             "pipx.backends.uv.subprocess.run",
             return_value=subprocess.CompletedProcess(["uv", "--version"], 0, stdout=f"uv {version}", stderr=""),
+            autospec=True,
         )
 
     return report
@@ -140,29 +141,29 @@ def test_resolve_backend_name_keeps_explicit_uv_when_too_old(
 
 
 def test_resolve_backend_name_auto_no_uv(mocker: MockerFixture) -> None:
-    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
     assert resolve_backend_name(env_value=None) == (PIP, "auto-pip")
 
 
 def test_resolve_backend_name_auto_disabled(mocker: MockerFixture) -> None:
-    mocker.patch.object(registry, "find_uv_binary", return_value=(Path("/opt/uv"), "path"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(Path("/opt/uv"), "path"), autospec=True)
     assert resolve_backend_name(env_value=None, auto=False) == (PIP, "auto-pip")
 
 
 def test_find_uv_binary_prefers_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
     (bundled := tmp_path / "bundled-uv").write_text("")
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     # the stub bundled file is not a real uv, so bypass the launch probe
-    mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
+    mocker.patch("pipx.backends.uv._binary_runs", return_value=True, autospec=True)
     assert find_uv_binary() == (bundled, "bundled")
 
 
 def test_find_uv_binary_skips_broken_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
     (bundled := tmp_path / "bundled-uv").write_text("")
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
-    mocker.patch("pipx.backends.uv._binary_runs", side_effect=lambda candidate: candidate != bundled)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("pipx.backends.uv._binary_runs", side_effect=lambda candidate: candidate != bundled, autospec=True)
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     assert find_uv_binary() == (Path("/usr/local/bin/uv"), "path")
 
 
@@ -175,31 +176,32 @@ def test_find_uv_binary_skips_broken_bundled(mocker: MockerFixture, tmp_path: Pa
 )
 def test_find_uv_binary_path_candidate(mocker: MockerFixture, runs: bool, expected: tuple[Path | None, str]) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("pipx.backends.uv._binary_runs", return_value=runs)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("pipx.backends.uv._binary_runs", return_value=runs, autospec=True)
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     assert find_uv_binary() == expected
 
 
 def test_find_uv_binary_probe_survives_a_hanging_path_uv(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     mocker.patch(
         "pipx.backends.uv.subprocess.run",
         side_effect=subprocess.TimeoutExpired(cmd=["uv", "--version"], timeout=10),
+        autospec=True,
     )
     assert find_uv_binary() == (None, "missing")
 
 
 def test_find_uv_binary_missing(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("shutil.which", return_value=None)
+    mocker.patch("shutil.which", return_value=None, autospec=True)
     assert find_uv_binary() == (None, "missing")
 
 
 def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
-    which_mock: Final[MagicMock] = mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("pipx.backends.uv._binary_runs", return_value=True, autospec=True)
+    which_mock: Final[MagicMock] = mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     find_uv_binary()
     find_uv_binary()
     find_uv_binary()
@@ -208,10 +210,11 @@ def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
 
 def test_resolve_uv_binary_runs_uv_version_once(mocker: MockerFixture) -> None:
     mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
-    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     run: Final[MagicMock] = mocker.patch(
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess(["uv", "--version"], 0, stdout="uv 0.11.28", stderr=""),
+        autospec=True,
     )
 
     resolve_uv_binary()
@@ -221,10 +224,11 @@ def test_resolve_uv_binary_runs_uv_version_once(mocker: MockerFixture) -> None:
 
 def test_resolve_uv_binary_reports_a_hanging_version_probe(mocker: MockerFixture) -> None:
     binary: Final[Path] = Path("/usr/local/bin/uv")
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"), autospec=True)
     mocker.patch(
         "pipx.backends.uv.subprocess.run",
         side_effect=subprocess.TimeoutExpired(cmd=[str(binary), "--version"], timeout=10),
+        autospec=True,
     )
 
     with pytest.raises(PipxError, match="Could not run"):
@@ -233,11 +237,12 @@ def test_resolve_uv_binary_reports_a_hanging_version_probe(mocker: MockerFixture
 
 def test_uv_backend_rejects_pre_cooldown_version(mocker: MockerFixture) -> None:
     binary: Final[Path] = Path("/usr/local/bin/uv")
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary, autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"), autospec=True)
     mocker.patch(
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.9.16", stderr=""),
+        autospec=True,
     )
 
     with pytest.raises(PipxError, match=r"uv>=0\.9\.17"):
@@ -247,11 +252,12 @@ def test_uv_backend_rejects_pre_cooldown_version(mocker: MockerFixture) -> None:
 @pytest.fixture
 def uv_binary(tmp_path: Path, mocker: MockerFixture) -> Path:
     binary: Final[Path] = tmp_path / "uv"
-    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary, autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"), autospec=True)
     mocker.patch(
         "pipx.backends.uv.subprocess.run",
         return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+        autospec=True,
     )
     return binary
 

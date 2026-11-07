@@ -50,7 +50,7 @@ _ENVIRONMENT_VALUE: Final[list[str]] = ["environment", "--value", "PIPX_HOME"]
 @pytest.fixture
 def exit_early(mocker: MockerFixture) -> MagicMock:
     # the real sys.exit would end the test run, so raise instead and let each test catch it
-    return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"))
+    return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"), autospec=True)
 
 
 @pytest.mark.parametrize(
@@ -561,8 +561,8 @@ def test_json_output_reports_rejected_arguments_in_envelope(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
-    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
 
     assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
 
@@ -589,8 +589,8 @@ def test_validate_backend_silent_on_env_uv_missing(
     # diagnostic commands (`pipx environment`, `pipx list`) must keep working without a startup warning that the later
     # UvBackend.__init__ error would contradict; patch both the source and the registry lookup, as either one left
     # unpatched would find uv
-    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
 
@@ -600,8 +600,8 @@ def test_validate_backend_silent_on_env_uv_missing(
 
 
 def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
-    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
     with pytest.raises(PipxError, match="uv' executable could not be found"):
         _validate_backend_available(BackendOptions(cli="uv"))
 

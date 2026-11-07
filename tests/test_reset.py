@@ -132,7 +132,7 @@ def test_reset_without_a_terminal_demands_force(
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch("pipx.main.sys.stdin.isatty", return_value=False)
+    mocker.patch("pipx.main.sys.stdin.isatty", return_value=False, autospec=True)
 
     assert run_pipx_cli(["reset"])
 
@@ -154,7 +154,7 @@ def test_reset_asks_before_it_removes(
     answer: str,
     resets: bool,
 ) -> None:
-    mocker.patch("pipx.main.sys.stdin.isatty", return_value=True)
+    mocker.patch("pipx.main.sys.stdin.isatty", return_value=True, autospec=True)
     mocker.patch("pipx.main.input", return_value=answer)
 
     assert (bool(run_pipx_cli(["reset"])), paths.CTX.venvs.is_dir()) == (not resets, not resets)
@@ -173,7 +173,7 @@ def test_reset_eof_cancels(
 def interactive_stdin(mocker: MockerFixture) -> StringIO:
     stream: Final[StringIO] = StringIO()
     mocker.patch("pipx.main.sys.stdin", new=stream)
-    mocker.patch.object(stream, "isatty", return_value=True)
+    mocker.patch.object(stream, "isatty", return_value=True, autospec=True)
     return stream
 
 

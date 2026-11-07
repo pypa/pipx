@@ -224,8 +224,8 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
         stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
     )
     mocker.patch.object(venv, "_backend", backend)
-    mocker.patch.object(venv, "list_installed_packages", return_value=set())
-    mocker.patch("pipx.venv.get_site_packages", return_value=[])
+    mocker.patch.object(venv, "list_installed_packages", return_value=set(), autospec=True)
+    mocker.patch("pipx.venv.get_site_packages", return_value=[], autospec=True)
 
     with pytest.raises(PipxError) as excinfo:
         venv.install_package_no_deps("requires-newer-python", [], None)
@@ -266,8 +266,8 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
     # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
     backend.install.side_effect = install
     mocker.patch.object(venv, "_backend", backend)
-    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
-    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
+    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}], autospec=True)
+    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages], autospec=True)
     return venv
 
 

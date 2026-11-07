@@ -401,7 +401,7 @@ def test_upgrade_all_prints_progress_in_venv_order(
             time.sleep(0.3)
         return shutil.copytree(source, destination, symlinks=symlinks)
 
-    mocker.patch("pipx.commands.transaction.copytree", side_effect=backup)
+    mocker.patch("pipx.commands.transaction.copytree", side_effect=backup, autospec=True)
 
     assert not run_pipx_cli(["upgrade-all"])
 
@@ -482,7 +482,9 @@ def test_upgrade_all_finishes_upgrade_in_progress_on_first_interrupt(
 def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> Callable[[int], None]:
     # signal pipx alone as pip starts upgrading the first black venv, as pressing Ctrl-C that many times would
     def patch(presses: int) -> None:
-        mocker.patch.object(subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog))
+        mocker.patch.object(
+            subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog), autospec=True
+        )
 
     return patch
 
@@ -531,7 +533,7 @@ def test_upgrade_all_does_not_start_upgrades_after_interrupt(
     assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix=_x"])
     capsys.readouterr()
     # one worker, so the upgrade of the other venv waits for the interrupted one
-    mocker.patch.object(os, "cpu_count", return_value=1)
+    mocker.patch.object(os, "cpu_count", return_value=1, autospec=True)
     interrupt_upgrade(1)
 
     exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
