@@ -82,21 +82,26 @@ def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[], None]], None]:
+    actions: Final[dict[str, Callable[[], None]]] = {}
+
     def patch(venv_dir: Path, action: Callable[[], None]) -> None:
+        # Popen can be patched only once per test: a second autospec of the mock raises InvalidSpecError
+        if not actions:
+            mocker.patch.object(subprocess, "Popen", side_effect=_dispatching(subprocess.Popen, actions), autospec=True)
         # the command list is matched through its repr, which escapes the backslashes of a Windows path
-        marker: Final[str] = repr(str(venv_dir))[1:-1]
-        mocker.patch.object(subprocess, "Popen", side_effect=_preceded(subprocess.Popen, marker, action), autospec=True)
+        actions[repr(str(venv_dir))[1:-1]] = action
 
     return patch
 
 
-def _preceded(call: Callable[_P, _R], marker: str, action: Callable[[], None]) -> Callable[_P, _R]:
-    def preceded(*args: _P.args, **kwargs: _P.kwargs) -> _R:
-        if marker in str(args[0]):
-            action()
+def _dispatching(call: Callable[_P, _R], actions: dict[str, Callable[[], None]]) -> Callable[_P, _R]:
+    def dispatching(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        for marker, action in actions.items():
+            if marker in str(args[0]):
+                action()
         return call(*args, **kwargs)
 
-    return preceded
+    return dispatching
 
 
 @pytest.fixture
