@@ -285,6 +285,8 @@ class PipxMetadata:
         """Restore the metadata file after the enclosed block when the block changed it.
 
         Installers unpack wheel data files into the environment, so a package can overwrite the file.
+
+        :yields: nothing, while the enclosed block runs.
         """
         # installers unpack a wheel's data files into the venv root, so any package can ship a file of this name
         before: Final[bytes | None] = self._file_content()

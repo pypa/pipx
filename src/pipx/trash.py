@@ -84,6 +84,7 @@ def running_launcher_moved_aside(scripts_dir: Path) -> Generator[None]:
     """Move a running launcher out of the way for the enclosed block, and restore it after.
 
     :param scripts_dir: the directory of the scripts that the block rewrites.
+    :yields: nothing, while the enclosed block runs.
     """
     # Windows lets a running file be renamed but not deleted, so the launcher this pipx started from waits in the trash
     # while an installer that deletes files in place rewrites the scripts directory

@@ -39,6 +39,7 @@ def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -
     :param venv_dir: the directory of the environment.
     :param enabled: back up the environment; when False the block does nothing extra.
     :param copy_upfront: copy the environment before the block instead of only when it is deleted.
+    :yields: nothing, while the enclosed block runs.
     """
     backup: Final[VenvBackup] = VenvBackup(venv_dir, enabled=enabled)
     if enabled and (copy_upfront or runs_from_venv(venv_dir)):
@@ -207,6 +208,7 @@ def marked_unfinished(venv_dir: Path) -> Generator[None]:
     A PipxError clears it.
 
     :param venv_dir: the directory of the environment.
+    :yields: nothing, while the enclosed block runs.
     """
     # an interrupt, a crash or a kill leaves the mark behind, which tells the next upgrade or reinstall to rebuild the
     # environment; an error pipx reports clears it

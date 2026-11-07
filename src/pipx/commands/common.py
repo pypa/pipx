@@ -85,6 +85,7 @@ def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
     """Let the enclosed exposures replace the given resource paths.
 
     :param resource_paths: the paths a rebuild may replace.
+    :yields: nothing, while the enclosed block runs.
     """
     # a rebuild forces only to refresh its own exposed files, not to take names install left with their owner
     token: Final = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
@@ -103,6 +104,7 @@ def expose_shared_resources_in_order(
     :param venvs_metadata: the metadata of the environments in the fan-out.
     :param local_bin_dir: the directory the apps are exposed in.
     :param local_man_dir: the directory the man pages are exposed in.
+    :yields: nothing, while the enclosed block runs.
     """
     # a path several environments of a fan-out expose must end up where a one-at-a-time run leaves it, so they expose
     # it in task order; only shared paths wait, as a task waiting for its turn holds one of the fan-out's workers
@@ -167,7 +169,10 @@ def add_suffix(name: str, suffix: str) -> str:
 
 @contextmanager
 def reuse_resource_dir_scans() -> Generator[None]:
-    """Reuse directory scans and venv claims within the enclosed block."""
+    """Reuse directory scans and venv claims within the enclosed block.
+
+    :yields: nothing, while the enclosed block runs.
+    """
     # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
     # command instead of once per venv keeps them linear in the number of venvs
     token: Final = _RESOURCE_DIR_SCANS.set({})
@@ -1035,13 +1040,17 @@ class VenvProblems:
     not_installed: bool = False
 
     def any_(self) -> bool:
-        """Return whether any problem is set."""
+        """Return whether any problem is set.
+
+        :returns: True when at least one flag is set.
+        """
         return any(getattr(self, field.name) for field in fields(self))
 
     def or_(self, venv_problems: VenvProblems) -> VenvProblems:
-        """Return the problems set in either instance.
+        """Merge the problems of two instances.
 
         :param venv_problems: the problems to merge with these.
+        :returns: the problems set in either instance.
         """
         return VenvProblems(**{
             field.name: getattr(self, field.name) or getattr(venv_problems, field.name) for field in fields(self)

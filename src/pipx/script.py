@@ -55,7 +55,7 @@ def installable_script(
     :param package_name: the name of the package the script provides.
     :param package_or_url: the package spec or URL, or the path of a script.
     :param expected_apps: the apps the user expects the package to provide.
-    :returns: the requirement to install, the spec itself when it is not a script.
+    :yields: the requirement to install, the spec itself when it is not a script.
     :raises PipxError: when the script provides a different package than package_name.
     """
     if (resolved_name := script_name_from_spec(package_or_url, expected_apps)) is None:

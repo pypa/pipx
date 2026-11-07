@@ -107,7 +107,7 @@ class VenvContainer:
     def iter_venv_dirs(self) -> Generator[Path, None, None]:
         """Return the directories of the environments that exist.
 
-        :returns: the environment directories, empty when the root does not exist.
+        :yields: the environment directories, empty when the root does not exist.
         """
         if self._root.is_dir():
             yield from (entry for entry in self._root.iterdir() if entry.is_dir())
@@ -133,7 +133,7 @@ class VenvContainer:
 
         :param venv_dirs: the directories of the environments to lock.
         :param allow_permission_error: skip an environment whose lock cannot be taken, rather than raising.
-        :returns: the locked directories, each held until the next one is yielded.
+        :yields: the locked directories, each held until the next one is yielded.
         """
         for venv_dir in venv_dirs:
             lock: Final[BaseFileLock] = self.venv_lock(venv_dir)
@@ -285,7 +285,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def uses_shared_libs(self) -> bool:
         """Return whether the environment runs from the shared libraries.
 
-        :returns: whether it does.
+        A new environment asks its backend; an existing one answers from its record, or from its .pth file when the
+        record predates the backend field.
         """
         if not self._existing:
             return self.backend.needs_shared_libs()

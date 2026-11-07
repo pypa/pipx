@@ -58,6 +58,7 @@ def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None
     """Skip the maintenance of the shared libraries for the enclosed block.
 
     :param enabled: whether to skip the maintenance.
+    :yields: nothing, while the enclosed block runs.
     """
     token: Final = _SKIP_MAINTENANCE.set(enabled)
     try:
@@ -71,6 +72,7 @@ def shared_pip_cooldown(days: int | None) -> Generator[None]:
     """Use the given cooldown in days for the pip installs of the shared libraries in the enclosed block.
 
     :param days: the cooldown in days, or None to use none.
+    :yields: nothing, while the enclosed block runs.
     """
     token: Final = _COOLDOWN_DAYS.set(days)
     try:

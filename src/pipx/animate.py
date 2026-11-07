@@ -43,6 +43,7 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
     :param message: the message to show.
     :param do_animation: whether to animate the spinner, which needs a terminal.
     :param delay: seconds to wait before the spinner starts.
+    :yields: nothing, while the enclosed block runs.
     """
     if (handlers := logging.getLogger("pipx").handlers) and handlers[0].level > logging.WARNING:
         yield

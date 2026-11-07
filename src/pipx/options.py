@@ -45,7 +45,7 @@ class CooldownOptions:
     def days(self) -> int | None:
         """Return the cooldown in days, the command line value first.
 
-        :returns: the number of days, or None when no cooldown is set.
+        The result is None when neither value is set.
         """
         return self.cli_days if self.cli_days is not None else self.env_days
 

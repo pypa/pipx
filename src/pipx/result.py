@@ -113,7 +113,7 @@ class OperationResult(Generic[_PayloadT]):
     def status(self) -> str:
         """Return ``success``, ``partial`` or ``error``, from whether any error was reported and the command succeeded.
 
-        :returns: the status of the command.
+        ``success`` when no error was reported, ``partial`` when an operation succeeded despite errors, else ``error``.
         """
         if not self.errors:
             return "success"

@@ -438,6 +438,7 @@ def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None
     """Send the standard output of the subprocesses of the enclosed block to standard error.
 
     :param enabled: whether to redirect the output.
+    :yields: nothing, while the enclosed block runs.
     """
     token: Final = _STREAM_STDOUT_TO_STDERR.set(enabled)
     try:
