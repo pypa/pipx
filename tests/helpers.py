@@ -11,7 +11,6 @@ import threading
 import zipfile
 from dataclasses import replace
 from typing import TYPE_CHECKING, Final, Protocol, TypedDict
-from unittest import mock
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -100,7 +99,8 @@ def app_name(app: str) -> str:
 
 
 def run_pipx_cli(pipx_args: list[str]) -> int:
-    with mock.patch.object(sys, "argv", ["pipx", *pipx_args]):
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(sys, "argv", ["pipx", *pipx_args])
         return cli()
 
 

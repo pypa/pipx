@@ -97,12 +97,11 @@ def test_resolve_backend_name_auto_path_uv(
 
 
 def test_resolve_backend_name_auto_skips_too_old_bundled_uv(
-    path_uv_reports: Callable[[str], None], mocker: MockerFixture, tmp_path: Path
+    path_uv_reports: Callable[[str], None], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     path_uv_reports("0.5.0")
     (bundled := tmp_path / "uv").write_text("")
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
-    mocker.patch("shutil.which", return_value=None)
+    monkeypatch.setattr("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", lambda: str(bundled))
     assert resolve_backend_name(env_value=None) == (PIP, "auto-pip")
 
 
@@ -149,18 +148,20 @@ def test_resolve_backend_name_auto_disabled(mocker: MockerFixture) -> None:
     assert resolve_backend_name(env_value=None, auto=False) == (PIP, "auto-pip")
 
 
-def test_find_uv_binary_prefers_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_find_uv_binary_prefers_bundled(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, tmp_path: Path) -> None:
     (bundled := tmp_path / "bundled-uv").write_text("")
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
+    monkeypatch.setattr("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", lambda: str(bundled))
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     # the stub bundled file is not a real uv, so bypass the launch probe
     mocker.patch("pipx.backends.uv._binary_runs", return_value=True, autospec=True)
     assert find_uv_binary() == (bundled, "bundled")
 
 
-def test_find_uv_binary_skips_broken_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_find_uv_binary_skips_broken_bundled(
+    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, tmp_path: Path
+) -> None:
     (bundled := tmp_path / "bundled-uv").write_text("")
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
+    monkeypatch.setattr("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", lambda: str(bundled))
     mocker.patch("pipx.backends.uv._binary_runs", side_effect=lambda candidate: candidate != bundled, autospec=True)
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv", autospec=True)
     assert find_uv_binary() == (Path("/usr/local/bin/uv"), "path")

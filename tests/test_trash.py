@@ -31,13 +31,14 @@ def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
 
 def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
     tmp_path: Path,
 ) -> None:
     (path := tmp_path / "locked").mkdir()
     mocker.patch("pipx.trash.shutil.rmtree", autospec=True)
     mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"), autospec=True)
-    mocker.patch.object(type(CTX), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+    monkeypatch.setattr(type(CTX), "trash", property(lambda _self: tmp_path / "trash"))
 
     with caplog.at_level(logging.WARNING, logger="pipx.trash"):
         rmdir(path)
@@ -46,20 +47,24 @@ def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
     assert f"Failed to move {path} to the trash" in caplog.text
 
 
-def test_rmdir_via_trash_removes_in_place_when_the_move_fails(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_rmdir_via_trash_removes_in_place_when_the_move_fails(
+    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, tmp_path: Path
+) -> None:
     (path := tmp_path / "venv").mkdir()
     mocker.patch.object(Path, "rename", autospec=True, side_effect=OSError("cross-device link"))
-    mocker.patch.object(type(CTX), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+    monkeypatch.setattr(type(CTX), "trash", property(lambda _self: tmp_path / "trash"))
 
     rmdir_via_trash(path)
 
     assert sorted(entry.name for entry in tmp_path.iterdir()) == ["trash"]
 
 
-def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp_path: Path) -> None:
+def test_safe_unlink_handles_existing_trash_directory(
+    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, tmp_path: Path
+) -> None:
     (file := tmp_path / "locked").write_text("content")
     (trash_dir := tmp_path / "trash").mkdir()
-    mocker.patch.object(type(CTX), "trash", mocker.PropertyMock(return_value=trash_dir))
+    monkeypatch.setattr(type(CTX), "trash", property(lambda _self: trash_dir))
     mocker.patch.object(Path, "unlink", side_effect=PermissionError("locked file"), autospec=True)
 
     safe_unlink(file)

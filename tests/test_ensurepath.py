@@ -117,10 +117,16 @@ def test_ensure_pipx_paths_reports_existing_paths(
 )
 @_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_updates_system_profile(
-    mocker: MockerFixture, tmp_path: Path, macos: bool, prepend: bool, expected: str
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    *,
+    macos: bool,
+    prepend: bool,
+    expected: str,
 ) -> None:
     (config_file := tmp_path / "etc/profile.d/pipx.sh").parent.mkdir(parents=True)
-    mocker.patch.object(type(CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/opt/pipx/bin")))
+    monkeypatch.setattr(type(CTX), "bin_dir", property(lambda _self: Path("/opt/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 
@@ -216,10 +222,17 @@ def test_ensurepath_cli_global_force_replaces_foreign_file(mocker: MockerFixture
 )
 @_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_replaces_own_entry(
-    mocker: MockerFixture, tmp_path: Path, *, macos: bool, prepend: bool, existing: str, expected: str
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    *,
+    macos: bool,
+    prepend: bool,
+    existing: str,
+    expected: str,
 ) -> None:
     (config_file := tmp_path / "pipx.sh").write_text(existing, encoding="utf-8")
-    mocker.patch.object(type(CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin")))
+    monkeypatch.setattr(type(CTX), "bin_dir", property(lambda _self: Path("/srv/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 

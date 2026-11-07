@@ -151,12 +151,13 @@ def test_reset_without_a_terminal_demands_force(
 )
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_asks_before_it_removes(
+    monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
     answer: str,
     resets: bool,
 ) -> None:
     mocker.patch("pipx.main.sys.stdin.isatty", return_value=True, autospec=True)
-    mocker.patch("pipx.main.input", return_value=answer)
+    monkeypatch.setattr("pipx.main.input", lambda _prompt: answer, raising=False)
 
     assert (bool(run_pipx_cli(["reset"])), CTX.venvs.is_dir()) == (not resets, not resets)
 
