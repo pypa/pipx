@@ -22,9 +22,9 @@ installing its own. Under the uv backend there is no shared environment: ``uv ve
 and ``uv pip`` installs into it.
 
 pipx refreshes the shared ``pip`` once it is more than 30 days old, or right away when it is older than ``pip`` 26.2.2;
-``pipx upgrade-shared`` refreshes it immediately. When ``pip``'s files are missing from the shared environment, pipx
-rebuilds it before running ``pip``; when a ``pip`` command fails because ``pip`` no longer imports, pipx rebuilds it and
-retries the command once.
+``pipx upgrade-shared`` refreshes it immediately. When ``pip``'s files are missing from the shared environment, or it
+runs on a Python older than pipx supports, pipx rebuilds it before running ``pip``; when a ``pip`` command fails because
+``pip`` no longer imports, pipx rebuilds it and retries the command once.
 
 After installing the package, pipx exposes the application's resources so you can reach them from any directory. It
 handles three kinds:

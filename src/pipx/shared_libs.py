@@ -22,11 +22,11 @@ from threading import RLock
 from time import time as _time
 from typing import TYPE_CHECKING, Final
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 from pipx import paths
 from pipx.animate import animate
-from pipx.constants import WINDOWS
+from pipx.constants import MINIMUM_PYTHON_VERSION, WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python, read_pyvenv_cfg
@@ -109,6 +109,8 @@ class _SharedLibs:
                 )
             subprocess_post_check(create_process)
             self._is_valid = None
+            # site-packages has the Python version in its path, which a rebuild can change
+            self._site_packages.clear()
 
             should_reinstall_pip: Final[bool] = (
                 not shared_libs_auto_upgrade_disabled() if reinstall_pip is None else reinstall_pip
@@ -145,6 +147,7 @@ class _SharedLibs:
                 self._is_valid = (
                     self.python_path.is_file()
                     and self._base_interpreter_exists(self.python_path)
+                    and self._python_is_supported()
                     and self.pip_path.is_file()
                     and (self.site_packages[0] / "pip" / "_internal" / "cli" / "main.py").is_file()
                 )
@@ -169,6 +172,18 @@ class _SharedLibs:
             _LOGGER.info("Shared libs venv references a missing Python interpreter: %s", original_python)
             return False
         return True
+
+    def _python_is_supported(self) -> bool:
+        # the venv keeps the interpreter it was built with, so one predating the minimum outlives every pipx upgrade and
+        # can never install the pip floor; a missing or unparsable version gives no evidence against the venv
+        try:
+            version: Final[Version] = Version(read_pyvenv_cfg(self.root / "pyvenv.cfg").get("version", ""))
+        except InvalidVersion:
+            return True
+        if version.release[:2] >= Version(MINIMUM_PYTHON_VERSION).release:
+            return True
+        _LOGGER.info("Shared libs venv uses unsupported Python %s, rebuilding it", version)
+        return False
 
     @property
     def pip_path(self) -> Path:

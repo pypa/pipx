@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,7 @@ from filelock import AcquireReturnProxy, FileLock
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
-from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.constants import MINIMUM_PYTHON_VERSION, PIPX_SHARED_PTH, WINDOWS
 from pipx.subprocess_runner import run_subprocess
 from pipx.venv import Venv
 
@@ -84,6 +85,53 @@ def test_shared_libs_validity_ignores_base_interpreter_off_windows() -> None:
     (shared_libs.SHARED_LIBS.root / "pyvenv.cfg").write_text("home = /nonexistent\n", encoding="utf-8")
 
     assert shared_libs.SHARED_LIBS.is_valid
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        pytest.param("3.9.6", False, id="below-minimum"),
+        pytest.param("3.10.20", False, id="minor-below-minimum"),
+        pytest.param(f"{MINIMUM_PYTHON_VERSION}.0rc1", True, id="minimum-pre-release"),
+        pytest.param(f"{MINIMUM_PYTHON_VERSION}.0", True, id="minimum"),
+        pytest.param("not-a-version", True, id="unparsable"),
+    ],
+)
+@pytest.mark.usefixtures("shared_pip_layout")
+def test_shared_libs_validity_checks_python_version(version: str, *, expected: bool) -> None:
+    _set_shared_python_version(version)
+
+    assert shared_libs.SHARED_LIBS.is_valid is expected
+
+
+@pytest.mark.usefixtures("shared_pip_layout")
+def test_upgrade_shared_rebuilds_venv_on_unsupported_python() -> None:
+    _set_shared_python_version("3.9.6")
+
+    return_code: Final[int] = run_pipx_cli(["upgrade-shared"])
+
+    pyvenv_cfg: Final[str] = (shared_libs.SHARED_LIBS.root / "pyvenv.cfg").read_text(encoding="utf-8")
+    assert (return_code, "version = 3.9.6" in pyvenv_cfg) == (0, False)
+
+
+def test_shared_libs_rebuild_forgets_site_packages_of_old_python(
+    shared_pip_layout: dict[str, Path], tmp_path: Path
+) -> None:
+    _set_shared_python_version("3.9.6")
+    stale: Final[Path] = tmp_path / "python3.9" / "site-packages"
+    shared_libs.SHARED_LIBS._site_packages[shared_pip_layout["python"]] = [stale]  # ruff:ignore[private-member-access]
+
+    shared_libs.SHARED_LIBS.create(verbose=False, pip_args=[])
+
+    assert stale not in shared_libs.SHARED_LIBS.site_packages
+
+
+def _set_shared_python_version(version: str) -> None:
+    pyvenv_cfg: Final[Path] = shared_libs.SHARED_LIBS.root / "pyvenv.cfg"
+    pyvenv_cfg.write_text(
+        re.sub(r"(?m)^version = .*$", f"version = {version}", pyvenv_cfg.read_text(encoding="utf-8")),
+        encoding="utf-8",
+    )
 
 
 @pytest.mark.parametrize(
