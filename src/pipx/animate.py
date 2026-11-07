@@ -26,7 +26,6 @@ CLEAR_LINE: Final[str] = "\033[K"
 EMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
 #: Frames of the spinner, used when emojis are not shown.
 NONEMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("", ".", "..", "...")
-_MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
 
 
 if WINDOWS:
@@ -84,7 +83,8 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
 
 
 def _env_supports_animation() -> bool:
-    return STDERR_IS_TTY and shutil.get_terminal_size(fallback=(0, 0)).columns > _MINIMUM_COLS_ALLOW_ANIMATION
+    minimum_columns: Final[int] = 16
+    return STDERR_IS_TTY and shutil.get_terminal_size(fallback=(0, 0)).columns > minimum_columns
 
 
 def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner) -> None:
