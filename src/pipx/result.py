@@ -11,8 +11,6 @@ from typing import Any, Final, Generic, TypeVar
 
 from pipx.constants import EXIT_CODE_OK, ExitCode
 
-_PIPX_RESULT_VERSION: Final[str] = "1"
-
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
@@ -101,7 +99,7 @@ def _render_envelope(
 ) -> str:
     return json.dumps(
         {
-            "pipx_result_version": _PIPX_RESULT_VERSION,
+            "pipx_result_version": "1",
             "command": list(command),
             "status": status,
             "exit_code": int(exit_code),
