@@ -23,12 +23,22 @@ _NEWEST_PYTHON_MINOR: Final[int] = 15
 
 
 class IncompatiblePythonError(PipxError):
+    """A package whose Python requirement does not match the interpreter.
+
+    :param constraint: the Python requirement the package declares.
+    """
+
     def __init__(self, constraint: SpecifierSet) -> None:
         self.constraint: Final[SpecifierSet] = constraint
         super().__init__(f"This package needs a Python matching {str(constraint)!r}.")
 
 
 def rejected_constraint(backend_output: str) -> SpecifierSet | None:
+    """Return the Python requirement that an installer rejected, from its output.
+
+    :param backend_output: the output of pip or uv.
+    :returns: the rejected requirement, or None when the output names none.
+    """
     # pip and uv print these and install nothing; uv only checks lower bounds, so the metadata check covers the rest
     match: Final[re.Match[str] | None] = re.search(
         r"""
@@ -73,6 +83,12 @@ def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
 
 
 def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
+    """Return the Python requirement that an interpreter does not satisfy.
+
+    :param requires_python: the requirement of the package, or None when it declares none.
+    :param interpreter: the interpreter to check.
+    :returns: the unmet requirement, or None when the interpreter satisfies it or its version is unknown.
+    """
     # an interpreter whose version pipx cannot read passes
     if (version := _interpreter_version(interpreter)) is None:
         return None
@@ -89,12 +105,25 @@ def _interpreter_version(interpreter: str) -> str | None:
 
 
 def unsatisfied_constraint(requires_python: str | None, python_version: str) -> SpecifierSet | None:
+    """Return the Python requirement that a version does not satisfy.
+
+    :param requires_python: the requirement of the package, or None when it declares none.
+    :param python_version: the version to check.
+    :returns: the unmet requirement, or None when the version satisfies it.
+    """
     if not requires_python or (constraint := _parse(requires_python)) is None:
         return None
     return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
+    """Return the path of an interpreter that satisfies a Python requirement, installing one when allowed.
+
+    :param constraint: the Python requirement to satisfy.
+    :param fetch_python: when to download a standalone Python that satisfies it.
+    :returns: the path of the interpreter.
+    :raises PipxError: when no supported Python satisfies the requirement, or none is installed and downloads are off.
+    """
     overlapping: Final[list[str]] = [minor for minor in _candidate_versions() if _minor_overlaps(constraint, minor)]
     if not overlapping:
         msg = f"No Python that pipx supports satisfies {str(constraint)!r}."

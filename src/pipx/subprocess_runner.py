@@ -61,6 +61,11 @@ _STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to
 
 
 def run_pypackage_bin(bin_path: Path, args: list[str]) -> NoReturn:
+    """Replace the current process with a script in a ``__pypackages__`` directory.
+
+    :param bin_path: the script to run.
+    :param args: the arguments to pass to the script.
+    """
     exec_app(
         [str(bin_path.resolve()), *args],
         extra_python_paths=[".", str(bin_path.parent.parent)],
@@ -72,6 +77,12 @@ def exec_app(
     env: dict[str, str] | None = None,
     extra_python_paths: list[str] | None = None,
 ) -> NoReturn:
+    """Run a command in place of the current process and exit with its return code.
+
+    :param cmd: the command and its arguments.
+    :param env: the environment of the command, the current one when None.
+    :param extra_python_paths: directories to add to ``PYTHONPATH`` for the command.
+    """
     environment: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ) if env is None else env, force_utf8=False)
 
     if extra_python_paths is not None:
@@ -107,6 +118,11 @@ def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict
 
 
 def get_site_packages(python: Path) -> list[Path]:
+    """Return the site-packages directories of an interpreter.
+
+    :param python: the interpreter.
+    :returns: the directories, the pure and the platform ones when they differ.
+    """
     if (site_packages := _site_packages_from_layout(python.parent.parent)) is not None:
         return site_packages
     purelib, _, platlib = (
@@ -154,6 +170,20 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     stream_output: bool = False,
     interactive: bool = False,
 ) -> subprocess.CompletedProcess[str]:
+    """Run a command and return its completed process.
+
+    :param cmd: the command and its arguments.
+    :param capture_stdout: capture the standard output instead of showing it.
+    :param capture_stderr: capture the standard error instead of showing it.
+    :param log_cmd_str: the text to log for the command, the command itself when None.
+    :param log_stdout: log the standard output.
+    :param log_stderr: log the standard error.
+    :param run_dir: the directory to run the command in.
+    :param env_overrides: variables to set for the command, with None removing them.
+    :param stream_output: show the output while the command runs.
+    :param interactive: let the command use the terminal, with nothing captured.
+    :returns: the completed process.
+    """
     env: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ))
     for key, value in (env_overrides or {}).items():
         if value is None:
@@ -405,6 +435,10 @@ def _without_terminal_escapes(output: str | None) -> str | None:
 
 @contextmanager
 def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None, None]:
+    """Send the standard output of the subprocesses of the enclosed block to standard error.
+
+    :param enabled: whether to redirect the output.
+    """
     token: Final = _STREAM_STDOUT_TO_STDERR.set(enabled)
     try:
         yield
@@ -413,6 +447,12 @@ def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None
 
 
 def subprocess_post_check(completed_process: subprocess.CompletedProcess[str], *, streamed: bool = False) -> None:
+    """Raise when a subprocess has failed, after showing the output it captured.
+
+    :param completed_process: the finished process.
+    :param streamed: whether its output was already shown live, so it is not shown again.
+    :raises PipxError: when the process exited with a non-zero return code.
+    """
     if not completed_process.returncode:
         return
     # a streamed run already showed its output live

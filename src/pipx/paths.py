@@ -13,24 +13,39 @@ from pipx.constants import WINDOWS
 from pipx.self_install import DEFAULT_PIPX_GLOBAL_HOME, get_environment_value
 from pipx.wrap import pipx_wrap
 
+#: Default directory of the pipx home, in the user data directory.
 DEFAULT_PIPX_HOME: Final[Path] = user_data_path("pipx")
 FALLBACK_PIPX_HOMES: Final[list[Path]] = [Path.home() / ".local/pipx", *([Path.home() / "pipx"] if WINDOWS else [])]
 
+#: Default directory of the user's binaries that pipx exposes apps in.
 DEFAULT_PIPX_BIN_DIR: Final[Path] = Path.home() / ".local/bin"
+#: Default directory of the user's man pages that pipx exposes man pages in.
 DEFAULT_PIPX_MAN_DIR: Final[Path] = Path.home() / ".local/share/man"
+#: Default directory of the global binaries that pipx exposes apps in, for global installs.
 DEFAULT_PIPX_GLOBAL_BIN_DIR: Final[Path] = Path("/usr/local/bin")
+#: Default directory of the global man pages that pipx exposes man pages in, for global installs.
 DEFAULT_PIPX_GLOBAL_MAN_DIR: Final[Path] = Path("/usr/local/share/man")
 
 # tests point these at temporary directories so no test touches the real pipx locations
+#: Directory that replaces the pipx home, set by the code that embeds pipx; None to use the environment.
 OVERRIDE_PIPX_HOME: Path | None = None
+#: Directory that replaces the directory of the user's binaries, set by the code that embeds pipx.
 OVERRIDE_PIPX_BIN_DIR: Path | None = None
+#: Directory that replaces the directory of the user's man pages, set by the code that embeds pipx.
 OVERRIDE_PIPX_MAN_DIR: Path | None = None
+#: Directory that replaces the directory of the completion scripts, set by the code that embeds pipx.
 OVERRIDE_PIPX_COMPLETION_DIR: Path | None = None
+#: Directory that replaces the shared libraries directory, set by the code that embeds pipx.
 OVERRIDE_PIPX_SHARED_LIBS: Path | None = None
+#: Directory that replaces the global pipx home, set by the code that embeds pipx.
 OVERRIDE_PIPX_GLOBAL_HOME: Path | None = None
+#: Directory that replaces the global binaries directory, set by the code that embeds pipx.
 OVERRIDE_PIPX_GLOBAL_BIN_DIR: Path | None = None
+#: Directory that replaces the global man pages directory, set by the code that embeds pipx.
 OVERRIDE_PIPX_GLOBAL_MAN_DIR: Path | None = None
+#: Directory that replaces the global completion scripts directory, set by the code that embeds pipx.
 OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR: Path | None = None
+#: Directory that replaces the global shared libraries directory, set by the code that embeds pipx.
 OVERRIDE_PIPX_GLOBAL_SHARED_LIBS: Path | None = None
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -154,9 +169,15 @@ class _PathContext:
 
 
 def get_expanded_environ(env_name: str) -> Path | None:
+    """Return the path that an environment variable names, expanded and made absolute.
+
+    :param env_name: the name of the variable.
+    :returns: the path, or None when the variable is not set.
+    """
     return Path(value).expanduser().absolute() if (value := get_environment_value(env_name)) else None
 
 
+#: The paths that pipx uses, resolved from the environment and the overrides.
 CTX: Final[_PathContext] = _PathContext()
 
 

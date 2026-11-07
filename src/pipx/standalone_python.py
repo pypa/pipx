@@ -48,6 +48,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 # much of this module comes from https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
+#: Download links of standalone Python builds, by operating system and then by machine.
 MACHINE_SUFFIX: Final[dict[str, dict[str, list[str] | dict[str, list[str]]]]] = {
     "Darwin": {
         "arm64": ["aarch64-apple-darwin-install_only.tar.gz"],
@@ -72,6 +73,7 @@ MACHINE_SUFFIX: Final[dict[str, dict[str, list[str] | dict[str, list[str]]]]] = 
     },
 }
 
+#: URL of the latest python-build-standalone release.
 GITHUB_API_URL: Final[str] = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
 _URL_OPEN_TIMEOUT: Final[float] = 30
 # GitHub can also drop the connection mid-response (RemoteDisconnected is a ConnectionError, a truncated chunked body
@@ -85,6 +87,13 @@ _TRANSIENT_NETWORK_ERRORS: Final[tuple[type[Exception], ...]] = (
 
 
 def download_python_build_standalone(python_version: str, *, override: bool = False) -> str:
+    """Download a standalone Python build of a version into the cache, and return its interpreter.
+
+    :param python_version: the version to download, such as ``3.13`` or ``3.13.2``.
+    :param override: replace a cached build of the version.
+    :returns: the path of the interpreter.
+    :raises PipxError: when the version is malformed.
+    """
     # accept a command name such as python3.10 as well as the bare version 3.10
     python_version = re.sub(r"[c]?python", "", python_version)
     # the version names the cache directory that a failed attempt is cleared from below, so a path, "." or ".." would
@@ -146,6 +155,12 @@ def _resolve_python_version(requested_version: str) -> tuple[str, tuple[str, str
 
 
 def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
+    """Return the standalone Python builds for this machine, by version.
+
+    :param use_cache: use the cached index when it is present.
+    :returns: the download link and the file name of each build, keyed by version.
+    :raises PipxError: when this machine has no builds or the index cannot be fetched.
+    """
     system, machine = platform.system(), platform.machine()
     try:
         download_link_suffixes = MACHINE_SUFFIX[system][machine]
@@ -183,6 +198,11 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
 
 
 def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
+    """Return the index of standalone Python builds, from the cache when allowed or from the network.
+
+    :param use_cache: use the cached index when it is present.
+    :returns: the index.
+    """
     index_file: Final[Path] = paths.CTX.standalone_python_cachedir / "index.json"
     if use_cache and (loaded := _load_cached_index(index_file)) is not None:
         return loaded
@@ -227,6 +247,11 @@ def _is_valid_python_index(index: object) -> TypeIs[_PythonIndex]:
 
 
 def get_latest_python_releases() -> list[tuple[str, str]]:
+    """Return the download links and digests of the latest standalone Python releases.
+
+    :returns: the download link and the digest of each asset.
+    :raises PipxError: when the release data cannot be fetched.
+    """
     try:
         release_data: Final[dict[str, list[dict[str, str]]]] = _fetch_release_data()
     except _TRANSIENT_NETWORK_ERRORS as error:

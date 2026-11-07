@@ -15,12 +15,16 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class OutputLevel(enum.IntEnum):
+    """Severity of an output message."""
+
     NORMAL = 0
     ERROR = 1
     CRITICAL = 2
 
 
 class OutputStream(enum.StrEnum):
+    """Stream that an output message is written to."""
+
     LOG = "log"
     STDOUT = "stdout"
     STDERR = "stderr"
@@ -28,6 +32,8 @@ class OutputStream(enum.StrEnum):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutputMessage:
+    """A line of output with its stream and severity."""
+
     text: str
     stream: OutputStream = OutputStream.STDOUT
     level: OutputLevel = OutputLevel.NORMAL
@@ -38,6 +44,8 @@ class OutputMessage:
 # scripts key on the code and the identity fields, so they stay stable across releases
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationError:
+    """An error that a command reports in its result."""
+
     code: str
     message: str
     environment: str | None = None
@@ -46,7 +54,13 @@ class OperationError:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationData:
+    """Base class of the data that a command returns."""
+
     def to_dict(self) -> dict[str, Any]:
+        """Return the data as a dictionary.
+
+        :returns: the fields of the data.
+        """
         return asdict(self)
 
 
@@ -55,6 +69,8 @@ _PayloadT = TypeVar("_PayloadT", bound=OperationData)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationResult(Generic[_PayloadT]):
+    """The outcome of a command: its messages, its exit code and its data."""
+
     command: tuple[str, ...]
     data: _PayloadT
     messages: tuple[OutputMessage, ...] = ()
@@ -65,12 +81,23 @@ class OperationResult(Generic[_PayloadT]):
 
     @property
     def status(self) -> str:
+        """Return ``success``, ``partial`` or ``error``, from whether any error was reported and the command succeeded.
+
+        :returns: the status of the command.
+        """
         if not self.errors:
             return "success"
         return "partial" if self.succeeded else "error"
 
 
 def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, quiet: int) -> ExitCode:
+    """Print a result in the requested format and return its exit code.
+
+    :param result: the result of the command.
+    :param output: the format to print the result in.
+    :param quiet: the level below which messages are not printed.
+    :returns: the exit code of the command.
+    """
     if output is OutputFormat.JSON:
         envelope: Final[str] = _render_envelope(
             result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
@@ -86,6 +113,8 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
 
 
 class OutputFormat(enum.StrEnum):
+    """Format of the command output."""
+
     HUMAN = "human"
     JSON = "json"
 
@@ -112,6 +141,11 @@ def _render_envelope(
 
 
 def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
+    """Print messages to their streams, skipping those below the quiet level.
+
+    :param messages: the messages to print.
+    :param quiet: the level below which messages are not printed.
+    """
     for message in messages:
         if quiet <= message.level:
             if message.stream is OutputStream.LOG:
@@ -121,6 +155,13 @@ def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
 
 
 def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: ExitCode) -> str:
+    """Render an error as the JSON envelope that a command prints.
+
+    :param command: the command that failed.
+    :param error: the error to render.
+    :param exit_code: the exit code of the command.
+    :returns: the JSON text.
+    """
     return _render_envelope(command, "error", exit_code, {}, (error,))
 
 

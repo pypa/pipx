@@ -17,10 +17,14 @@ from pipx.fanout import output_is_held
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+#: Whether standard error is a terminal.
 STDERR_IS_TTY: Final[bool] = bool(sys.stderr and sys.stderr.isatty())
 
+#: The escape sequence that clears the current line.
 CLEAR_LINE: Final[str] = "\033[K"
+#: Frames of the spinner, used when emojis are shown.
 EMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
+#: Frames of the spinner, used when emojis are not shown.
 NONEMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("", ".", "..", "...")
 _MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
 
@@ -34,6 +38,12 @@ if WINDOWS:
 
 @contextmanager
 def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[None, None, None]:
+    """Show a spinner with a message while the enclosed block runs, or the message alone when there is no animation.
+
+    :param message: the message to show.
+    :param do_animation: whether to animate the spinner, which needs a terminal.
+    :param delay: seconds to wait before the spinner starts.
+    """
     if (handlers := logging.getLogger("pipx").handlers) and handlers[0].level > logging.WARNING:
         yield
         return
@@ -110,6 +120,7 @@ def _clear_line() -> None:
 
 
 def hide_cursor() -> None:
+    """Hide the cursor on standard error while a spinner runs."""
     if STDERR_IS_TTY:
         if WINDOWS:
             _win_cursor(visible=False)
@@ -130,6 +141,7 @@ def _win_cursor(*, visible: bool) -> None:
 
 
 def show_cursor() -> None:
+    """Show the cursor on standard error again after a spinner stops."""
     if STDERR_IS_TTY:
         if WINDOWS:
             _win_cursor(visible=True)

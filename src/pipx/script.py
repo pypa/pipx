@@ -50,6 +50,14 @@ _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
 def installable_script(
     package_name: str, package_or_url: str, expected_apps: tuple[str, ...]
 ) -> Generator[str, None, None]:
+    """Yield the requirement to install for a package spec, writing a script to a wheel when the spec is a script.
+
+    :param package_name: the name of the package the script provides.
+    :param package_or_url: the package spec or URL, or the path of a script.
+    :param expected_apps: the apps the user expects the package to provide.
+    :returns: the requirement to install, the spec itself when it is not a script.
+    :raises PipxError: when the script provides a different package than package_name.
+    """
     if (resolved_name := script_name_from_spec(package_or_url, expected_apps)) is None:
         yield package_or_url
         return
@@ -63,6 +71,13 @@ def installable_script(
 
 
 def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> str | None:
+    """Return the canonical name of the app that a script spec provides.
+
+    :param package_spec: the package spec, which may be a script.
+    :param expected_apps: the apps the user expects, at most one.
+    :returns: the canonical name of the script, or None when the spec is not a script.
+    :raises PipxError: when more than one app is expected or the app name is not portable.
+    """
     if not is_script_spec(package_spec):
         return None
     if len(expected_apps) > 1:
@@ -76,6 +91,11 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
 
 
 def is_script_spec(package_spec: str) -> bool:
+    """Return whether a package spec is a script, a local ``.py`` file or an HTTP URL to one.
+
+    :param package_spec: the package spec to check.
+    :returns: whether the spec is a script.
+    """
     if local_script(package_spec) is not None:
         return True
     parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
@@ -83,6 +103,11 @@ def is_script_spec(package_spec: str) -> bool:
 
 
 def local_script(package_spec: str) -> Path | None:
+    """Return the path of a local script that a package spec names.
+
+    :param package_spec: the package spec to check.
+    :returns: the resolved path of the script, or None when the spec names no local file.
+    """
     # a single-letter scheme is a Windows drive; any longer one is a URL, whose path must not resolve below the cwd
     if len(urllib.parse.urlsplit(package_spec).scheme) > 1:
         return None
@@ -130,6 +155,12 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
 
 
 def download_script(url: str) -> str:
+    """Download a script from a URL.
+
+    :param url: the URL of the script.
+    :returns: the content of the script.
+    :raises PipxError: when the URL carries credentials or the download fails.
+    """
     from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
@@ -166,6 +197,13 @@ def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, dat
 
 
 def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
+    """Return the inline metadata of a script, from its ``# /// script`` block.
+
+    :param content: the script text, or the path of the script.
+    :returns: the metadata, or None when the script has no ``script`` block.
+    :raises ValueError: when the script uses the obsolete ``pyproject`` block or its block is malformed.
+    :raises PipxError: when the metadata cannot be parsed.
+    """
     normalized_text: Final[str] = (
         (content.read_text(encoding="utf-8") if isinstance(content, Path) else content)
         .removeprefix("﻿")
@@ -296,6 +334,8 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ScriptMetadata:
+    """Inline metadata of a script: its dependencies and the Python it requires."""
+
     dependencies: tuple[str, ...]
     requires_python: str | None
 

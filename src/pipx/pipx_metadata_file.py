@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
+#: Name of the file that records a virtual environment's pipx metadata.
 PIPX_INFO_FILENAME: Final[str] = "pipx_metadata.json"
 # bump only when the file format changes
 _METADATA_VERSION: Final[str] = "0.12"
@@ -87,6 +88,12 @@ class _RawSpecFile(TypedDict, total=False):
 
 
 class PipxMetadata:
+    """The pipx metadata of a virtual environment, saved in ``pipx_metadata.json``.
+
+    :param venv_dir: the directory of the virtual environment.
+    :param read: read the metadata file when it exists.
+    """
+
     def __init__(self, venv_dir: Path, *, read: bool = True) -> None:
         self.venv_dir = venv_dir
         self.main_package = PackageInfo(
@@ -115,6 +122,7 @@ class PipxMetadata:
             self.read()
 
     def read(self) -> None:
+        """Load the metadata from the file, leaving the current values when the file is missing or unreadable."""
         with (
             suppress(AttributeError, KeyError, OSError, PipxError, TypeError, ValueError),
             (self.venv_dir / PIPX_INFO_FILENAME).open("rb") as pipx_metadata_fh,
@@ -123,6 +131,10 @@ class PipxMetadata:
             self.from_dict(payload)
 
     def from_dict(self, input_dict: _RawMetadata) -> None:
+        """Load the metadata from a dictionary, converting the layout of older pipx versions.
+
+        :param input_dict: the metadata as read from the file.
+        """
         self._convert_legacy_metadata(input_dict)
         self.environment = input_dict.get("environment")
         self.main_package = self._package_info(input_dict["main_package"])
@@ -193,6 +205,10 @@ class PipxMetadata:
         return replace(PackageInfo(**data), pip_args=replayable_pip_args(data["pip_args"], self.venv_dir))
 
     def write(self) -> None:
+        """Save the metadata to the file, replacing it atomically.
+
+        :raises PipxError: when the metadata has no main package, so it cannot be saved.
+        """
         if (
             self.main_package.package is None
             or self.main_package.package_or_url is None
@@ -206,6 +222,10 @@ class PipxMetadata:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Return the metadata as a dictionary, ready to be written as JSON.
+
+        :returns: the metadata as a dictionary.
+        """
         # a plain dict, as asdict() returns one and consumers only serialize it to JSON
         return {
             "environment": self.environment,
@@ -251,6 +271,10 @@ class PipxMetadata:
 
     @contextmanager
     def preserved(self) -> Generator[None, None, None]:
+        """Restore the metadata file after the enclosed block when the block changed it.
+
+        Installers unpack wheel data files into the environment, so a package can overwrite the file.
+        """
         # installers unpack a wheel's data files into the venv root, so any package can ship a file of this name
         before: Final[bytes | None] = self._file_content()
         try:
@@ -271,6 +295,8 @@ class PipxMetadata:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PackageInfo:
+    """Metadata of one package installed in an environment: its spec, its apps, its man pages and its completions."""
+
     package: str | None
     package_or_url: str | None
     pip_args: list[str]
@@ -298,6 +324,7 @@ class PackageInfo:
 
     @property
     def app_paths_to_expose(self) -> list[Path]:
+        """Paths of the apps exposed for the package and its included dependencies."""
         return [
             *(self.app_paths if self.include_apps else ()),
             *self._included_dependency_paths(self.app_paths_of_dependencies),
@@ -314,10 +341,12 @@ class PackageInfo:
 
     @property
     def apps_to_expose(self) -> list[str]:
+        """Names of the apps exposed for the package and its included dependencies."""
         return [*(self.apps if self.include_apps else ()), *self.included_dependency_apps]
 
     @property
     def included_dependency_apps(self) -> list[str]:
+        """Names of the apps of the included dependencies."""
         included_names: Final[set[str]] = {
             path.name for path in self._included_dependency_paths(self.app_paths_of_dependencies)
         }
@@ -325,6 +354,7 @@ class PackageInfo:
 
     @property
     def man_paths_to_expose(self) -> list[Path]:
+        """Paths of the man pages exposed for the package and its included dependencies."""
         return [
             *(self.man_paths if self.include_apps else ()),
             *self._included_dependency_paths(self.man_paths_of_dependencies),
@@ -332,6 +362,7 @@ class PackageInfo:
 
     @property
     def man_pages_to_expose(self) -> list[str]:
+        """Names of the man pages exposed for the package and its included dependencies."""
         included_names: Final[set[str]] = {
             str(Path(path.parent.name) / path.name)
             for path in self._included_dependency_paths(self.man_paths_of_dependencies)
@@ -343,6 +374,7 @@ class PackageInfo:
 
     @property
     def completion_paths_to_expose(self) -> list[Path]:
+        """Paths of the completions exposed for the package and its included dependencies."""
         return [
             *(self.completion_paths if self.include_apps else ()),
             *self._included_dependency_paths(self.completion_paths_of_dependencies),
@@ -350,6 +382,7 @@ class PackageInfo:
 
     @property
     def completions_to_expose(self) -> list[str]:
+        """Names of the completions exposed for the package and its included dependencies."""
         included_names: Final[set[str]] = {
             f"{path.parent.parent.name}/{path.parent.name}/{path.name}"
             for path in self._included_dependency_paths(self.completion_paths_of_dependencies)
@@ -367,13 +400,25 @@ def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Pat
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
+    """JSON encoder that writes a path as an object tagged with its type."""
+
     def default(self, o: object) -> dict[str, str]:
+        """Return the JSON form of a path, as a dictionary tagged with its type.
+
+        :param o: the object to encode.
+        :returns: the tagged form of a path.
+        """
         if isinstance(o, Path):
             return {"__type__": "Path", "__Path__": str(o)}
         return super().default(o)
 
 
 def load_spec_file(path: Path) -> _RawSpecFile:
+    """Load a spec file, in which paths are restored from their tagged JSON form.
+
+    :param path: the spec file to load.
+    :returns: the content of the file.
+    """
     with Path(path).open(encoding="utf-8") as handle:
         return json.load(handle, object_hook=_json_decoder_object_hook)
 

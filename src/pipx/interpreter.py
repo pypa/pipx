@@ -33,10 +33,18 @@ from pipx.util import PipxError
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    #: The default Python, which the module ``__getattr__`` computes on first access.
     DEFAULT_PYTHON: str
 
 
 def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions) -> str:
+    """Find the interpreter for a Python version, fetching a standalone one when the options allow it.
+
+    :param python_version: the Python version or path to find.
+    :param fetch_python: when to fetch a standalone Python.
+    :returns: the path of the interpreter.
+    :raises InterpreterResolutionError: when no interpreter is found.
+    """
     if fetch_python == FetchPythonOptions.ALWAYS:
         if _has_path_separator(python_version) or Path(python_version).is_file():
             msg = (
@@ -120,6 +128,11 @@ def _find_unix_command_python(python_version: str) -> str | None:
 
 
 def find_py_launcher_python(python_version: str | None = None) -> str | None:
+    """Return the path of the py launcher when it can find the requested Python version.
+
+    :param python_version: the Python version to look for, or None to accept any version.
+    :returns: the path of the launcher, or None when it cannot provide the version.
+    """
     py = shutil.which("py")
     if py and python_version:
         python_semver = python_version
@@ -143,6 +156,12 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
 
 
 class InterpreterResolutionError(PipxError):
+    """Error raised when no interpreter matches a Python version.
+
+    :param source: where the search looked.
+    :param version: the Python version that was searched for.
+    """
+
     def __init__(self, source: str, version: str) -> None:
         message = (
             f"No executable for the provided Python version '{version}' found in {source}."
@@ -172,6 +191,10 @@ class InterpreterResolutionError(PipxError):
 
 
 def get_default_python_spec() -> str:
+    """Return the Python spec that new environments use by default.
+
+    :returns: the spec, from ``PIPX_DEFAULT_PYTHON`` or the running interpreter.
+    """
     return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
 
 
@@ -184,6 +207,10 @@ def __getattr__(name: str) -> object:
 
 @cache
 def get_default_python() -> str:
+    """Return the path of the default Python interpreter.
+
+    :returns: the path of the interpreter.
+    """
     if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
         return _get_sys_executable()
     return _resolve_python(python)
@@ -216,6 +243,10 @@ def _find_default_windows_python() -> str:
 
 
 def has_venv() -> bool:
+    """Return whether the running Python ships the ``venv`` module.
+
+    :returns: whether the module is available.
+    """
     return find_spec("venv") is not None
 
 
@@ -231,6 +262,11 @@ def _resolve_python(python: str) -> str:
 
 
 def recordable_interpreter(python: Path) -> Path | None:
+    """Return the interpreter to record for an environment, resolving a virtual environment to the one it was made from.
+
+    :param python: the interpreter the environment was created with.
+    :returns: the interpreter to record, or None when the base interpreter cannot be found.
+    """
     # an interpreter inside a virtual environment, such as an activated bootstrap's python3, goes away with that
     # environment, and whoever creates the path again decides what install-all runs from a snapshot; the new
     # environment runs on the base interpreter instead
@@ -246,6 +282,11 @@ def recordable_interpreter(python: Path) -> Path | None:
 
 
 def read_pyvenv_cfg(pyvenv_cfg: Path) -> dict[str, str]:
+    """Read the keys of a ``pyvenv.cfg`` file.
+
+    :param pyvenv_cfg: the file to read.
+    :returns: the keys and values, empty when the file cannot be read.
+    """
     config: Final[ConfigParser] = ConfigParser()
     try:
         # pyvenv.cfg has no section header, which ConfigParser requires

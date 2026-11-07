@@ -213,6 +213,14 @@ _VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
 
 
 def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
+    """Split a package spec into the package or URL to install and the pip arguments.
+
+    Drops ``--editable`` with a warning when the spec is not a local path.
+
+    :param package_spec: the package spec, a name, a path, a URL or a requirement.
+    :param pip_args: the pip arguments of the install.
+    :returns: the package or URL to install, and the pip arguments.
+    """
     pip_args = pip_args.copy()
     parsed_package: Final[_ParsedPackage] = _parse_specifier(package_spec)
     package_or_url: Final[str] = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
@@ -343,6 +351,12 @@ def _package_or_url_from_pep508(requirement: Requirement, *, remove_version_spec
 
 
 def absolute_path_pip_args(pip_args: list[str], base: Path) -> list[str]:
+    """Make the local paths in pip arguments absolute, relative to a base directory.
+
+    :param pip_args: the pip arguments.
+    :param base: the directory that relative paths are resolved against.
+    :returns: the pip arguments with absolute paths.
+    """
     return _render(_absolute_paths(_parse_pip_args(pip_args), base))
 
 
@@ -524,6 +538,11 @@ _ParsedPackage: TypeAlias = _Pep508 | _Url | _LocalPath
 
 
 def install_specs(install_args: list[str]) -> list[tuple[str, bool]]:
+    """Return the install specs that pip arguments name, such as requirement files and editable paths.
+
+    :param install_args: the pip arguments of the install.
+    :returns: each spec, with whether it is editable.
+    """
     specs: Final[list[tuple[str, bool]]] = []
     for argument in _parse_pip_args(install_args):
         if argument.name in {"-e", "--editable"} and argument.value is not None:
@@ -534,6 +553,11 @@ def install_specs(install_args: list[str]) -> list[tuple[str, bool]]:
 
 
 def recordable_pip_args(pip_args: list[str]) -> list[str]:
+    """Return the pip arguments to record for a package, without the options that only apply to one install.
+
+    :param pip_args: the pip arguments of the install.
+    :returns: the pip arguments to record.
+    """
     return _render(_without_one_shot(_parse_pip_args(pip_args)))
 
 
@@ -552,12 +576,25 @@ def _may_name(argument: _PipArgument, options: frozenset[str]) -> bool:
 
 
 def replayable_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    """Return the recorded pip arguments to replay, with relative paths resolved in the environment.
+
+    :param pip_args: the recorded pip arguments.
+    :param venv_dir: the directory of the environment that the paths are resolved against.
+    :returns: the pip arguments to replay.
+    """
     # the record's installer ran in the venv root, so a relative path resolves there, never against the caller's
     # working directory, which another account may control
     return _render(_absolute_paths(_without_one_shot(_parse_pip_args(pip_args)), venv_dir))
 
 
 def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
+    """Return the recorded pip arguments when none of them names a location another account can change.
+
+    :param pip_args: the recorded pip arguments.
+    :param venv_dir: the directory of the environment.
+    :returns: the pip arguments to replay.
+    :raises PipxError: when a recorded argument names a location another account can change.
+    """
     if (source := changeable_recorded_source(pip_args, venv_dir)) is not None:
         msg: Final[str] = (
             f"{venv_dir.name}: refusing to replay {source}, and with it what gets installed. Move the file or "
@@ -570,6 +607,12 @@ def trusted_recorded_pip_args(pip_args: list[str], venv_dir: Path) -> list[str]:
 
 
 def changeable_recorded_source(pip_args: list[str], venv_dir: Path) -> str | None:
+    """Return the first recorded argument that names a location another account can change.
+
+    :param pip_args: the recorded pip arguments.
+    :param venv_dir: the directory of the environment.
+    :returns: a description of the argument and its location, or None when no argument is changeable.
+    """
     for argument in _parse_pip_args(pip_args):
         if (location := _changeable_source(argument, venv_dir)) is not None:
             recorded: Final[str] = " ".join(map(redact_url_credentials, argument.tokens))
@@ -605,6 +648,11 @@ def _changeable_by_others(value: str, base: Path) -> Path | None:
 
 
 def changeable_by_others(path: Path) -> Path | None:
+    """Return the first directory on the path of a location that another account can change.
+
+    :param path: the location to check.
+    :returns: the changeable directory, or None when none on the path is changeable or on Windows.
+    """
     if sys.platform == "win32":
         return None
     trusted: Final[set[int]] = {0, os.geteuid()}
@@ -624,6 +672,14 @@ def changeable_by_others(path: Path) -> Path | None:
 
 
 def translate_pip_args(pip_args: list[str], backend: str, environment: str) -> tuple[list[str], list[str]]:
+    """Translate pip arguments into the options of the backend that installs them.
+
+    :param pip_args: the pip arguments to translate.
+    :param backend: the backend that installs the packages.
+    :param environment: the name of the environment, for the error message.
+    :returns: the translated arguments, and the arguments dropped because the backend has no equivalent.
+    :raises PipxError: when a recorded index option has no equivalent in the backend.
+    """
     # keeping the recorded index stops a snapshot moved to the other backend from installing from PyPI instead
     to_pip: Final[bool] = backend == PIP
     translated: Final[list[str]] = []
@@ -684,18 +740,38 @@ def _expand_pip_abbreviation(argument: str) -> str:
 
 
 def resolve_local_path(package_spec: str) -> str:
+    """Return the local path of a package spec, or the spec itself when it names no local path.
+
+    :param package_spec: the package spec.
+    :returns: the path or the spec.
+    """
     return parsed.path if isinstance(parsed := _parse_specifier(package_spec), _LocalPath) else package_spec
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
+    """Return the package spec as it is recorded in the metadata, keeping its version specifiers.
+
+    :param package_spec: the package spec.
+    :returns: the recorded form of the spec.
+    """
     return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=False)
 
 
 def parse_specifier_for_upgrade(package_spec: str) -> str:
+    """Return the package spec with its version specifiers removed, for upgrades.
+
+    :param package_spec: the package spec.
+    :returns: the spec without version specifiers.
+    """
     return _parsed_package_to_package_or_url(_parse_specifier(package_spec), remove_version_specifiers=True)
 
 
 def source_without_extras(package_spec: str) -> str:
+    """Return the package spec without its extras.
+
+    :param package_spec: the package spec.
+    :returns: the spec without extras.
+    """
     match _parse_specifier(package_spec):
         case _Pep508(requirement=requirement):
             requirement.extras = set()
@@ -707,6 +783,13 @@ def source_without_extras(package_spec: str) -> str:
 
 
 def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
+    """Return the package spec with extras added to it.
+
+    :param package_or_url: the package or URL to add the extras to.
+    :param package_name: the name of the package, used when the spec is a URL.
+    :param extras: the extras to add.
+    :returns: the spec with the extras.
+    """
     parsed_package: Final[_ParsedPackage] = _parse_specifier(package_or_url)
     if isinstance(parsed_package, _Pep508):
         parsed_package.requirement.extras |= extras
@@ -718,6 +801,11 @@ def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
 
 
 def get_extras(package_spec: str) -> set[str]:
+    """Return the extras of a package spec.
+
+    :param package_spec: the package spec.
+    :returns: the extras, empty when there are none.
+    """
     match _parse_specifier(package_spec):
         case _Pep508(requirement=requirement):
             return requirement.extras
@@ -730,6 +818,11 @@ def get_extras(package_spec: str) -> set[str]:
 
 
 def valid_pypi_name(package_spec: str) -> str | None:
+    """Return the normalized name of a PyPI package spec, or None when the name has to come from the package.
+
+    :param package_spec: the package spec.
+    :returns: the normalized name, or None when it has to come from the package itself.
+    """
     if (package_req := _requirement(package_spec)) is None:
         return None
     # a URL spec can name a package other than the one it points at, and an archive-like name can be a local file;
@@ -740,6 +833,11 @@ def valid_pypi_name(package_spec: str) -> str | None:
 
 
 def local_project_name(package_spec: str) -> str | None:
+    """Return the name of the project at a local path, from its ``pyproject.toml`` or its wheel.
+
+    :param package_spec: the package spec, which may be a local path.
+    :returns: the normalized project name, or None when the spec is not a local project.
+    """
     # Path() reads a URL as a relative path (http://host/x is http:/host/x), so files below the working directory could
     # otherwise name the environment for a remote spec
     if not isinstance(parsed := _parse_specifier(package_spec), _LocalPath):
@@ -748,6 +846,11 @@ def local_project_name(package_spec: str) -> str | None:
 
 
 def static_project_name(package_spec: str) -> str | None:
+    """Return the name of a local project from its ``pyproject.toml``, without building it.
+
+    :param package_spec: the path of the project.
+    :returns: the normalized project name, or None when the file has no static name.
+    """
     try:
         with (Path(_split_path_extras(package_spec)[0]) / "pyproject.toml").open("rb") as file:
             pyproject: Final = tomllib.load(file)
@@ -816,6 +919,11 @@ def _valid_name(name: str) -> str | None:
 
 
 def wheel_project_name(package_spec: str) -> str | None:
+    """Return the name of a wheel from its metadata, without installing it.
+
+    :param package_spec: the path of the wheel.
+    :returns: the normalized project name, or None when the file is not a readable wheel.
+    """
     if (wheel := Path(_split_path_extras(package_spec)[0])).suffix != ".whl":
         return None
     import zipfile  # ruff:ignore[import-outside-top-level]  # slows startup
@@ -835,6 +943,14 @@ def wheel_project_name(package_spec: str) -> str | None:
 
 
 def package_spec_satisfied(package_spec: str, package_name: str, installed_version: str, installed_spec: str) -> bool:
+    """Return whether an installed package already satisfies a package spec.
+
+    :param package_spec: the package spec to check.
+    :param package_name: the name of the installed package.
+    :param installed_version: the version of the installed package.
+    :param installed_spec: the spec the installed package was installed from, for its extras.
+    :returns: whether the installed package satisfies the spec.
+    """
     if (requirement := _requirement(package_spec)) is None or (
         installed_requirement := _requirement(installed_spec)
     ) is None:
@@ -848,6 +964,11 @@ def package_spec_satisfied(package_spec: str, package_name: str, installed_versi
 
 
 def extract_index_options(pip_args: list[str]) -> list[str]:
+    """Return the index options of pip arguments.
+
+    :param pip_args: the pip arguments.
+    :returns: the index options.
+    """
     return _split_index_options(pip_args)[0]
 
 
@@ -879,10 +1000,22 @@ def _split_index_options(pip_args: list[str]) -> tuple[list[str], list[str]]:
 
 
 def replace_index_options(pip_args: list[str], index_args: list[str]) -> list[str]:
+    """Replace the index options of pip arguments with other ones.
+
+    :param pip_args: the pip arguments.
+    :param index_args: the index options to use instead.
+    :returns: the pip arguments with the new index options.
+    """
     return [*_split_index_options(pip_args)[1], *index_args]
 
 
 def fix_package_name(package_or_url: str, package_name: str) -> str:
+    """Return the package spec with the name that the package declares, when the spec names another package.
+
+    :param package_or_url: the package spec or URL.
+    :param package_name: the name the package is expected to have.
+    :returns: the spec with the corrected name.
+    """
     if (package_req := _requirement(package_or_url)) is None:
         return package_or_url
 

@@ -20,6 +20,10 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def rmdir_via_trash(path: Path) -> None:
+    """Remove a directory by moving it to the trash, or by deleting it when the move fails.
+
+    :param path: the directory to remove.
+    """
     # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
     try:
         path.rename(trash := _get_trash_file(path))
@@ -36,6 +40,11 @@ def _get_trash_file(path: Path) -> Path:
 
 
 def rmdir(path: Path, *, safe_rm: bool = True) -> None:
+    """Remove a directory and its contents.
+
+    :param path: the directory to remove, nothing happens when it is not a directory.
+    :param safe_rm: move the directory to the trash when it cannot be deleted, instead of only warning.
+    """
     if not path.is_dir():
         return
 
@@ -57,6 +66,10 @@ def rmdir(path: Path, *, safe_rm: bool = True) -> None:
 
 
 def safe_unlink(file: Path) -> None:
+    """Remove a file or a link, moving it to the trash when Windows keeps it open.
+
+    :param file: the file or link to remove, nothing happens when it does not exist.
+    """
     if not file.is_file() and not file.is_symlink():
         return
     try:
@@ -68,6 +81,10 @@ def safe_unlink(file: Path) -> None:
 
 @contextmanager
 def running_launcher_moved_aside(scripts_dir: Path) -> Generator[None]:
+    """Move a running launcher out of the way for the enclosed block, and restore it after.
+
+    :param scripts_dir: the directory of the scripts that the block rewrites.
+    """
     # Windows lets a running file be renamed but not deleted, so the launcher this pipx started from waits in the trash
     # while an installer that deletes files in place rewrites the scripts directory
     if (launcher := _running_launcher(scripts_dir)) is None:

@@ -38,6 +38,10 @@ _UNRAISED_INTERRUPT: Final[Event] = Event()
 
 @contextmanager
 def stopping_children_on_signals() -> Generator[Event, None, None]:
+    """Stop the child processes and raise ``KeyboardInterrupt`` when an interrupt arrives during the enclosed block.
+
+    :returns: an event that is set when an interrupt arrives.
+    """
     signalled: Final[Event] = Event()
     if current_thread() is not main_thread():
         yield signalled
@@ -68,6 +72,10 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
 
 
 def stop_process_group(process: _Child) -> None:
+    """Stop the process group of a child, or the child itself on Windows.
+
+    :param process: the child to stop.
+    """
     if WINDOWS:
         process.terminate()
         return
@@ -79,6 +87,7 @@ def stop_process_group(process: _Child) -> None:
 
 @contextmanager
 def uninterrupted() -> Generator[None]:
+    """Defer interrupts until the enclosed block finishes."""
     if current_thread() is not main_thread():
         yield
         return
@@ -106,6 +115,13 @@ def fan_out(
     sequential: bool,
     interrupted: Callable[[int], _ResultT] | None = None,
 ) -> list[_ResultT]:
+    """Run tasks concurrently, or one after the other when sequential, and return their results in task order.
+
+    :param tasks: the tasks to run.
+    :param sequential: run the tasks one after the other.
+    :param interrupted: the result of a task that an interrupt skipped, or None to re-raise the interrupt.
+    :returns: the results of the tasks.
+    """
     # the output reads as if the tasks ran one after another: the earliest unfinished task writes to the terminal, the
     # others buffer until their turn
     if sequential or not tasks:
@@ -340,11 +356,19 @@ class _RoutedStream:
 
 
 def output_is_held() -> bool:
+    """Return whether the output of this task is held back until its turn.
+
+    :returns: whether the output is held.
+    """
     return (slot := _SLOT.get()) is not None and not slot.live
 
 
 @contextmanager
 def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
+    """Wait for the turn of a fan-out task before the enclosed block changes state shared by the tasks.
+
+    :param done: return whether the change is already made, so the task making it need not wait.
+    """
     # a change to state all tasks share waits for the earlier tasks unless done() reports it made, so the task making
     # it, its arguments and its output match a sequential run
     if (slot := _SLOT.get()) is None:
@@ -361,6 +385,11 @@ def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
 
 @contextmanager
 def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
+    """Acquire a file lock in the order of the fan-out tasks.
+
+    :param lock: the lock to acquire.
+    :returns: the acquired lock.
+    """
     # a task waiting for its turn holds its lock, so two pipx runs taking the same locks in different task orders could
     # each wait for the other forever; taking them in task order leaves no task waiting its turn on a lock another run
     # holds while it waits for this run
@@ -375,6 +404,7 @@ def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
 
 @contextmanager
 def finished_on_interrupt() -> Generator[None, None, None]:
+    """Let the children of a fan-out task finish when an interrupt arrives, instead of stopping them."""
     if (slot := _SLOT.get()) is None or not slot.children.finishes:
         yield
         return
@@ -392,6 +422,10 @@ def finished_on_interrupt() -> Generator[None, None, None]:
 
 @contextmanager
 def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
+    """Stop a child process when an interrupt arrives during the enclosed block.
+
+    :param process: the child to stop.
+    """
     # stopping ends the child's process group as a whole, so the child must run in one of its own
     if (slot := _SLOT.get()) is None:
         with _LOOSE_CHILDREN_LOCK:

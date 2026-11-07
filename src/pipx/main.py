@@ -135,6 +135,10 @@ _IGNORED_ON_EXISTING_VENV: Final[str] = (
 
 
 def cli() -> ExitCode:
+    """Run the pipx command line and return its exit status.
+
+    :returns: the exit status.
+    """
     try:
         with stopping_children_on_signals() as signalled:
             hide_cursor()
@@ -178,6 +182,10 @@ def _dispatch(argv: list[str]) -> ExitCode:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser of the pipx command line.
+
+    :returns: the parser.
+    """
     # sphinx-argparse-cli renders the CLI reference from this parser, so the docs cannot drift from the arguments. The
     # program is named here rather than taken from the docs builder's argv[0]: each subcommand parser copies prog when
     # it is created, and the directive's :prog: option cannot rewrite it afterwards.
@@ -185,6 +193,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def get_command_parser(*, prog: str | None = None) -> argparse.ArgumentParser:
+    """Build the argument parser of the pipx command line.
+
+    :param prog: the program name shown in the help text.
+    :returns: the parser.
+    """
     completer_venvs: Final[InstalledVenvsCompleter] = InstalledVenvsCompleter(VenvContainer(paths.CTX.venvs))
     shared_parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(add_help=False)
 
@@ -316,11 +329,21 @@ def get_command_parser(*, prog: str | None = None) -> argparse.ArgumentParser:
 
 
 class InstalledVenvsCompleter:
+    """Shell completer that offers the names of the installed packages.
+
+    :param venv_container: the container of the environments.
+    """
+
     def __init__(self, venv_container: VenvContainer) -> None:
         self._venv_container: Final[VenvContainer] = venv_container
         self._packages: list[str] | None = None
 
     def use(self, prefix: str, **_kwargs: argparse.Action | argparse.ArgumentParser | argparse.Namespace) -> list[str]:
+        """Return the installed packages whose names start with a prefix.
+
+        :param prefix: the start of the names to match.
+        :returns: the matching names.
+        """
         if self._packages is None:
             self._packages = [path.name for path in sorted(self._venv_container.iter_venv_dirs())]
         canonical_prefix: Final[str] = canonicalize_name(prefix)
@@ -330,6 +353,10 @@ class InstalledVenvsCompleter:
 
 
 def prog_name() -> str:
+    """Return the name the program runs as, for the usage text.
+
+    :returns: the program name.
+    """
     with contextlib.suppress(IndexError):
         prog: Final[str] = Path(sys.argv[0]).name
         return f"{sys.executable} -m pipx" if prog == "__main__.py" else prog
@@ -1887,6 +1914,12 @@ fish:
 
 
 def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argparse.Namespace:
+    """Parse the command line, letting ``inject`` take its options after its positional arguments.
+
+    :param parser: the parser of the command line.
+    :param args: the arguments to parse.
+    :returns: the parsed arguments.
+    """
     if args[:1] == ["help"]:
         args = [*args[1:], "--help"]
     if args[:1] == ["inject"]:
@@ -2177,6 +2210,10 @@ def _create_directories(*, is_global: bool) -> None:
 
 
 def check_args(parsed_pipx_args: argparse.Namespace) -> None:
+    """Check the parsed arguments, and drop the separator that ends the options of ``run``.
+
+    :param parsed_pipx_args: the parsed arguments.
+    """
     if parsed_pipx_args.command == "run":
         # argparse.REMAINDER keeps the -- that separates pipx's options from the app's
         if parsed_pipx_args.app_with_args and parsed_pipx_args.app_with_args[0] == "--":
@@ -2255,6 +2292,11 @@ def _package_is_url(package: str, *, raise_error: bool = True) -> bool:
 
 
 def package_is_path(package: str) -> None:
+    """Refuse a package spec that looks like a path.
+
+    :param package: the package spec to check.
+    :raises PipxError: when the spec contains a path separator.
+    """
     if any(separator in package for separator in (os.path.sep, os.path.altsep) if separator):
         raise PipxError(
             pipx_wrap(
@@ -2293,6 +2335,11 @@ class _DispatchContext:
 
 
 def get_pip_args(args: argparse.Namespace) -> list[str]:
+    """Return the pip arguments that the parsed command line sets.
+
+    :param args: the parsed arguments.
+    :returns: the pip arguments.
+    """
     pip_args: Final[list[str]] = []
     # keep an empty value so reject_empty_index refuses it rather than the backend falling back to its default index
     if (index_url := getattr(args, "index_url", None)) is not None:

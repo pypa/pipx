@@ -55,6 +55,16 @@ def inspect_venv(
     venv_python_path: Path,
     venv_man_path: Path,
 ) -> VenvMetadata:
+    """Inspect a virtual environment for the apps, man pages and dependencies of its package.
+
+    :param root_package_name: the name of the package installed in the environment.
+    :param root_package_extras: the extras of the package that were installed.
+    :param venv_bin_path: the bin directory of the environment.
+    :param venv_python_path: the interpreter of the environment.
+    :param venv_man_path: the man directory of the environment.
+    :returns: the metadata found.
+    :raises PipxError: when the environment has no metadata for its package or cannot be inspected.
+    """
     root_req: Final[Requirement] = Requirement(root_package_name)
     root_req.extras = root_package_extras
 
@@ -119,6 +129,12 @@ def inspect_venv(
 
 
 def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str], str]:
+    """Run the interpreter of an environment to read its search path, environment and Python version.
+
+    :param venv_python_path: the interpreter of the environment.
+    :returns: the search path, the environment variables and the Python version.
+    :raises PipxError: when the interpreter cannot run or prints no usable information.
+    """
     command_str: Final[str] = textwrap.dedent(
         """
         import json
@@ -193,6 +209,11 @@ class _VenvInspectInformation:
 
 
 def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
+    """Return the installed distributions of the given search path, by name.
+
+    :param paths: the directories to search for distributions.
+    :returns: the distributions keyed by their name.
+    """
     metadata.MetadataPathFinder().invalidate_caches()
     distributions: Final[dict[str, metadata.Distribution]] = {}
     for dist in metadata.distributions(path=paths):
@@ -514,6 +535,8 @@ def _windows_extra_app_paths(app_paths: list[Path]) -> list[Path]:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class VenvMetadata:
+    """Metadata of the apps, man pages and dependencies that a virtual environment provides."""
+
     apps: list[str]
     app_paths: list[Path]
     apps_of_dependencies: list[str]
@@ -538,11 +561,22 @@ class _VenvInfo(TypedDict):
 
 
 def list_not_required_packages(venv_python: Path) -> set[str]:
+    """Return the names of the installed packages that no other installed package requires.
+
+    :param venv_python: the interpreter of the environment.
+    :returns: the names of the packages.
+    """
     venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
     return not_required_packages(venv_sys_path, venv_env)
 
 
 def not_required_packages(sys_path: list[str], env: dict[str, str]) -> set[str]:
+    """Return the names of the packages that no other package in the search path requires.
+
+    :param sys_path: the search path of the environment.
+    :param env: the environment variables for evaluating requirement markers.
+    :returns: the normalized names of the packages.
+    """
     # mirrors `pip list --not-required` from the installed metadata, so every backend reports the same packages, uv
     # included, which lacks the flag
     installed: Final[set[str]] = set()
@@ -555,6 +589,12 @@ def not_required_packages(sys_path: list[str], env: dict[str, str]) -> set[str]:
 
 
 def get_required_dependency_names(dist: metadata.Distribution, env: dict[str, str]) -> set[str]:
+    """Return the normalized names of the packages that a distribution requires.
+
+    :param dist: the installed distribution.
+    :param env: the environment variables for evaluating requirement markers.
+    :returns: the names of the required dependencies, including those that only an extra pulls in.
+    """
     # every declared extra counts, so a dependency only an extra pulls in stays required, and pipx does not report it
     # removable while the package declaring it is installed
     return {

@@ -43,7 +43,9 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+#: Age after which the shared libraries are upgraded automatically.
 SHARED_LIBS_MAX_AGE_SEC: Final[float] = dt.timedelta(days=30).total_seconds()
+#: Name of the environment variable that turns off the automatic upgrade of the shared libraries.
 DISABLE_SHARED_LIBS_AUTO_UPGRADE: Final[str] = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
 _SKIP_MAINTENANCE: Final[ContextVar[bool]] = ContextVar("skip_maintenance", default=False)
 _COOLDOWN_DAYS: Final[ContextVar[int | None]] = ContextVar("cooldown_days", default=None)
@@ -53,6 +55,10 @@ _PIP_FLOOR: Final[str] = "26.2.2"
 
 @contextmanager
 def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None]:
+    """Skip the maintenance of the shared libraries for the enclosed block.
+
+    :param enabled: whether to skip the maintenance.
+    """
     token: Final = _SKIP_MAINTENANCE.set(enabled)
     try:
         yield
@@ -62,6 +68,10 @@ def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None
 
 @contextmanager
 def shared_pip_cooldown(days: int | None) -> Generator[None]:
+    """Use the given cooldown in days for the pip installs of the shared libraries in the enclosed block.
+
+    :param days: the cooldown in days, or None to use none.
+    """
     token: Final = _COOLDOWN_DAYS.set(days)
     try:
         yield
@@ -348,10 +358,15 @@ class _SharedLibs:
             self._upgrade(pip_args=pip_args, verbose=verbose, raises=raises)
 
 
+#: The shared libraries that pipx's environments use.
 SHARED_LIBS: Final[_SharedLibs] = _SharedLibs()
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
+    """Return whether the automatic upgrade of the shared libraries is turned off.
+
+    :returns: whether it is turned off, by the enclosed block or by its environment variable.
+    """
     return _SKIP_MAINTENANCE.get() or strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
 
 

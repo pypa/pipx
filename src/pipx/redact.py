@@ -11,10 +11,20 @@ if TYPE_CHECKING:
 
 
 def redact_command_line(cmd: Sequence[str | Path]) -> str:
+    """Redact the credentials in each argument of a command line.
+
+    :param cmd: the command line, as a sequence of arguments.
+    :returns: the command line as a single string with the credentials masked.
+    """
     return " ".join(redact_url_credentials(str(c)) for c in cmd)
 
 
 def redact_url_credentials(text: str) -> str:
+    """Mask the credentials in the URLs of a text.
+
+    :param text: the text that may hold URLs.
+    :returns: the text with the user information of each URL masked.
+    """
     # index and package URLs can carry credentials, which must not reach the log file or the verbose output. A bare user
     # such as git@ may be a token, and so may the user before an empty or placeholder password (TOKEN:@), so with a
     # colon both parts are masked.
