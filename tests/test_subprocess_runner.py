@@ -8,7 +8,7 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Protocol
 from venv import EnvBuilder
 
 import pytest
@@ -20,7 +20,7 @@ from pipx.subprocess_runner import exec_app, get_site_packages, run_subprocess, 
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Iterator
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
@@ -345,14 +345,16 @@ def test_subprocess_stream_propagates_ctrl_c() -> None:
         )
 
 
+class _Task(Protocol):
+    def __call__(self, *args: object) -> None: ...
+
+
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c_while_readers_start(mocker: MockerFixture) -> None:
     submit: Final = ThreadPoolExecutor.submit
 
-    def interrupted_second_reader(
-        executor: ThreadPoolExecutor, fn: Callable[..., None], /, *args: object
-    ) -> Future[None]:
+    def interrupted_second_reader(executor: ThreadPoolExecutor, fn: _Task, /, *args: object) -> Future[None]:
         # Ctrl-C lands after the terminal's reader started but before the next one did, as seen on free-threaded CI
         if submitted:
             raise KeyboardInterrupt
