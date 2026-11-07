@@ -27,6 +27,10 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 _METADATA_VERSIONS: Final[list[ParameterSet]] = [
+    pytest.param(None, id="no-metadata"),
+    *(pytest.param(version) for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None),
+]
+_POSIX_METADATA_VERSIONS: Final[list[ParameterSet]] = [
     pytest.param(
         None,
         marks=pytest.mark.skipif(WIN, reason="without metadata and python, Windows cannot tell the app binaries apart"),
@@ -353,7 +357,18 @@ def test_uninstall_removes_venv_it_cannot_inspect(
 
 @pytest.mark.parametrize("metadata_version", _METADATA_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninstall_with_missing_interpreter(metadata_version: str | None) -> None:
+def test_uninstall_with_missing_interpreter_does_not_crash(metadata_version: str | None) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    mock_legacy_venv("pycowsay", metadata_version=metadata_version)
+    remove_venv_interpreter("pycowsay")
+
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+@pytest.mark.parametrize("metadata_version", _POSIX_METADATA_VERSIONS)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_with_missing_interpreter_removes_executable(metadata_version: str | None) -> None:
     executable_path: Final[Path] = CTX.bin_dir / app_name("pycowsay")
 
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -389,7 +404,24 @@ def test_uninstall_proper_dep_behavior(metadata_version: str | None) -> None:
 
 @pytest.mark.parametrize("metadata_version", _METADATA_VERSIONS)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninstall_proper_dep_behavior_missing_interpreter(metadata_version: str | None) -> None:
+def test_uninstall_proper_dep_behavior_missing_interpreter_does_not_crash(metadata_version: str | None) -> None:
+    # isort is a dependency of pylint, so its apps are in both environments
+    isort_app_paths: Final[list[Path]] = [CTX.bin_dir / app for app in PKG["isort"]["apps"]]
+
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    mock_legacy_venv("pylint", metadata_version=metadata_version)
+    mock_legacy_venv("isort", metadata_version=metadata_version)
+    remove_venv_interpreter("pylint")
+    remove_venv_interpreter("isort")
+
+    assert not run_pipx_cli(["uninstall", "pylint"])
+    assert all(path.exists() for path in isort_app_paths)
+
+
+@pytest.mark.parametrize("metadata_version", _POSIX_METADATA_VERSIONS)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_proper_dep_behavior_missing_interpreter_removes_executables(metadata_version: str | None) -> None:
     # isort is a dependency of pylint, so its apps are in both environments
     isort_app_paths: Final[list[Path]] = [CTX.bin_dir / app for app in PKG["isort"]["apps"]]
     pylint_app_paths: Final[list[Path]] = [CTX.bin_dir / app for app in PKG["pylint"]["apps"]]
