@@ -230,9 +230,9 @@ def _is_valid_python_index(index: object) -> TypeIs[_PythonIndex]:
 def get_latest_python_releases() -> list[tuple[str, str]]:
     try:
         release_data: Final[dict[str, list[dict[str, str]]]] = _fetch_release_data()
-    except _TRANSIENT_NETWORK_ERRORS as e:
+    except _TRANSIENT_NETWORK_ERRORS as error:
         msg = f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL})."
-        raise PipxError(msg) from e
+        raise PipxError(msg) from error
 
     return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
 
@@ -281,9 +281,9 @@ def _download(full_version: str, download_link: str, archive: Path) -> None:
     with animate(f"Downloading python {full_version} build", do_animation=True):
         try:
             _download_resuming(download_link, archive)
-        except _TRANSIENT_NETWORK_ERRORS as e:
+        except _TRANSIENT_NETWORK_ERRORS as error:
             msg = f"Unable to download python {full_version} build."
-            raise PipxError(msg) from e
+            raise PipxError(msg) from error
 
 
 def _download_resuming(url: str, archive: Path) -> None:
