@@ -7,11 +7,14 @@ import json
 import logging
 import sys
 from dataclasses import asdict, dataclass
-from typing import Any, Final, Generic, TypeVar
+from typing import Final, Generic, TypeAlias, TypeVar
 
 from pipx.constants import EXIT_CODE_OK, ExitCode
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+
+#: A value that `json.loads` and `tomllib` produce, as a recursive alias.
+JsonValue: TypeAlias = bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"] | None
 
 
 class OutputLevel(enum.IntEnum):
@@ -78,7 +81,7 @@ class OperationError:
 class OperationData:
     """Base class of the data that a command returns."""
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Return the data as a dictionary.
 
         :returns: the fields of the data.
@@ -157,7 +160,7 @@ def _render_envelope(
     command: tuple[str, ...],
     status: str,
     exit_code: ExitCode,
-    data: dict[str, Any],
+    data: dict[str, JsonValue],
     errors: tuple[OperationError, ...],
 ) -> str:
     return json.dumps(
@@ -200,6 +203,7 @@ def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: E
 
 
 __all__ = [
+    "JsonValue",
     "OperationData",
     "OperationError",
     "OperationResult",

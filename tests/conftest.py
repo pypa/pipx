@@ -436,11 +436,13 @@ def standalone_python_build(tmp_path_factory: pytest.TempPathFactory) -> tuple[b
 
 
 @pytest.fixture(scope="session")
-def standalone_python_index(standalone_python_build: tuple[bytes, str]) -> Callable[[str], dict[str, object]]:
+def standalone_python_index(
+    standalone_python_build: tuple[bytes, str],
+) -> Callable[[str], dict[str, float | list[tuple[str, str]]]]:
     archive_bytes, _ = standalone_python_build
     digest: Final[str] = f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"
 
-    def build(full_version: str) -> dict[str, object]:
+    def build(full_version: str) -> dict[str, float | list[tuple[str, str]]]:
         suffixes: Final[list[str]] = [
             suffix
             for machines in standalone_python.MACHINE_SUFFIX.values()
@@ -460,7 +462,7 @@ def standalone_python_index(standalone_python_build: tuple[bytes, str]) -> Calla
 def mocked_github_api(
     monkeypatch: pytest.MonkeyPatch,
     standalone_python_build: tuple[bytes, str],
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
 ) -> None:
     archive_bytes, full_version = standalone_python_build
     index: Final = standalone_python_index(full_version)

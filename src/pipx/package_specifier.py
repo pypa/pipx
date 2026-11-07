@@ -38,6 +38,8 @@ if TYPE_CHECKING:
 
     from packaging.requirements import Requirement
 
+    from pipx.result import JsonValue
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _PIP_LONG_FLAGS: Final[frozenset[str]] = frozenset({
@@ -867,7 +869,7 @@ def static_project_name(package_spec: str) -> str | None:
     return _valid_name(name)
 
 
-def _backend_reads_project_table(build_system: object) -> bool:
+def _backend_reads_project_table(build_system: JsonValue) -> bool:
     # older poetry-core, setuptools and flit-core build from their own tables and ignore [project]
     minimum_versions: Final[dict[str, tuple[str, str | None]]] = {
         "flit_core.buildapi": ("flit-core", "3.2"),

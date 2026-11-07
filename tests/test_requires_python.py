@@ -367,7 +367,7 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
 @pytest.mark.usefixtures("older_python", "mocked_github_api", "capsys")
 def test_interpreter_upgrade_keeps_the_standalone_python_the_package_rules_out(
     make_needs_project: Callable[[str], Path],
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
     monkeypatch: pytest.MonkeyPatch,
     backend: str,
 ) -> None:
@@ -385,7 +385,9 @@ def test_interpreter_upgrade_keeps_the_standalone_python_the_package_rules_out(
     standalone: Final[Path | None] = PipxMetadata(paths.CTX.venvs / "needs-older").source_interpreter
     pyproject: Final[Path] = project / "pyproject.toml"
     pyproject.write_text(pyproject.read_text().replace(f">={MINIMUM_PYTHON_VERSION}", f"<{this_minor}"))
-    newer_index: Final[dict[str, object]] = standalone_python_index(f"{this_minor}.{sys.version_info.micro + 1}")
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
+        f"{this_minor}.{sys.version_info.micro + 1}"
+    )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
 
     assert (

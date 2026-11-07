@@ -2,9 +2,17 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Final
+from typing import Final, NotRequired, TypedDict
 
 _WIN: Final[bool] = sys.platform.startswith("win")
+
+
+class _PackageSpec(TypedDict):
+    spec: str
+    apps: list[str]
+    apps_of_dependencies: NotRequired[list[str]]
+    man_pages: NotRequired[list[str]]
+    man_pages_of_dependencies: NotRequired[list[str]]
 
 
 def _exe_if_win(apps: list[str]) -> list[str]:
@@ -13,7 +21,7 @@ def _exe_if_win(apps: list[str]) -> list[str]:
 
 # Windows wraps entry points in an .exe launcher but installs scripts as they are, so only entry points go through
 # _exe_if_win
-PKG: Final[dict[str, dict[str, Any]]] = {
+PKG: Final[dict[str, _PackageSpec]] = {
     "ansible": {
         "spec": "ansible==6.7.0",
         "apps": [

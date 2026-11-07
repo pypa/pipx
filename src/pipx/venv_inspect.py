@@ -45,6 +45,8 @@ if TYPE_CHECKING:
 
     from packaging.specifiers import SpecifierSet
 
+    from pipx.result import JsonValue
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
@@ -462,8 +464,8 @@ def _iter_pyproject_data_files(project_root: Path) -> Iterator[tuple[str, list[s
     yield from _iter_normalized_data_files(pyproject_data.get("tool", {}).get("setuptools", {}).get("data-files", {}))
 
 
-def _iter_normalized_data_files(data_files: object) -> Iterator[tuple[str, list[str]]]:
-    items: Iterable[object]
+def _iter_normalized_data_files(data_files: JsonValue) -> Iterator[tuple[str, list[str]]]:
+    items: Iterable[JsonValue | tuple[str, JsonValue]]
     if isinstance(data_files, dict):
         items = data_files.items()
     elif isinstance(data_files, (list, tuple)):

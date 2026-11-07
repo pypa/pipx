@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["concurrent.futures", "functools", "signal"]
 
+import enum
 import logging
 import os
 import signal
@@ -244,6 +245,10 @@ def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Chil
             return
 
 
+class _Stopped(enum.Enum):
+    STOPPED = enum.auto()
+
+
 @dataclass(slots=True, kw_only=True)
 class _Children:
     lock: Condition
@@ -254,7 +259,7 @@ class _Children:
     stopping: bool = False
     interrupted: bool = False
     # the writer that left each stream's last line open
-    open_lines: dict[TextIO, object] = field(default_factory=dict)
+    open_lines: dict[TextIO, _Slot | _Stopped | None] = field(default_factory=dict)
 
     def stop(self) -> int:
         # the first interrupt stops the children of the tasks not finishing their work, the second stops every child
@@ -262,7 +267,7 @@ class _Children:
             if self.stopping or not self.finishing:
                 self.interrupted = True
                 # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
-                self.open_lines = dict.fromkeys(self.open_lines, object())
+                self.open_lines = dict.fromkeys(self.open_lines, _Stopped.STOPPED)
             self.stopping = True
             for process, slot in self.running.items():
                 if self.stops(slot):
@@ -272,7 +277,7 @@ class _Children:
     def stops(self, slot: _Slot) -> bool:
         return self.interrupted or (self.stopping and slot not in self.finishing)
 
-    def write(self, target: TextIO, text: str, writer: object) -> int:
+    def write(self, target: TextIO, text: str, writer: _Slot | None) -> int:
         with self.lock:
             # once interrupted, tasks write out of turn and must not run on into a line another one left unfinished
             if self.interrupted and self.open_lines.get(target, writer) is not writer and text[:1] not in {"\n", "\r"}:

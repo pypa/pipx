@@ -756,10 +756,10 @@ def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.Capture
 @pytest.mark.usefixtures("pycowsay_on_fetched_python")
 def test_upgrade_standalone_interpreter(
     monkeypatch: pytest.MonkeyPatch,
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    newer_index: Final[dict[str, object]] = standalone_python_index(
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
         f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
     )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
@@ -773,7 +773,7 @@ def test_upgrade_standalone_interpreter(
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
     monkeypatch: pytest.MonkeyPatch,
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
 ) -> None:
     assert not run_pipx_cli([
         "install",
@@ -782,7 +782,7 @@ def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
         "{}.{}.{}".format(*sys.version_info[:3]),
         PKG["pycowsay"]["spec"],
     ])
-    newer_index: Final[dict[str, object]] = standalone_python_index(
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
         f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
     )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)

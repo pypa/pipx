@@ -20,7 +20,15 @@ from packaging.utils import canonicalize_name
 from pipx.constants import ExitCode
 from pipx.options import OutdatedOptions
 from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
-from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import (
+    JsonValue,
+    OperationData,
+    OperationError,
+    OperationResult,
+    OutputLevel,
+    OutputMessage,
+    OutputStream,
+)
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -291,14 +299,14 @@ class OutdatedData(OperationData):
     skipped: tuple[_SkippedPackage, ...]
     failures: tuple[_FailedEnvironment, ...]
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Return the result data without the failures, which the JSON output omits.
 
         :returns: the result data as a dictionary.
         """
         # the envelope reports failures as top-level errors, and upgrade still reads the field; the base is named
         # because a slots dataclass breaks zero-argument super() before Python 3.14
-        data: Final[dict[str, object]] = OperationData.to_dict(self)
+        data: Final[dict[str, JsonValue]] = OperationData.to_dict(self)
         del data["failures"]
         return data
 

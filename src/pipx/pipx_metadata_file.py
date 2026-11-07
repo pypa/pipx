@@ -28,6 +28,8 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from pipx.result import JsonValue
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 #: Name of the file that records a virtual environment's pipx metadata.
@@ -436,9 +438,9 @@ class PackageInfo:
         ]
 
 
-def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Path:
+def _json_decoder_object_hook(json_dict: dict[str, JsonValue]) -> dict[str, JsonValue] | Path:
     if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
-        return Path(json_dict["__Path__"])
+        return Path(cast("str", json_dict["__Path__"]))
     return json_dict
 
 

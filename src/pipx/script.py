@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
@@ -34,6 +34,8 @@ if TYPE_CHECKING:
     from http.client import HTTPResponse
     from urllib.response import addinfourl
     from zipfile import ZipFile
+
+    from pipx.result import JsonValue
 
 
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
@@ -221,13 +223,13 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
         msg = "Multiple `# /// script` metadata blocks found"
         raise ValueError(msg)
 
-    raw: Final[dict[str, object]] = tomllib.loads(
+    raw: Final[dict[str, JsonValue]] = tomllib.loads(
         "".join(
             line[2:] if line.startswith("# ") else line[1:]
             for line in matches[0].group("content").splitlines(keepends=True)
         )
     )
-    dependencies: Final[object] = raw.get("dependencies", [])
+    dependencies: Final[JsonValue] = raw.get("dependencies", [])
     if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
         msg = "Inline script `dependencies` must be an array of strings."
         raise PipxError(msg)
@@ -238,7 +240,7 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
 
     normalized: Final[list[str]] = []
     try:
-        for dependency in dependencies:
+        for dependency in cast("list[str]", dependencies):
             normalized.append(str(Requirement(dependency)))
     except InvalidRequirement as error:
         msg = f"Invalid requirement {redact_url_credentials(dependency)}: {redact_url_credentials(str(error))}"
@@ -250,7 +252,7 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     )
 
 
-def _normalize_requires_python(value: object) -> str | None:
+def _normalize_requires_python(value: JsonValue) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str):
