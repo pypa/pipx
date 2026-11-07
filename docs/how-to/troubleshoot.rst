@@ -151,6 +151,22 @@ See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#envi
 <https://github.com/astral-sh/uv>`__ backend ignores ``PIP_*`` and reads uv's own ``UV_*`` variables (for example
 ``UV_INDEX_URL``) instead; check for those the same way.
 
+******************************************
+ Recover shared pip after a Python upgrade
+******************************************
+
+The shared environment can retain an older Python after you upgrade the interpreter running pipx. If upgrading shared
+pip reports ``No matching distribution found for pip>=26.2.2`` and rejects releases requiring Python 3.10, rebuild it
+with a compatible default interpreter:
+
+.. code-block:: console
+
+    $ pipx upgrade-shared
+
+pipx detects shared environments created with Python older than 3.10 and rebuilds them. If ``PIPX_DEFAULT_PYTHON`` still
+selects an older interpreter, update it to Python 3.10 or newer first. Existing applications keep their own
+interpreters; their references to shared pip are refreshed before the next installer operation.
+
 ****************************
  Clear runpip cache warnings
 ****************************
