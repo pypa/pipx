@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import remove_venv_interpreter, run_pipx_cli
-from pipx import util
 from pipx.paths import CTX
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -61,7 +61,7 @@ def test_health_json(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str
                 {
                     "environment": "pycowsay",
                     "error": None,
-                    "interpreter": str(util.get_venv_paths(installed_pycowsay)[1]),
+                    "interpreter": str(get_venv_paths(installed_pycowsay)[1]),
                     "status": "healthy",
                 }
             ]
@@ -100,9 +100,7 @@ def test_health_reports_broken_interpreter(installed_pycowsay: Path, capsys: pyt
 
     assert run_pipx_cli(["health"]) == 1
 
-    assert capsys.readouterr().out == (
-        f"pycowsay: interpreter is missing at {util.get_venv_paths(installed_pycowsay)[1]}\n"
-    )
+    assert capsys.readouterr().out == (f"pycowsay: interpreter is missing at {get_venv_paths(installed_pycowsay)[1]}\n")
 
 
 @pytest.mark.parametrize(
@@ -127,7 +125,7 @@ def test_health_reports_interpreter_failure(
 
     assert run_pipx_cli(["health", "pycowsay"]) == 1
 
-    assert capsys.readouterr().out == (f"pycowsay: {error} at {util.get_venv_paths(installed_pycowsay)[1]}\n")
+    assert capsys.readouterr().out == (f"pycowsay: {error} at {get_venv_paths(installed_pycowsay)[1]}\n")
 
 
 @pytest.mark.parametrize(

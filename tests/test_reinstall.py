@@ -23,12 +23,13 @@ from helpers import (
     write_wheel,
 )
 from package_info import PKG
-from pipx import paths, trash, util, venv_inspect
+from pipx import paths, trash, venv_inspect
 from pipx.commands import common
 from pipx.commands import reinstall as reinstall_module
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -378,7 +379,7 @@ def test_reinstall_refreshes_a_stale_copy_it_exposed(
     assert not run_pipx_cli(["reinstall", "foo-bar-x"])
 
     # Windows launchers embed their build time, so compare with the launcher this reinstall wrote
-    assert exposed.read_bytes() == (util.get_venv_paths(CTX.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
+    assert exposed.read_bytes() == (get_venv_paths(CTX.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -461,7 +462,7 @@ def test_reinstall_removes_stale_apps_after_success(capsys: pytest.CaptureFixtur
 
     venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     stale_app_name: Final[str] = app_name("removed-cowsay")
-    (stale_app_path := util.get_venv_paths(venv_dir)[0] / stale_app_name).write_text("#!/bin/sh\n")
+    (stale_app_path := get_venv_paths(venv_dir)[0] / stale_app_name).write_text("#!/bin/sh\n")
     stale_app_path.chmod(0o755)
     (stale_exposed_path := CTX.bin_dir / stale_app_name).symlink_to(stale_app_path)
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
@@ -569,7 +570,7 @@ def test_reinstall_all_json_reports_returned_errors(
     assert not run_pipx_cli(["install", "pycowsay"])
     for suffix in suffixes:
         assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
-    python: Final[Path] = util.get_venv_paths(CTX.venvs / "pycowsay")[1]
+    python: Final[Path] = get_venv_paths(CTX.venvs / "pycowsay")[1]
     capsys.readouterr()
 
     assert run_pipx_cli(["reinstall-all", "--python", str(python), "--output", "json"]) == 1

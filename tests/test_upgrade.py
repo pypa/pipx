@@ -34,6 +34,7 @@ from pipx.main import cli
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
+from pipx.shared_libs import DISABLE_SHARED_LIBS_AUTO_UPGRADE, SHARED_LIBS_MAX_AGE_SEC
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
@@ -83,11 +84,9 @@ def test_upgrade_failure_prints_installer_error_once(capsys: pytest.CaptureFixtu
     ("age_sec", "disable_auto_upgrade", "upgrade_args", "refreshed"),
     [
         pytest.param(dt.timedelta(days=1).total_seconds(), "0", [], False, id="recent"),
-        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "0", [], True, id="stale"),
-        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "1", [], False, id="stale-auto-upgrade-disabled"),
-        pytest.param(
-            shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, "0", ["--skip-maintenance"], False, id="stale-skip-maintenance"
-        ),
+        pytest.param(SHARED_LIBS_MAX_AGE_SEC + 60, "0", [], True, id="stale"),
+        pytest.param(SHARED_LIBS_MAX_AGE_SEC + 60, "1", [], False, id="stale-auto-upgrade-disabled"),
+        pytest.param(SHARED_LIBS_MAX_AGE_SEC + 60, "0", ["--skip-maintenance"], False, id="stale-skip-maintenance"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -100,7 +99,7 @@ def test_upgrade_refreshes_shared_pip_only_when_due(  # ruff:ignore[too-many-pos
     refreshed: bool,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, disable_auto_upgrade)
+    monkeypatch.setenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, disable_auto_upgrade)
     last_upgrade: Final[float] = age_shared_pip(age_sec)
 
     assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])

@@ -66,6 +66,7 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
     MINIMUM_PYTHON_VERSION,
+    TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
     WINDOWS,
     ExitCode,
     FetchPythonOptions,
@@ -92,7 +93,14 @@ from pipx.options import (
     UpgradeOptions,
 )
 from pipx.package_specifier import valid_pypi_name
-from pipx.paths import CTX
+from pipx.paths import (
+    CTX,
+    DEFAULT_PIPX_BIN_DIR,
+    DEFAULT_PIPX_GLOBAL_BIN_DIR,
+    DEFAULT_PIPX_GLOBAL_HOME,
+    DEFAULT_PIPX_GLOBAL_MAN_DIR,
+    DEFAULT_PIPX_MAN_DIR,
+)
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
@@ -383,7 +391,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             accessible on your $PATH. The package's manual pages installed in
             share/man/man[1-9] can be viewed with man on an operating system where
             it is available and the path in the environment variable `PIPX_MAN_DIR`
-            (default: {paths.DEFAULT_PIPX_MAN_DIR}) is in the man search path
+            (default: {DEFAULT_PIPX_MAN_DIR}) is in the man search path
             ($MANPATH).
 
             You get apps you can run from anywhere, in packages you can
@@ -407,19 +415,19 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             The default pipx home location is {paths.DEFAULT_PIPX_HOME} and can
             be overridden by setting the environment variable `PIPX_HOME`.
             If the `--global` option is used, the default pipx home location
-            instead is {paths.DEFAULT_PIPX_GLOBAL_HOME} and can be overridden
+            instead is {DEFAULT_PIPX_GLOBAL_HOME} and can be overridden
             by setting the environment variable `PIPX_GLOBAL_HOME`.
 
-            The default app location is {paths.DEFAULT_PIPX_BIN_DIR} and can be
+            The default app location is {DEFAULT_PIPX_BIN_DIR} and can be
             overridden by setting the environment variable `PIPX_BIN_DIR`.
             If the `--global` option is used, the default app location instead
-            is {paths.DEFAULT_PIPX_GLOBAL_BIN_DIR} and can be overridden by
+            is {DEFAULT_PIPX_GLOBAL_BIN_DIR} and can be overridden by
             setting the environment variable `PIPX_GLOBAL_BIN_DIR`.
 
-            The default manual pages location is {paths.DEFAULT_PIPX_MAN_DIR} and
+            The default manual pages location is {DEFAULT_PIPX_MAN_DIR} and
             can be overridden by setting the environment variable `PIPX_MAN_DIR`.
             If the `--global` option is used, the default manual pages location
-            instead is {paths.DEFAULT_PIPX_GLOBAL_MAN_DIR} and can be overridden
+            instead is {DEFAULT_PIPX_GLOBAL_MAN_DIR} and can be overridden
             by setting the environment variable `PIPX_GLOBAL_MAN_DIR`.
 
             The default python executable used to install a package is
@@ -1594,7 +1602,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             f"""
             Download the latest version of a package to a temporary virtual environment,
             then run an app from it. The environment will be cached
-            and reused for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+            and reused for up to {TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
             means subsequent calls to 'run' for the same package will be faster
             since they can reuse the cached Virtual Environment.
 

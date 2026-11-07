@@ -31,9 +31,11 @@ from package_info import PKG
 from pipx import constants, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
+from pipx.constants import EXIT_CODE_LIST_PROBLEM
 from pipx.options import ListOptions
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata, load_spec_file
+from pipx.shared_libs import SHARED_LIBS_MAX_AGE_SEC
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -73,7 +75,7 @@ def test_list_reports_unreadable_metadata_per_environment(
         listed in capsys.readouterr().out,
         "package pycowsay has pipx metadata this user cannot read" in caplog.text,
         "has no internal pipx metadata" in caplog.text,
-    ) == (constants.EXIT_CODE_LIST_PROBLEM, True, True, False)
+    ) == (EXIT_CODE_LIST_PROBLEM, True, True, False)
 
 
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
@@ -174,7 +176,7 @@ def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: 
 def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
     (venv_dir := CTX.venvs / "broken").mkdir(parents=True)
     (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
-    assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
+    assert run_pipx_cli(["list"]) == EXIT_CODE_LIST_PROBLEM
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -558,7 +560,7 @@ def test_list_does_not_trigger_maintenance(flags: list[str]) -> None:
     now: Final[float] = time.time()
     shared_libs.SHARED_LIBS.create(verbose=True, pip_args=[])
     shared_libs.SHARED_LIBS.has_been_updated_this_run = False
-    os.utime(shared_libs.SHARED_LIBS.pip_path, (now, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    os.utime(shared_libs.SHARED_LIBS.pip_path, (now, -SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
     assert shared_libs.SHARED_LIBS.needs_upgrade
 
     run_pipx_cli(["list", *flags])

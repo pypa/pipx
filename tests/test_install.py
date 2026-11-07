@@ -31,6 +31,7 @@ from pipx.constants import EXIT_CODE_OK
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
+from pipx.shared_libs import SHARED_LIBS_MAX_AGE_SEC, shared_libs_auto_upgrade_disabled
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -1033,7 +1034,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
     mocker.patch.object(shared_libs.SHARED_LIBS, "has_been_updated_this_run", False)
     mocker.patch(
         "pipx.shared_libs._time",
-        return_value=shared_libs.SHARED_LIBS.pip_path.stat().st_mtime + shared_libs.SHARED_LIBS_MAX_AGE_SEC + 1,
+        return_value=shared_libs.SHARED_LIBS.pip_path.stat().st_mtime + SHARED_LIBS_MAX_AGE_SEC + 1,
         autospec=True,
     )
     run_subprocess: Final = mocker.patch(
@@ -2234,7 +2235,7 @@ def test_install_skip_maintenance_without_index(
 
     assert (
         "installed package pycowsay" in capsys.readouterr().out,
-        shared_libs.shared_libs_auto_upgrade_disabled(),
+        shared_libs_auto_upgrade_disabled(),
     ) == (True, False)
 
 

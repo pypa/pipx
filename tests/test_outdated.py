@@ -11,9 +11,9 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from helpers import SKIP_IF_WINDOWS, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
-from pipx import util
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from contextlib import AbstractContextManager
@@ -505,7 +505,7 @@ def test_list_outdated_reports_missing_interpreter(capsys: pytest.CaptureFixture
     assert (captured.out, captured.err) == (
         "",
         (
-            f"pycowsay: Invalid python interpreter {util.get_venv_paths(CTX.venvs / 'pycowsay')[1]}. "
+            f"pycowsay: Invalid python interpreter {get_venv_paths(CTX.venvs / 'pycowsay')[1]}. "
             "To fix, execute: pipx reinstall-all\n"
         ),
     )

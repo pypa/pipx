@@ -21,6 +21,7 @@ from package_info import PKG
 from pipx import constants, shared_libs
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
+from pipx.shared_libs import SHARED_LIBS_MAX_AGE_SEC
 from pipx.util import PipxError
 from pipx.venv import Venv
 
@@ -82,7 +83,7 @@ def test_reinstall_all_suffix_legacy_venv() -> None:
     ("age_sec", "refreshed"),
     [
         pytest.param(dt.timedelta(days=1).total_seconds(), False, id="recent"),
-        pytest.param(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60, True, id="stale"),
+        pytest.param(SHARED_LIBS_MAX_AGE_SEC + 60, True, id="stale"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -169,7 +170,7 @@ def test_reinstall_all_reinstalls_the_rest_after_a_failure(
 def test_reinstall_all_refreshes_stale_shared_pip_once(
     capsys: pytest.CaptureFixture[str], age_shared_pip: Callable[[float], float]
 ) -> None:
-    age_shared_pip(shared_libs.SHARED_LIBS_MAX_AGE_SEC + 60)
+    age_shared_pip(SHARED_LIBS_MAX_AGE_SEC + 60)
 
     assert not run_pipx_cli(["reinstall-all"])
 

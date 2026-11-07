@@ -12,11 +12,10 @@ import pytest
 
 from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from package_info import PKG
-from pipx import pipx_metadata_file
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.paths import CTX
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError, get_venv_paths
 from pipx.venv import Venv, reset_backend_override_warnings
@@ -188,7 +187,7 @@ def test_backend_override_warning_dedups_per_venv(
         "backend": "pip",
         "pipx_metadata_version": "0.6",
     }
-    (venv_dir / pipx_metadata_file.PIPX_INFO_FILENAME).write_text(json.dumps(metadata_payload))
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(metadata_payload))
     reset_backend_override_warnings()
     caplog.set_level("WARNING", logger="pipx.venv")
 

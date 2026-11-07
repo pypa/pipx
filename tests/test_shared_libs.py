@@ -17,6 +17,7 @@ from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.shared_libs import DISABLE_SHARED_LIBS_AUTO_UPGRADE, SHARED_LIBS_MAX_AGE_SEC, shared_pip_cooldown
 from pipx.subprocess_runner import get_site_packages, run_subprocess
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -46,8 +47,8 @@ def test_create_venv_lists_every_shared_site_packages_path(tmp_path: Path, monke
 @pytest.mark.parametrize(
     ("mtime_minus_now", "needs_upgrade"),
     [
-        pytest.param(-shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60, True, id="older-than-max-age"),
-        pytest.param(-shared_libs.SHARED_LIBS_MAX_AGE_SEC + 5 * 60, False, id="younger-than-max-age"),
+        pytest.param(-SHARED_LIBS_MAX_AGE_SEC - 5 * 60, True, id="older-than-max-age"),
+        pytest.param(-SHARED_LIBS_MAX_AGE_SEC + 5 * 60, False, id="younger-than-max-age"),
     ],
 )
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
@@ -163,7 +164,7 @@ def test_shared_libs_create_preserves_pip_args() -> None:
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_create_without_index_when_auto_upgrade_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, "1")
+    monkeypatch.setenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "1")
 
     shared_libs.SHARED_LIBS.create(pip_args=["--no-index"], verbose=False)
 
@@ -438,7 +439,7 @@ def test_disable_shared_libs_auto_upgrade(
     (site_packages := tmp_path / "venv" / "lib" / "python" / "site-packages").mkdir(parents=True)
     (site_packages / PIPX_SHARED_PTH).write_text("")
     venv: Final[Venv] = Venv(tmp_path / "venv")
-    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, env_value)
+    monkeypatch.setenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, env_value)
     monkeypatch.setattr(type(shared_libs.SHARED_LIBS), "is_valid", property(lambda _self: True))
     monkeypatch.setattr(type(shared_libs.SHARED_LIBS), "needs_upgrade", property(lambda _self: True))
     upgrade: Final[MockType] = mocker.patch.object(shared_libs.SHARED_LIBS, "upgrade", autospec=True)
@@ -505,7 +506,7 @@ def test_install_cooldown_applies_to_new_shared_pip(package_cache_dir: Path, cap
 
 
 def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(upgrade_subprocess: MockType) -> None:
-    with shared_libs.shared_pip_cooldown(7):
+    with shared_pip_cooldown(7):
         shared_libs.SHARED_LIBS.upgrade(pip_args=[], verbose=True, raises=True)
 
     assert [call.args[0][5:] for call in upgrade_subprocess.call_args_list] == [
@@ -515,7 +516,7 @@ def test_shared_libs_upgrade_under_cooldown_filters_by_upload_time(upgrade_subpr
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_create_under_cooldown_keeps_floor_when_index_lacks_upload_times() -> None:
-    with shared_libs.shared_pip_cooldown(7):
+    with shared_pip_cooldown(7):
         shared_libs.SHARED_LIBS.create(pip_args=[], verbose=False)
 
     assert sorted(path.name for path in shared_libs.SHARED_LIBS.site_packages[0].glob("pip-*.dist-info")) == [

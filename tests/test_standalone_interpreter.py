@@ -25,8 +25,9 @@ import pytest
 
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from package_info import PKG
-from pipx import constants, pipx_metadata_file, standalone_python
+from pipx import constants, standalone_python
 from pipx.paths import CTX
+from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -792,7 +793,7 @@ def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
 
     interpreter_dir: Final[Path] = CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
     expected: Final[Path] = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
-    assert pipx_metadata_file.PipxMetadata(CTX.venvs / "pycowsay").source_interpreter == expected
+    assert PipxMetadata(CTX.venvs / "pycowsay").source_interpreter == expected
 
 
 @pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
@@ -810,7 +811,7 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
         interpreter_python.touch()
 
         (venv_dir := CTX.venvs / f"demo-{python_version}").mkdir(parents=True)
-        metadata = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
+        metadata = PipxMetadata(venv_dir, read=False)
         metadata.main_package = replace(
             metadata.main_package,
             package=venv_dir.name,
@@ -830,7 +831,7 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
         standalone_python, "download_python_build_standalone", autospec=True
     )
     reinstall: Final[MockType] = mocker.patch("pipx.commands.interpreter.reinstall", autospec=True)
-    metadata_read: Final[MockType] = mocker.spy(pipx_metadata_file.PipxMetadata, "read")
+    metadata_read: Final[MockType] = mocker.spy(PipxMetadata, "read")
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
