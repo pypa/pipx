@@ -29,6 +29,7 @@ from pipx.main import (
     prog_name,
 )
 from pipx.options import BackendOptions
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
 from pipx.version import version
@@ -479,7 +480,7 @@ def locked_home(
     mocker.patch("platformdirs.user_log_path", autospec=True, return_value=tmp_path / "logs")
     (locked := tmp_path / "locked").mkdir(mode=0o500)
     monkeypatch.setattr(paths, request.param, home := locked / "pipx")
-    paths.CTX.make_local()
+    CTX.make_local()
     yield home
     locked.chmod(0o700)
 
@@ -641,17 +642,17 @@ def test_log_masks_command_line_password_with_space() -> None:
 def test_log_dir_is_created_owner_only() -> None:
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(CTX.logs.stat().st_mode) == 0o700
 
 
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
 def test_log_dir_left_world_readable_is_tightened() -> None:
-    paths.CTX.logs.mkdir(mode=0o755, parents=True)
+    CTX.logs.mkdir(mode=0o755, parents=True)
 
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(CTX.logs.stat().st_mode) == 0o700
 
 
 @SKIP_IF_WINDOWS
@@ -668,7 +669,7 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
 
     assert not run_pipx_cli(["list"])
 
-    assert current_log_file().parent == paths.CTX.logs
+    assert current_log_file().parent == CTX.logs
 
 
 @pytest.mark.parametrize(

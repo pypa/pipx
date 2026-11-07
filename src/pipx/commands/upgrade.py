@@ -2,7 +2,6 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "functools",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.install",
     "pipx.commands.outdated",
@@ -12,6 +11,7 @@ __lazy_modules__ = [
     "pipx.interpreter",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.redact",
     "pipx.script",
@@ -28,7 +28,6 @@ from enum import StrEnum
 from functools import partial
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.colors import BOLD, RED
 from pipx.commands.common import (
     expose_package_resources,
@@ -48,6 +47,7 @@ from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.options import CooldownOptions, ExposureOptions, InstallOptions, OutdatedOptions, ReinstallOptions
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -117,8 +117,8 @@ def _upgrade_venv(
                 # or extras the user asked to install
                 [package_spec or venv_dir.name],
                 InstallOptions(
-                    local_bin_dir=paths.CTX.bin_dir,
-                    local_man_dir=paths.CTX.man_dir,
+                    local_bin_dir=CTX.bin_dir,
+                    local_man_dir=CTX.man_dir,
                     python=options.python,
                     pip_args=options.pip_args,
                     venv_args=options.venv_args,
@@ -176,8 +176,8 @@ def _repaired_venv(
             reinstall(
                 venv_dir,
                 ReinstallOptions(
-                    local_bin_dir=paths.CTX.bin_dir,
-                    local_man_dir=paths.CTX.man_dir,
+                    local_bin_dir=CTX.bin_dir,
+                    local_man_dir=CTX.man_dir,
                     python=_base_python(Venv(venv_dir)),
                     verbose=verbose,
                     backend=backend,
@@ -328,9 +328,7 @@ def _upgrade_package(
     if package_metadata.pinned:
         return _package_result(venv, package_name, _UpgradeStatus.PINNED)
 
-    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
-        venv, paths.CTX.bin_dir, paths.CTX.man_dir
-    )
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, CTX.bin_dir, CTX.man_dir)
     venv.upgrade_package(
         package_name,
         parse_specifier_for_upgrade(package_metadata.package_or_url),
@@ -344,8 +342,8 @@ def _upgrade_package(
     upgraded_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
     validate_expected_apps(venv, package_name, upgraded_metadata.expected_apps)
     if venv.pipx_metadata.exposure_enabled:
-        expose_package_resources(upgraded_metadata, paths.CTX.bin_dir, paths.CTX.man_dir, force=force)
-        remove_stale_venv_resources(previous_resource_paths, venv, paths.CTX.bin_dir, paths.CTX.man_dir)
+        expose_package_resources(upgraded_metadata, CTX.bin_dir, CTX.man_dir, force=force)
+        remove_stale_venv_resources(previous_resource_paths, venv, CTX.bin_dir, CTX.man_dir)
 
     return _PackageUpgradeResult(
         environment=venv.name,
@@ -473,9 +471,7 @@ def upgrade_all(venv_container: VenvContainer, options: UpgradeOptions) -> Opera
         check_failures.setdefault(failure.environment, []).append(failure.error)
 
     venv_dirs: Final[list[Path]] = list(venv_container.iter_venv_dirs())
-    with expose_shared_resources_in_order(
-        (PipxMetadata(venv_dir) for venv_dir in venv_dirs), paths.CTX.bin_dir, paths.CTX.man_dir
-    ):
+    with expose_shared_resources_in_order((PipxMetadata(venv_dir) for venv_dir in venv_dirs), CTX.bin_dir, CTX.man_dir):
         venv_upgrades: Final[list[_VenvUpgrade]] = fan_out(
             [
                 partial(

@@ -18,7 +18,8 @@ import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, SKIP_IF_WINDOWS, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
-from pipx import constants, paths, shared_libs
+from pipx import constants, shared_libs
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -43,7 +44,7 @@ def test_reinstall_all_keeps_injected_pin() -> None:
 
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pinned
+    assert PipxMetadata(CTX.venvs / "pycowsay").injected_packages["black"].pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -103,7 +104,7 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     metadata_before: Final[str] = (venv_dir / PIPX_INFO_FILENAME).read_text()
 
     def interrupting_install(replacement_venv_dir: Path, *args: object, **kwargs: object) -> NoReturn:
@@ -121,7 +122,7 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
         "Interrupted; restored pycowsay." in capsys.readouterr().err,
         (venv_dir / PIPX_INFO_FILENAME).read_text(),
         (venv_dir / "partial-install").exists(),
-        any(path.name.endswith("-pipx-reinstall") for path in paths.CTX.venvs.iterdir()),
+        any(path.name.endswith("-pipx-reinstall") for path in CTX.venvs.iterdir()),
     ) == (True, metadata_before, False, False)
 
 
@@ -131,7 +132,7 @@ def test_reinstall_all_prints_progress_in_venv_order(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
     venv_names: list[str],
 ) -> None:
-    before_venv_subprocess(paths.CTX.venvs / venv_names[0], lambda: time.sleep(0.3))
+    before_venv_subprocess(CTX.venvs / venv_names[0], lambda: time.sleep(0.3))
 
     assert not run_pipx_cli(["reinstall-all"])
 
@@ -143,14 +144,14 @@ def venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
     for spec in ("pycowsay", PKG["pbr"]["spec"], PKG["black"]["spec"]):
         assert not run_pipx_cli(["install", spec])
     capsys.readouterr()
-    return [venv_dir.name for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir()]
+    return [venv_dir.name for venv_dir in CTX.venvs.iterdir() if venv_dir.is_dir()]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_reinstalls_the_rest_after_a_failure(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], venv_names: list[str]
 ) -> None:
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / venv_names[0])
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / venv_names[0])
     metadata.main_package = replace(metadata.main_package, package_or_url=str(tmp_path / "missing"))
     metadata.write()
 
@@ -179,7 +180,7 @@ def test_reinstall_all_refreshes_stale_shared_pip_once(
 def test_reinstall_all_restores_interrupted_venv_among_several(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
 ) -> None:
-    interrupted: Final[Path] = paths.CTX.venvs / venv_names[0]
+    interrupted: Final[Path] = CTX.venvs / venv_names[0]
     metadata_before: Final[str] = (interrupted / PIPX_INFO_FILENAME).read_text()
     before_venv_subprocess(interrupted, _interrupt)
 
@@ -196,7 +197,7 @@ def test_reinstall_all_reports_interrupted_venv_without_traceback(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
     venv_names: list[str],
 ) -> None:
-    before_venv_subprocess(paths.CTX.venvs / venv_names[0], _interrupt)
+    before_venv_subprocess(CTX.venvs / venv_names[0], _interrupt)
 
     run_pipx_cli(["reinstall-all"])
 
@@ -208,7 +209,7 @@ def test_reinstall_all_reports_interrupted_venv_without_traceback(
 def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     rename: Final = Path.rename
-    held: Final[list[Path]] = [paths.CTX.venvs / "pycowsay"]
+    held: Final[list[Path]] = [CTX.venvs / "pycowsay"]
 
     def rename_once_released(source: Path, target: Path) -> Path:
         if source in held:
@@ -227,11 +228,11 @@ def test_reinstall_all_keeps_shared_man_page_with_its_owner(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
-    before_venv_subprocess(owner := paths.CTX.venvs / "pycowsay", lambda: time.sleep(0.5))
+    before_venv_subprocess(owner := CTX.venvs / "pycowsay", lambda: time.sleep(0.5))
 
     assert not run_pipx_cli(["reinstall-all"])
 
-    assert (paths.CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(owner)
+    assert (CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(owner)
 
 
 @SKIP_IF_WINDOWS
@@ -253,16 +254,16 @@ def test_reinstall_all_failed_rebuild_gets_back_shared_man_page(
     with suppress(OSError):
         run_pipx_cli(["reinstall-all"])
 
-    assert (paths.CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
+    assert (CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
 
 
 @pytest.fixture
 def shared_man_page_venvs(pipx_temp_env: None) -> tuple[Path, Path]:  # ruff:ignore[unused-function-argument]  # it sets the pipx home
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
-    earlier, owner = (venv_dir.resolve() for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir())
-    (paths.CTX.man_dir / "man6" / "pycowsay.6").unlink()
-    (paths.CTX.man_dir / "man6" / "pycowsay.6").symlink_to(owner / "share" / "man" / "man6" / "pycowsay.6")
+    earlier, owner = (venv_dir.resolve() for venv_dir in CTX.venvs.iterdir() if venv_dir.is_dir())
+    (CTX.man_dir / "man6" / "pycowsay.6").unlink()
+    (CTX.man_dir / "man6" / "pycowsay.6").symlink_to(owner / "share" / "man" / "man6" / "pycowsay.6")
     return earlier, owner
 
 
@@ -271,7 +272,7 @@ def fail_owner_rebuild_after_takeover(
     shared_man_page_venvs: tuple[Path, Path], mocker: MockerFixture
 ) -> Callable[[Callable[[], None], BaseException], None]:
     earlier, owner = shared_man_page_venvs
-    man_page: Final[Path] = paths.CTX.man_dir / "man6" / "pycowsay.6"
+    man_page: Final[Path] = CTX.man_dir / "man6" / "pycowsay.6"
     symlink_to: Final = Path.symlink_to
     check_upgrade_shared_libs: Final = Venv.check_upgrade_shared_libs
 
@@ -302,7 +303,7 @@ def fail_owner_rebuild_after_takeover(
 def test_reinstall_all_failed_rebuild_keeps_man_page_replaced_elsewhere(
     fail_owner_rebuild_after_takeover: Callable[[Callable[[], None], BaseException], None], tmp_path: Path
 ) -> None:
-    man_page: Final[Path] = paths.CTX.man_dir / "man6" / "pycowsay.6"
+    man_page: Final[Path] = CTX.man_dir / "man6" / "pycowsay.6"
     (elsewhere := tmp_path / "pycowsay.6").touch()
 
     def replace_link() -> None:
@@ -328,7 +329,7 @@ def test_reinstall_all_failed_rebuild_keeps_shared_man_page_nobody_took(
 
     assert run_pipx_cli(["reinstall-all"])
 
-    assert (paths.CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
+    assert (CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(shared_man_page_venvs[1])
 
 
 @pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")
@@ -336,7 +337,7 @@ def test_reinstall_all_failed_rebuild_keeps_shared_man_page_nobody_took(
 def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
 ) -> None:
-    venv_dirs: Final[list[Path]] = [paths.CTX.venvs / name for name in venv_names]
+    venv_dirs: Final[list[Path]] = [CTX.venvs / name for name in venv_names]
     for venv_dir in venv_dirs:
         (venv_dir / "marker").touch()
 

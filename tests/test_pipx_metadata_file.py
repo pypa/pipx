@@ -20,9 +20,10 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import paths, pipx_metadata_file
+from pipx import pipx_metadata_file
 from pipx.backends._base import UV  # ruff:ignore[import-private-name]  # no public home
 from pipx.constants import PIPX_SHARED_PTH
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
@@ -353,7 +354,7 @@ def test_write_keeps_metadata_owner_only(venv_dir: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_install() -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
@@ -365,7 +366,7 @@ def test_package_install() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_inject() -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])

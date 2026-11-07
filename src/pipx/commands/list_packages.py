@@ -2,9 +2,9 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "json",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.transaction",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.self_install",
     "pipx.venv",
@@ -15,12 +15,12 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Final, NamedTuple
 
-from pipx import paths
 from pipx.colors import BOLD
 from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
 from pipx.commands.transaction import is_unfinished
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
 from pipx.emojis import SLEEP
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
@@ -178,11 +178,11 @@ def _list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPr
 def _list_text(venv_dirs: Iterable[Path], venv_root_dir: str, *, include_injected: bool) -> VenvProblems:
     print(f"venvs are in {BOLD(venv_root_dir)}")  # ruff:ignore[print]  # user-facing CLI output
     print(  # ruff:ignore[print]  # user-facing CLI output
-        f"apps are exposed on your $PATH at {BOLD(str(paths.CTX.bin_dir))}"
+        f"apps are exposed on your $PATH at {BOLD(str(CTX.bin_dir))}"
     )
-    print(f"manual pages are exposed at {BOLD(str(paths.CTX.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"manual pages are exposed at {BOLD(str(CTX.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
     print(  # ruff:ignore[print]  # user-facing CLI output
-        f"shell completions are exposed at {BOLD(str(paths.CTX.completion_dir))}"
+        f"shell completions are exposed at {BOLD(str(CTX.completion_dir))}"
     )
 
     all_venv_problems = VenvProblems()

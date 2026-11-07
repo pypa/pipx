@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import current_log_file, run_pipx_cli
-from pipx import constants, main, paths
+from pipx import constants, main
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -41,8 +42,8 @@ def test_max_logs_counts_the_new_log(
 
 @pytest.fixture
 def log_dir() -> Path:
-    paths.CTX.logs.mkdir(parents=True)
-    return paths.CTX.logs
+    CTX.logs.mkdir(parents=True)
+    return CTX.logs
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

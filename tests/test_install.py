@@ -26,8 +26,9 @@ from helpers import (
     unwrap_log_text,
 )
 from package_info import PKG
-from pipx import main, paths, shared_libs
+from pipx import main, shared_libs
 from pipx.constants import EXIT_CODE_OK
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.venv import Venv
@@ -56,8 +57,8 @@ def test_install_wheel_from_file_url(dotted_app_wheel: Path, tmp_path: Path, bac
     assert not run_pipx_cli(["install", "--backend", backend, package_spec])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "foo-bar-x").main_package.package_or_url,
-        (paths.CTX.bin_dir / app_name("tool3.12")).is_file(),
+        PipxMetadata(CTX.venvs / "foo-bar-x").main_package.package_or_url,
+        (CTX.bin_dir / app_name("tool3.12")).is_file(),
     ) == (package_spec, True)
 
 
@@ -121,8 +122,8 @@ def test_install_multiple_packages_reports_success_before_failure(capsys: pytest
         return_code,
         "installed package pycowsay" in captured.out,
         "Error installing pipx-package-does-not-exist" in captured.err,
-        (paths.CTX.venvs / "pycowsay").exists(),
-        (paths.CTX.venvs / missing_package).exists(),
+        (CTX.venvs / "pycowsay").exists(),
+        (CTX.venvs / missing_package).exists(),
     ) == (1, True, True, True, False)
 
 
@@ -138,7 +139,7 @@ def test_install_multiple_packages_reports_success_before_failure(capsys: pytest
 def test_install_rejects_unsafe_suffix(capsys: pytest.CaptureFixture[str], suffix: str) -> None:
     return_code: Final[int] = run_pipx_cli(["install", "--suffix", suffix, "pycowsay"])
 
-    assert (return_code, "Invalid suffix" in capsys.readouterr().err, (paths.CTX.venvs / "pycowsay").exists()) == (
+    assert (return_code, "Invalid suffix" in capsys.readouterr().err, (CTX.venvs / "pycowsay").exists()) == (
         1,
         True,
         False,
@@ -274,7 +275,7 @@ def test_force_install_does_not_record_internal_pip_args() -> None:
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     assert (
         run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"]),
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args,
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args,
     ) == (0, [])
 
 
@@ -298,7 +299,7 @@ def test_install_does_not_record_one_shot_pip_args(
 
     assert not run_pipx_cli(["install", "--backend", "pip", f"--pip-args=--no-cache-dir {pip_args}", "pycowsay"])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == ["--no-cache-dir", *recorded]
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args == ["--no-cache-dir", *recorded]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -316,7 +317,7 @@ def test_failed_force_install_keeps_recorded_metadata(
     dotted_app_wheel: Path, make_wheel: Callable[[dict[str, str]], Path], backend: str
 ) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, str(dotted_app_wheel)])
-    metadata_path: Final[Path] = paths.CTX.venvs / "foo-bar-x" / PIPX_INFO_FILENAME
+    metadata_path: Final[Path] = CTX.venvs / "foo-bar-x" / PIPX_INFO_FILENAME
     recorded: Final[str] = metadata_path.read_text(encoding="utf-8")
     # data files unpack into the venv root before the installer writes INSTALLER, here a directory, and fails
     make_wheel({
@@ -371,7 +372,7 @@ def test_install_no_apps_guidance(
 def test_install_records_expected_app() -> None:
     assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
 
 
 # the grouped row mirrors a `pipx manifest lock` output: nab gates every package on the tool's group and the lock
@@ -390,11 +391,11 @@ def test_install_from_pylock(make_pylock: MakePylock, backend: str, group: str |
 
     assert not run_pipx_cli(["install", "--backend", backend, "--lock", str(lock_file), "pycowsay>=0"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (
         metadata.package_version,
         metadata.lock_file,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
     ) == ("0.0.0.2", lock_file.resolve(), True)
 
 
@@ -409,7 +410,7 @@ def test_install_force_pylock_keeps_the_recorded_backend(make_pylock: MakePylock
 
     assert not run_pipx_cli(["install", "--force", "--backend", other, "--lock", str(lock_file), "pycowsay>=0"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (metadata.backend, metadata.main_package.lock_file) == (recorded, lock_file.resolve())
 
 
@@ -439,7 +440,7 @@ def test_install_cooldown(
         PKG["pycowsay"]["spec"],
     ])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (backend_option in caplog.text, metadata.cooldown_days) == (True, 7)
 
 
@@ -469,7 +470,7 @@ def test_install_env_cooldown(
         PKG["pycowsay"]["spec"],
     ])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (f"--uploaded-prior-to P{expected_days}D" in caplog.text, metadata.cooldown_days) == (True, expected_days)
 
 
@@ -489,7 +490,7 @@ def test_install_env_cooldown_opted_out_by_flag(
         PKG["pycowsay"]["spec"],
     ])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert ("--uploaded-prior-to" in caplog.text, metadata.cooldown_days) == (False, 0)
 
 
@@ -504,7 +505,7 @@ def test_install_env_cooldown_outranks_recorded(
     monkeypatch.setattr(main, "_COOLDOWN", 3)
     assert not run_pipx_cli(["install", "--backend", "pip", "--force", pip_args, PKG["pycowsay"]["spec"]])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert ("--uploaded-prior-to P3D" in caplog.text, metadata.cooldown_days) == (True, 3)
 
 
@@ -526,7 +527,7 @@ def test_install_source_from_pylock(
 
     assert not run_pipx_cli(["install", *(["--editable"] if editable else []), "--lock", str(lock_file), str(project)])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (metadata.package_version, metadata.lock_file, metadata.apps, metadata.pip_args) == (
         "0.1.0",
         lock_file.resolve(),
@@ -548,7 +549,7 @@ def test_install_rejects_incomplete_pylock(
 
     assert (
         "does not satisfy empty-project" in capsys.readouterr().err,
-        (paths.CTX.venvs / "empty-project").exists(),
+        (CTX.venvs / "empty-project").exists(),
     ) == (True, False)
 
 
@@ -574,7 +575,7 @@ def test_install_rejects_target_outside_pylock(
     error: Final[str] = unwrap_log_text(capsys.readouterr().err)
     assert (
         re.search(expected_error, error) is not None,
-        (paths.CTX.venvs / environment).exists(),
+        (CTX.venvs / environment).exists(),
     ) == (True, False)
 
 
@@ -586,7 +587,7 @@ def test_install_rejects_invalid_pylock(tmp_path: Path, capsys: pytest.CaptureFi
 
     assert (
         "Error installing packages from" in unwrap_log_text(capsys.readouterr().err),
-        (paths.CTX.venvs / "pycowsay").exists(),
+        (CTX.venvs / "pycowsay").exists(),
     ) == (True, False)
 
 
@@ -601,11 +602,11 @@ def test_install_rejects_invalid_pylock(tmp_path: Path, capsys: pytest.CaptureFi
 def test_install_reapplies_recorded_pylock(make_pylock: Callable[[str, str], Path], command: list[str]) -> None:
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
-    (marker := paths.CTX.venvs / "pycowsay" / "marker").touch()
+    (marker := CTX.venvs / "pycowsay" / "marker").touch()
 
     assert not run_pipx_cli(command)
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (marker.exists(), metadata.package_version, metadata.lock_file) == (
         False,
         "0.0.0.2",
@@ -617,11 +618,11 @@ def test_install_reapplies_recorded_pylock(make_pylock: Callable[[str, str], Pat
 def test_install_restores_environment_after_pylock_mismatch(make_pylock: Callable[[str, str], Path]) -> None:
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
-    (marker := paths.CTX.venvs / "pycowsay" / "marker").touch()
+    (marker := CTX.venvs / "pycowsay" / "marker").touch()
 
     assert run_pipx_cli(["install", "--force", "--lock", str(lock_file), "pycowsay==999"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (marker.exists(), metadata.package_version, metadata.lock_file) == (
         True,
         "0.0.0.2",
@@ -639,7 +640,7 @@ def test_install_upgrade_skips_pylock(
 
     assert not run_pipx_cli(["install", "--upgrade", "pycowsay==999"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (
         "Not upgrading locked package pycowsay. Update its lock file and run `pipx reinstall pycowsay`."
         in unwrap_log_text(capsys.readouterr().out),
@@ -658,7 +659,7 @@ def test_install_rejects_cooldown_for_recorded_pylock(
 
     assert run_pipx_cli(["install", "--force", "--cooldown", "7", "pycowsay"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (
         "--cooldown cannot modify a locked environment" in unwrap_log_text(capsys.readouterr().err),
         metadata.package_version,
@@ -675,7 +676,7 @@ def test_install_env_cooldown_ignored_for_pylock(
 
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (metadata.cooldown_days, metadata.lock_file) == (None, lock_file.resolve())
 
 
@@ -753,8 +754,8 @@ def test_install_missing_expected_app_rolls_back(
     assert (
         return_code,
         f"Package pycowsay does not provide {expected_error}. Available apps: pycowsay." in error,
-        (paths.CTX.venvs / "pycowsay").exists(),
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.venvs / "pycowsay").exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
     ) == (1, True, False, False)
 
 
@@ -774,14 +775,14 @@ def test_install_upgrade_records_expected_app_without_package_change(
 
     assert not run_pipx_cli(["install", "--upgrade", "--app", "pycowsay", package_spec])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_accepts_expected_dependency_app(local_extras_wheel: Path) -> None:
     assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", f"{local_extras_wheel}[cow]"])
 
-    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.expected_apps == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.expected_apps == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -799,8 +800,8 @@ def test_install_upgrade_reexposes_expected_dependency_resources(
         encoding="utf-8",
     )
     assert not run_pipx_cli(["install", "--include-deps", "--app", "local-manpage", str(project)])
-    app_path: Final[Path] = paths.CTX.bin_dir / app_name("local-manpage")
-    man_path: Final[Path] = paths.CTX.man_dir / "man1/local-manpage.1"
+    app_path: Final[Path] = CTX.bin_dir / app_name("local-manpage")
+    man_path: Final[Path] = CTX.man_dir / "man1/local-manpage.1"
     app_path.unlink()
     man_path.unlink()
     pyproject.write_text(
@@ -823,7 +824,7 @@ def test_install_upgrade_removes_dropped_app(two_app_project: Path, capsys: pyte
     assert not run_pipx_cli(["list"])
 
     assert (
-        sorted(path.name for path in paths.CTX.bin_dir.iterdir()),
+        sorted(path.name for path in CTX.bin_dir.iterdir()),
         "empty-project-extra" in capsys.readouterr().out,
     ) == ([app_name("empty-project")], False)
 
@@ -834,8 +835,8 @@ def test_install_expected_app_rejects_multiple_specs(capsys: pytest.CaptureFixtu
 
     assert (
         "--app accepts one package spec" in capsys.readouterr().err,
-        (paths.CTX.venvs / "pycowsay").exists(),
-        (paths.CTX.venvs / "black").exists(),
+        (CTX.venvs / "pycowsay").exists(),
+        (CTX.venvs / "black").exists(),
     ) == (True, False, False)
 
 
@@ -846,8 +847,8 @@ def test_install_force_preserves_expected_app() -> None:
     assert not run_pipx_cli(["install", "--force", PKG["pycowsay"]["spec"]])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.expected_apps,
-        tuple(paths.CTX.venvs.glob(".pycowsay-*-pipx-backup")),
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.expected_apps,
+        tuple(CTX.venvs.glob(".pycowsay-*-pipx-backup")),
     ) == (["pycowsay"], ())
 
 
@@ -860,7 +861,7 @@ def test_install_force_keeps_pin(make_pylock: MakePylock, locked: bool) -> None:
 
     assert not run_pipx_cli(["install", "--force", *lock_args, PKG["pycowsay"]["spec"]])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pinned
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -874,8 +875,8 @@ def test_install_backup_failure_preserves_existing_environment(
 
     assert (
         "pipx could not back up environment pycowsay: disk full" in capsys.readouterr().err,
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.expected_apps,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.expected_apps,
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
     ) == (True, ["pycowsay"], True)
 
 
@@ -895,14 +896,14 @@ def test_install_missing_recorded_app_restores_existing_environment(
 ) -> None:
     assert run_pipx_cli([part.format(project=missing_expected_app_project) for part in command])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
         "Package empty-project does not provide expected app empty-project. Available apps: none." in error,
         metadata.package_version,
         metadata.expected_apps,
         metadata.apps,
-        (paths.CTX.bin_dir / app_name("empty-project")).exists(),
+        (CTX.bin_dir / app_name("empty-project")).exists(),
     ) == (True, "0.1.0", ["empty-project"], [app_name("empty-project")], True)
 
 
@@ -949,7 +950,7 @@ def test_install_upgrade_reconciles_package_spec(capsys: pytest.CaptureFixture[s
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
 
     assert not run_pipx_cli(["install", "--upgrade", "--upgrade-strategy=eager", "black==22.10.0"])
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "black").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "black").main_package
     assert (
         "upgraded package black from 22.8.0 to 22.10.0" in capsys.readouterr().out,
         metadata.package_version,
@@ -959,7 +960,7 @@ def test_install_upgrade_reconciles_package_spec(capsys: pytest.CaptureFixture[s
     assert not run_pipx_cli(["install", "--upgrade", "black<22.9"])
     assert (
         "upgraded package black from 22.10.0 to 22.8.0" in capsys.readouterr().out,
-        PipxMetadata(paths.CTX.venvs / "black").main_package.package_version,
+        PipxMetadata(CTX.venvs / "black").main_package.package_version,
     ) == (True, "22.8.0")
 
 
@@ -979,10 +980,10 @@ def test_install_upgrade_multiple_existing(capsys: pytest.CaptureFixture[str]) -
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_reuses_empty_environment_dir() -> None:
-    (paths.CTX.venvs / "pycowsay").mkdir(parents=True)
+    (CTX.venvs / "pycowsay").mkdir(parents=True)
     assert (
         run_pipx_cli(["install", PKG["pycowsay"]["spec"]]),
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.package,
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.package,
     ) == (EXIT_CODE_OK, "pycowsay")
 
 
@@ -1020,7 +1021,7 @@ def test_install_upgrade_strategy_requires_upgrade(capsys: pytest.CaptureFixture
 def test_install_rejects_empty_index(capsys: pytest.CaptureFixture[str], index_args: list[str]) -> None:
     assert run_pipx_cli(["install", *index_args, "pycowsay"])
 
-    assert ("--index-url is empty" in capsys.readouterr().err, (paths.CTX.venvs / "pycowsay").exists()) == (
+    assert ("--index-url is empty" in capsys.readouterr().err, (CTX.venvs / "pycowsay").exists()) == (
         True,
         False,
     )
@@ -1059,12 +1060,12 @@ def test_install_include_resources_from_dependency(
 
     assert not run_pipx_cli(["install", package, "--include-resources-from", "PyCowsay"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "repeatme").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
     ) == (["pycowsay"], True, False, True)
     capsys.readouterr()
     assert not run_pipx_cli(["list"])
@@ -1079,12 +1080,12 @@ def test_install_force_replaces_included_dependency_resources(local_extras_wheel
 
     assert not run_pipx_cli(["install", "--force", package, "--include-resources-from", "black"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "repeatme").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
     ) == (["black"], False, False, True)
 
 
@@ -1110,7 +1111,7 @@ def test_install_include_resources_from_missing_dependency_rolls_back(
     assert (
         "Cannot expose resources from black for package repeatme. "
         "Dependencies with apps, manual pages, or shell completions: pycowsay." in error,
-        (paths.CTX.venvs / "repeatme").exists(),
+        (CTX.venvs / "repeatme").exists(),
     ) == (True, False)
 
 
@@ -1175,7 +1176,7 @@ def test_install_bare_local_wheel_extra(
 
     assert not run_pipx_cli(["install", "--backend", backend, f"{local_extras_wheel.name}[cow]", "--include-deps"])
 
-    assert Venv(paths.CTX.venvs / "repeatme").has_package("pycowsay")
+    assert Venv(CTX.venvs / "repeatme").has_package("pycowsay")
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1193,8 +1194,8 @@ def test_path_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCapture
 def test_existing_symlink_points_to_existing_wrong_location_warning(
     caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    paths.CTX.bin_dir.mkdir(exist_ok=True, parents=True)
-    (paths.CTX.bin_dir / "pycowsay").symlink_to(os.devnull)
+    CTX.bin_dir.mkdir(exist_ok=True, parents=True)
+    (CTX.bin_dir / "pycowsay").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (
@@ -1210,8 +1211,8 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
 def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(
     caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (paths.CTX.man_dir / "man6").mkdir(exist_ok=True, parents=True)
-    (paths.CTX.man_dir / "man6" / "pycowsay.6").symlink_to(os.devnull)
+    (CTX.man_dir / "man6").mkdir(exist_ok=True, parents=True)
+    (CTX.man_dir / "man6" / "pycowsay.6").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
     assert (
         "File exists at" in unwrap_log_text(caplog.text),
@@ -1222,8 +1223,8 @@ def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_existing_symlink_points_to_nothing(capsys: pytest.CaptureFixture[str]) -> None:
-    paths.CTX.bin_dir.mkdir(exist_ok=True, parents=True)
-    (paths.CTX.bin_dir / "pycowsay").symlink_to("/asdf/jkl")
+    CTX.bin_dir.mkdir(exist_ok=True, parents=True)
+    (CTX.bin_dir / "pycowsay").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
     # pipx replaces a dangling symlink without a warning
     assert "symlink missing or pointing to unexpected location" not in capsys.readouterr().out
@@ -1232,8 +1233,8 @@ def test_existing_symlink_points_to_nothing(capsys: pytest.CaptureFixture[str]) 
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_existing_man_page_symlink_points_to_nothing(capsys: pytest.CaptureFixture[str]) -> None:
-    (paths.CTX.man_dir / "man6").mkdir(exist_ok=True, parents=True)
-    (paths.CTX.man_dir / "man6" / "pycowsay.6").symlink_to("/asdf/jkl")
+    (CTX.man_dir / "man6").mkdir(exist_ok=True, parents=True)
+    (CTX.man_dir / "man6" / "pycowsay.6").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
     # pipx replaces a dangling symlink without a warning
     assert "symlink missing or pointing to unexpected location" not in capsys.readouterr().out
@@ -1284,7 +1285,7 @@ def test_install_url_refuses_wheel_whose_data_files_rename_it(
     assert run_pipx_cli(["install", "--backend", "pip", wheel.as_uri()])
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
-    assert ("declares the name 'pycowsay'" in error, list(paths.CTX.venvs.glob("*"))) == (True, [])
+    assert ("declares the name 'pycowsay'" in error, list(CTX.venvs.glob("*"))) == (True, [])
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
@@ -1311,7 +1312,7 @@ def test_pip_args_with_constraint_relative_path(
 
     assert (
         f"{constraint_flag}{constraints_file}" in caplog.text,
-        PipxMetadata(paths.CTX.venvs / "black").main_package.package_version,
+        PipxMetadata(CTX.venvs / "black").main_package.package_version,
     ) == (True, "22.8.0")
 
 
@@ -1324,7 +1325,7 @@ def test_pip_args_with_attached_constraint_records_absolute_path(
 
     assert (
         run_pipx_cli(["install", "--pip-args=-cconstraints.txt", PKG["pycowsay"]["spec"]]),
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args[:1],
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args[:1],
     ) == (0, [f"-c{constraint_file}"])
 
 
@@ -1353,8 +1354,8 @@ def test_install_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     assert (
         f"- {name_a}" in outputs[0],
         f"- {name_b}" in outputs[1],
-        (paths.CTX.bin_dir / name_a).exists(),
-        (paths.CTX.bin_dir / name_b).exists(),
+        (CTX.bin_dir / name_a).exists(),
+        (CTX.bin_dir / name_b).exists(),
     ) == (True, True, True, True)
 
 
@@ -1363,7 +1364,7 @@ def test_man_page_install(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert (
         f"- {Path('man6/pycowsay.6')}" in capsys.readouterr().out,
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
     ) == (True, True)
 
 
@@ -1371,11 +1372,11 @@ def test_man_page_install(capsys: pytest.CaptureFixture[str]) -> None:
 def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], local_manpage_project: Path) -> None:
     assert not run_pipx_cli(["install", "--editable", local_manpage_project.as_posix()])
     out: Final[str] = capsys.readouterr().out
-    exposed_man_page: Final[Path] = paths.CTX.man_dir / "man1" / "local-manpage.1"
+    exposed_man_page: Final[Path] = CTX.man_dir / "man1" / "local-manpage.1"
     assert (
         f"- {app_name('local-manpage')}\n" in out,
         f"- {Path('man1/local-manpage.1')}" in out,
-        (paths.CTX.venvs / "local-manpage" / "share" / "man" / "man1" / "local-manpage.1").exists(),
+        (CTX.venvs / "local-manpage" / "share" / "man" / "man1" / "local-manpage.1").exists(),
         exposed_man_page.exists(),
     ) == (True, True, True, True)
 
@@ -1579,8 +1580,8 @@ def test_install_local_project_uses_built_name_when_backend_ignores_project_tabl
     assert not run_pipx_cli(["install", "--backend", "pip", str(project_ignoring_project_table)])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "real-pkg").main_package.package,
-        (paths.CTX.bin_dir / app_name("realapp")).exists(),
+        PipxMetadata(CTX.venvs / "real-pkg").main_package.package,
+        (CTX.bin_dir / app_name("realapp")).exists(),
     ) == ("real-pkg", True)
 
 
@@ -1611,8 +1612,8 @@ def test_install_local_wheel_records_installer_name(
     assert not run_pipx_cli(["install", "--backend", backend, str(wheel)])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "foo-bar-x").main_package.package,
-        (paths.CTX.bin_dir / app_name("foo-bar-x")).exists(),
+        PipxMetadata(CTX.venvs / "foo-bar-x").main_package.package,
+        (CTX.bin_dir / app_name("foo-bar-x")).exists(),
     ) == (package, True)
 
 
@@ -1637,7 +1638,7 @@ def test_install_inline_script(inline_script: Path, backend: str, directory: str
     script: Final[Path] = inline_script.rename(script_dir / inline_script.name)
     assert not run_pipx_cli(["install", "--backend", backend, str(script)])
 
-    app: Final[Path] = paths.CTX.bin_dir / app_name("hello")
+    app: Final[Path] = CTX.bin_dir / app_name("hello")
     process: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [app],
         check=True,
@@ -1653,7 +1654,7 @@ def test_install_inline_script_by_bare_relative_name(inline_script: Path, monkey
 
     assert (
         run_pipx_cli(["install", inline_script.name]),
-        PipxMetadata(paths.CTX.venvs / "hello").main_package.package_or_url,
+        PipxMetadata(CTX.venvs / "hello").main_package.package_or_url,
     ) == (0, str(inline_script.resolve()))
 
 
@@ -1669,7 +1670,7 @@ def test_install_inline_script_from_bracketed_directory(inline_script: Path, dir
     assert (
         run_pipx_cli(["install", str(script)]),
         run_pipx_cli(["reinstall", "hello"]),
-        PipxMetadata(paths.CTX.venvs / "hello").main_package.package_or_url,
+        PipxMetadata(CTX.venvs / "hello").main_package.package_or_url,
     ) == (0, 0, str(script.resolve()))
 
 
@@ -1685,7 +1686,7 @@ def test_install_inline_script_from_unexpanded_home(inline_script: Path, monkeyp
 def test_install_inline_script_app_override(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
 
-    assert (paths.CTX.bin_dir / app_name("greet")).is_file()
+    assert (CTX.bin_dir / app_name("greet")).is_file()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1702,7 +1703,7 @@ def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -
 
     assert not run_pipx_cli(["install", "https://example.invalid/hello.py"])
 
-    assert (paths.CTX.bin_dir / app_name("hello")).is_file()
+    assert (CTX.bin_dir / app_name("hello")).is_file()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1713,7 +1714,7 @@ def test_install_inline_script_url_error(mocker: MockerFixture, capsys: pytest.C
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
-    assert ("Unable to read script" in " ".join(failure.split()), (paths.CTX.venvs / "hello").exists()) == (
+    assert ("Unable to read script" in " ".join(failure.split()), (CTX.venvs / "hello").exists()) == (
         True,
         False,
     )
@@ -1728,7 +1729,7 @@ def test_install_inline_script_rolls_back_without_metadata(tmp_path: Path, capsy
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
-    assert ("has no PEP 723" in " ".join(failure.split()), (paths.CTX.venvs / "plain").exists()) == (True, False)
+    assert ("has no PEP 723" in " ".join(failure.split()), (CTX.venvs / "plain").exists()) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1740,7 +1741,7 @@ def test_install_inline_script_rolls_back_obsolete_metadata(tmp_path: Path, caps
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
-    assert ("obsolete" in failure, (paths.CTX.venvs / "obsolete").exists()) == (True, False)
+    assert ("obsolete" in failure, (CTX.venvs / "obsolete").exists()) == (True, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1749,8 +1750,8 @@ def test_install_inline_script_from_pylock(inline_script: Path, make_pylock: Cal
 
     assert not run_pipx_cli(["install", "--lock", str(lock_file), str(inline_script)])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "hello").main_package
-    assert (metadata.lock_file, (paths.CTX.bin_dir / app_name("hello")).is_file()) == (lock_file.resolve(), True)
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "hello").main_package
+    assert (metadata.lock_file, (CTX.bin_dir / app_name("hello")).is_file()) == (lock_file.resolve(), True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1784,7 +1785,7 @@ def test_force_install_changes_editable(empty_project: Path, capsys: pytest.Capt
 def test_install_multiple_packages_preserves_editable_for_local_package(empty_project: Path) -> None:
     assert (
         run_pipx_cli(["install", PKG["pycowsay"]["spec"], empty_project.as_posix(), "--editable"]),
-        PipxMetadata(paths.CTX.venvs / "empty-project").main_package.pip_args,
+        PipxMetadata(CTX.venvs / "empty-project").main_package.pip_args,
     ) == (0, ["--editable"])
 
 
@@ -1808,7 +1809,7 @@ def test_preinstall_cooldown(package_cache_dir: Path, caplog: pytest.LogCaptureF
 
     assert (
         caplog.text.count("--uploaded-prior-to P7D"),
-        PipxMetadata(paths.CTX.venvs / "nox").main_package.cooldown_days,
+        PipxMetadata(CTX.venvs / "nox").main_package.cooldown_days,
     ) == (2, 7)
 
 
@@ -1880,7 +1881,7 @@ def test_force_install_keeps_existing_interpreter(
 ) -> None:
     lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
     assert not run_pipx_cli(["install", *lock_args, PKG["pycowsay"]["spec"]])
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     recorded: Final[Path | None] = PipxMetadata(venv_dir).source_interpreter
     (other_python := tmp_path / "python-other").symlink_to(sys.executable)
 
@@ -2035,7 +2036,7 @@ def test_install_quiet_flag(capsys: pytest.CaptureFixture[str]) -> None:
 def test_install_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -2044,7 +2045,7 @@ def test_install_json(capsys: pytest.CaptureFixture[str]) -> None:
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "version": "0.0.0.2",
                         "interpreter": metadata.python_version,
@@ -2137,7 +2138,7 @@ def test_install_json_reports_missing_app(capsys: pytest.CaptureFixture[str]) ->
     assert (
         json.loads(captured.out),
         captured.err,
-        (paths.CTX.venvs / "pycowsay").exists(),
+        (CTX.venvs / "pycowsay").exists(),
     ) == (
         {
             "command": ["install"],
@@ -2186,7 +2187,7 @@ def test_install_keyboard_interrupt_removes_environment(mocker: MockerFixture) -
 
     assert (
         run_pipx_cli(["install", "pycowsay"]),
-        (paths.CTX.venvs / "pycowsay").exists(),
+        (CTX.venvs / "pycowsay").exists(),
     ) == (1, False)
 
 
@@ -2196,7 +2197,7 @@ def test_install_error_removes_environment(mocker: MockerFixture) -> None:
 
     with pytest.raises(RuntimeError, match="failed"):
         run_pipx_cli(["install", "pycowsay"])
-    assert not (paths.CTX.venvs / "pycowsay").exists()
+    assert not (CTX.venvs / "pycowsay").exists()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -2207,14 +2208,14 @@ def test_install_killed_before_recording_leaves_environment_unfinished(mocker: M
     with pytest.raises(SystemExit):
         run_pipx_cli(["install", "pycowsay"])
 
-    assert (paths.CTX.venvs / "pycowsay" / "pipx_unfinished").is_file()
+    assert (CTX.venvs / "pycowsay" / "pipx_unfinished").is_file()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_leaves_recorded_environment_finished() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
 
-    assert not (paths.CTX.venvs / "pycowsay" / "pipx_unfinished").exists()
+    assert not (CTX.venvs / "pycowsay" / "pipx_unfinished").exists()
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")

@@ -11,7 +11,8 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from helpers import SKIP_IF_WINDOWS, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
-from pipx import paths, util
+from pipx import util
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
@@ -279,7 +280,7 @@ def test_list_outdated_excludes_unmanaged_distributions(
 def test_list_outdated_uv_skips_invalid_distribution_names(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--backend", "uv"])
     # pip renames a distribution being replaced to ``~<name>`` and leaves it behind when interrupted
-    next((paths.CTX.venvs / "pycowsay").rglob("pycowsay-*.dist-info")).with_name("~arkdown-3.4.dist-info").mkdir()
+    next((CTX.venvs / "pycowsay").rglob("pycowsay-*.dist-info")).with_name("~arkdown-3.4.dist-info").mkdir()
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--outdated"])
@@ -378,7 +379,7 @@ def non_index_environment(
     mocker: MockerFixture,
 ) -> MockType:
     assert not run_pipx_cli(["install", "pycowsay"])
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     metadata.main_package = replace(metadata.main_package, package_or_url="git+https://example.com/pycowsay.git")
     metadata.write()
     capsys.readouterr()
@@ -435,7 +436,7 @@ def test_list_outdated_json_reports_corrupt_package(
 
 @pytest.fixture
 def corrupt_environment(outdated_environment: MockType) -> MockType:
-    metadata_path: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_path: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     metadata: Final = json.loads(metadata_path.read_text(encoding="utf-8"))
     metadata["main_package"]["package_or_url"] = None
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
@@ -504,7 +505,7 @@ def test_list_outdated_reports_missing_interpreter(capsys: pytest.CaptureFixture
     assert (captured.out, captured.err) == (
         "",
         (
-            f"pycowsay: Invalid python interpreter {util.get_venv_paths(paths.CTX.venvs / 'pycowsay')[1]}. "
+            f"pycowsay: Invalid python interpreter {util.get_venv_paths(CTX.venvs / 'pycowsay')[1]}. "
             "To fix, execute: pipx reinstall-all\n"
         ),
     )
@@ -533,7 +534,7 @@ def test_list_outdated_refuses_find_links_others_can_change(
 ) -> None:
     (shared := tmp_path.resolve() / "shared").mkdir()
     shared.chmod(0o777)
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared)])
     metadata.write()
 

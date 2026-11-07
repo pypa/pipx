@@ -9,16 +9,16 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import SKIP_IF_WINDOWS
-from pipx import paths
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.fanout import fan_out
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(paths.CTX, "log_file", tmp_path / "cmd.log")
+    monkeypatch.setattr(CTX, "log_file", tmp_path / "cmd.log")
     tags: Final[str] = "ABCDEFGH"
 
     def fail(tag: str) -> None:
@@ -35,7 +35,7 @@ def test_pip_error_logs_of_concurrent_failures_stay_whole(tmp_path: Path, monkey
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("permissive_umask")
 def test_pip_error_log_is_owner_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(paths.CTX, "log_file", tmp_path / "cmd.log")
+    monkeypatch.setattr(CTX, "log_file", tmp_path / "cmd.log")
 
     subprocess_post_check_handle_pip_error(subprocess.CompletedProcess([], 1, "out", "err"), streamed=False)
 

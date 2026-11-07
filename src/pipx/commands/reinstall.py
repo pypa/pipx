@@ -5,7 +5,6 @@ __lazy_modules__ = [
     "functools",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.install",
@@ -13,6 +12,7 @@ __lazy_modules__ = [
     "pipx.fanout",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.redact",
     "pipx.trash",
@@ -31,7 +31,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.commands.common import (
     add_suffix,
     drop_copies_claimed_elsewhere,
@@ -65,6 +64,7 @@ from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
 from pipx.options import CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -325,7 +325,7 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
         ),
         *(
             get_venv_resource_paths(
-                "completion", venv.man_path.parent / section, paths.CTX.completion_dir / section, package_infos
+                "completion", venv.man_path.parent / section, CTX.completion_dir / section, package_infos
             )
             for section in COMPLETION_SECTIONS
         ),
@@ -335,10 +335,8 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
 def _create_reinstall_backup(venv_dir: Path) -> Path:
     # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
     # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
-    paths.CTX.trash.mkdir(parents=True, exist_ok=True)
-    backup_dir: Final[Path] = Path(
-        mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=paths.CTX.trash)
-    )
+    CTX.trash.mkdir(parents=True, exist_ok=True)
+    backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=CTX.trash))
     backup_dir.rmdir()
     rename_once_released(venv_dir, backup_dir)
     return backup_dir
@@ -408,10 +406,7 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
             local_man_dir / man_path.parent.name / man_path.name for man_path in package_info.man_paths_to_expose
         )
         resource_paths.update(
-            paths.CTX.completion_dir
-            / completion_path.parent.parent.name
-            / completion_path.parent.name
-            / completion_path.name
+            CTX.completion_dir / completion_path.parent.parent.name / completion_path.parent.name / completion_path.name
             for completion_path in package_info.completion_paths_to_expose
         )
     return resource_paths

@@ -9,13 +9,13 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.run_uv",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.redact",
     "pipx.requires_python",
     "pipx.script",
@@ -49,7 +49,6 @@ from typing import TYPE_CHECKING, Final, NamedTuple, NoReturn
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
@@ -58,6 +57,7 @@ from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
@@ -408,11 +408,11 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     digest: Final = (
         hashlib.sha256(key) if (secret := _cache_secret()) is None else hmac.new(secret, key, hashlib.sha256)
     )
-    return Path(paths.CTX.venv_cache) / digest.hexdigest()[:15]
+    return Path(CTX.venv_cache) / digest.hexdigest()[:15]
 
 
 def _cache_secret() -> bytes | None:
-    secret_path: Final[Path] = Path(paths.CTX.venv_cache) / _RUN_KEY_FILENAME
+    secret_path: Final[Path] = Path(CTX.venv_cache) / _RUN_KEY_FILENAME
     try:
         return _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
     except OSError as error:
@@ -521,7 +521,7 @@ def _exec_script(
 def _locked_venv_cache(venv_dir: Path) -> Generator[None, None, None]:
     from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
-    venv_container: Final[VenvContainer] = VenvContainer(paths.CTX.venv_cache)
+    venv_container: Final[VenvContainer] = VenvContainer(CTX.venv_cache)
     for cached_venv_dir in sorted(venv_container.iter_venv_dirs()):
         if cached_venv_dir == venv_dir:
             continue

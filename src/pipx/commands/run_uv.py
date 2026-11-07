@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
-    "pipx",
     "pipx.backends.uv",
+    "pipx.paths",
     "pipx.redact",
     "pipx.subprocess_runner",
     "pipx.util",
@@ -15,9 +15,9 @@ import os
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
 
-from pipx import paths
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
 from pipx.emojis import HAZARD
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.subprocess_runner import exec_app
 from pipx.util import PipxError
@@ -170,7 +170,7 @@ def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions
     """
     _reject_venv_args(options.venv_args)
     # uv searches for project config from --project, or else from the script's directory, which another account may own
-    cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(paths.CTX.home)]
+    cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(CTX.home)]
     if options.python:
         cmd += ["--python", options.python]
     if not options.use_cache:

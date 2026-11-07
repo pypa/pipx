@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Final, Protocol
 import pytest
 
 from helpers import app_name, current_log_file, run_pipx_cli
-from pipx import paths
 from pipx.commands import manifest as manifest_module
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 
@@ -78,20 +78,20 @@ def test_sync_manifest_installs_declared_tool(
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay-managed")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay-managed")
     assert (
         metadata.main_package.package_or_url,
         metadata.main_package.suffix,
         metadata.main_package.expected_apps,
-        (paths.CTX.bin_dir / app_name("pycowsay-managed")).is_file(),
+        (CTX.bin_dir / app_name("pycowsay-managed")).is_file(),
     ) == ("pycowsay==0.0.0.2", "-managed", ["pycowsay"], True)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_again_keeps_a_file_it_did_not_expose(write_manifest: Callable[[str], Path]) -> None:
     manifest: Final[Path] = write_manifest(_manifest("pycowsay==0.0.0.2", "pycowsay"))
-    paths.CTX.bin_dir.mkdir(parents=True, exist_ok=True)
-    (user_file := paths.CTX.bin_dir / app_name("pycowsay")).write_text("mine", encoding="utf-8")
+    CTX.bin_dir.mkdir(parents=True, exist_ok=True)
+    (user_file := CTX.bin_dir / app_name("pycowsay")).write_text("mine", encoding="utf-8")
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
@@ -109,11 +109,11 @@ def test_sync_manifest_selects_dependency_apps(
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "repeatme").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
 
 
@@ -126,7 +126,7 @@ def test_sync_manifest_prunes_undeclared_tool(
 
     assert not run_pipx_cli(["manifest", "sync", "--prune", str(manifest)])
 
-    assert not (paths.CTX.venvs / "black").exists()
+    assert not (CTX.venvs / "black").exists()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -138,8 +138,8 @@ def test_sync_manifest_hides_resources(
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "pycowsay").exposure_enabled,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        PipxMetadata(CTX.venvs / "pycowsay").exposure_enabled,
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
     ) == (False, False)
 
 
@@ -158,7 +158,7 @@ def test_sync_manifest_keeps_injected_apps(write_manifest: Callable[[str], Path]
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    assert [(paths.CTX.bin_dir / app_name(app)).is_file() for app in ("pycowsay", "isort")] == [True, True]
+    assert [(CTX.bin_dir / app_name(app)).is_file() for app in ("pycowsay", "isort")] == [True, True]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -172,8 +172,8 @@ def test_sync_manifest_reexposes_environment_after_interrupt(
     assert run_pipx_cli(["manifest", "sync", str(manifest)])
 
     assert (
-        PipxMetadata(paths.CTX.venvs / "pycowsay").exposure_enabled,
-        (paths.CTX.bin_dir / app_name("pycowsay")).is_file(),
+        PipxMetadata(CTX.venvs / "pycowsay").exposure_enabled,
+        (CTX.bin_dir / app_name("pycowsay")).is_file(),
     ) == (True, True)
 
 
@@ -184,19 +184,19 @@ def test_sync_manifest_restores_environment_after_missing_app(
 ) -> None:
     manifest: Final[Path] = write_manifest(_manifest("pycowsay", "pycowsay", 'apps = ["pycowsay"]\n'))
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
-    (marker := paths.CTX.venvs / "pycowsay" / "marker").touch()
+    (marker := CTX.venvs / "pycowsay" / "marker").touch()
     write_manifest(_manifest("pycowsay", "pycowsay", 'apps = ["missing"]\n'))
     capsys.readouterr()
 
     assert run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (
         "Package pycowsay does not provide expected app missing" in capsys.readouterr().err,
         marker.exists(),
         metadata.main_package.expected_apps,
         metadata.exposure_enabled,
-        (paths.CTX.bin_dir / app_name("pycowsay")).is_file(),
+        (CTX.bin_dir / app_name("pycowsay")).is_file(),
     ) == (True, True, ["pycowsay"], True, True)
 
 
@@ -210,11 +210,11 @@ def test_sync_manifest_reapplies_lock(
         _manifest("pycowsay>=0", "pycowsay", f'apps = ["pycowsay"]\nlock = "{lock_file.name}"\n')
     )
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
-    (marker := paths.CTX.venvs / "pycowsay" / "marker").touch()
+    (marker := CTX.venvs / "pycowsay" / "marker").touch()
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (metadata.package_version, metadata.lock_file, marker.exists()) == (
         "0.0.0.2",
         lock_file.resolve(),
@@ -232,12 +232,12 @@ def test_sync_manifest_clears_app_and_lock_state(
         _manifest("pycowsay", "pycowsay", f'apps = ["pycowsay"]\nlock = "{lock_file.name}"\n')
     )
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
-    (marker := paths.CTX.venvs / "pycowsay" / "marker").touch()
+    (marker := CTX.venvs / "pycowsay" / "marker").touch()
     write_manifest(_manifest("pycowsay", "pycowsay"))
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "pycowsay").main_package
     assert (metadata.expected_apps, metadata.lock_file, marker.exists()) == ([], None, False)
 
 
@@ -254,7 +254,7 @@ def test_sync_manifest_replays_recorded_install_options(
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (
         f"--force-reinstall {' '.join(pip_args)} pycowsay" in caplog.text,
         metadata.main_package.pip_args,

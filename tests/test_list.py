@@ -28,10 +28,11 @@ from helpers import (
     write_wheel,
 )
 from package_info import PKG
-from pipx import constants, paths, shared_libs, venv
+from pipx import constants, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
 from pipx.options import ListOptions
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata, load_spec_file
 from pipx.util import PipxError
 
@@ -63,7 +64,7 @@ def test_list_reports_unreadable_metadata_per_environment(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture, flags: list[str], listed: str
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay", PKG["black"]["spec"]])
-    (paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
+    (CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
     capsys.readouterr()
     caplog.clear()
 
@@ -171,7 +172,7 @@ def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: 
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
-    (venv_dir := paths.CTX.venvs / "broken").mkdir(parents=True)
+    (venv_dir := CTX.venvs / "broken").mkdir(parents=True)
     (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
     assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
 
@@ -186,12 +187,12 @@ def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_ve
     assert not run_pipx_cli(["list"])
     captured: Final = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
-    assert f"shell completions are exposed at {paths.CTX.completion_dir}" in captured.out
+    assert f"shell completions are exposed at {CTX.completion_dir}" in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
     venv_bin_dir: Final[str] = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
@@ -247,7 +248,7 @@ def self_managed_pipx(
     tmp_path: Path,
 ) -> PipxMetadata:
     assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "pipx", "1.0"))])
-    return PipxMetadata(paths.CTX.venvs / "pipx")
+    return PipxMetadata(CTX.venvs / "pipx")
 
 
 @pytest.fixture
@@ -282,7 +283,7 @@ def test_list_json_drops_self_managed_interpreter_not_backing_the_venv(
 def test_list_json_keeps_self_managed_interpreter_backing_the_venv(
     exported_self_managed_interpreter: Callable[[Path], dict[str, str] | None],
 ) -> None:
-    backing: Final[Path] = (paths.CTX.venvs / "pipx" / "bin" / "python").resolve()
+    backing: Final[Path] = (CTX.venvs / "pipx" / "bin" / "python").resolve()
 
     assert exported_self_managed_interpreter(backing) == {"__type__": "Path", "__Path__": str(backing)}
 
@@ -519,7 +520,7 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
         )
         blocked_returncode: Final[int | None] = blocked_install.poll()
 
-    assert (installed.returncode, blocked_returncode, (paths.CTX.venvs / "other-app").is_dir()) == (0, None, True), (
+    assert (installed.returncode, blocked_returncode, (CTX.venvs / "other-app").is_dir()) == (0, None, True), (
         installed.stdout,
         installed.stderr,
     )

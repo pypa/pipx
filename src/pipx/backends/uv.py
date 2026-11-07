@@ -5,8 +5,8 @@ __lazy_modules__ = [
     "importlib",
     "json",
     "pathlib",
-    "pipx",
     "pipx.backends.pip",
+    "pipx.paths",
     "pipx.subprocess_runner",
     "pipx.trash",
     "pipx.util",
@@ -27,11 +27,11 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.constants import WINDOWS
+from pipx.paths import CTX
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
 from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
@@ -136,7 +136,7 @@ class UvBackend(Backend):
         # shows its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway. UV_PROJECT moves
         # uv's project-config search from its working directory, which can sit in a shared /tmp, to pipx's home; user
         # and system config still load.
-        return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_PROJECT": str(paths.CTX.home)}
+        return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_PROJECT": str(CTX.home)}
 
     def install(  # ruff:ignore[too-many-arguments]  # Backend interface method mapping flags to uv options
         self,

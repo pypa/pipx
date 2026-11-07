@@ -12,9 +12,10 @@ import pytest
 
 from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from package_info import PKG
-from pipx import paths, pipx_metadata_file
+from pipx import pipx_metadata_file
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError, get_venv_paths
@@ -93,7 +94,7 @@ def test_run_app_rejects_python_args_without_entry_point(
 def test_install_records_the_venv_python_version(backend: str) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, "pycowsay"])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"
+    assert PipxMetadata(CTX.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"
 
 
 _CREDENTIALED_REQUIREMENT: Final[str] = "helper @ http://u:s3cr3ttok@127.0.0.1:9/helper-1.0-py3-none-any.whl"
@@ -163,7 +164,7 @@ def test_venv_without_pyvenv_cfg_refuses_installer(
 def test_runpip_refuses_venv_without_pyvenv_cfg(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     # a wheel's data file can own pyvenv.cfg, and upgrading to a release without it deletes the file
-    (paths.CTX.venvs / "pycowsay" / "pyvenv.cfg").unlink()
+    (CTX.venvs / "pycowsay" / "pyvenv.cfg").unlink()
     capsys.readouterr()
 
     assert (run_pipx_cli(["runpip", "pycowsay", "list"]), "pipx reinstall pycowsay" in capsys.readouterr().err) == (
@@ -298,6 +299,6 @@ def test_install_from_bootstrap_venv_records_interpreter_outside_it(tmp_path: Pa
 
     assert not run_pipx_cli(["install", "--python", str(bootstrap_python), PKG["pycowsay"]["spec"]])
 
-    recorded: Final[Path | None] = PipxMetadata(paths.CTX.venvs / "pycowsay").source_interpreter
+    recorded: Final[Path | None] = PipxMetadata(CTX.venvs / "pycowsay").source_interpreter
     assert recorded is not None
     assert (recorded.is_file(), recorded.is_relative_to(bootstrap)) == (True, False)

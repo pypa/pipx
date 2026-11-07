@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.trash", "pipx.util", "pipx.venv", "shutil", "tempfile"]
+__lazy_modules__ = [
+    "pathlib",
+    "pipx.fanout",
+    "pipx.paths",
+    "pipx.trash",
+    "pipx.util",
+    "pipx.venv",
+    "shutil",
+    "tempfile",
+]
 
 import sys
 from contextlib import contextmanager, suppress
@@ -10,8 +19,8 @@ from tempfile import mkdtemp
 from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.fanout import finished_on_interrupt, uninterrupted
+from pipx.paths import CTX
 from pipx.trash import rmdir
 from pipx.util import PipxError
 from pipx.venv import VenvContainer
@@ -84,10 +93,8 @@ class VenvBackup:
     def _new_backup_dir(self) -> Path:
         # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate
         # it as a broken environment; the trash shares the home's filesystem, so restoring it is an atomic rename
-        paths.CTX.trash.mkdir(parents=True, exist_ok=True)
-        backup_dir: Final[Path] = Path(
-            mkdtemp(prefix=f"{self._venv_dir.name}-", suffix=_BACKUP_SUFFIX, dir=paths.CTX.trash)
-        )
+        CTX.trash.mkdir(parents=True, exist_ok=True)
+        backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{self._venv_dir.name}-", suffix=_BACKUP_SUFFIX, dir=CTX.trash))
         backup_dir.rmdir()
         return backup_dir
 
@@ -235,10 +242,10 @@ def is_unfinished(venv_dir: Path) -> bool:
 def empty_trash() -> None:
     """Delete the backups in the trash that nothing is using."""
     # rmdir refuses a symlinked trash, so handing one to it never empties the link's target
-    if paths.CTX.trash.is_symlink() or not paths.CTX.trash.is_dir():
-        rmdir(paths.CTX.trash, safe_rm=False)
+    if CTX.trash.is_symlink() or not CTX.trash.is_dir():
+        rmdir(CTX.trash, safe_rm=False)
         return
-    for entry in paths.CTX.trash.iterdir():
+    for entry in CTX.trash.iterdir():
         if entry.is_symlink() or not entry.is_dir():
             with suppress(OSError):
                 entry.unlink()
@@ -257,7 +264,7 @@ def _is_backup_in_use(entry: Path) -> bool:
     from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
     venv_name: Final[str] = entry.name.removesuffix(suffix).rpartition("-")[0]
-    if _is_held(VenvContainer(paths.CTX.venvs).venv_lock(paths.CTX.venvs / venv_name)):
+    if _is_held(VenvContainer(CTX.venvs).venv_lock(CTX.venvs / venv_name)):
         return True
     # only a copy some pipx imported from has the lock file, and acquiring a missing one would create it
     return (in_use := entry / _IN_USE_LOCK).is_file() and _is_held(FileLock(in_use))

@@ -5,6 +5,7 @@ __lazy_modules__ = [
     "pipx",
     "pipx.commands.reinstall",
     "pipx.options",
+    "pipx.paths",
     "pipx.trash",
     "pipx.venv",
     "subprocess",
@@ -17,10 +18,11 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from pipx import constants, paths
+from pipx import constants
 from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
@@ -40,7 +42,7 @@ def list_interpreters(
     :returns: the result listing the interpreters and the environments that use them.
     """
     venvs: Final[list[Venv]] = _venvs_using_standalone_interpreter(venv_container)
-    output: Final[list[str]] = [f"Standalone interpreters are in {paths.CTX.standalone_python_cachedir}"]
+    output: Final[list[str]] = [f"Standalone interpreters are in {CTX.standalone_python_cachedir}"]
     listed: Final[list[_Interpreter]] = []
     for interpreter in _installed_standalone_interpreters():
         output.append(f"Python {interpreter.name}")
@@ -76,7 +78,7 @@ def _installed_standalone_interpreters() -> list[Path]:
     # a dot-prefixed directory is the staging or backup copy of a fetch that may still be running, not an interpreter
     return [
         python_dir
-        for python_dir in paths.CTX.standalone_python_cachedir.iterdir()
+        for python_dir in CTX.standalone_python_cachedir.iterdir()
         if python_dir.is_dir() and not python_dir.name.startswith(".")
     ]
 
@@ -189,8 +191,8 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                     reinstall(
                         venv.root,
                         ReinstallOptions(
-                            local_bin_dir=paths.CTX.bin_dir,
-                            local_man_dir=paths.CTX.man_dir,
+                            local_bin_dir=CTX.bin_dir,
+                            local_man_dir=CTX.man_dir,
                             python=upgraded_python,
                             verbose=verbose,
                             # the new build is what this rebuild is for, so a package whose Requires-Python rules it

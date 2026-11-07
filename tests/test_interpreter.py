@@ -11,11 +11,11 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 import pipx.interpreter
-import pipx.paths
 import pipx.standalone_python
 from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter, recordable_interpreter
+from pipx.paths import CTX
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -316,7 +316,7 @@ def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: Fet
     python_path: Final[str] = find_python_interpreter(target_python, fetch_python=fetch_python)
 
     assert target_python in python_path
-    assert str(pipx.paths.CTX.standalone_python_cachedir) in python_path
+    assert str(CTX.standalone_python_cachedir) in python_path
     assert python_path.endswith("python.exe" if WINDOWS else "python3")
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
@@ -356,7 +356,7 @@ def test_fetch_python_retries_incomplete_install(
 ) -> None:
     mocker.patch.object(pipx.standalone_python.platform, "system", return_value="Plan9", autospec=True)
     mocker.patch.object(pipx.standalone_python.platform, "machine", return_value="riscv64", autospec=True)
-    (install_dir := pipx.paths.CTX.standalone_python_cachedir / "3.98").mkdir(parents=True)
+    (install_dir := CTX.standalone_python_cachedir / "3.98").mkdir(parents=True)
 
     with pytest.raises(InterpreterResolutionError):
         find_python_interpreter("3.98", fetch_python=FetchPythonOptions.ALWAYS)
@@ -394,7 +394,7 @@ def test_fetch_python_non_version_keeps_pipx_home(
     monkeypatch: pytest.MonkeyPatch, python_version: str, fetch_python: FetchPythonOptions
 ) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
-    cache_dir: Final[Path] = pipx.paths.CTX.standalone_python_cachedir
+    cache_dir: Final[Path] = CTX.standalone_python_cachedir
     kept: Final[list[Path]] = [cache_dir / "3.98", cache_dir.parent / "venvs" / "app"]
     for directory in kept:
         directory.mkdir(parents=True)

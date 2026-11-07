@@ -26,6 +26,7 @@ from package_info import PKG
 from pipx import paths, trash, util, venv_inspect
 from pipx.commands import common
 from pipx.commands import reinstall as reinstall_module
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 
@@ -48,7 +49,7 @@ def test_reinstall_resolves_recorded_relative_find_links_in_venv(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
     metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", "wheels"])
     metadata.write()
@@ -80,7 +81,7 @@ def shared_find_links(
     assert not run_pipx_cli(["install", "--backend", "pip", "pycowsay"])
     (shared := tmp_path.resolve() / "shared").mkdir()
     shared.chmod(0o777)
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     metadata.main_package = replace(metadata.main_package, pip_args=["--find-links", str(shared / "wheels")])
     metadata.write()
     return shared
@@ -89,7 +90,7 @@ def shared_find_links(
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("shared_find_links")
 def test_reinstall_keeps_environment_of_refused_find_links() -> None:
-    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_file: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     recorded: Final[bytes] = metadata_file.read_bytes()
 
     run_pipx_cli(["reinstall", "pycowsay"])
@@ -103,7 +104,7 @@ def running_venv(
     run_from_venv: Callable[[Path], None],
 ) -> Path:
     assert not run_pipx_cli(["install", "pycowsay"])
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     run_from_venv(venv_dir)
     return venv_dir
 
@@ -149,7 +150,7 @@ def test_reinstall_inline_script(inline_script: Path) -> None:
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "hello"])
 
     assert (
-        subprocess.run([paths.CTX.bin_dir / app_name("hello")], check=True, capture_output=True, text=True).stdout
+        subprocess.run([CTX.bin_dir / app_name("hello")], check=True, capture_output=True, text=True).stdout
         == "reinstalled\n"
     )
 
@@ -167,7 +168,7 @@ def test_reinstall_preserves_cooldowns(
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (
         "--uploaded-prior-to P7D" in caplog.text,
         "--uploaded-prior-to P5D" in caplog.text,
@@ -194,14 +195,14 @@ def test_reinstall_pylock_restores_source_after_build_failure(
 
     assert run_pipx_cli(["reinstall", "empty-project"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     err: Final[str] = capsys.readouterr().err
     assert (
         "Reinstall failed; restored empty-project" in err,
         "Traceback" in err,
         metadata.package_version,
         metadata.lock_file,
-        (paths.CTX.bin_dir / app_name("empty-project")).exists(),
+        (CTX.bin_dir / app_name("empty-project")).exists(),
     ) == (True, False, "0.1.0", lock_file.resolve(), True)
 
 
@@ -236,7 +237,7 @@ def test_reinstall_legacy_venv_inspects_once_for_resources(mocker: MockerFixture
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    assert ((paths.CTX.bin_dir / app_name("pycowsay")).exists(), run_subprocess.call_count) == (True, 2)
+    assert ((CTX.bin_dir / app_name("pycowsay")).exists(), run_subprocess.call_count) == (True, 2)
 
 
 def _record_from_newer_pipx(venv_dir: Path) -> None:
@@ -284,7 +285,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
     command: list[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    lose_record(paths.CTX.venvs / "pycowsay")
+    lose_record(CTX.venvs / "pycowsay")
     install: Final[MockType] = mocker.patch("pipx.commands.reinstall.install", autospec=True)
     capsys.readouterr()
 
@@ -293,7 +294,7 @@ def test_reinstall_refuses_to_guess_source_of_unrecorded_venv(
     assert (
         "Not reinstalling pycowsay. It has no internal pipx metadata" in capsys.readouterr().err,
         install.called,
-        (paths.CTX.venvs / "pycowsay").is_dir(),
+        (CTX.venvs / "pycowsay").is_dir(),
     ) == (True, False, True)
 
 
@@ -323,7 +324,7 @@ def test_reinstall_keeps_a_dropped_app_name_taken_over_during_the_rebuild(
 
     assert not run_pipx_cli(["install", str(release("tool", "shared"))])
     release("tool")
-    shared: Final[Path] = paths.CTX.bin_dir / "shared"
+    shared: Final[Path] = CTX.bin_dir / "shared"
     (other := tmp_path / "other").touch()
 
     def take_over_dangling_name() -> None:
@@ -331,7 +332,7 @@ def test_reinstall_keeps_a_dropped_app_name_taken_over_during_the_rebuild(
             shared.unlink()
             shared.symlink_to(other)
 
-    before_venv_subprocess(paths.CTX.venvs / "foo-bar-x", take_over_dangling_name)
+    before_venv_subprocess(CTX.venvs / "foo-bar-x", take_over_dangling_name)
 
     assert not run_pipx_cli(["reinstall", "foo-bar-x"])
 
@@ -346,8 +347,8 @@ def test_reinstall_keeps_a_file_it_did_not_expose(
     dotted_app_wheel: Path, mocker: MockerFixture, symlinks: bool
 ) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=symlinks)
-    paths.CTX.bin_dir.mkdir(parents=True, exist_ok=True)
-    (user_file := paths.CTX.bin_dir / app_name("tool3.12")).write_text("mine", encoding="utf-8")
+    CTX.bin_dir.mkdir(parents=True, exist_ok=True)
+    (user_file := CTX.bin_dir / app_name("tool3.12")).write_text("mine", encoding="utf-8")
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
 
     assert not run_pipx_cli(["reinstall", "foo-bar-x"])
@@ -367,17 +368,17 @@ def test_reinstall_keeps_a_file_it_did_not_expose(
 def test_reinstall_refreshes_a_stale_copy_it_exposed(
     dotted_app_wheel: Path, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, home_depth: int
 ) -> None:
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", paths.CTX.home.joinpath(*["h" * 200] * home_depth))
-    paths.CTX.make_local()
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", CTX.home.joinpath(*["h" * 200] * home_depth))
+    CTX.make_local()
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
-    exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")
+    exposed: Final[Path] = CTX.bin_dir / app_name("tool3.12")
     exposed.write_bytes(exposed.read_bytes() + b"# stale\n")
 
     assert not run_pipx_cli(["reinstall", "foo-bar-x"])
 
     # Windows launchers embed their build time, so compare with the launcher this reinstall wrote
-    assert exposed.read_bytes() == (util.get_venv_paths(paths.CTX.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
+    assert exposed.read_bytes() == (util.get_venv_paths(CTX.venvs / "foo-bar-x")[0] / exposed.name).read_bytes()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -386,7 +387,7 @@ def test_reinstall_refreshes_its_own_stale_copy_quietly(
 ) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     assert not run_pipx_cli(["install", str(dotted_app_wheel)])
-    exposed: Final[Path] = paths.CTX.bin_dir / app_name("tool3.12")
+    exposed: Final[Path] = CTX.bin_dir / app_name("tool3.12")
     exposed.write_bytes(exposed.read_bytes() + b"# stale\n")
     caplog.clear()
 
@@ -400,8 +401,8 @@ def test_force_install_warns_when_overwriting_a_foreign_copy(
     dotted_app_wheel: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
 ) -> None:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
-    paths.CTX.bin_dir.mkdir(parents=True)
-    (exposed := paths.CTX.bin_dir / app_name("tool3.12")).write_text("#!/elsewhere/bin/python\n", encoding="utf-8")
+    CTX.bin_dir.mkdir(parents=True)
+    (exposed := CTX.bin_dir / app_name("tool3.12")).write_text("#!/elsewhere/bin/python\n", encoding="utf-8")
 
     assert not run_pipx_cli(["install", "--force", str(dotted_app_wheel)])
 
@@ -423,7 +424,7 @@ def test_reinstall_keeps_injected_package_suffix() -> None:
 
     assert not run_pipx_cli(["reinstall", "pycowsay@1"])
 
-    assert sorted(path.name for path in paths.CTX.bin_dir.iterdir()) == sorted(
+    assert sorted(path.name for path in CTX.bin_dir.iterdir()) == sorted(
         app_name(app) for app in ("black@1", "blackd@1", "pycowsay@1")
     )
 
@@ -444,11 +445,11 @@ def test_reinstall_preserves_included_dependency(local_extras_wheel: Path) -> No
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "repeatme"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "repeatme").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
 
 
@@ -458,11 +459,11 @@ def test_reinstall_removes_stale_apps_after_success(capsys: pytest.CaptureFixtur
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     stale_app_name: Final[str] = app_name("removed-cowsay")
     (stale_app_path := util.get_venv_paths(venv_dir)[0] / stale_app_name).write_text("#!/bin/sh\n")
     stale_app_path.chmod(0o755)
-    (stale_exposed_path := paths.CTX.bin_dir / stale_app_name).symlink_to(stale_app_path)
+    (stale_exposed_path := CTX.bin_dir / stale_app_name).symlink_to(stale_app_path)
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
     metadata.main_package = replace(
         metadata.main_package,
@@ -516,7 +517,7 @@ def test_reinstall_keeps_injected_pin() -> None:
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pinned
+    assert PipxMetadata(CTX.venvs / "pycowsay").injected_packages["black"].pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -568,7 +569,7 @@ def test_reinstall_all_json_reports_returned_errors(
     assert not run_pipx_cli(["install", "pycowsay"])
     for suffix in suffixes:
         assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
-    python: Final[Path] = util.get_venv_paths(paths.CTX.venvs / "pycowsay")[1]
+    python: Final[Path] = util.get_venv_paths(CTX.venvs / "pycowsay")[1]
     capsys.readouterr()
 
     assert run_pipx_cli(["reinstall-all", "--python", str(python), "--output", "json"]) == 1
@@ -646,7 +647,7 @@ def test_reinstall_records_injected_local_project_under_its_new_name(
 
     assert not run_pipx_cli(["reinstall", "empty-project"])
 
-    assert list(PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages) == ["renamed"]
+    assert list(PipxMetadata(CTX.venvs / "empty-project").injected_packages) == ["renamed"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -669,12 +670,12 @@ def test_reinstall_restores_venv_on_sigterm_to_pipx_alone(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    metadata_before: Final[str] = (paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()
-    before_venv_subprocess(paths.CTX.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
+    metadata_before: Final[str] = (CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()
+    before_venv_subprocess(CTX.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
 
     exit_code: Final[int] = run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
-    assert (exit_code, (paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()) == (1, metadata_before)
+    assert (exit_code, (CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()) == (1, metadata_before)
 
 
 @SKIP_IF_WINDOWS
@@ -683,8 +684,8 @@ def test_reinstall_finishes_the_restore_through_a_second_signal(
     mocker: MockerFixture, before_venv_subprocess: Callable[[Path, Callable[[], None]], None]
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    metadata_before: Final[str] = (record := paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()
-    before_venv_subprocess(paths.CTX.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
+    metadata_before: Final[str] = (record := CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).read_text()
+    before_venv_subprocess(CTX.venvs / "pycowsay", lambda: os.kill(os.getpid(), signal.SIGTERM))
 
     def rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
         trash.rmdir(path, safe_rm=safe_rm)
@@ -700,7 +701,7 @@ def test_reinstall_finishes_the_restore_through_a_second_signal(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_injected_package_without_source_hides_url_credentials(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     index: Final[str] = "--index-url=https://u:s3cr3ttok@host/simple"
     metadata.injected_packages["helper"] = replace(
         metadata.main_package, package="helper", package_or_url=None, pip_args=[index]

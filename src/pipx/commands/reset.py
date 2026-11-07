@@ -1,15 +1,22 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.common", "pipx.commands.uninstall", "pipx.trash", "pipx.venv"]
+__lazy_modules__ = [
+    "contextlib",
+    "pipx.commands.common",
+    "pipx.commands.uninstall",
+    "pipx.paths",
+    "pipx.trash",
+    "pipx.venv",
+]
 
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.commands.common import get_venv_package_infos, get_venv_resource_paths
 from pipx.commands.uninstall import UninstallData, uninstall_all
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
 from pipx.trash import rmdir
 from pipx.venv import Venv
@@ -69,7 +76,7 @@ def reset(
         ),
         messages=(
             *uninstalled.messages,
-            OutputMessage(text=f"pipx is back to a fresh install under {paths.CTX.home}.", stream=OutputStream.STDOUT),
+            OutputMessage(text=f"pipx is back to a fresh install under {CTX.home}.", stream=OutputStream.STDOUT),
         ),
         exit_code=uninstalled.exit_code,
     )
@@ -79,12 +86,12 @@ def _reset_targets() -> tuple[Path, ...]:
     return tuple(
         target
         for target in (
-            paths.CTX.venvs,
-            paths.CTX.shared_libs,
-            paths.CTX.venv_cache,
-            paths.CTX.standalone_python_cachedir,
-            paths.CTX.logs,
-            paths.CTX.trash,
+            CTX.venvs,
+            CTX.shared_libs,
+            CTX.venv_cache,
+            CTX.standalone_python_cachedir,
+            CTX.logs,
+            CTX.trash,
         )
         if target.is_dir()
     )
@@ -106,7 +113,7 @@ def _exposed_resource_paths(
             exposed |= get_venv_resource_paths(
                 "completion",
                 venv.man_path.parent / completion_section,
-                paths.CTX.completion_dir / completion_section,
+                CTX.completion_dir / completion_section,
                 package_infos,
             )
     return tuple(sorted(exposed))
@@ -125,7 +132,7 @@ class ResetData(OperationData):
 
 
 def _remove(target: Path) -> bool:
-    if target == paths.CTX.logs:
+    if target == CTX.logs:
         _clear_logs(target)
         return True
     rmdir(target, safe_rm=False)
@@ -135,7 +142,7 @@ def _remove(target: Path) -> bool:
 def _clear_logs(logs: Path) -> None:
     # this command logs into one of these files, and Windows refuses to unlink a file it holds open
     for entry in logs.iterdir():
-        if entry == paths.CTX.log_file:
+        if entry == CTX.log_file:
             continue
         if entry.is_dir():
             rmdir(entry, safe_rm=False)

@@ -8,7 +8,7 @@ from packaging.utils import canonicalize_name
 
 from helpers import run_pipx_cli, write_wheel
 from package_info import PKG
-from pipx import paths
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ def test_pin_survives_main_package_extra_injection(local_extras_wheel: Path) -> 
 
     assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
-    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.pinned
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -52,7 +52,7 @@ def test_pin_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "status": "pinned",
                         "version": "0.0.0.2",
@@ -158,7 +158,7 @@ def test_pin_json_pins_main_after_injected(
             {
                 "environment": "pycowsay",
                 "injected": False,
-                "location": str(paths.CTX.venvs / "pycowsay"),
+                "location": str(CTX.venvs / "pycowsay"),
                 "package": "pycowsay",
                 "status": "pinned",
                 "version": "0.0.0.2",
@@ -182,7 +182,7 @@ def test_pin_json_pins_injected_after_main(capsys: pytest.CaptureFixture[str]) -
             {
                 "environment": "pycowsay",
                 "injected": True,
-                "location": str(paths.CTX.venvs / "pycowsay"),
+                "location": str(CTX.venvs / "pycowsay"),
                 "package": "black",
                 "status": "pinned",
                 "version": "22.8.0",
@@ -341,7 +341,7 @@ def test_pin_skip_spelling(
 
     assert not run_pipx_cli(["pin", environment, "--skip", skip, "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / canonicalize_name(environment))
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / canonicalize_name(environment))
     data: Final = json.loads(capsys.readouterr().out)["data"]
     assert (
         metadata.main_package.pinned,
@@ -371,7 +371,7 @@ def test_pin_skip_non_canonical_injected_package_with_suffix(
 
     assert not run_pipx_cli(["pin", "pycowsay@1", "--skip", spelling, "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay@1")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay@1")
     data: Final = json.loads(capsys.readouterr().out)["data"]
     assert (
         {name: package.pinned for name, package in metadata.injected_packages.items()},

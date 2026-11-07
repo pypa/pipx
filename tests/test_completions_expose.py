@@ -8,7 +8,7 @@ import pytest
 from flit_core.wheel import make_wheel_in
 
 from helpers import run_pipx_cli
-from pipx import paths
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
@@ -55,12 +55,12 @@ def test_install_selects_completion_only_dependency(
         "Local_Completion",
     ])
 
-    metadata: Final = PipxMetadata(paths.CTX.venvs / "empty-project").main_package
+    metadata: Final = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (
         metadata.include_resources_from,
         bool(metadata.app_paths_of_dependencies),
         bool(metadata.man_paths_of_dependencies),
-        [(paths.CTX.completion_dir / section / name).is_file() for section, name in _SECTIONS.items()],
+        [(CTX.completion_dir / section / name).is_file() for section, name in _SECTIONS.items()],
     ) == (["local-completion"], False, False, [True] * len(_SECTIONS))
 
 
@@ -72,7 +72,7 @@ def test_install_exposes_the_completion_script(
 ) -> None:
     assert not run_pipx_cli(["install", completion_wheel])
 
-    exposed: Final[Path] = paths.CTX.completion_dir / section / _SECTIONS[section]
+    exposed: Final[Path] = CTX.completion_dir / section / _SECTIONS[section]
     assert exposed.is_symlink() or exposed.is_file()
 
 
@@ -87,7 +87,7 @@ def test_uninstall_removes_the_completion_scripts(completion_wheel: str) -> None
 
     assert not run_pipx_cli(["uninstall", "local-completion"])
 
-    assert not list(paths.CTX.completion_dir.rglob("*local-completion*"))
+    assert not list(CTX.completion_dir.rglob("*local-completion*"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -96,7 +96,7 @@ def test_unexpose_removes_the_completion_scripts(completion_wheel: str) -> None:
 
     assert not run_pipx_cli(["unexpose", "local-completion"])
 
-    assert not list(paths.CTX.completion_dir.rglob("*local-completion*"))
+    assert not list(CTX.completion_dir.rglob("*local-completion*"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -106,17 +106,15 @@ def test_expose_restores_the_completion_scripts(completion_wheel: str) -> None:
 
     assert not run_pipx_cli(["expose", "local-completion"])
 
-    assert sorted(path.name for path in paths.CTX.completion_dir.rglob("*local-completion*")) == sorted(
-        _SECTIONS.values()
-    )
+    assert sorted(path.name for path in CTX.completion_dir.rglob("*local-completion*")) == sorted(_SECTIONS.values())
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_removes_a_stale_completion_link(completion_wheel: str) -> None:
     assert not run_pipx_cli(["install", completion_wheel])
-    source: Final[Path] = paths.CTX.venvs / "local-completion" / "share" / "bash-completion" / "completions" / "orphan"
+    source: Final[Path] = CTX.venvs / "local-completion" / "share" / "bash-completion" / "completions" / "orphan"
     source.write_text("# orphan completion\n", encoding="utf-8")
-    (orphan := paths.CTX.completion_dir / "bash-completion" / "completions" / "orphan").symlink_to(source)
+    (orphan := CTX.completion_dir / "bash-completion" / "completions" / "orphan").symlink_to(source)
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "local-completion"])
 
@@ -129,4 +127,4 @@ def test_environment_reports_the_completion_dir(
 ) -> None:
     assert not run_pipx_cli(["environment", "--value", "PIPX_COMPLETION_DIR"])
 
-    assert capsys.readouterr().out.strip() == str(paths.CTX.completion_dir)
+    assert capsys.readouterr().out.strip() == str(CTX.completion_dir)

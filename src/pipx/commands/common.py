@@ -6,11 +6,11 @@ __lazy_modules__ = [
     "importlib.machinery",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
     "pipx.fanout",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.result",
     "pipx.trash",
@@ -46,7 +46,6 @@ from typing import TYPE_CHECKING, Final, Literal, NamedTuple
 import userpath
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.backends._base import PIP
 from pipx.backends.registry import env_default_backend, resolve_backend_name
 from pipx.colors import BOLD, RED
@@ -54,6 +53,7 @@ from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import HAZARD, STARS
 from pipx.fanout import in_turn
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 from pipx.result import OutputMessage, OutputStream
 from pipx.trash import safe_unlink
@@ -143,7 +143,7 @@ def _expected_resource_paths(
         }
         | {local_man_dir / path.parent.name / path.name for package in packages for path in package.man_paths_to_expose}
         | {
-            paths.CTX.completion_dir / path.parent.parent.name / path.parent.name / path.name
+            CTX.completion_dir / path.parent.parent.name / path.parent.name / path.name
             for package in packages
             for path in package.completion_paths_to_expose
         }
@@ -418,9 +418,7 @@ def expose_package_resources(
         collisions.extend(expose_resources_globally("man", local_man_dir, man_paths, force=force))
     if completion_paths := package_metadata.completion_paths_to_expose:
         # the script names the command it completes, so a suffix here would point the shell at a command that is gone
-        collisions.extend(
-            expose_resources_globally("completion", paths.CTX.completion_dir, completion_paths, force=force)
-        )
+        collisions.extend(expose_resources_globally("completion", CTX.completion_dir, completion_paths, force=force))
     return collisions
 
 
@@ -594,7 +592,7 @@ def _force_replaces(path: Path) -> bool:
 def _links_into_another_venv(symlink_path: Path, path: Path) -> bool:
     # an installer removes a package's old files before it writes the new ones, and another task of a fan-out or another
     # pipx run can expose meanwhile, so a dangling link into a venv that still exists is that venv's, not a left-over
-    venvs: Final[Path] = paths.CTX.venvs.resolve()
+    venvs: Final[Path] = CTX.venvs.resolve()
     try:
         target: Final[Path] = symlink_path.resolve()
     except RuntimeError:  # a symlink loop, which Python before 3.13 reports this way
@@ -761,7 +759,7 @@ def _venv_claims_by_dir() -> dict[Path, set[Path]]:
 
 
 def _read_venv_claims() -> dict[Path, set[Path]]:
-    return {venv_dir: _venv_claims(venv_dir) for venv_dir in VenvContainer(paths.CTX.venvs).iter_venv_dirs()}
+    return {venv_dir: _venv_claims(venv_dir) for venv_dir in VenvContainer(CTX.venvs).iter_venv_dirs()}
 
 
 def _venv_claims(venv_dir: Path) -> set[Path]:
@@ -769,8 +767,8 @@ def _venv_claims(venv_dir: Path) -> set[Path]:
     if not metadata.exposure_enabled or metadata.main_package.package is None:
         return set()
     packages: Final[list[PackageInfo]] = [metadata.main_package, *metadata.injected_packages.values()]
-    return _expected_resource_paths(metadata, packages, paths.CTX.bin_dir, paths.CTX.man_dir) | {
-        paths.CTX.bin_dir / name
+    return _expected_resource_paths(metadata, packages, CTX.bin_dir, CTX.man_dir) | {
+        CTX.bin_dir / name
         for package in packages
         for path in package.app_paths_to_expose
         for name in exposed_app_names(path.name, package.suffix)
@@ -827,7 +825,7 @@ def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: P
     for completion_section in COMPLETION_SECTIONS:
         owned |= get_exposed_paths_for_package(
             venv.man_path.parent / completion_section,
-            paths.CTX.completion_dir / completion_section,
+            CTX.completion_dir / completion_section,
             completion_paths,
         )
     return owned
@@ -1063,8 +1061,7 @@ def _get_list_output(venv: Venv, package_name: str, *, new_install: bool, includ
     source_interpreter: Final[Path | None] = venv.pipx_metadata.source_interpreter
     standalone: Final[str] = (
         " (standalone)"
-        if source_interpreter
-        and str(source_interpreter).startswith(str(paths.CTX.standalone_python_cachedir.resolve()))
+        if source_interpreter and str(source_interpreter).startswith(str(CTX.standalone_python_cachedir.resolve()))
         else ""
     )
     suffix: Final[str] = (
@@ -1116,7 +1113,7 @@ def _get_exposed_resource_names(
     )
     exposed_binary_names: Final[list[str]] = sorted(
         path.name
-        for path in get_exposed_paths_for_package(venv.bin_path, paths.CTX.bin_dir, _group_app_paths(resource_packages))
+        for path in get_exposed_paths_for_package(venv.bin_path, CTX.bin_dir, _group_app_paths(resource_packages))
     )
     unavailable_binary_names: Final[list[str]] = sorted({
         add_suffix(name, package_metadata.suffix)
@@ -1128,7 +1125,7 @@ def _get_exposed_resource_names(
         str(Path(path.parent.name) / path.name)
         for man_section in MAN_SECTIONS
         for path in _get_exposed_man_paths_for_package(
-            venv.man_path / man_section, paths.CTX.man_dir / man_section, man_paths
+            venv.man_path / man_section, CTX.man_dir / man_section, man_paths
         )
     )
     unavailable_man_pages: Final[list[str]] = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))

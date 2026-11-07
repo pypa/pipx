@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import run_pipx_cli
-from pipx import paths
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,7 +43,7 @@ def uv_installed_pycowsay(
 ) -> Path:
     exit_code: Final[int] = run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--python", sys.executable])
     assert exit_code == 0, capsys.readouterr().err
-    return paths.CTX.venvs / "pycowsay" / "pipx_metadata.json"
+    return CTX.venvs / "pycowsay" / "pipx_metadata.json"
 
 
 @_REQUIRES_UV
@@ -76,8 +76,8 @@ def test_uv_backend_force_install_existing() -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uv_backend_install_ignores_uv_toml_above_venv() -> None:
     # uv fails on a malformed config file it discovers, so success proves it never read the one above its cwd
-    paths.CTX.venvs.mkdir(parents=True, exist_ok=True)
-    (paths.CTX.venvs / "uv.toml").write_text("index-url = [\n")
+    CTX.venvs.mkdir(parents=True, exist_ok=True)
+    (CTX.venvs / "uv.toml").write_text("index-url = [\n")
 
     assert run_pipx_cli(["install", "pycowsay", "--backend", "uv"]) == 0
 

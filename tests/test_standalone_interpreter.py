@@ -25,7 +25,8 @@ import pytest
 
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli
 from package_info import PKG
-from pipx import constants, paths, pipx_metadata_file, standalone_python
+from pipx import constants, pipx_metadata_file, standalone_python
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -44,7 +45,7 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
     )
     digest: Final[str] = f"sha256:{'0' * 64}"
     current_releases: Final[list[tuple[str, str]]] = [(legacy_link, digest)]
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True)
     (index_file := cache_dir / "index.json").write_text(
         json.dumps({
             "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
@@ -115,7 +116,7 @@ def cached_index(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the cache path belongs to the isolated home
     mocker: MockerFixture,
 ) -> tuple[Path, list[tuple[str, str]]]:
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
     releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
     mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True, return_value=releases)
     return cache_dir / "index.json", releases
@@ -123,7 +124,7 @@ def cached_index(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_valid_fresh_standalone_python_index_is_reused(mocker: MockerFixture) -> None:
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
             "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
@@ -196,7 +197,7 @@ def _add_links(python_tar: tarfile.TarFile, links: Iterable[tuple[str, bytes, st
 def published_darwin_release(mocker: MockerFixture) -> tuple[Path, Callable[[bytes], MockType]]:
     mocker.patch.object(standalone_python.platform, "system", return_value="Darwin", autospec=True)
     mocker.patch.object(standalone_python.platform, "machine", return_value="arm64", autospec=True)
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
 
     def publish(archive_bytes: bytes) -> MockType:
         (cache_dir / "index.json").write_text(
@@ -746,7 +747,7 @@ def test_prune_after_prune_has_nothing_to_remove(capsys: pytest.CaptureFixture[s
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.CaptureFixture[str]) -> None:
-    (staging_dir := paths.CTX.standalone_python_cachedir / ".3.99.incoming").mkdir(parents=True)
+    (staging_dir := CTX.standalone_python_cachedir / ".3.99.incoming").mkdir(parents=True)
 
     assert not run_pipx_cli(["interpreter", "prune"])
 
@@ -789,9 +790,9 @@ def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
-    interpreter_dir: Final[Path] = paths.CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
+    interpreter_dir: Final[Path] = CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
     expected: Final[Path] = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
-    assert pipx_metadata_file.PipxMetadata(paths.CTX.venvs / "pycowsay").source_interpreter == expected
+    assert pipx_metadata_file.PipxMetadata(CTX.venvs / "pycowsay").source_interpreter == expected
 
 
 @pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
@@ -803,12 +804,12 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
 ) -> None:
     monkeypatch.setattr(constants, "WINDOWS", windows)
     for python_version in ("3.11", "3.12"):
-        interpreter_dir = paths.CTX.standalone_python_cachedir / python_version
+        interpreter_dir = CTX.standalone_python_cachedir / python_version
         interpreter_python = interpreter_dir / "python.exe" if windows else interpreter_dir / "bin" / "python3"
         interpreter_python.parent.mkdir(parents=True)
         interpreter_python.touch()
 
-        (venv_dir := paths.CTX.venvs / f"demo-{python_version}").mkdir(parents=True)
+        (venv_dir := CTX.venvs / f"demo-{python_version}").mkdir(parents=True)
         metadata = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
         metadata.main_package = replace(
             metadata.main_package,
@@ -856,7 +857,7 @@ def test_upgrade_standalone_interpreter_skips_corrupt(
     corrupt_error: OSError | subprocess.CalledProcessError,
 ) -> None:
     for name in ("corrupt", "valid"):
-        (standalone_python.paths.CTX.standalone_python_cachedir / name).mkdir(parents=True)
+        (standalone_python.CTX.standalone_python_cachedir / name).mkdir(parents=True)
 
     def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
         if "corrupt" in command[0]:

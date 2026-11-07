@@ -7,6 +7,7 @@ __lazy_modules__ = [
     "json",
     "pathlib",
     "pipx",
+    "pipx.paths",
     "pipx.util",
     "platform",
     "re",
@@ -34,8 +35,9 @@ from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final, TypedDict, cast
 from urllib.request import Request, urlopen
 
-from pipx import constants, paths
+from pipx import constants
 from pipx.animate import animate
+from pipx.paths import CTX
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -102,7 +104,7 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
         msg = f"Cannot fetch a standalone python build for {python_version!r}: expected a version such as '3.13'."
         raise PipxError(msg)
 
-    install_dir: Final[Path] = paths.CTX.standalone_python_cachedir / python_version
+    install_dir: Final[Path] = CTX.standalone_python_cachedir / python_version
     installed_python: Final[Path] = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
 
     if not override and installed_python.exists():
@@ -203,7 +205,7 @@ def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
     :param use_cache: use the cached index when it is present.
     :returns: the index.
     """
-    index_file: Final[Path] = paths.CTX.standalone_python_cachedir / "index.json"
+    index_file: Final[Path] = CTX.standalone_python_cachedir / "index.json"
     if use_cache and (loaded := _load_cached_index(index_file)) is not None:
         return loaded
     index: Final[_PythonIndex] = {

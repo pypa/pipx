@@ -4,13 +4,13 @@ __lazy_modules__ = [
     "functools",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.redact",
     "pipx.util",
     "pipx.venv",
@@ -29,7 +29,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import assert_not_pip_under_uv
 from pipx.colors import BOLD
@@ -43,6 +42,7 @@ from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import HAZARD, STARS
 from pipx.options import ExposureOptions
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.result import (
     OperationData,
@@ -280,9 +280,7 @@ def inject_dep(
         if options.force and options.force_reinstall and venv.has_package(package_name)
         else None
     )
-    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
-        venv, paths.CTX.bin_dir, paths.CTX.man_dir
-    )
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, CTX.bin_dir, CTX.man_dir)
     messages: Final[list[OutputMessage]] = []
     # like install, a package without the apps --include-apps asked for leaves the venv as it was
     with (
@@ -310,8 +308,8 @@ def inject_dep(
                 run_post_install_actions(
                     venv,
                     package_name,
-                    paths.CTX.bin_dir,
-                    paths.CTX.man_dir,
+                    CTX.bin_dir,
+                    CTX.man_dir,
                     venv_dir,
                     force=options.force,
                     previous_resource_paths=previous_resource_paths,

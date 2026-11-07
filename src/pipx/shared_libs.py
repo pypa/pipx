@@ -3,10 +3,10 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.version",
     "pathlib",
-    "pipx",
     "pipx.fanout",
     "pipx.interpreter",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.requires_python",
     "pipx.subprocess_runner",
     "pipx.util",
@@ -25,13 +25,13 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python, read_pyvenv_cfg
 from pipx.package_specifier import absolute_path_pip_args
+from pipx.paths import CTX
 from pipx.requires_python import unsatisfied_by_interpreter
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
 from pipx.util import PipxError, get_venv_paths
@@ -117,7 +117,7 @@ class _SharedLibs:
 
     @property
     def root(self) -> Path:
-        return paths.CTX.shared_libs
+        return CTX.shared_libs
 
     def _pip_below_floor(self) -> bool:
         from importlib.metadata import distributions  # ruff:ignore[import-outside-top-level]  # slows startup

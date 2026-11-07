@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import run_pipx_cli
-from pipx import paths
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def test_cache_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["cache", "dir"])
 
-    assert capsys.readouterr().out.strip() == str(paths.CTX.venv_cache)
+    assert capsys.readouterr().out.strip() == str(CTX.venv_cache)
 
 
 @pytest.mark.parametrize(
@@ -33,15 +33,15 @@ def test_cache_purge_removes_run_environments(
     count: int,
     expected: str,
 ) -> None:
-    paths.CTX.venv_cache.mkdir(parents=True)
+    CTX.venv_cache.mkdir(parents=True)
     for index in range(count):
-        (paths.CTX.venv_cache / f"cache-{index}").mkdir()
+        (CTX.venv_cache / f"cache-{index}").mkdir()
 
     assert not run_pipx_cli(["cache", "purge"])
 
     assert (
         capsys.readouterr().out,
-        tuple(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()),
+        tuple(path for path in CTX.venv_cache.iterdir() if path.is_dir()),
     ) == (expected, ())
 
 
@@ -55,7 +55,7 @@ def test_cache_json_reports_the_directory(
 
     assert json.loads(capsys.readouterr().out) == {
         "command": ["cache", subcommand],
-        "data": {"directory": str(paths.CTX.venv_cache), "removed": []},
+        "data": {"directory": str(CTX.venv_cache), "removed": []},
         "pipx_result_version": "1",
         "errors": [],
         "exit_code": 0,

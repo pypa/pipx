@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["functools", "pipx", "pipx.backends.registry", "pipx.backends.uv", "pipx.interpreter", "pipx.util"]
+__lazy_modules__ = [
+    "functools",
+    "pipx.backends.registry",
+    "pipx.backends.uv",
+    "pipx.interpreter",
+    "pipx.paths",
+    "pipx.util",
+]
 
 import os
 from functools import cache
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.backends.registry import env_default_backend, resolve_backend_name
 from pipx.backends.uv import find_uv_binary
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import get_default_python
+from pipx.paths import CTX
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     shared_libs_auto_upgrade_disabled,
@@ -93,16 +100,16 @@ def _get_derived_values() -> dict[str, Callable[[], Path | str]]:
         return resolve_backend_name(env_value=env_default_backend())
 
     return {
-        "PIPX_HOME": lambda: paths.CTX.home,
-        "PIPX_BIN_DIR": lambda: paths.CTX.bin_dir,
-        "PIPX_MAN_DIR": lambda: paths.CTX.man_dir,
-        "PIPX_COMPLETION_DIR": lambda: paths.CTX.completion_dir,
-        "PIPX_SHARED_LIBS": lambda: paths.CTX.shared_libs,
-        "PIPX_LOCAL_VENVS": lambda: paths.CTX.venvs,
-        "PIPX_LOG_DIR": lambda: paths.CTX.logs,
-        "PIPX_TRASH_DIR": lambda: paths.CTX.trash,
-        "PIPX_VENV_CACHEDIR": lambda: paths.CTX.venv_cache,
-        "PIPX_STANDALONE_PYTHON_CACHEDIR": lambda: paths.CTX.standalone_python_cachedir,
+        "PIPX_HOME": lambda: CTX.home,
+        "PIPX_BIN_DIR": lambda: CTX.bin_dir,
+        "PIPX_MAN_DIR": lambda: CTX.man_dir,
+        "PIPX_COMPLETION_DIR": lambda: CTX.completion_dir,
+        "PIPX_SHARED_LIBS": lambda: CTX.shared_libs,
+        "PIPX_LOCAL_VENVS": lambda: CTX.venvs,
+        "PIPX_LOG_DIR": lambda: CTX.logs,
+        "PIPX_TRASH_DIR": lambda: CTX.trash,
+        "PIPX_VENV_CACHEDIR": lambda: CTX.venv_cache,
+        "PIPX_STANDALONE_PYTHON_CACHEDIR": lambda: CTX.standalone_python_cachedir,
         "PIPX_DEFAULT_PYTHON": get_default_python,
         "PIPX_RESOLVED_BACKEND": lambda: resolve_backend()[0],
         "PIPX_BACKEND_SOURCE": lambda: resolve_backend()[1],

@@ -19,6 +19,7 @@ __lazy_modules__ = [
     "pipx.interpreter",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.redact",
     "pipx.result",
     "pipx.shared_libs",
@@ -91,6 +92,7 @@ from pipx.options import (
     UpgradeOptions,
 )
 from pipx.package_specifier import valid_pypi_name
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import shared_pip_cooldown, skip_shared_libs_maintenance
@@ -198,7 +200,7 @@ def get_command_parser(*, prog: str | None = None) -> argparse.ArgumentParser:
     :param prog: the program name shown in the help text.
     :returns: the parser.
     """
-    completer_venvs: Final[InstalledVenvsCompleter] = InstalledVenvsCompleter(VenvContainer(paths.CTX.venvs))
+    completer_venvs: Final[InstalledVenvsCompleter] = InstalledVenvsCompleter(VenvContainer(CTX.venvs))
     shared_parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(add_help=False)
 
     shared_parser.add_argument(
@@ -247,9 +249,9 @@ def get_command_parser(*, prog: str | None = None) -> argparse.ArgumentParser:
             Binaries can either be installed globally into isolated Virtual Environments
             or run directly in a temporary Virtual Environment.
 
-            Virtual Environment location is {paths.CTX.venvs!s}.
-            Symlinks to apps are placed in {paths.CTX.bin_dir!s}.
-            Symlinks to manual pages are placed in {paths.CTX.man_dir!s}.
+            Virtual Environment location is {CTX.venvs!s}.
+            Symlinks to apps are placed in {CTX.bin_dir!s}.
+            Symlinks to manual pages are placed in {CTX.man_dir!s}.
 
             """
         )
@@ -639,8 +641,8 @@ def _cmd_install(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         None,
         args.package_spec,
         InstallOptions(
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
+            local_bin_dir=CTX.bin_dir,
+            local_man_dir=CTX.man_dir,
             python=ctx.python,
             pip_args=ctx.pip_args,
             venv_args=ctx.venv_args,
@@ -696,8 +698,8 @@ def _cmd_install_all(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
     return install_all(
         args.spec_metadata_file,
         InstallOptions(
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
+            local_bin_dir=CTX.bin_dir,
+            local_man_dir=CTX.man_dir,
             python=ctx.python,
             pip_args=ctx.pip_args,
             venv_args=ctx.venv_args,
@@ -759,8 +761,8 @@ def _cmd_uninject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationR
             venv_dir,
             args.dependencies,
             UninjectOptions(
-                local_bin_dir=paths.CTX.bin_dir,
-                local_man_dir=paths.CTX.man_dir,
+                local_bin_dir=CTX.bin_dir,
+                local_man_dir=CTX.man_dir,
                 leave_deps=args.leave_deps,
                 verbose=ctx.verbose,
             ),
@@ -887,7 +889,7 @@ def _cmd_expose(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRes
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.expose import expose
 
-        return expose(venv_dir, paths.CTX.bin_dir, paths.CTX.man_dir, verbose=ctx.verbose)
+        return expose(venv_dir, CTX.bin_dir, CTX.man_dir, verbose=ctx.verbose)
 
 
 def _add_unexpose(
@@ -911,7 +913,7 @@ def _cmd_unexpose(args: argparse.Namespace, ctx: _DispatchContext) -> OperationR
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.expose import unexpose
 
-        return unexpose(venv_dir, paths.CTX.bin_dir, paths.CTX.man_dir, verbose=ctx.verbose)
+        return unexpose(venv_dir, CTX.bin_dir, CTX.man_dir, verbose=ctx.verbose)
 
 
 def _add_pin(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1133,7 +1135,7 @@ def _cmd_uninstall(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.uninstall import uninstall
 
-        return uninstall(venv_dir, paths.CTX.bin_dir, paths.CTX.man_dir, verbose=ctx.verbose)
+        return uninstall(venv_dir, CTX.bin_dir, CTX.man_dir, verbose=ctx.verbose)
 
 
 def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1151,7 +1153,7 @@ def _cmd_uninstall_all(args: argparse.Namespace, ctx: _DispatchContext) -> Opera
     del args
     from pipx.commands.uninstall import uninstall_all
 
-    return uninstall_all(ctx.venv_container, paths.CTX.bin_dir, paths.CTX.man_dir, verbose=ctx.verbose)
+    return uninstall_all(ctx.venv_container, CTX.bin_dir, CTX.man_dir, verbose=ctx.verbose)
 
 
 def _add_reset(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1178,8 +1180,8 @@ def _cmd_reset(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResu
 
     return reset(
         ctx.venv_container,
-        paths.CTX.bin_dir,
-        paths.CTX.man_dir,
+        CTX.bin_dir,
+        CTX.man_dir,
         verbose=ctx.verbose,
         dry_run=args.dry_run,
     )
@@ -1189,7 +1191,7 @@ def _confirmed_reset(output: OutputFormat) -> bool:
     if not sys.stdin or not sys.stdin.isatty():
         msg = "Pass --yes to reset when no terminal can confirm it."
         raise PipxError(msg)
-    prompt: Final[str] = f"Remove every pipx-installed package and reset pipx's data under {paths.CTX.home}? [y/N] "
+    prompt: Final[str] = f"Remove every pipx-installed package and reset pipx's data under {CTX.home}? [y/N] "
     if output is OutputFormat.JSON:
         print(prompt, end="", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
     try:
@@ -1240,8 +1242,8 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
 
 def _reinstall_options(ctx: _DispatchContext) -> ReinstallOptions:
     return ReinstallOptions(
-        local_bin_dir=paths.CTX.bin_dir,
-        local_man_dir=paths.CTX.man_dir,
+        local_bin_dir=CTX.bin_dir,
+        local_man_dir=CTX.man_dir,
         python=ctx.python,
         verbose=ctx.verbose,
         python_flag_passed=ctx.python_flag_passed,
@@ -1511,14 +1513,14 @@ def _cmd_cache_dir(args: argparse.Namespace, ctx: _DispatchContext) -> Operation
     del args, ctx
     from pipx.commands.cache import print_cache_dir
 
-    return print_cache_dir(VenvContainer(paths.CTX.venv_cache))
+    return print_cache_dir(VenvContainer(CTX.venv_cache))
 
 
 def _cmd_cache_purge(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResult[CacheData]:
     del args, ctx
     from pipx.commands.cache import purge_cache
 
-    return purge_cache(VenvContainer(paths.CTX.venv_cache))
+    return purge_cache(VenvContainer(CTX.venv_cache))
 
 
 def _add_manifest(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1569,8 +1571,8 @@ def _cmd_sync(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResul
         args.manifest,
         ctx.venv_container,
         SyncOptions(
-            local_bin_dir=paths.CTX.bin_dir,
-            local_man_dir=paths.CTX.man_dir,
+            local_bin_dir=CTX.bin_dir,
+            local_man_dir=CTX.man_dir,
             python=ctx.python,
             verbose=ctx.verbose,
             prune=args.prune,
@@ -1946,14 +1948,14 @@ def _setup(args: argparse.Namespace) -> None:
         sys.exit(0)
 
     if is_global := not constants.WINDOWS and getattr(args, "is_global", False):
-        paths.CTX.make_global()
+        CTX.make_global()
 
     verbose: Final[int] = (
         -2 if _output_format(args) is OutputFormat.JSON else getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
     )
 
     _setup_logging(verbose)
-    paths.CTX.log_warnings()
+    CTX.log_warnings()
 
     _LOGGER.debug("%s", time.strftime("%Y-%m-%d %H:%M:%S"))
     _LOGGER.debug("%s", " ".join(map(redact_url_credentials, sys.argv)))
@@ -1966,7 +1968,7 @@ def _setup(args: argparse.Namespace) -> None:
 
     empty_trash()
 
-    old_pipx_venv_location: Final[Path] = paths.CTX.venvs / "pipx-app"
+    old_pipx_venv_location: Final[Path] = CTX.venvs / "pipx-app"
     if old_pipx_venv_location.exists():
         _LOGGER.warning(
             pipx_wrap(
@@ -2060,7 +2062,7 @@ def _validate_max_logs() -> None:
 def _setup_logging(verbose: int) -> None:
     pipx_str: Final[str] = BOLD(GREEN("pipx >")) if sys.stdout and sys.stdout.isatty() else "pipx >"
     log_stream: Final[TextIOWrapper] = _setup_log_file()
-    paths.CTX.log_file = Path(log_stream.name)
+    CTX.log_file = Path(log_stream.name)
 
     # configured by hand because importing logging.config pulls socket and pickle into every startup
     stream_handler: Final[logging.StreamHandler[TextIO]] = logging.StreamHandler()
@@ -2068,7 +2070,7 @@ def _setup_logging(verbose: int) -> None:
     stream_handler.setFormatter(
         logging.Formatter(f"{pipx_str}({{funcName}}:{{lineno}}): {{message}}" if verbose else "{message}", style="{")
     )
-    file_handler: Final[logging.FileHandler] = logging.FileHandler(paths.CTX.log_file, encoding="utf-8", delay=True)
+    file_handler: Final[logging.FileHandler] = logging.FileHandler(CTX.log_file, encoding="utf-8", delay=True)
     file_handler.stream = log_stream
     file_handler.setFormatter(
         logging.Formatter("{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{")
@@ -2085,7 +2087,7 @@ def _setup_logging(verbose: int) -> None:
 
 def _setup_log_file() -> TextIOWrapper:
     try:
-        return _open_log_file(paths.CTX.logs)
+        return _open_log_file(CTX.logs)
     except PermissionError:
         return _open_log_file(platformdirs.user_log_path("pipx"))
 
@@ -2178,11 +2180,11 @@ def _remove_log(log: Path) -> None:
 
 def _create_directories(*, is_global: bool) -> None:
     try:
-        mkdir(paths.CTX.venvs)
-        mkdir(paths.CTX.bin_dir)
-        mkdir(paths.CTX.man_dir)
-        mkdir(paths.CTX.venv_cache)
-        mkdir(paths.CTX.standalone_python_cachedir)
+        mkdir(CTX.venvs)
+        mkdir(CTX.bin_dir)
+        mkdir(CTX.man_dir)
+        mkdir(CTX.venv_cache)
+        mkdir(CTX.standalone_python_cachedir)
     except PermissionError as error:
         fix: Final[str] = (
             "run pipx with sudo, or point PIPX_GLOBAL_HOME, PIPX_GLOBAL_BIN_DIR and PIPX_GLOBAL_MAN_DIR at writable"
@@ -2195,8 +2197,8 @@ def _create_directories(*, is_global: bool) -> None:
         raise PipxError(msg, wrap_message=False) from error
 
     for cachedir in [
-        paths.CTX.venv_cache,
-        paths.CTX.standalone_python_cachedir,
+        CTX.venv_cache,
+        CTX.standalone_python_cachedir,
     ]:
         if not (cachedir_tag := cachedir / "CACHEDIR.TAG").exists():
             _LOGGER.debug("Adding CACHEDIR.TAG to cache directory")
@@ -2260,7 +2262,7 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         verbose=bool(args.verbose) if "verbose" in args else False,
         pip_args=get_pip_args(args),
         venv_args=["--system-site-packages"] if getattr(args, "system_site_packages", False) else [],
-        venv_container=VenvContainer(paths.CTX.venvs),
+        venv_container=VenvContainer(CTX.venvs),
         skip_list=[canonicalize_name(name) for name in args.skip] if "skip" in args else [],
         python=python,
         python_flag_passed=bool(getattr(args, "python", None)),

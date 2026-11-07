@@ -4,7 +4,6 @@ __lazy_modules__ = [
     "functools",
     "json",
     "packaging.utils",
-    "pipx",
     "pipx.backends._base",
     "pipx.commands.common",
     "pipx.commands.inject",
@@ -13,6 +12,7 @@ __lazy_modules__ = [
     "pipx.interpreter",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.redact",
     "pipx.requires_python",
@@ -34,7 +34,6 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.backends._base import PIP
 from pipx.commands.common import (
     expose_package_resources,
@@ -60,6 +59,7 @@ from pipx.package_specifier import (
     translate_pip_args,
     trusted_recorded_pip_args,
 )
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.redact import redact_url_credentials
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
@@ -148,7 +148,7 @@ def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
         if not venvs_metadata:
             raise
         malformed = error
-    venv_container: Final[VenvContainer] = VenvContainer(paths.CTX.venvs)
+    venv_container: Final[VenvContainer] = VenvContainer(CTX.venvs)
     with expose_shared_resources_in_order(venvs_metadata, options.local_bin_dir, options.local_man_dir):
         outcomes: Final[list[tuple[str, bool]]] = fan_out(
             [partial(_install_spec_venv, venv_container, venv_metadata, options) for venv_metadata in venvs_metadata],
@@ -184,7 +184,7 @@ def _extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
         raise PipxError(msg)
 
     for package_path_name, entry in venvs_metadata_dict.items():
-        venv_metadata = PipxMetadata(paths.CTX.venvs.joinpath(package_path_name), read=False)
+        venv_metadata = PipxMetadata(CTX.venvs.joinpath(package_path_name), read=False)
         try:
             venv_metadata.from_dict(entry["metadata"])
         except KeyError as exc:
@@ -386,7 +386,7 @@ def install(  # ruff:ignore[too-many-locals, too-many-statements]  # one pass re
         package_spec, resolution_error = resolution_failure
         return _finish_install(_failed_install_result(package_spec, resolution_error), emit_output=options.emit_output)
 
-    venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.CTX.venvs)
+    venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else CTX.venvs)
     for package_name, package_spec, package_python in zip(package_names, package_specs, interpreters, strict=False):
         if venv_dir is None:
             venv_dir = venv_container.get_venv_dir(f"{package_name}{options.exposure.suffix}")

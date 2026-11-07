@@ -38,6 +38,7 @@ from pipx.backends.registry import get_backend
 from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
 from pipx.interpreter import get_default_python
+from pipx.paths import CTX
 from pipx.venv import reset_backend_override_warnings
 
 if TYPE_CHECKING:
@@ -300,7 +301,7 @@ def copied_dependency_resource(
 ) -> tuple[Path, bytes]:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     first_package: Final[Path] = _build_wheel(make_project_with_dependency("pycowsay==0.0.0.2"), tmp_path)
-    exposed_app: Final[Path] = paths.CTX.bin_dir / app_name("pycowsay")
+    exposed_app: Final[Path] = CTX.bin_dir / app_name("pycowsay")
     assert not run_pipx_cli(["install", str(first_package), "--include-deps"])
     return exposed_app, exposed_app.read_bytes()
 
@@ -398,7 +399,7 @@ def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
             scoped.setattr(paths, name, tmp_path / location)
         # where pipx logs when the pipx home refuses a log file; resolved per call, so it needs its own redirect
         scoped.setattr(platformdirs, "user_log_path", lambda *_args, **_kwargs: tmp_path / "fallback_logs")
-        paths.CTX.make_local()
+        CTX.make_local()
         yield
 
 
@@ -596,7 +597,7 @@ def pipx_temp_env(
     _activate_temp_env(pipx_session_shared_dir, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
-    paths.CTX.make_local()
+    CTX.make_local()
 
 
 def _activate_temp_env(
@@ -609,7 +610,7 @@ def _activate_temp_env(
 ) -> None:
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", pipx_shared_dir)
-    paths.CTX.make_local()  # paths.CTX reads the overrides only here
+    CTX.make_local()  # CTX reads the overrides only here
 
     # each importer binds SHARED_LIBS at import time, so each one gets the fresh instance
     fresh_shared_libs: Final = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]  # no public factory
@@ -624,14 +625,14 @@ def _activate_temp_env(
 
     # macOS needs /usr/bin on PATH to compile some packages, yet apps there (ansible on GitHub runners) trigger the
     # warnings test_install.py fails on, so PATH_ORIG keeps the full PATH for the tests that need it
-    monkeypatch.setenv("PATH_ORIG", f"{paths.CTX.bin_dir}{os.pathsep}{os.environ['PATH']}")
-    monkeypatch.setenv("PATH_TEST", str(paths.CTX.bin_dir))
-    monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (paths.CTX.bin_dir, *utils_path_dirs)))
+    monkeypatch.setenv("PATH_ORIG", f"{CTX.bin_dir}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("PATH_TEST", str(CTX.bin_dir))
+    monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (CTX.bin_dir, *utils_path_dirs)))
     if WIN:
         # Windows tests take the copying path even when running elevated, where symlinks would work
         symlink_cache: Final = common._CAN_SYMLINK_CACHE  # ruff:ignore[private-member-access]  # no public seeding API
-        monkeypatch.setitem(symlink_cache, paths.CTX.bin_dir, False)
-        monkeypatch.setitem(symlink_cache, paths.CTX.man_dir, False)
+        monkeypatch.setitem(symlink_cache, CTX.bin_dir, False)
+        monkeypatch.setitem(symlink_cache, CTX.man_dir, False)
     if not request.config.option.net_pypiserver:
         monkeypatch.setenv("PIP_INDEX_URL", pypi)
         monkeypatch.setenv("UV_INDEX_URL", pypi)  # uv ignores PIP_INDEX_URL, so uv-backend tests would reach PyPI
@@ -644,7 +645,7 @@ def installed_pycowsay(
 ) -> Path:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    return paths.CTX.venvs / "pycowsay"
+    return CTX.venvs / "pycowsay"
 
 
 @pytest.fixture
@@ -659,7 +660,7 @@ def pipx_ultra_temp_env(
     _activate_temp_env(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
-    paths.CTX.make_local()
+    CTX.make_local()
 
 
 @pytest.fixture

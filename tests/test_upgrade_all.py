@@ -21,8 +21,8 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import paths
 from pipx.constants import EXIT_CODE_LIST_PROBLEM
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
@@ -130,7 +130,7 @@ def test_upgrade_all_updates_current_cooldowns(
 
     assert not run_pipx_cli(["upgrade-all", "--include-injected", "--cooldown", "0"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (metadata.main_package.cooldown_days, metadata.injected_packages["black"].cooldown_days) == (0, 0)
 
 
@@ -221,7 +221,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -231,7 +231,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
@@ -269,13 +269,13 @@ def test_upgrade_all_pylock_json(
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (json.loads(capsys.readouterr().out)["data"]["packages"], check.call_count) == (
         [
             {
                 "environment": "pycowsay",
                 "injected": False,
-                "location": str(paths.CTX.venvs / "pycowsay"),
+                "location": str(CTX.venvs / "pycowsay"),
                 "package": "pycowsay",
                 "previous_version": "0.0.0.2",
                 "status": "locked",
@@ -392,7 +392,7 @@ def test_upgrade_all_legacy_venv(metadata_version: str) -> None:
 def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
 ) -> None:
-    slow: Final[Path] = paths.CTX.venvs / outdated_venv_names[0]
+    slow: Final[Path] = CTX.venvs / outdated_venv_names[0]
 
     # the backup of an environment with expected apps precedes its upgrade progress line
     def backup(source: Path, destination: Path, *, symlinks: bool) -> Path:
@@ -412,7 +412,7 @@ def outdated_venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
     for app, spec in (("black", PKG["black"]["spec"]), ("isort", PKG["isort"]["spec"])):
         assert not run_pipx_cli(["install", "--app", app, spec])
     capsys.readouterr()
-    return [venv_dir.name for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir()]
+    return [venv_dir.name for venv_dir in CTX.venvs.iterdir() if venv_dir.is_dir()]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -452,7 +452,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
 def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
-    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_file: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     metadata: Final = json.loads(metadata_file.read_text(encoding="utf-8"))
     metadata["main_package"]["app_paths"] = None
     metadata_file.write_text(json.dumps(metadata), encoding="utf-8")

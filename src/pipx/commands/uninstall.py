@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv", "shutil"]
+__lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv", "shutil"]
 
 import logging
 from dataclasses import dataclass
@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
     from pipx.pipx_metadata_file import PackageInfo
 
-from pipx import paths
 from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
     drop_links_taken_over,
@@ -28,6 +27,7 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import HAZARD, SLEEP, STARS
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.trash import rmdir_via_trash, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -119,7 +119,7 @@ def uninstall(
         resource_paths |= get_venv_resource_paths(
             "completion",
             venv.man_path.parent / completion_section,
-            paths.CTX.completion_dir / completion_section,
+            CTX.completion_dir / completion_section,
             package_infos,
         )
 

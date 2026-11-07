@@ -8,7 +8,7 @@ import pytest
 
 from helpers import app_name, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
-from pipx import paths
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
@@ -19,8 +19,8 @@ def test_unexpose_hides_resources(installed_pycowsay: Path, capsys: pytest.Captu
     assert run_pipx_cli(["unexpose", "pycowsay"]) == 0
 
     assert (
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         installed_pycowsay.exists(),
         PipxMetadata(installed_pycowsay).exposure_enabled,
         capsys.readouterr().out,
@@ -31,8 +31,8 @@ def test_expose_restores_resources(unexposed_pycowsay: Path, capsys: pytest.Capt
     assert run_pipx_cli(["expose", "pycowsay"]) == 0
 
     assert (
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         PipxMetadata(unexposed_pycowsay).exposure_enabled,
         capsys.readouterr().out,
     ) == (True, True, True, "pycowsay: exposed\n")
@@ -49,7 +49,7 @@ def unexposed_pycowsay(installed_pycowsay: Path, capsys: pytest.CaptureFixture[s
 def test_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "isort==5.6.4"]) == 0
     assert run_pipx_cli(["unexpose", "isort"]) == 0
-    venv_dir: Final[Path] = paths.CTX.venvs / "isort"
+    venv_dir: Final[Path] = CTX.venvs / "isort"
     previous_version: Final[str] = PipxMetadata(venv_dir).main_package.package_version
     capsys.readouterr()
 
@@ -59,7 +59,7 @@ def test_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture[str]) -
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
     assert (
         metadata.main_package.package_version != previous_version,
-        (paths.CTX.bin_dir / app_name("isort")).exists(),
+        (CTX.bin_dir / app_name("isort")).exists(),
         metadata.exposure_enabled,
     ) == (True, False, False)
 
@@ -74,8 +74,8 @@ def test_install_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture
 
     assert (
         "upgraded package black from 22.8.0 to 22.10.0" in capsys.readouterr().out,
-        (paths.CTX.bin_dir / app_name("black")).exists(),
-        PipxMetadata(paths.CTX.venvs / "black").exposure_enabled,
+        (CTX.bin_dir / app_name("black")).exists(),
+        PipxMetadata(CTX.venvs / "black").exposure_enabled,
     ) == (True, False, False)
 
 
@@ -87,7 +87,7 @@ def test_force_install_preserves_unexposed_state(
 
     assert (
         "installed package pycowsay" in capsys.readouterr().out,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
         PipxMetadata(unexposed_pycowsay).exposure_enabled,
     ) == (True, False, False)
 
@@ -103,7 +103,7 @@ def test_reinstall_preserves_unexposed_state(
 
     assert (
         marker.exists(),
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
         PipxMetadata(unexposed_pycowsay).exposure_enabled,
     ) == (False, False, False)
 
@@ -118,7 +118,7 @@ def test_unexposed_environment_does_not_expose_injected_apps(
     metadata: Final[PipxMetadata] = PipxMetadata(unexposed_pycowsay)
     assert (
         "isort" in metadata.injected_packages,
-        (paths.CTX.bin_dir / app_name("isort")).exists(),
+        (CTX.bin_dir / app_name("isort")).exists(),
         metadata.exposure_enabled,
     ) == (True, False, False)
 
@@ -137,7 +137,7 @@ def test_install_all_preserves_unexposed_state(
     capsys.readouterr()
 
     assert (
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
         PipxMetadata(unexposed_pycowsay).exposure_enabled,
     ) == (False, False)
 
@@ -168,7 +168,7 @@ def test_unexpose_json(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.usefixtures("unexposed_pycowsay")
 def test_expose_reports_collisions_as_partial(capsys: pytest.CaptureFixture[str]) -> None:
-    (blocker := paths.CTX.bin_dir / app_name("pycowsay")).write_text("not managed by pipx", encoding="utf-8")
+    (blocker := CTX.bin_dir / app_name("pycowsay")).write_text("not managed by pipx", encoding="utf-8")
 
     assert run_pipx_cli(["expose", "pycowsay", "--output", "json"]) == 1
 
@@ -177,7 +177,7 @@ def test_expose_reports_collisions_as_partial(capsys: pytest.CaptureFixture[str]
         envelope["status"],
         envelope["command"],
         [error["code"] for error in envelope["errors"]],
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         blocker.read_text(encoding="utf-8"),
     ) == ("partial", ["expose"], ["environment_expose_conflict"], True, "not managed by pipx")
 
@@ -203,7 +203,7 @@ def test_expose_relinks_missing_app(
 
 @pytest.fixture
 def app_removed_after_cleared_collision(unexposed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> Path:
-    (app := paths.CTX.bin_dir / app_name(unexposed_pycowsay.name)).write_text("not managed by pipx", encoding="utf-8")
+    (app := CTX.bin_dir / app_name(unexposed_pycowsay.name)).write_text("not managed by pipx", encoding="utf-8")
     assert run_pipx_cli(["expose", "pycowsay"]) == 1
     capsys.readouterr()
     app.unlink()
@@ -212,7 +212,7 @@ def app_removed_after_cleared_collision(unexposed_pycowsay: Path, capsys: pytest
 
 @pytest.fixture
 def app_removed_by_hand(installed_pycowsay: Path) -> Path:
-    (app := paths.CTX.bin_dir / app_name(installed_pycowsay.name)).unlink()
+    (app := CTX.bin_dir / app_name(installed_pycowsay.name)).unlink()
     return app
 
 
@@ -247,7 +247,7 @@ def test_legacy_environment_defaults_to_exposed(installed_pycowsay: Path) -> Non
 def test_exposure_command_reports_unreadable_metadata(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    (paths.CTX.venvs / "broken").mkdir(parents=True)
+    (CTX.venvs / "broken").mkdir(parents=True)
 
     assert run_pipx_cli(["expose", "broken"]) == 1
 

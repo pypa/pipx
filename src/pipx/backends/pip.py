@@ -3,7 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = [
     "json",
     "packaging.version",
-    "pipx",
+    "pipx.paths",
     "pipx.redact",
     "pipx.shared_libs",
     "pipx.subprocess_runner",
@@ -21,10 +21,10 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.paths import CTX
 from pipx.redact import redact_command_line
 from pipx.shared_libs import SHARED_LIBS
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
@@ -361,10 +361,10 @@ def subprocess_post_check_handle_pip_error(
     if not completed_process.returncode:
         return
     _LOGGER.info("%r failed", redact_command_line(completed_process.args))
-    if paths.CTX.log_file is None:
+    if CTX.log_file is None:
         msg = "Pipx internal error: No log_file present."
         raise PipxError(msg)
-    error_file: Final[Path] = paths.CTX.log_file.parent / f"{paths.CTX.log_file.stem}_{tool_name}_errors.log"
+    error_file: Final[Path] = CTX.log_file.parent / f"{CTX.log_file.stem}_{tool_name}_errors.log"
     upper_label: Final[str] = tool_name.upper()
     # the fan-out tasks of an -all command append their failures to the same file at once
     with _ERROR_LOG_LOCK, open(error_file, "a", encoding="utf-8", opener=open_owner_only) as error_fh:

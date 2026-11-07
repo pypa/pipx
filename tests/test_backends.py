@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from helpers import write_dist_info
-from pipx import paths
 from pipx.backends import registry
 from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, OutdatedPackage  # ruff:ignore[import-private-name]  # no public home
 from pipx.backends.pip import PipBackend
 from pipx.backends.registry import assert_not_pip_under_uv, env_default_backend, resolve_backend_name
 from pipx.backends.uv import UvBackend, find_uv_binary, resolve_uv_binary
 from pipx.constants import WINDOWS
+from pipx.paths import CTX
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -348,7 +348,7 @@ def test_uv_install_silences_progress_bar(tmp_path: Path, uv_run_subprocess: Moc
     assert uv_run_subprocess.call_args.kwargs["env_overrides"] == {
         "VIRTUAL_ENV": None,
         "UV_NO_PROGRESS": "1",
-        "UV_PROJECT": str(paths.CTX.home),
+        "UV_PROJECT": str(CTX.home),
     }
 
 

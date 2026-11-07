@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.util", "pipx.wrap", "re", "shlex", "typing", "userpath"]
+__lazy_modules__ = ["pipx.paths", "pipx.util", "pipx.wrap", "re", "shlex", "typing", "userpath"]
 
 import logging
 import re
@@ -12,9 +12,9 @@ from typing import Final
 
 import userpath
 
-from pipx import paths
 from pipx.constants import EXIT_CODE_OK, MACOS, ExitCode
 from pipx.emojis import HAZARD, STARS
+from pipx.paths import CTX
 from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
@@ -34,7 +34,7 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
     :returns: the exit code.
     """
     if is_global:
-        written: Final[bool] = _ensure_global_path(paths.CTX.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
+        written: Final[bool] = _ensure_global_path(CTX.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
         print()  # ruff:ignore[print]  # user-facing CLI output
 
         if dry_run:
@@ -49,7 +49,7 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
         print(f"Otherwise pipx is ready to go! {STARS}")  # ruff:ignore[print]  # user-facing CLI output
         return EXIT_CODE_OK
 
-    bin_paths: Final[set[Path]] = {paths.CTX.bin_dir}
+    bin_paths: Final[set[Path]] = {CTX.bin_dir}
     if (pipx_user_bin_path := _get_pipx_user_bin_path()) is not None:
         bin_paths.add(pipx_user_bin_path)
 

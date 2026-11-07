@@ -15,8 +15,8 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import paths
 from pipx.main import cli
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import get_venv_paths
 from pipx.venv import Venv
@@ -103,10 +103,10 @@ def run_pipx_cli(pipx_args: list[str]) -> int:
 
 def pipx_subprocess_env() -> dict[str, str]:
     return os.environ | {
-        "PIPX_BIN_DIR": str(paths.CTX.bin_dir),
-        "PIPX_HOME": str(paths.CTX.home),
-        "PIPX_MAN_DIR": str(paths.CTX.man_dir),
-        "PIPX_SHARED_LIBS": str(paths.CTX.shared_libs),
+        "PIPX_BIN_DIR": str(CTX.bin_dir),
+        "PIPX_HOME": str(CTX.home),
+        "PIPX_MAN_DIR": str(CTX.man_dir),
+        "PIPX_SHARED_LIBS": str(CTX.shared_libs),
     }
 
 
@@ -116,13 +116,13 @@ def unwrap_log_text(log_text: str) -> str:
 
 
 def current_log_file() -> Path:
-    log_file: Final = paths.CTX.log_file
+    log_file: Final = CTX.log_file
     assert log_file is not None
     return log_file
 
 
 def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> None:
-    venv_dir: Final[Path] = paths.CTX.venvs / canonicalize_name(venv_name)
+    venv_dir: Final[Path] = CTX.venvs / canonicalize_name(venv_name)
     if metadata_version is None:
         (venv_dir / "pipx_metadata.json").unlink()
         return
@@ -222,7 +222,7 @@ def drop_extra_app(project: Path) -> None:
 
 
 def remove_venv_interpreter(venv_name: str) -> None:
-    _, venv_python_path, _ = get_venv_paths(paths.CTX.venvs / venv_name)
+    _, venv_python_path, _ = get_venv_paths(CTX.venvs / venv_name)
     assert venv_python_path.is_file()
     venv_python_path.unlink()
 
@@ -270,7 +270,7 @@ def write_dist_info(
 
 def module_version(venv_name: str) -> str:
     return subprocess.check_output(
-        [Venv(paths.CTX.venvs / venv_name).python_path, "-c", f"import {venv_name}; print({venv_name}.VERSION)"],
+        [Venv(CTX.venvs / venv_name).python_path, "-c", f"import {venv_name}; print({venv_name}.VERSION)"],
         text=True,
     ).strip()
 

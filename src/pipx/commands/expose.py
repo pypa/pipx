@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv"]
+__lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources, get_venv_resource_paths
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import safe_unlink
 from pipx.venv import Venv
@@ -116,7 +116,7 @@ def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> 
         resource_paths |= get_venv_resource_paths(
             "completion",
             venv.man_path.parent / completion_section,
-            paths.CTX.completion_dir / completion_section,
+            CTX.completion_dir / completion_section,
             package_infos,
         )
     return resource_paths

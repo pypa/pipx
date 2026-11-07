@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "random", "shutil", "string"]
+__lazy_modules__ = ["pathlib", "pipx.paths", "random", "shutil", "string"]
 
 import logging
 import random
@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -34,9 +34,9 @@ def rmdir_via_trash(path: Path) -> None:
 
 
 def _get_trash_file(path: Path) -> Path:
-    paths.CTX.trash.mkdir(exist_ok=True)
+    CTX.trash.mkdir(exist_ok=True)
     prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
-    return paths.CTX.trash / f"{prefix}.{path.name}"
+    return CTX.trash / f"{prefix}.{path.name}"
 
 
 def rmdir(path: Path, *, safe_rm: bool = True) -> None:

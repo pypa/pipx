@@ -9,9 +9,9 @@ import pytest
 import userpath
 
 from helpers import run_pipx_cli
-from pipx import paths
 from pipx.commands import ensure_path as ensure_path_module
 from pipx.constants import EXIT_CODE_OK, WINDOWS
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture, MockType
@@ -120,7 +120,7 @@ def test_ensure_pipx_paths_global_updates_system_profile(
     mocker: MockerFixture, tmp_path: Path, macos: bool, prepend: bool, expected: str
 ) -> None:
     (config_file := tmp_path / "etc/profile.d/pipx.sh").parent.mkdir(parents=True)
-    mocker.patch.object(type(paths.CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/opt/pipx/bin")))
+    mocker.patch.object(type(CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/opt/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 
@@ -184,7 +184,7 @@ def test_ensurepath_cli_global_keeps_undecodable_file(
 def test_ensurepath_cli_global_force_replaces_undecodable_file(undecodable_config_file: Path) -> None:
     assert (
         run_pipx_cli(["ensurepath", "--global", "--force"]),
-        str(paths.CTX.bin_dir) in undecodable_config_file.read_text(encoding="utf-8"),
+        str(CTX.bin_dir) in undecodable_config_file.read_text(encoding="utf-8"),
     ) == (EXIT_CODE_OK, True)
 
 
@@ -197,7 +197,7 @@ def test_ensurepath_cli_global_force_replaces_foreign_file(mocker: MockerFixture
 
     assert (run_pipx_cli(["ensurepath", "--global", "--force"]), config_file.read_text(encoding="utf-8")) == (
         EXIT_CODE_OK,
-        f"{paths.CTX.bin_dir}\n",
+        f"{CTX.bin_dir}\n",
     )
 
 
@@ -219,7 +219,7 @@ def test_ensure_pipx_paths_global_replaces_own_entry(
     mocker: MockerFixture, tmp_path: Path, *, macos: bool, prepend: bool, existing: str, expected: str
 ) -> None:
     (config_file := tmp_path / "pipx.sh").write_text(existing, encoding="utf-8")
-    mocker.patch.object(type(paths.CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin")))
+    mocker.patch.object(type(CTX), "bin_dir", mocker.PropertyMock(return_value=Path("/srv/pipx/bin")))
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", macos)
 
@@ -275,7 +275,7 @@ def test_ensure_pipx_paths_global_configuration_is_world_readable(mocker: Mocker
 def test_ensure_pipx_paths_global_reports_existing_configuration(
     mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (config_file := tmp_path / "pipx.sh").write_text(f"{paths.CTX.bin_dir}\n")
+    (config_file := tmp_path / "pipx.sh").write_text(f"{CTX.bin_dir}\n")
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
     mocker.patch.object(ensure_path_module, "MACOS", True)
 
