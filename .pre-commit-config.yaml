@@ -13,6 +13,7 @@ repos:
       - id: trailing-whitespace
         priority: 2
       - id: check-merge-conflict
+        priority: 8
       - id: check-case-conflict
         priority: 8
   - repo: https://github.com/google/yamlfmt
@@ -64,6 +65,7 @@ repos:
     rev: 2db69f40494cc912ede966160695ede82eb6ebac # frozen: v0.10.1
     hooks:
       - id: flake8-lazy
+        priority: 4
         args: ["--apply=list"]
         files: ^src/
   # ty runs in the `type` tox environment via GitHub Actions, not here: pre-commit.ci cannot install its
