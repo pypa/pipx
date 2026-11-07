@@ -76,7 +76,9 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
         writes.append(text)
         return len(text)
 
-    mocker.patch.object(pipx.animate.sys, "stderr", mocker.MagicMock(write=mocker.Mock(side_effect=record_write)))
+    stderr: Final = mocker.create_autospec(sys.stderr, instance=True)
+    stderr.write.side_effect = record_write
+    mocker.patch.object(pipx.animate.sys, "stderr", stderr)
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
     monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", True)
     monkeypatch.setenv("COLUMNS", "80")

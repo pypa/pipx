@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import traceback
+from email.message import Message
+from http.client import HTTPResponse
 from typing import TYPE_CHECKING, Final
 from urllib.error import URLError
 from zipfile import ZipFile
@@ -208,8 +210,9 @@ def test_installable_script_downloads_url_over_file_below_cwd(
 
 @pytest.fixture
 def urlopen(mocker: MockerFixture) -> MagicMock:
-    response: Final[MagicMock] = mocker.MagicMock()
+    response: Final[MagicMock] = mocker.create_autospec(HTTPResponse, instance=True)
     response.__enter__.return_value = response
+    response.headers = mocker.create_autospec(Message, instance=True)
     return mocker.patch("urllib.request.urlopen", return_value=response, autospec=True)
 
 
