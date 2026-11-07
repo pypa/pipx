@@ -375,7 +375,7 @@ def _resolve_lazy_imports() -> None:
     for module_info in pkgutil.walk_packages(pipx.__path__, "pipx."):
         importlib.import_module(module_info.name)
     for module in [module for name, module in sys.modules.items() if name == "pipx" or name.startswith("pipx.")]:
-        for name, value in list(vars(module).items()):
+        for name, value in list(module.__dict__.items()):
             if type(value) is lazy_type:
                 getattr(module, name)
 
