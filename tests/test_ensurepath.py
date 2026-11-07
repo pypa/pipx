@@ -18,7 +18,9 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-_SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide ensurepath is unavailable on Windows")
+_SKIP_GLOBAL_ON_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
+    WINDOWS, reason="System-wide ensurepath is unavailable on Windows"
+)
 
 
 @pytest.fixture

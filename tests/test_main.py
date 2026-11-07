@@ -39,8 +39,8 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
-_ROOT: Final = Path(__file__).parents[1]
-_MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
+_ROOT: Final[Path] = Path(__file__).parents[1]
+_MANPAGE_RST: Final[Path] = _ROOT / "docs" / "man" / "pipx.1.rst"
 _SKIP_WITHOUT_PERMISSIONS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     sys.platform == "win32" or os.geteuid() == 0, reason="needs POSIX permissions that bind the current user"
 )
@@ -430,8 +430,8 @@ def test_get_pip_args_keeps_non_empty_index_in_pip_args(pip_args: str) -> None:
     assert get_pip_args(argparse.Namespace(pip_args=pip_args)) == pip_args.split()
 
 
-_LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
-_GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
+_LOCAL: Final[pytest.ParameterSet] = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
+_GLOBAL: Final[pytest.ParameterSet] = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
 
 @_SKIP_WITHOUT_PERMISSIONS

@@ -348,7 +348,7 @@ class _SharedLibs:
             self._upgrade(pip_args=pip_args, verbose=verbose, raises=raises)
 
 
-SHARED_LIBS = _SharedLibs()
+SHARED_LIBS: Final[_SharedLibs] = _SharedLibs()
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
