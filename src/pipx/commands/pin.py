@@ -4,7 +4,7 @@ __lazy_modules__ = ["packaging.utils", "pipx.options", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
@@ -41,50 +41,15 @@ def pin(
     if (main_package := venv.package_metadata.get(venv.main_package_name)) is None:
         return _missing_result(("pin",), venv)
 
-    messages: Final[list[OutputMessage]] = []
-    packages: Final[list[_ChangedPackage]] = []
-    skipped: Final[list[_SkippedPackage]] = []
-    if injected_only or skip:
-        skip_names: Final[set[str]] = {canonicalize_name(requested) for requested in skip}
-        for package_name, package in venv.package_metadata.items():
-            if package_name == venv.main_package_name:
-                continue
-            if (
-                canonicalize_name(package_name) in skip_names
-                or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
-            ):
-                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
-                continue
-            if package.pinned:
-                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned"))
-                messages.append(OutputMessage(text=f"pipx already pins {package_name}; skipping it."))
-                continue
-            _update_pin_info(venv, package_name, is_main_package=False, pinned=True)
-            packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
-    else:
-        for package_name, package in venv.package_metadata.items():
-            if package.pinned:
-                skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned"))
-                continue
-            _update_pin_info(
-                venv,
-                package_name,
-                is_main_package=package_name == venv.main_package_name,
-                pinned=True,
-            )
-            packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
-        if main_package.pinned:
-            messages.append(
-                OutputMessage(text=f"pipx already pins package {main_package.package} {SLEEP}", stream=OutputStream.LOG)
-            )
-
-    if packages:
-        messages.append(_summary_message(venv, _PinStatus.PINNED, len(packages)))
-        messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in packages)
+    changes: Final[_PinChanges] = _pin_requested(venv, skip) if injected_only or skip else _pin_all(venv, main_package)
+    messages: Final[list[OutputMessage]] = changes.messages
+    if changes.packages:
+        messages.append(_summary_message(venv, _PinStatus.PINNED, len(changes.packages)))
+        messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in changes.packages)
 
     return OperationResult(
         command=("pin",),
-        data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
+        data=PinData(packages=tuple(changes.packages), skipped=tuple(changes.skipped)),
         messages=tuple(messages),
     )
 
@@ -98,6 +63,35 @@ def _missing_result(command: tuple[str, ...], venv: Venv) -> OperationResult[Pin
         exit_code=ExitCode(1),
         errors=(OperationError(code="package_pin_failed", message=error, environment=venv.name),),
     )
+
+
+def _pin_requested(venv: Venv, skip: Sequence[str]) -> _PinChanges:
+    changes: Final[_PinChanges] = _PinChanges(packages=[], skipped=[], messages=[])
+    skip_names: Final[set[str]] = {canonicalize_name(requested) for requested in skip}
+    for package_name, package in venv.package_metadata.items():
+        if package_name == venv.main_package_name:
+            continue
+        if (
+            canonicalize_name(package_name) in skip_names
+            or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
+        ):
+            changes.skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
+            continue
+        if package.pinned:
+            changes.skipped.append(
+                _SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned")
+            )
+            changes.messages.append(OutputMessage(text=f"pipx already pins {package_name}; skipping it."))
+            continue
+        _update_pin_info(venv, package_name, is_main_package=False, pinned=True)
+        changes.packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
+    return changes
+
+
+class _PinChanges(NamedTuple):
+    packages: list[_ChangedPackage]
+    skipped: list[_SkippedPackage]
+    messages: list[OutputMessage]
 
 
 def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pinned: bool) -> None:
@@ -122,6 +116,28 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
         injected=package_name != venv.main_package_name,
         location=str(venv.root),
     )
+
+
+def _pin_all(venv: Venv, main_package: PackageInfo) -> _PinChanges:
+    changes: Final[_PinChanges] = _PinChanges(packages=[], skipped=[], messages=[])
+    for package_name, package in venv.package_metadata.items():
+        if package.pinned:
+            changes.skipped.append(
+                _SkippedPackage(environment=venv.name, package=package_name, reason="already-pinned")
+            )
+            continue
+        _update_pin_info(
+            venv,
+            package_name,
+            is_main_package=package_name == venv.main_package_name,
+            pinned=True,
+        )
+        changes.packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
+    if main_package.pinned:
+        changes.messages.append(
+            OutputMessage(text=f"pipx already pins package {main_package.package} {SLEEP}", stream=OutputStream.LOG)
+        )
+    return changes
 
 
 def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> OutputMessage:
