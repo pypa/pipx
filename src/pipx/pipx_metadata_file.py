@@ -54,7 +54,7 @@ class _RawPackageInfo(TypedDict, total=False):
     lock_file: Path | None
     include_resources_from: list[str]
     cooldown_days: int | None
-    man_pages: list[str]
+    man_pages: list[str]  # simplint: ignore[SMP530]  # the TypedDict mirrors the metadata file, while VenvMetadata is the public inspection result, so one shared definition would couple them
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]

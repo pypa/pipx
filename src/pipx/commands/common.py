@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # simplint: ignore[SMP104]  # pipx.commands.common is a public module with its own __all__ that many commands import; renaming it breaks them
 
 __lazy_modules__ = [
     "collections",

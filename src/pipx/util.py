@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # simplint: ignore[SMP104]  # pipx.util is a public module with its own __all__, and renaming it breaks its importers
 
 __lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
 

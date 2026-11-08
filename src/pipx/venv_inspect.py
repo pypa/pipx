@@ -582,7 +582,7 @@ class VenvMetadata:
     app_paths: list[Path]
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
-    man_pages: list[str]
+    man_pages: list[str]  # simplint: ignore[SMP530]  # the TypedDict mirrors the metadata file, while VenvMetadata is the public inspection result, so one shared definition would couple them
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]

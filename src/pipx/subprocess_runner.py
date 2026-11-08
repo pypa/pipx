@@ -336,7 +336,7 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     return _StreamChannel(reader=reader, child=child, terminal=False)
 
 
-@dataclass(slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() marks each descriptor closed so the close in the finally is a no-op, which a frozen record cannot hold
 class _StreamChannel:
     reader: int
     child: int
