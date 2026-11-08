@@ -206,7 +206,7 @@ def get_default_python_spec() -> str:
     return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> str:
     if name == "DEFAULT_PYTHON":
         return get_default_python()
     msg = f"module {__name__!r} has no attribute {name!r}"

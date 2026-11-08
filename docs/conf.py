@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from html import escape as html_escape
 from importlib.metadata import version as distribution_version
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final
 from urllib.parse import urlsplit
 
 from docutils import nodes
@@ -137,7 +137,7 @@ def _add_page_description(
     _app: Sphinx,
     _pagename: str,
     _templatename: str,
-    context: dict[str, Any],
+    context: dict[str, str],
     doctree: nodes.document | None,
 ) -> None:
     # a <meta name="description"> from the first paragraph gives search results a readable summary
