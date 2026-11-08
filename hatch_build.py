@@ -9,7 +9,7 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
 class _CustomBuildHook(BuildHookInterface):
-    def initialize(self, version: str, build_data: dict[str, object]) -> None:
+    def initialize(self, version: str, build_data: dict[str, object]) -> None:  # simplint: ignore[SMP602]  # hatchling types build_data as dict[str, Any] and the override must keep that parameter type
         del version, build_data
         if self.target_name != "wheel":
             return

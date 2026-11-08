@@ -234,7 +234,7 @@ class PipxMetadata:
             json.dumps(self.to_dict(), indent=4, sort_keys=True, cls=JsonEncoderHandlesPath).encode("utf-8")
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:  # simplint: ignore[SMP602]  # list[str] is invariant, so the JsonValue union rejects the nested lists and dicts callers index
         """Return the metadata as a dictionary, ready to be written as JSON.
 
         :returns: the metadata as a dictionary.
@@ -447,7 +447,7 @@ def _json_decoder_object_hook(json_dict: dict[str, JsonValue]) -> dict[str, Json
 class JsonEncoderHandlesPath(json.JSONEncoder):
     """JSON encoder that writes a path as an object tagged with its type."""
 
-    def default(self, o: object) -> dict[str, str]:
+    def default(self, o: object) -> dict[str, str]:  # simplint: ignore[SMP101, SMP602]  # JSONEncoder.default is declared as default(o: Any), and ty needs the base parameter name
         """Return the JSON form of a path, as a dictionary tagged with its type.
 
         :param o: the object to encode.
