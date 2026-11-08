@@ -163,6 +163,7 @@ def _matching_interpreter(minor: str, constraint: SpecifierSet, fetch_python: Fe
 
 
 __all__ = [
+    "IncompatiblePythonError",
     "interpreter_for",
     "rejected_constraint",
     "unsatisfied_by_interpreter",
