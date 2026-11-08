@@ -416,6 +416,8 @@ def test_parse_specifier_for_upgrade(
     [
         pytest.param("path/doesnt/exist", id="missing-path"),
         pytest.param("https:/github.com/ambv/black/archive/18.9b0.zip", id="url-single-slash"),
+        pytest.param("https://[::1/package.whl", id="unclosed-ipv6-host"),
+        pytest.param("https://[invalid]/package.whl", id="invalid-ipv6-host"),
     ],
 )
 def test_parse_specifier_rejects_unparsable_spec(
@@ -425,6 +427,28 @@ def test_parse_specifier_rejects_unparsable_spec(
 
     with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
         parse(package_spec)
+
+
+@pytest.mark.parametrize(
+    ("package_spec", "expected"),
+    [
+        pytest.param(
+            "https://alice:secret@[::1/package.whl",
+            "https://****:****@[::1/package.whl",
+            id="unclosed-ipv6-host",
+        ),
+        pytest.param(
+            "https://alice:secret@example\uff0f.com/package.whl",
+            "https://****:****@example\uff0f.com/package.whl",
+            id="invalid-netloc-normalization",
+        ),
+    ],
+)
+def test_parse_specifier_for_install_rejects_malformed_url(package_spec: str, expected: str) -> None:
+    with pytest.raises(PipxError) as exc:
+        parse_specifier_for_install(package_spec, [])
+
+    assert str(exc.value) == f"Unable to parse package spec: {expected}"
 
 
 @pytest.mark.parametrize(
