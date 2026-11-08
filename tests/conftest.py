@@ -523,7 +523,7 @@ def pipx_local_pypiserver(
         while not _accepts_connections(port):
             if pypiserver_process.poll() is not None:
                 pytest.fail(f"pypiserver exited with {pypiserver_process.returncode} before listening on {port}")
-            time.sleep(0.05)
+            time.sleep(0.05)  # simplint: ignore[SMP808]  # pypiserver is a separate process, and its port is the only readiness signal
         # 127.0.0.1, not localhost: localhost made Windows runs far slower, likely from IPv6/IPv4 fallback timeouts
         url: Final[str] = f"http://127.0.0.1:{port}/simple/"
         while True:
