@@ -166,7 +166,12 @@ def download_script(url: str) -> str:
     from http.client import HTTPException  # ruff:ignore[import-outside-top-level]  # slows startup
     from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
-    _reject_url_credentials(url)
+    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
+    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
+    # does log in with them
+    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
+        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
+        raise PipxError(msg)
     try:
         with urlopen(url, timeout=30) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
             data: Final[bytes] = response.read(_MAX_SCRIPT_BYTES + 1)
@@ -178,16 +183,9 @@ def download_script(url: str) -> str:
         raise PipxError(msg) from error
 
 
-def _reject_url_credentials(url: str) -> None:
-    # urllib's HTTP handler keeps the userinfo in the host it connects to (python/cpython#78809), so credentials never
-    # authenticate the download and a failed host:port split puts the password into the error message; its FTP handler
-    # does log in with them
-    if (parts := urllib.parse.urlsplit(url)).scheme in {"http", "https"} and parts.username is not None:
-        msg = f"Script URL {redact_url_credentials(url)} must not contain credentials."
-        raise PipxError(msg)
-
-
-def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
+def _reject_incomplete_script(  # simplint: ignore[SMP505]  # inlined, the try clause breaks ruff's statement limit
+    url: str, response: HTTPResponse | addinfourl, data: bytes
+) -> None:
     if len(data) > _MAX_SCRIPT_BYTES:
         msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
         raise PipxError(msg)

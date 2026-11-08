@@ -321,7 +321,10 @@ def _get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) 
 
 
 def _get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> set[str]:
-    if not _owns_entry_points(dist):
+    # every wheel unpacks into one site-packages, so a dependency can plant entry_points.txt in this .dist-info
+    if dist.read_text("RECORD") is not None and not any(
+        path.name == "entry_points.txt" and path.parent.suffix == ".dist-info" for path in dist.files or []
+    ):
         return set()
     app_names: Final[set[str]] = set()
     for entry_point in dist.entry_points:
@@ -333,13 +336,6 @@ def _get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> 
         if WINDOWS and (bin_path / f"{entry_point.name}.exe").exists():
             app_names.add(f"{entry_point.name}.exe")
     return app_names
-
-
-def _owns_entry_points(dist: metadata.Distribution) -> bool:
-    # every wheel unpacks into one site-packages, so a dependency can plant entry_points.txt in this .dist-info
-    if dist.read_text("RECORD") is None:
-        return True
-    return any(path.name == "entry_points.txt" and path.parent.suffix == ".dist-info" for path in dist.files or [])
 
 
 def _get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> _ResourceNames:
@@ -582,7 +578,7 @@ class VenvMetadata:
     app_paths: list[Path]
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
-    man_pages: list[str]  # simplint: ignore[SMP530]  # the TypedDict mirrors the metadata file, while VenvMetadata is the public inspection result, so one shared definition would couple them
+    man_pages: list[str]  # simplint: ignore[SMP530]  # TypedDict mirrors the metadata file; VenvMetadata is public
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]

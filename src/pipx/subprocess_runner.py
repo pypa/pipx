@@ -123,8 +123,18 @@ def get_site_packages(python: Path) -> list[Path]:
     :param python: the interpreter.
     :returns: the directories, the pure and the platform ones when they differ.
     """
-    if (site_packages := _site_packages_from_layout(python.parent.parent)) is not None:
-        return site_packages
+    venv: Final[Path] = python.parent.parent
+    # reading the directories a CPython venv creates spares starting its interpreter; any other layout asks sysconfig
+    if (windows_site_packages := venv / "Lib" / "site-packages").is_dir():
+        return [windows_site_packages]
+    match list(venv.glob("lib/python3*/site-packages")):
+        case [purelib_dir]:
+            lib64_dir: Final[Path] = venv / "lib64" / purelib_dir.parent.name / "site-packages"
+            return (
+                [purelib_dir, lib64_dir]
+                if lib64_dir.is_dir() and not lib64_dir.samefile(purelib_dir)
+                else [purelib_dir]
+            )
     purelib, _, platlib = (
         run_subprocess(
             [
@@ -143,18 +153,6 @@ def get_site_packages(python: Path) -> list[Path]:
     if (platlib_path := Path(platlib)).resolve() == purelib_path.resolve():
         return [purelib_path]
     return [purelib_path, platlib_path]
-
-
-def _site_packages_from_layout(venv: Path) -> list[Path] | None:
-    # reading the directories a CPython venv creates spares starting its interpreter; any other layout asks sysconfig
-    if (windows_site_packages := venv / "Lib" / "site-packages").is_dir():
-        return [windows_site_packages]
-    match list(venv.glob("lib/python3*/site-packages")):
-        case [purelib]:
-            platlib: Final[Path] = venv / "lib64" / purelib.parent.name / "site-packages"
-            return [purelib, platlib] if platlib.is_dir() and not platlib.samefile(purelib) else [purelib]
-        case _:
-            return None
 
 
 def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subprocess.run exposing its capture and logging switches
@@ -336,7 +334,7 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     return _StreamChannel(reader=reader, child=child, terminal=False)
 
 
-@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() marks each descriptor closed so the close in the finally is a no-op, which a frozen record cannot hold
+@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() must record which descriptors are closed
 class _StreamChannel:
     reader: int
     child: int

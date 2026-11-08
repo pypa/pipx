@@ -1778,14 +1778,13 @@ def _cmd_runpip(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.run_pip import run_pip
 
-        return run_pip(args.package, venv_dir, _split_runpip_args(args.pipargs), verbose=ctx.verbose)
-
-
-def _split_runpip_args(pip_args: list[str]) -> list[str]:
-    # a lone argument holding whitespace is a quoted command line, as in pipx runpip black "install black"
-    if len(pip_args) != 1 or not any(char.isspace() for char in pip_args[0]):
-        return pip_args
-    return shlex.split(pip_args[0], posix=not WINDOWS) or pip_args
+        pip_args: Final[list[str]] = (
+            shlex.split(args.pipargs[0], posix=not WINDOWS) or args.pipargs
+            # a lone argument holding whitespace is a quoted command line, as in pipx runpip black "install black"
+            if len(args.pipargs) == 1 and any(char.isspace() for char in args.pipargs[0])
+            else args.pipargs
+        )
+        return run_pip(args.package, venv_dir, pip_args, verbose=ctx.verbose)
 
 
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1933,24 +1932,40 @@ def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argpars
     if args[:1] == ["help"]:
         args = [*args[1:], "--help"]
     if args[:1] == ["inject"]:
-        parsed_args: Final[argparse.Namespace] = _get_subparser(parser, "inject").parse_intermixed_args(args[1:])
+        inject_parser: Final[argparse.ArgumentParser] = next(
+            action
+            for action in parser._actions  # ruff:ignore[private-member-access]  # no public API for subparsers
+            if isinstance(action, argparse._SubParsersAction)  # ruff:ignore[private-member-access]  # no public API for subparsers
+        ).choices["inject"]
+        parsed_args: Final[argparse.Namespace] = inject_parser.parse_intermixed_args(args[1:])
         parsed_args.command = "inject"
         return parsed_args
     return parser.parse_args(args)
 
 
-def _get_subparser(parser: argparse.ArgumentParser, command: str) -> argparse.ArgumentParser:
-    return next(
-        action
-        for action in parser._actions  # ruff:ignore[private-member-access]  # no public API for subparsers
-        if isinstance(action, argparse._SubParsersAction)  # ruff:ignore[private-member-access]  # no public API for subparsers
-    ).choices[command]
+def _validate_environment_variables() -> None:
+    if _FETCH_PYTHON_INVALID:
+        msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
+        raise PipxError(msg)
+    if _FETCH_MISSING_PYTHON_RAW is not None:
+        if _FETCH_PYTHON_RAW is not None:
+            msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
+            raise PipxError(msg)
+        print(  # ruff:ignore[print]  # user-facing CLI output
+            f"{HAZARD} PIPX_FETCH_MISSING_PYTHON is deprecated; "
+            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
+            file=sys.stderr,
+        )
+    if _COOLDOWN_INVALID:
+        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
+        raise PipxError(msg)
+    if _MAX_LOGS_INVALID:
+        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
+        raise PipxError(msg)
 
 
 def _setup(args: argparse.Namespace) -> None:
-    _validate_fetch_python()
-    _validate_cooldown()
-    _validate_max_logs()
+    _validate_environment_variables()
     if "version" in args and args.version:
         print(__version__)  # ruff:ignore[print]  # user-facing CLI output
         sys.exit(0)
@@ -1972,7 +1987,36 @@ def _setup(args: argparse.Namespace) -> None:
 
     # these only read paths, so they also work for users who cannot write the (global) home
     if args.command not in {"environment", "list"}:
-        _create_directories(is_global=is_global)
+        try:
+            mkdir(CTX.venvs)
+            mkdir(CTX.bin_dir)
+            mkdir(CTX.man_dir)
+            mkdir(CTX.venv_cache)
+            mkdir(CTX.standalone_python_cachedir)
+        except PermissionError as error:
+            fix: Final[str] = (
+                "run pipx with sudo, or point PIPX_GLOBAL_HOME, PIPX_GLOBAL_BIN_DIR and PIPX_GLOBAL_MAN_DIR at writable"
+                " directories"
+                if is_global
+                else "point PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR at writable directories"
+            )
+            msg = f"Cannot create {error.filename}: permission denied; {fix}."
+            # wrapping would split a long path across lines
+            raise PipxError(msg, wrap_message=False) from error
+
+        for cachedir in [
+            CTX.venv_cache,
+            CTX.standalone_python_cachedir,
+        ]:
+            if not (cachedir_tag := cachedir / "CACHEDIR.TAG").exists():
+                _LOGGER.debug("Adding CACHEDIR.TAG to cache directory")
+                cachedir_tag.write_text(
+                    "Signature: 8a477f597d28d172789f06886806bc55\n"
+                    "# This file is a cache directory tag created by pipx.\n"
+                    "# For information about cache directory tags, see:\n"
+                    "#       https://bford.info/cachedir/\n",
+                    encoding="utf-8",
+                )
 
     empty_trash()
 
@@ -2040,36 +2084,12 @@ def _compute_max_logs(raw: str | None) -> tuple[int, bool]:
 _MAX_LOGS_INVALID: Final[bool] = _compute_max_logs(_MAX_LOGS_RAW)[1]
 
 
-def _validate_fetch_python() -> None:
-    if _FETCH_PYTHON_INVALID:
-        msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
-        raise PipxError(msg)
-    if _FETCH_MISSING_PYTHON_RAW is not None:
-        if _FETCH_PYTHON_RAW is not None:
-            msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
-            raise PipxError(msg)
-        print(  # ruff:ignore[print]  # user-facing CLI output
-            f"{HAZARD} PIPX_FETCH_MISSING_PYTHON is deprecated; "
-            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
-            file=sys.stderr,
-        )
-
-
-def _validate_cooldown() -> None:
-    if _COOLDOWN_INVALID:
-        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
-        raise PipxError(msg)
-
-
-def _validate_max_logs() -> None:
-    if _MAX_LOGS_INVALID:
-        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
-        raise PipxError(msg)
-
-
 def _setup_logging(verbose: int) -> None:
     pipx_str: Final[str] = BOLD(GREEN("pipx >")) if sys.stdout and sys.stdout.isatty() else "pipx >"
-    log_stream: Final[TextIOWrapper] = _setup_log_file()
+    try:
+        log_stream: TextIOWrapper = _open_log_file(CTX.logs)
+    except PermissionError:
+        log_stream = _open_log_file(platformdirs.user_log_path("pipx"))
     CTX.log_file = Path(log_stream.name)
 
     # configured by hand because importing logging.config pulls socket and pickle into every startup
@@ -2091,13 +2111,6 @@ def _setup_logging(verbose: int) -> None:
     pipx_logger.setLevel(logging.DEBUG)
     pipx_logger.addHandler(stream_handler)
     pipx_logger.addHandler(file_handler)
-
-
-def _setup_log_file() -> TextIOWrapper:
-    try:
-        return _open_log_file(CTX.logs)
-    except PermissionError:
-        return _open_log_file(platformdirs.user_log_path("pipx"))
 
 
 def _open_log_file(pipx_log_dir: Path) -> TextIOWrapper:
@@ -2191,39 +2204,6 @@ def _remove_log(log: Path) -> None:
     # than moving logging to the fallback directory
     with contextlib.suppress(OSError):
         log.unlink()
-
-
-def _create_directories(*, is_global: bool) -> None:
-    try:
-        mkdir(CTX.venvs)
-        mkdir(CTX.bin_dir)
-        mkdir(CTX.man_dir)
-        mkdir(CTX.venv_cache)
-        mkdir(CTX.standalone_python_cachedir)
-    except PermissionError as error:
-        fix: Final[str] = (
-            "run pipx with sudo, or point PIPX_GLOBAL_HOME, PIPX_GLOBAL_BIN_DIR and PIPX_GLOBAL_MAN_DIR at writable"
-            " directories"
-            if is_global
-            else "point PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR at writable directories"
-        )
-        msg = f"Cannot create {error.filename}: permission denied; {fix}."
-        # wrapping would split a long path across lines
-        raise PipxError(msg, wrap_message=False) from error
-
-    for cachedir in [
-        CTX.venv_cache,
-        CTX.standalone_python_cachedir,
-    ]:
-        if not (cachedir_tag := cachedir / "CACHEDIR.TAG").exists():
-            _LOGGER.debug("Adding CACHEDIR.TAG to cache directory")
-            cachedir_tag.write_text(
-                "Signature: 8a477f597d28d172789f06886806bc55\n"
-                "# This file is a cache directory tag created by pipx.\n"
-                "# For information about cache directory tags, see:\n"
-                "#       https://bford.info/cachedir/\n",
-                encoding="utf-8",
-            )
 
 
 def check_args(parsed_pipx_args: argparse.Namespace) -> None:

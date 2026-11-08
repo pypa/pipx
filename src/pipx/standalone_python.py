@@ -135,7 +135,12 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
             archive: Final[Path] = staging_dir / f"python-{full_version}.tar.gz"
             download_dir: Final[Path] = staging_dir / "download"
 
-            _download(full_version, download_link, archive)
+            with animate(f"Downloading python {full_version} build", do_animation=True):
+                try:
+                    _download_resuming(download_link, archive)
+                except _TRANSIENT_NETWORK_ERRORS as error:
+                    msg = f"Unable to download python {full_version} build."
+                    raise PipxError(msg) from error
             _unpack(full_version, archive, download_dir, digest)
             # the python installation we want is nested in the tarball under a directory named 'python'; only after it
             # is fully extracted do we swap it into place, so a failed download or unpack never destroys a working
@@ -270,7 +275,8 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
     return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
 
 
-def _fetch_release_data() -> dict[str, list[dict[str, str]]]:
+def _fetch_release_data(  # simplint: ignore[SMP505]  # the retry loop would pass ruff's try-clause limit
+) -> dict[str, list[dict[str, str]]]:
     attempt = 0
     while True:
         attempt += 1
@@ -310,15 +316,6 @@ def _staging_dir(install_dir: Path) -> Generator[Path]:
         shutil.rmtree(staging_dir, ignore_errors=True)
 
 
-def _download(full_version: str, download_link: str, archive: Path) -> None:
-    with animate(f"Downloading python {full_version} build", do_animation=True):
-        try:
-            _download_resuming(download_link, archive)
-        except _TRANSIENT_NETWORK_ERRORS as error:
-            msg = f"Unable to download python {full_version} build."
-            raise PipxError(msg) from error
-
-
 def _download_resuming(url: str, archive: Path) -> None:
     archive.touch()
     attempt = 0
@@ -343,7 +340,9 @@ def _download_resuming(url: str, archive: Path) -> None:
                 return
 
 
-def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
+def _unpack(  # simplint: ignore[SMP505]  # inlined, the unpack passes ruff's nested-block limit
+    full_version: str, archive: Path, download_dir: Path, expected_checksum: str
+) -> None:
     with animate(f"Unpacking python {full_version} build", do_animation=True):
         sha256_hash: Final = hashlib.sha256()
         with Path(archive).open("rb") as python_zip:
@@ -366,7 +365,9 @@ def _unpack(full_version: str, archive: Path, download_dir: Path, expected_check
             raise PipxError(msg) from error
 
 
-def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
+def _extract_safely(  # simplint: ignore[SMP505]  # the loop would pass ruff's nested-block limit
+    tar: tarfile.TarFile, dest: Path
+) -> None:
     root: Final[Path] = dest.resolve()
     for member in tar.getmembers():
         if member.isdev():
