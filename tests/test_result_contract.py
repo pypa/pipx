@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final, TypeAlias, TypedDict
 
 import pytest
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture

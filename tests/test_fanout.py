@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import FileLock, Timeout
 
-from helpers import SKIP_IF_WINDOWS, wait_for_log
+from harness import SKIP_IF_WINDOWS, wait_for_log
 from pipx.fanout import (
     fan_out,
     finished_on_interrupt,

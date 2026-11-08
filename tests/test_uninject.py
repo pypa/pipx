@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, app_name, file_or_symlink, mock_legacy_venv, run_pipx_cli, write_wheel
+from harness import SKIP_IF_WINDOWS, app_name, file_or_symlink, mock_legacy_venv, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx.commands import common
 from pipx.constants import WINDOWS

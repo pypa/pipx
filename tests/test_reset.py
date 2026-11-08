@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import app_name, run_pipx_cli
+from harness import app_name, run_pipx_cli
 from pipx import paths
 from pipx.paths import CTX
 

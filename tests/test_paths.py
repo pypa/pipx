@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from platformdirs import user_cache_path, user_log_path
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS
 from pipx import paths
 from pipx.paths import CTX
 

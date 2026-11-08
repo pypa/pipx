@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import WIN
+from harness import WIN
 
 if TYPE_CHECKING:
     from pathlib import Path

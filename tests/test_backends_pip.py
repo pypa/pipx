@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.fanout import fan_out
 from pipx.paths import CTX

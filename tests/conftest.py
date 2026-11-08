@@ -30,7 +30,7 @@ from filelock import FileLock
 from flit_core.wheel import make_wheel_in
 
 import pipx
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
+from harness import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
 from pipx import paths, shared_libs, standalone_python, venv
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module

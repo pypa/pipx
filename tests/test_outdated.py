@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final, Literal, TypeAlias
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import SKIP_IF_WINDOWS, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.util import get_venv_paths

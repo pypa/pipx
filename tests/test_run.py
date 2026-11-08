@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture, MockType
 
 import pipx.main
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
+from harness import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import shared_libs
 from pipx.commands.run import maybe_script_content, run_package

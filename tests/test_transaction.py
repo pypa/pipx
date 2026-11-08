@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli, write_import_probe
+from harness import SKIP_IF_WINDOWS, run_pipx_cli, write_import_probe
 from package_info import PKG
 from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv

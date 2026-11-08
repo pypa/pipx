@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import write_dist_info
+from harness import write_dist_info
 from pipx.backends import registry
 from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, OutdatedPackage  # ruff:ignore[import-private-name]  # no public home
 from pipx.backends.pip import PipBackend

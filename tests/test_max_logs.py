@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import current_log_file, run_pipx_cli
+from harness import current_log_file, run_pipx_cli
 from pipx import constants, main
 from pipx.paths import CTX
 

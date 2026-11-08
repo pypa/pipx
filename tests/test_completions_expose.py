@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from flit_core.wheel import make_wheel_in
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 

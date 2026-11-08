@@ -11,7 +11,7 @@ import pytest
 from flit_core.wheel import make_wheel_in
 from packaging.specifiers import SpecifierSet
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx import standalone_python
 from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError

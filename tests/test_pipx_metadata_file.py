@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 
-from helpers import (
+from harness import (
     LEGACY_MAIN_PACKAGE,
     SKIP_IF_WINDOWS,
     LegacyMetadata,

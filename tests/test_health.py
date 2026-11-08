@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import remove_venv_interpreter, run_pipx_cli
+from harness import remove_venv_interpreter, run_pipx_cli
 from pipx.paths import CTX
 from pipx.util import get_venv_paths
 

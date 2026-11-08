@@ -13,7 +13,7 @@ from venv import EnvBuilder
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS
 from pipx.fanout import fan_out
 from pipx.redact import redact_url_credentials
 from pipx.subprocess_runner import exec_app, get_site_packages, run_subprocess, subprocess_post_check

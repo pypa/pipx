@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx.redact import redact_url_credentials
 from pipx.script import (
     ScriptMetadata,

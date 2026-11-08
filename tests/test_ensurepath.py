@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 import userpath
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.commands import ensure_path as ensure_path_module
 from pipx.constants import EXIT_CODE_OK, WINDOWS
 from pipx.paths import CTX

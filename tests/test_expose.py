@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import app_name, mock_legacy_venv, run_pipx_cli
+from harness import app_name, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata

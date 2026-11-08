@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx import shared_libs as shared_libs_module
 
 if TYPE_CHECKING:

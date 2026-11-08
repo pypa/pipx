@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final, Protocol
 
 import pytest
 
-from helpers import app_name, current_log_file, run_pipx_cli
+from harness import app_name, current_log_file, run_pipx_cli
 from pipx.commands import manifest as manifest_module
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata

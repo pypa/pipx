@@ -12,7 +12,7 @@ import pytest
 
 import pipx.interpreter
 import pipx.standalone_python
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter, recordable_interpreter
 from pipx.paths import CTX

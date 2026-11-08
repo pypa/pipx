@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import SKIP_IF_WINDOWS, current_log_file, hold_first_venv_until_others_start, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, current_log_file, hold_first_venv_until_others_start, run_pipx_cli
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata

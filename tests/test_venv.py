@@ -10,7 +10,7 @@ from venv import EnvBuilder
 
 import pytest
 
-from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
+from harness import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from package_info import PKG
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions

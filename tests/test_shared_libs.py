@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import AcquireReturnProxy, FileLock
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths, shared_libs
 from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import (
+from harness import (
     SKIP_IF_WINDOWS,
     MakePylock,
     app_name,

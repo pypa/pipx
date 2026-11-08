@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.paths import CTX
 
 if TYPE_CHECKING:

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import BaseFileLock
 
-from helpers import (
+from harness import (
     SKIP_IF_WINDOWS,
     app_name,
     assert_package_metadata,

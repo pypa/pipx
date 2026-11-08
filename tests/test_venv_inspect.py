@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import SKIP_IF_WINDOWS, write_dist_info
+from harness import SKIP_IF_WINDOWS, write_dist_info
 from pipx import venv_inspect
 from pipx.venv_inspect import list_not_required_packages
 

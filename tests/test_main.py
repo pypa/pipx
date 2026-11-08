@@ -15,7 +15,7 @@ import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
 from pipx import main, paths
 from pipx.backends import registry

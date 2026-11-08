@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.main import InstalledVenvsCompleter
 from pipx.venv import VenvContainer
 

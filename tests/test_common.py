@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, WIN, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, WIN, run_pipx_cli
 from pipx.commands import common
 from pipx.commands.common import (
     add_suffix,

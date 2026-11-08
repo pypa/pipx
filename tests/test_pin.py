@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import run_pipx_cli, write_wheel
+from harness import run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata

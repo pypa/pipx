@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from package_info import PKG
 from pipx import constants, standalone_python
 from pipx.paths import CTX
