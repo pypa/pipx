@@ -50,7 +50,8 @@ class CooldownOptions:
         return self.cli_days if self.cli_days is not None else self.env_days
 
 
-_DEFAULT_COOLDOWN_OPTIONS: Final[CooldownOptions] = CooldownOptions()
+#: the cooldown options a command uses when none are given.
+DEFAULT_COOLDOWN_OPTIONS: Final[CooldownOptions] = CooldownOptions()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -133,7 +134,7 @@ class InstallOptions:
     exposure_enabled: bool | None = None
     upgrade: bool = False
     upgrade_strategy: str | None = None
-    cooldown: CooldownOptions = _DEFAULT_COOLDOWN_OPTIONS
+    cooldown: CooldownOptions = DEFAULT_COOLDOWN_OPTIONS
     pinned: bool | None = None
     preserve_existing: bool = False
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
@@ -345,6 +346,7 @@ class RunOptions:
 
 __all__ = [
     "DEFAULT_BACKEND_OPTIONS",
+    "DEFAULT_COOLDOWN_OPTIONS",
     "BackendOptions",
     "CooldownOptions",
     "ExposureOptions",

@@ -222,6 +222,11 @@ def _without_extended_prefix(target: str) -> str:
 
 
 def can_symlink(local_resource_dir: Path) -> bool:
+    """Tell whether a symlink can be created in a directory.
+
+    :param local_resource_dir: the directory the symlink would be created in.
+    :returns: whether the directory can hold a symlink.
+    """
     if not WINDOWS:
         # even on Unix this depends on the filesystem
         return True
@@ -825,14 +830,14 @@ def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_
 
 def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     owned: set[Path] = get_exposed_paths_for_package(
-        venv.bin_path, local_bin_dir, _group_app_paths(venv.package_metadata.values())
+        venv.bin_path, local_bin_dir, group_app_paths(venv.package_metadata.values())
     )
     man_paths: Final[list[Path]] = [
         path for package in venv.package_metadata.values() for path in package.man_paths_to_expose
     ]
     for man_section in MAN_SECTIONS:
-        owned |= _get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
-    completion_paths: Final[dict[str, list[Path]]] = _group_resource_paths(
+        owned |= get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
+    completion_paths: Final[dict[str, list[Path]]] = group_resource_paths(
         (path.name, path) for package in venv.package_metadata.values() for path in package.completion_paths_to_expose
     )
     for completion_section in COMPLETION_SECTIONS:
@@ -931,8 +936,13 @@ def _copy_matches_source(
         return False
 
 
-def _group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
-    return _group_resource_paths(
+def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
+    """Group the app paths that packages expose by the name each one is exposed under.
+
+    :param packages: the packages whose apps pipx exposes.
+    :returns: the paths of each exposed name.
+    """
+    return group_resource_paths(
         (name, path)
         for package in packages
         for path in package.app_paths_to_expose
@@ -940,21 +950,31 @@ def _group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
     )
 
 
-def _get_exposed_man_paths_for_package(
+def get_exposed_man_paths_for_package(
     venv_man_path: Path,
     local_man_dir: Path,
     package_man_paths: Sequence[Path],
 ) -> set[Path]:
+    """Return the man pages of a package that pipx exposes in the local man directory.
+
+    :param venv_man_path: the man section directory of the environment.
+    :param local_man_dir: the man directory that pipx exposes pages in.
+    :param package_man_paths: the man pages the package provides.
+    :returns: the paths of the man pages to expose.
+    """
     return get_exposed_paths_for_package(
         venv_man_path,
         local_man_dir,
-        _group_resource_paths(
-            (path.name, path) for path in package_man_paths if path.parent.name == venv_man_path.name
-        ),
+        group_resource_paths((path.name, path) for path in package_man_paths if path.parent.name == venv_man_path.name),
     )
 
 
-def _group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
+def group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
+    """Group resource paths by the name each one is exposed under.
+
+    :param resource_paths: the name and the path of each resource.
+    :returns: the paths of each name, in the order they were given.
+    """
     grouped: Final[dict[str, list[Path]]] = {}
     for name, path in resource_paths:
         grouped.setdefault(name, []).append(path)
@@ -1126,7 +1146,7 @@ def _get_exposed_resource_names(
     )
     exposed_binary_names: Final[list[str]] = sorted(
         path.name
-        for path in get_exposed_paths_for_package(venv.bin_path, CTX.bin_dir, _group_app_paths(resource_packages))
+        for path in get_exposed_paths_for_package(venv.bin_path, CTX.bin_dir, group_app_paths(resource_packages))
     )
     unavailable_binary_names: Final[list[str]] = sorted({
         add_suffix(name, package_metadata.suffix)
@@ -1137,9 +1157,7 @@ def _get_exposed_resource_names(
     exposed_man_pages: Final[list[str]] = sorted(
         str(Path(path.parent.name) / path.name)
         for man_section in MAN_SECTIONS
-        for path in _get_exposed_man_paths_for_package(
-            venv.man_path / man_section, CTX.man_dir / man_section, man_paths
-        )
+        for path in get_exposed_man_paths_for_package(venv.man_path / man_section, CTX.man_dir / man_section, man_paths)
     )
     unavailable_man_pages: Final[list[str]] = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
     return _ExposedResourceNames(
@@ -1286,7 +1304,7 @@ def get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path
     :param local_bin_dir: the directory the apps are exposed in.
     :returns: the exposed app paths.
     """
-    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, _group_app_paths((package_info,)))
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, group_app_paths((package_info,)))
 
 
 def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
@@ -1297,7 +1315,7 @@ def get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_
     :param local_man_dir: the directory the man pages are exposed in.
     :returns: the exposed man page paths.
     """
-    return _get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
+    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
 
 
 def get_package_completion_paths(
@@ -1315,13 +1333,14 @@ def get_package_completion_paths(
     return get_exposed_paths_for_package(
         venv_completion_path,
         local_completion_dir,
-        _group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
+        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
     )
 
 
 __all__ = [
     "VenvProblems",
     "add_suffix",
+    "can_symlink",
     "drop_copies_claimed_elsewhere",
     "drop_links_taken_over",
     "expose_package_resources",
@@ -1330,6 +1349,7 @@ __all__ = [
     "exposed_app_names",
     "force_replaces_only",
     "get_expected_venv_resource_paths",
+    "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_package_bin_dir_app_paths",
     "get_package_completion_paths",
@@ -1338,6 +1358,8 @@ __all__ = [
     "get_venv_resource_paths",
     "get_venv_summary",
     "give_back_shared_links",
+    "group_app_paths",
+    "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",
     "remove_stale_venv_resources",

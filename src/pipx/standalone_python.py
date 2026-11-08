@@ -129,7 +129,7 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
             _LOGGER.warning("A previous attempt to install python %s failed. Retrying.", python_version)
             shutil.rmtree(install_dir)
 
-        full_version, (download_link, digest) = _resolve_python_version(python_version)
+        full_version, (download_link, digest) = resolve_python_version(python_version)
 
         with _staging_dir(install_dir) as staging_dir:
             archive: Final[Path] = staging_dir / f"python-{full_version}.tar.gz"
@@ -157,7 +157,13 @@ def _version_lock(install_dir: Path) -> BaseFileLock:
     return FileLock(install_dir.with_name(f".{install_dir.name}.lock"))
 
 
-def _resolve_python_version(requested_version: str) -> tuple[str, tuple[str, str]]:
+def resolve_python_version(requested_version: str) -> tuple[str, tuple[str, str]]:
+    """Return the first standalone build whose version starts with the requested one.
+
+    :param requested_version: the version, or its leading parts, such as ``3.13``.
+    :returns: the full version, and the download link and digest of its build.
+    :raises PipxError: when no build matches the requested version.
+    """
     requested_release: Final[list[str]] = requested_version.split(".")
 
     for full_version, download_link in list_pythons().items():
@@ -456,4 +462,5 @@ __all__ = [
     "get_latest_python_releases",
     "get_or_update_index",
     "list_pythons",
+    "resolve_python_version",
 ]
