@@ -13,6 +13,7 @@ from pipx.script import (
     ScriptMetadata,
     download_script,
     installable_script,
+    is_script_spec,
     local_script,
     read_script_metadata,
     script_name_from_spec,
@@ -24,6 +25,20 @@ if TYPE_CHECKING:
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
+
+
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        "https://[::1/script.py",
+        "https://[invalid]/package.whl",
+        "https://example\uff0f.com/script.py",
+    ],
+)
+def test_malformed_url_is_not_a_script(package_spec: str) -> None:
+    assert local_script(package_spec) is None
+    assert is_script_spec(package_spec) is False
+    assert script_name_from_spec(package_spec, ()) is None
 
 
 def test_read_script_metadata() -> None:

@@ -246,7 +246,11 @@ def _parse_specifier(package_spec: str) -> _ParsedPackage:
         # keep the extras as typed so the bare and ./ spellings store the same spec
         return _LocalPath(path=f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}")
 
-    parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    try:
+        parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    except ValueError:
+        msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
+        raise PipxError(msg) from None
     if parsed_url.scheme and (
         parsed_url.netloc or (parsed_url.scheme in {"file", "git+file", "hg+file"} and parsed_url.path.startswith("/"))
     ):
