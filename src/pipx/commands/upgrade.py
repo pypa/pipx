@@ -172,13 +172,23 @@ def _repaired_venv(
 ) -> Venv:
     if is_unfinished(venv_dir):
         _LOGGER.warning("%s was left half changed by an interrupted pipx run; reinstalling it first.", venv_dir.name)
+        # rebuild on the Python the environment runs on, which only the interpreter knows on Windows, where the
+        # environment's python.exe is a launcher rather than a link
+        python_path: Final[Path] = Venv(venv_dir).python_path
+        base_python: Final[str] = (
+            run_subprocess(
+                [python_path, "-c", "import sys; print(sys._base_executable)"], log_stdout=False
+            ).stdout.strip()
+            if python_path.is_file()
+            else get_default_python()
+        )
         messages.extend(
             reinstall(
                 venv_dir,
                 ReinstallOptions(
                     local_bin_dir=CTX.bin_dir,
                     local_man_dir=CTX.man_dir,
-                    python=_base_python(Venv(venv_dir)),
+                    python=base_python,
                     verbose=verbose,
                     backend=backend,
                 ),
@@ -186,16 +196,6 @@ def _repaired_venv(
             ).messages
         )
     return Venv(venv_dir, verbose=verbose, backend=backend)
-
-
-def _base_python(venv: Venv) -> str:
-    # rebuild on the Python the environment runs on, which only the interpreter knows on Windows, where the
-    # environment's python.exe is a launcher rather than a link
-    if venv.python_path.is_file():
-        return run_subprocess(
-            [venv.python_path, "-c", "import sys; print(sys._base_executable)"], log_stdout=False
-        ).stdout.strip()
-    return get_default_python()
 
 
 def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
@@ -584,7 +584,9 @@ def _upgrade_listed_venv(
     )
 
 
-def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
+def _raise_check_failures(  # simplint: ignore[SMP505]  # ruff TRY301 rejects a raise inside the try block
+    venv: Venv, check_failures: dict[str, list[str]]
+) -> None:
     # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
     if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
         raise PipxError("\n".join(errors), wrap_message=False)

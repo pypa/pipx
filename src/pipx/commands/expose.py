@@ -67,7 +67,26 @@ def _set_exposure(
         venv.pipx_metadata.exposure_enabled = True
         venv.pipx_metadata.write()
         if collisions:
-            return _collision_outcome(command, venv.name, collisions, exposed_any=len(collisions) < attempted)
+            summary: Final[str] = (
+                f"{venv.name}: skipped {len(collisions)} resource(s) already present in the target directory"
+            )
+            return OperationResult(
+                command=command,
+                data=ExposureData(
+                    environments=(_EnvironmentExposure(environment=venv.name, status=_ExposureStatus.EXPOSED),)
+                ),
+                messages=(OutputMessage(text=summary, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+                exit_code=ExitCode(1),
+                errors=tuple(
+                    OperationError(
+                        code="environment_expose_conflict",
+                        message=f"{path} already exists and does not belong to {venv.name}",
+                        environment=venv.name,
+                    )
+                    for path in collisions
+                ),
+                succeeded=len(collisions) < attempted,
+            )
         prefix: Final[str] = (
             "already " if _exposed_resources(venv, local_bin_dir, local_man_dir) == linked_before else ""
         )
@@ -120,31 +139,6 @@ def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> 
             package_infos,
         )
     return resource_paths
-
-
-def _collision_outcome(
-    command: tuple[str, ...], environment: str, collisions: list[Path], *, exposed_any: bool
-) -> OperationResult[ExposureData]:
-    summary: Final[str] = (
-        f"{environment}: skipped {len(collisions)} resource(s) already present in the target directory"
-    )
-    return OperationResult(
-        command=command,
-        data=ExposureData(
-            environments=(_EnvironmentExposure(environment=environment, status=_ExposureStatus.EXPOSED),)
-        ),
-        messages=(OutputMessage(text=summary, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-        exit_code=ExitCode(1),
-        errors=tuple(
-            OperationError(
-                code="environment_expose_conflict",
-                message=f"{path} already exists and does not belong to {environment}",
-                environment=environment,
-            )
-            for path in collisions
-        ),
-        succeeded=exposed_any,
-    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

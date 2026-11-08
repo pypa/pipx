@@ -87,7 +87,10 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
     :param options: the options of the run.
     :param spec: the package spec to install, derived from the app when None.
     """
-    requirement_name: Final[str] = _requirement_name(app)
+    try:
+        requirement_name = Requirement(app).name
+    except InvalidRequirement:
+        requirement_name = app
     package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
     # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
     # `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from the installed entry points
@@ -122,13 +125,6 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
             infer_app_name=infer_app_name,
             resolved_backend=resolved_backend,
         )
-
-
-def _requirement_name(app: str) -> str:
-    try:
-        return Requirement(app).name
-    except InvalidRequirement:
-        return app
 
 
 def _is_vcs_url(value: str) -> bool:
@@ -405,20 +401,15 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     # digest leaves this function, so proxy URLs and tokens in the environment never reach the cache path or the logs.
     key: Final = json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
     # other accounts can list the cache, so an unkeyed digest would let them test guesses at a token against a name
-    digest: Final = (
-        hashlib.sha256(key) if (secret := _cache_secret()) is None else hmac.new(secret, key, hashlib.sha256)
-    )
-    return Path(CTX.venv_cache) / digest.hexdigest()[:15]
-
-
-def _cache_secret() -> bytes | None:
     secret_path: Final[Path] = Path(CTX.venv_cache) / _RUN_KEY_FILENAME
     try:
-        return _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
+        secret = _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
     except OSError as error:
         # a cache pipx cannot write to can still serve the entries already in it, so name them the way it always did
         _LOGGER.debug("Cannot use %s (%s), so run cache names are not keyed with a secret", secret_path, error)
-        return None
+        secret = None
+    digest: Final = hashlib.sha256(key) if secret is None else hmac.new(secret, key, hashlib.sha256)
+    return Path(CTX.venv_cache) / digest.hexdigest()[:15]
 
 
 def _read_cache_secret(secret_path: Path) -> bytes | None:

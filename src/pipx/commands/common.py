@@ -1,4 +1,4 @@
-from __future__ import annotations  # simplint: ignore[SMP104]  # pipx.commands.common is a public module with its own __all__ that many commands import; renaming it breaks them
+from __future__ import annotations  # simplint: ignore[SMP104]  # public module with __all__; renaming breaks importers
 
 __lazy_modules__ = [
     "collections",
@@ -388,8 +388,22 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
     if pipx_logger.handlers and pipx_logger.handlers[0].level > logging.WARNING:
         return ()
     messages: Final[list[OutputMessage]] = [OutputMessage(text=package_summary)]
-    if path_warning := _warn_if_not_on_path(local_bin_dir):
-        messages.append(path_warning)
+    if not userpath.in_current_path(str(local_bin_dir)):
+        messages.append(
+            OutputMessage(
+                text=pipx_wrap(
+                    f"""
+                    {HAZARD}  Note: '{local_bin_dir}' is not on your PATH
+                    environment variable. These apps will not be globally
+                    accessible until your PATH is updated. Run `pipx ensurepath` to
+                    automatically add it, or manually modify your PATH in your
+                    shell's config file (e.g. ~/.bashrc).
+                    """,
+                    subsequent_indent=" " * 4,
+                ),
+                stream=OutputStream.LOG,
+            )
+        )
     messages.append(OutputMessage(text=f"done! {STARS}", stream=OutputStream.STDERR))
     return tuple(messages)
 
@@ -737,17 +751,16 @@ def drop_copies_claimed_elsewhere(resource_paths: set[Path], venv_bin_path: Path
     copies: Final[set[Path]] = {
         path for path in resource_paths if not path.is_symlink() and own_id not in _launcher_owner_ids(path)
     }
-    return resource_paths - (copies & _claimed_by_other_venvs(venv_bin_path)) if copies else resource_paths
-
-
-def _claimed_by_other_venvs(venv_bin_path: Path) -> set[Path]:
+    if not copies:
+        return resource_paths
     # a venv removed since the claims were read, as uninstall-all does one by one, no longer holds its paths
-    return {
+    claimed_by_other_venvs: Final[set[Path]] = {
         path
         for venv_dir, claimed in _venv_claims_by_dir().items()
         if not venv_bin_path.is_relative_to(venv_dir) and venv_dir.is_dir()
         for path in claimed
     }
+    return resource_paths - (copies & claimed_by_other_venvs)
 
 
 def _venv_claims_by_dir() -> dict[Path, set[Path]]:
@@ -1142,24 +1155,6 @@ class _ExposedResourceNames(NamedTuple):
     unavailable_binary_names: list[str]
     exposed_man_pages: list[str]
     unavailable_man_pages: list[str]
-
-
-def _warn_if_not_on_path(local_bin_dir: Path) -> OutputMessage | None:
-    if not userpath.in_current_path(str(local_bin_dir)):
-        return OutputMessage(
-            text=pipx_wrap(
-                f"""
-                {HAZARD}  Note: '{local_bin_dir}' is not on your PATH
-                environment variable. These apps will not be globally
-                accessible until your PATH is updated. Run `pipx ensurepath` to
-                automatically add it, or manually modify your PATH in your
-                shell's config file (e.g. ~/.bashrc).
-                """,
-                subsequent_indent=" " * 4,
-            ),
-            stream=OutputStream.LOG,
-        )
-    return None
 
 
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:

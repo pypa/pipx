@@ -129,22 +129,18 @@ class ResetData(OperationData):
 
 def _remove(target: Path) -> bool:
     if target == CTX.logs:
-        _clear_logs(target)
+        # this command logs into one of these files, and Windows refuses to unlink a file it holds open
+        for entry in target.iterdir():
+            if entry == CTX.log_file:
+                continue
+            if entry.is_dir():
+                rmdir(entry, safe_rm=False)
+            else:
+                with suppress(OSError):
+                    entry.unlink()
         return True
     rmdir(target, safe_rm=False)
     return not target.is_dir()
-
-
-def _clear_logs(logs: Path) -> None:
-    # this command logs into one of these files, and Windows refuses to unlink a file it holds open
-    for entry in logs.iterdir():
-        if entry == CTX.log_file:
-            continue
-        if entry.is_dir():
-            rmdir(entry, safe_rm=False)
-        else:
-            with suppress(OSError):
-                entry.unlink()
 
 
 __all__ = [

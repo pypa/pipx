@@ -304,24 +304,18 @@ def _parse_lock_file(
         raise PipxError(msg)
     # joining onto the manifest directory keeps an absolute lock path as it is
     lock_file: Final[Path] = (manifest_dir / Path(lock_value).expanduser()).resolve()
-    if not _is_pylock_name(lock_file.name):
+    if lock_file.name != "pylock.toml" and not (
+        lock_file.name.startswith("pylock.")
+        and lock_file.name.endswith(".toml")
+        and bool(lock_name := lock_file.name.removeprefix("pylock.").removesuffix(".toml"))
+        and "." not in lock_name
+    ):
         msg = f"Manifest tool {environment} lock must be named pylock.toml or pylock.<name>.toml."
         raise PipxError(msg)
     if require_locks and not lock_file.is_file():
         msg = f"Lock file does not exist for manifest tool {environment}: {lock_file}"
         raise PipxError(msg)
     return lock_file
-
-
-def _is_pylock_name(name: str) -> bool:
-    if name == "pylock.toml":
-        return True
-    return (
-        name.startswith("pylock.")
-        and name.endswith(".toml")
-        and bool(lock_name := name.removeprefix("pylock.").removesuffix(".toml"))
-        and "." not in lock_name
-    )
 
 
 def _read_venv_state(venv_dir: Path) -> _VenvState:
