@@ -12,11 +12,11 @@ import pytest
 
 from helpers import SKIP_IF_WINDOWS, run_pipx_cli, write_import_probe
 from package_info import PKG
-from pipx import trash
 from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.trash import rmdir
 from pipx.util import PipxError
 from pipx.venv import VenvContainer
 
@@ -89,7 +89,7 @@ def test_preserve_venv_finishes_the_restore_through_an_interrupt(venv_dir: Path,
 
 
 def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
-    trash.rmdir(path, safe_rm=safe_rm)
+    rmdir(path, safe_rm=safe_rm)
     signal.raise_signal(signal.SIGINT)
 
 

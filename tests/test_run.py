@@ -28,12 +28,13 @@ if TYPE_CHECKING:
 import pipx.main
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
-from pipx import shared_libs, subprocess_runner
+from pipx import shared_libs
 from pipx.commands.run import maybe_script_content, run_package
 from pipx.constants import FetchPythonOptions
 from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.subprocess_runner import exec_app
 from pipx.venv import VenvContainer
 
 
@@ -300,7 +301,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
 def test_run_script_searches_python_only_when_default_fails_requires_python(
     tmp_path: Path, mocker: MockerFixture, backend: str, requires_python: str, searched: set[str]
 ) -> None:
-    exec_mock: Final = mocker.create_autospec(subprocess_runner.exec_app, side_effect=SystemExit(0))
+    exec_mock: Final = mocker.create_autospec(exec_app, side_effect=SystemExit(0))
     mocker.patch("pipx.commands.run.exec_app", new=exec_mock)
     mocker.patch("pipx.commands.run_uv.exec_app", new=exec_mock)
     script: Final[Path] = tmp_path / "script.py"
