@@ -7,8 +7,7 @@ import re
 import shutil
 import signal
 import subprocess
-import time
-from threading import Barrier
+from threading import Barrier, Event
 from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
 
 import pytest
@@ -395,11 +394,14 @@ def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
 ) -> None:
     slow: Final[Path] = CTX.venvs / outdated_venv_names[0]
+    other_backup_started: Final[Event] = Event()
 
     # the backup of an environment with expected apps precedes its upgrade progress line
     def backup(source: Path, destination: Path, *, symlinks: bool) -> Path:
         if source == slow:
-            time.sleep(0.3)
+            other_backup_started.wait(timeout=5)
+        else:
+            other_backup_started.set()
         return shutil.copytree(source, destination, symlinks=symlinks)
 
     mocker.patch("pipx.commands.transaction.copytree", side_effect=backup, autospec=True)
