@@ -23,15 +23,16 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from package_info import PKG
-from pipx import constants, paths, pipx_metadata_file, standalone_python
+from pipx import constants, standalone_python
+from pipx.paths import CTX
+from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 _TARGET_PYTHON_VERSION: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
 _DARWIN_LINK: Final[str] = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
@@ -45,7 +46,7 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
     )
     digest: Final[str] = f"sha256:{'0' * 64}"
     current_releases: Final[list[tuple[str, str]]] = [(legacy_link, digest)]
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True)
     (index_file := cache_dir / "index.json").write_text(
         json.dumps({
             "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
@@ -116,7 +117,7 @@ def cached_index(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the cache path belongs to the isolated home
     mocker: MockerFixture,
 ) -> tuple[Path, list[tuple[str, str]]]:
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
     releases: Final[list[tuple[str, str]]] = [(_DARWIN_LINK, f"sha256:{'0' * 64}")]
     mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True, return_value=releases)
     return cache_dir / "index.json", releases
@@ -124,7 +125,7 @@ def cached_index(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_valid_fresh_standalone_python_index_is_reused(mocker: MockerFixture) -> None:
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
             "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
@@ -132,7 +133,7 @@ def test_valid_fresh_standalone_python_index_is_reused(mocker: MockerFixture) ->
         }),
         encoding="utf-8",
     )
-    fetch: Final[MagicMock] = mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True)
+    fetch: Final[MockType] = mocker.patch.object(standalone_python, "get_latest_python_releases", autospec=True)
 
     assert standalone_python.get_or_update_index()["releases"] == [[_DARWIN_LINK, f"sha256:{'1' * 64}"]]
     fetch.assert_not_called()
@@ -172,7 +173,7 @@ def test_download_standalone_python_supports_early_python_311(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_early_python_311_rejects_unsafe_archive(
     monkeypatch: pytest.MonkeyPatch,
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     unsafe: tuple[str, bytes, str],
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
@@ -194,19 +195,19 @@ def _add_links(python_tar: tarfile.TarFile, links: Iterable[tuple[str, bytes, st
 
 
 @pytest.fixture
-def published_darwin_release(mocker: MockerFixture) -> tuple[Path, Callable[[bytes], MagicMock]]:
-    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
-    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
-    (cache_dir := standalone_python.paths.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+def published_darwin_release(mocker: MockerFixture) -> tuple[Path, Callable[[bytes], MockType]]:
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin", autospec=True)
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64", autospec=True)
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
 
-    def publish(archive_bytes: bytes) -> MagicMock:
+    def publish(archive_bytes: bytes) -> MockType:
         (cache_dir / "index.json").write_text(
             json.dumps({
                 "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
                 "releases": [[_DARWIN_LINK, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
             })
         )
-        return mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
+        return mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes), autospec=True)
 
     return cache_dir, publish
 
@@ -251,7 +252,7 @@ def _links_too_long_to_follow() -> list[tuple[str, bytes, str]]:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_early_python_311_stays_inside_through_archive_links(
     monkeypatch: pytest.MonkeyPatch,
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     tmp_path: Path,
     links: list[tuple[str, bytes, str]],
     way_out: str,
@@ -277,7 +278,7 @@ def test_early_python_311_stays_inside_through_archive_links(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_early_python_311_keeps_links_inside_archive(
     monkeypatch: pytest.MonkeyPatch,
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     monkeypatch.delattr(tarfile, "data_filter")
     archive: Final[io.BytesIO] = io.BytesIO()
@@ -307,7 +308,7 @@ def test_early_python_311_keeps_links_inside_archive(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
     mocker: MockerFixture,
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
     real_rename: Final = os.rename
@@ -318,8 +319,8 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
         real_rename(source, target)
 
     # like a tmpfs /tmp or another btrfs subvolume, renames from outside the pipx home fail so shutil.move copies
-    mocker.patch.object(os, "rename", side_effect=rename_within_cache_dir)
-    mocker.patch.object(os, "replace", side_effect=rename_within_cache_dir)
+    mocker.patch.object(os, "rename", side_effect=rename_within_cache_dir, autospec=True)
+    mocker.patch.object(os, "replace", side_effect=rename_within_cache_dir, autospec=True)
     archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
         python_tar.addfile(tarfile.TarInfo("python/bin/python3"), io.BytesIO())
@@ -331,7 +332,7 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_failed_fetch_leaves_no_staging_dir(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
     (stale := cache_dir / ".3.99.incoming" / "download").mkdir(parents=True)
@@ -345,7 +346,7 @@ def test_standalone_python_failed_fetch_leaves_no_staging_dir(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
     (install_dir := cache_dir / "3.99").joinpath("bin").mkdir(parents=True)
@@ -362,17 +363,9 @@ def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(
     )
 
 
-def _python_archive_bytes() -> bytes:
-    archive: Final[io.BytesIO] = io.BytesIO()
-    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
-        for name in ("python/bin/python3", "python/python.exe"):
-            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
-    return archive.getvalue()
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_replaces_existing_build(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
     (install_dir := cache_dir / "3.99").mkdir(parents=True)
@@ -384,9 +377,17 @@ def test_standalone_python_upgrade_replaces_existing_build(
     assert (Path(python_path).is_file(), stale.exists()) == (True, False)
 
 
+def _python_archive_bytes() -> bytes:
+    archive: Final[io.BytesIO] = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        for name in ("python/bin/python3", "python/python.exe"):
+            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
+    return archive.getvalue()
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_clears_backup_left_by_crashed_upgrade(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
     (cache_dir / "3.99").mkdir(parents=True)
@@ -401,7 +402,7 @@ def test_standalone_python_upgrade_clears_backup_left_by_crashed_upgrade(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_upgrade_restores_backup_when_swap_fails(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
 ) -> None:
     cache_dir, publish = published_darwin_release
@@ -428,7 +429,7 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
 ) -> None:
     published_darwin_release[1](_python_archive_bytes())
@@ -443,7 +444,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
                 concurrent[0].result(timeout=0.2)
         real_replace(source, destination)
 
-    swaps: Final = mocker.patch.object(os, "replace", side_effect=swap_into_place)
+    swaps: Final = mocker.patch.object(os, "replace", side_effect=swap_into_place, autospec=True)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
@@ -453,14 +454,14 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_download_retries_transient_http_error(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
     http_error: Callable[[int], urllib.error.HTTPError],
 ) -> None:
     archive_bytes: Final[bytes] = _python_archive_bytes()
-    published_darwin_release[1](archive_bytes)
-    mocker.patch.object(standalone_python, "urlopen", side_effect=[http_error(503), io.BytesIO(archive_bytes)])
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
+    urlopen.side_effect = [http_error(503), io.BytesIO(archive_bytes)]
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -491,15 +492,15 @@ def http_error() -> Iterator[Callable[[int], urllib.error.HTTPError]]:
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_download_fails_on_http_error(  # pytest injects fixtures by name
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
     http_error: Callable[[int], urllib.error.HTTPError],
     code: int,
     sleeps: int,
 ) -> None:
-    published_darwin_release[1](_python_archive_bytes())
-    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(code))
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    urlopen: Final[MockType] = published_darwin_release[1](_python_archive_bytes())
+    urlopen.side_effect = http_error(code)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to download"):
         standalone_python.download_python_build_standalone("3.99")
@@ -509,20 +510,16 @@ def test_standalone_python_download_fails_on_http_error(  # pytest injects fixtu
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_download_resumes_after_disconnect(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
 ) -> None:
     archive_bytes: Final[bytes] = _python_archive_bytes()
-    published_darwin_release[1](archive_bytes)
-    urlopen: Final[MagicMock] = mocker.patch.object(
-        standalone_python,
-        "urlopen",
-        side_effect=[
-            _interrupted_response(mocker, archive_bytes[:10]),
-            _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
-        ],
-    )
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
+    urlopen.side_effect = [
+        _interrupted_response(mocker, archive_bytes[:10]),
+        _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
+    ]
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -535,13 +532,13 @@ def test_standalone_python_download_resumes_after_disconnect(
     ) == (True, 1, None, "bytes=10-")
 
 
-def _interrupted_response(mocker: MockerFixture, chunk: bytes) -> MagicMock:
+def _interrupted_response(mocker: MockerFixture, chunk: bytes) -> MockType:
     return mocker.MagicMock(**{
         "__enter__.return_value.read.side_effect": [chunk, http.client.RemoteDisconnected("closed")]
     })
 
 
-def _range_response(mocker: MockerFixture, status: HTTPStatus, body: bytes) -> MagicMock:
+def _range_response(mocker: MockerFixture, status: HTTPStatus, body: bytes) -> MockType:
     return mocker.MagicMock(**{
         "__enter__.return_value.status": status,
         "__enter__.return_value.read.side_effect": [body, b""],
@@ -550,20 +547,16 @@ def _range_response(mocker: MockerFixture, status: HTTPStatus, body: bytes) -> M
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_download_restarts_when_range_ignored(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
 ) -> None:
     archive_bytes: Final[bytes] = _python_archive_bytes()
-    published_darwin_release[1](archive_bytes)
-    mocker.patch.object(
-        standalone_python,
-        "urlopen",
-        side_effect=[
-            _interrupted_response(mocker, archive_bytes[:10]),
-            _range_response(mocker, HTTPStatus.OK, archive_bytes),
-        ],
-    )
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
+    urlopen.side_effect = [
+        _interrupted_response(mocker, archive_bytes[:10]),
+        _range_response(mocker, HTTPStatus.OK, archive_bytes),
+    ]
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -581,8 +574,9 @@ def test_get_latest_python_releases_retries_transient_http_error(
         standalone_python,
         "urlopen",
         side_effect=[http_error(503), io.StringIO(json.dumps({"assets": [release]}))],
+        autospec=True,
     )
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     releases: Final[list[tuple[str, str]]] = standalone_python.get_latest_python_releases()
 
@@ -599,8 +593,8 @@ def test_get_latest_python_releases_retries_transient_http_error(
 def test_get_latest_python_releases_fails_on_http_error(
     mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError], code: int, sleeps: int
 ) -> None:
-    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(code))
-    sleep: Final[MagicMock] = mocker.patch.object(standalone_python, "_sleep")
+    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(code), autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to fetch"):
         standalone_python.get_latest_python_releases()
@@ -609,10 +603,11 @@ def test_get_latest_python_releases_fails_on_http_error(
 
 
 def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) -> None:
-    urlopen: Final[MagicMock] = mocker.patch.object(
+    urlopen: Final[MockType] = mocker.patch.object(
         standalone_python,
         "urlopen",
         return_value=io.StringIO(json.dumps({"assets": []})),
+        autospec=True,
     )
 
     assert standalone_python.get_latest_python_releases() == []
@@ -621,9 +616,9 @@ def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_download_standalone_python_sets_request_timeout(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
-    urlopen: Final[MagicMock] = published_darwin_release[1](_python_archive_bytes())
+    urlopen: Final[MockType] = published_darwin_release[1](_python_archive_bytes())
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -638,7 +633,7 @@ def test_download_standalone_python_sets_request_timeout(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_download_standalone_python_rejects_unsafe_archive(
-    published_darwin_release: tuple[Path, Callable[[bytes], MagicMock]],
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     archive: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
@@ -656,8 +651,8 @@ def test_download_standalone_python_rejects_unsafe_archive(
 def test_list_pythons_windows_arm64(
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch.object(standalone_python.platform, "system", return_value="Windows")
-    mocker.patch.object(standalone_python.platform, "machine", return_value="ARM64")
+    mocker.patch.object(standalone_python.platform, "system", return_value="Windows", autospec=True)
+    mocker.patch.object(standalone_python.platform, "machine", return_value="ARM64", autospec=True)
 
     full_version: Final[str] = "{}.{}.{}".format(*sys.version_info[:3])
     assert standalone_python.list_pythons()[full_version][0].endswith("aarch64-pc-windows-msvc-install_only.tar.gz")
@@ -753,7 +748,7 @@ def test_prune_after_prune_has_nothing_to_remove(capsys: pytest.CaptureFixture[s
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.CaptureFixture[str]) -> None:
-    (staging_dir := paths.CTX.standalone_python_cachedir / ".3.99.incoming").mkdir(parents=True)
+    (staging_dir := CTX.standalone_python_cachedir / ".3.99.incoming").mkdir(parents=True)
 
     assert not run_pipx_cli(["interpreter", "prune"])
 
@@ -763,10 +758,10 @@ def test_prune_keeps_standalone_interpreter_being_fetched(capsys: pytest.Capture
 @pytest.mark.usefixtures("pycowsay_on_fetched_python")
 def test_upgrade_standalone_interpreter(
     monkeypatch: pytest.MonkeyPatch,
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    newer_index: Final[dict[str, object]] = standalone_python_index(
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
         f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
     )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
@@ -777,10 +772,22 @@ def test_upgrade_standalone_interpreter(
     assert ("Successfully upgraded the interpreter(s):" in out, "pycowsay" in out) == (True, True)
 
 
+@pytest.mark.parametrize(
+    "executable",
+    [
+        pytest.param(
+            ("bin", "python3"), id="posix", marks=pytest.mark.skipif(constants.WINDOWS, reason="POSIX layout")
+        ),
+        pytest.param(
+            ("python.exe",), id="windows", marks=pytest.mark.skipif(not constants.WINDOWS, reason="Windows layout")
+        ),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
     monkeypatch: pytest.MonkeyPatch,
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+    executable: tuple[str, ...],
 ) -> None:
     assert not run_pipx_cli([
         "install",
@@ -789,34 +796,37 @@ def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
         "{}.{}.{}".format(*sys.version_info[:3]),
         PKG["pycowsay"]["spec"],
     ])
-    newer_index: Final[dict[str, object]] = standalone_python_index(
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
         f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
     )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
-    interpreter_dir: Final[Path] = paths.CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
-    expected: Final[Path] = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
-    assert pipx_metadata_file.PipxMetadata(paths.CTX.venvs / "pycowsay").source_interpreter == expected
+    interpreter_dir: Final[Path] = CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION
+    expected: Final[Path] = interpreter_dir.joinpath(*executable)
+    assert PipxMetadata(CTX.venvs / "pycowsay").source_interpreter == expected
 
 
-@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+@pytest.mark.parametrize(
+    ("windows", "executable"),
+    [pytest.param(False, ("bin", "python3"), id="posix"), pytest.param(True, ("python.exe",), id="windows")],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreters_reads_each_venv_once(
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     windows: bool,
+    executable: tuple[str, ...],
 ) -> None:
     monkeypatch.setattr(constants, "WINDOWS", windows)
     for python_version in ("3.11", "3.12"):
-        interpreter_dir = paths.CTX.standalone_python_cachedir / python_version
-        interpreter_python = interpreter_dir / "python.exe" if windows else interpreter_dir / "bin" / "python3"
+        interpreter_python = (CTX.standalone_python_cachedir / python_version).joinpath(*executable)
         interpreter_python.parent.mkdir(parents=True)
         interpreter_python.touch()
 
-        (venv_dir := paths.CTX.venvs / f"demo-{python_version}").mkdir(parents=True)
-        metadata = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
+        (venv_dir := CTX.venvs / f"demo-{python_version}").mkdir(parents=True)
+        metadata = PipxMetadata(venv_dir, read=False)
         metadata.main_package = replace(
             metadata.main_package,
             package=venv_dir.name,
@@ -826,15 +836,16 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
         metadata.write()
 
     def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
-        python_path = Path(command[0])
-        python_version = python_path.parent.name if windows else python_path.parent.parent.name
+        python_version = Path(command[0]).relative_to(CTX.standalone_python_cachedir).parts[0]
         return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
 
-    mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1"])
-    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version)
-    download: Final[MagicMock] = mocker.patch.object(standalone_python, "download_python_build_standalone")
-    reinstall: Final[MagicMock] = mocker.patch("pipx.commands.interpreter.reinstall", autospec=True)
-    metadata_read: Final[MagicMock] = mocker.spy(pipx_metadata_file.PipxMetadata, "read")
+    mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1"], autospec=True)
+    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version, autospec=True)
+    download: Final[MockType] = mocker.patch.object(
+        standalone_python, "download_python_build_standalone", autospec=True
+    )
+    reinstall: Final[MockType] = mocker.patch("pipx.commands.interpreter.reinstall", autospec=True)
+    metadata_read: Final[MockType] = mocker.spy(PipxMetadata, "read")
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
@@ -861,16 +872,18 @@ def test_upgrade_standalone_interpreter_skips_corrupt(
     corrupt_error: OSError | subprocess.CalledProcessError,
 ) -> None:
     for name in ("corrupt", "valid"):
-        (standalone_python.paths.CTX.standalone_python_cachedir / name).mkdir(parents=True)
+        (standalone_python.CTX.standalone_python_cachedir / name).mkdir(parents=True)
 
     def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
         if "corrupt" in command[0]:
             raise corrupt_error
         return subprocess.CompletedProcess(command, 0, stdout="Python 3.12.0\n")
 
-    mocker.patch.object(standalone_python, "list_pythons", return_value=["not-a-version", "3.12.1"])
-    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version)
-    download: Final[MagicMock] = mocker.patch.object(standalone_python, "download_python_build_standalone")
+    mocker.patch.object(standalone_python, "list_pythons", return_value=["not-a-version", "3.12.1"], autospec=True)
+    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version, autospec=True)
+    download: Final[MockType] = mocker.patch.object(
+        standalone_python, "download_python_build_standalone", autospec=True
+    )
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
     download.assert_called_once_with("3.12", override=True)

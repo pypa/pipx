@@ -2,9 +2,9 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "json",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.transaction",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.self_install",
     "pipx.venv",
@@ -13,14 +13,14 @@ __lazy_modules__ = [
 import json
 import logging
 import sys
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
-from pipx import paths
 from pipx.colors import BOLD
 from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
 from pipx.commands.transaction import is_unfinished
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
 from pipx.emojis import SLEEP
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
@@ -35,6 +35,13 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def list_packages(venv_container: VenvContainer, venv_dirs: Collection[Path], options: ListOptions) -> ExitCode:
+    """Print the packages of the given environments in the requested format.
+
+    :param venv_container: the container of the environments.
+    :param venv_dirs: the directories of the environments to list.
+    :param options: the output format and the filters.
+    :returns: the exit code, which reports the environments that have problems.
+    """
     if not venv_dirs:
         print(  # ruff:ignore[print]  # user-facing CLI output
             f"nothing has been installed with pipx {SLEEP}", file=sys.stderr
@@ -100,6 +107,20 @@ def _list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
     return all_venv_problems
 
 
+def _venv_metadata_summary(venv_dir: Path) -> _VenvMetadataSummary:
+    venv: Final[Venv] = Venv(venv_dir)
+    venv_problems, warning_message = venv_health_check(venv)
+    if venv_problems.any_():
+        return _VenvMetadataSummary(PipxMetadata(venv_dir, read=False), venv_problems, warning_message)
+    return _VenvMetadataSummary(venv.pipx_metadata, venv_problems, "")
+
+
+class _VenvMetadataSummary(NamedTuple):
+    metadata: PipxMetadata
+    problems: VenvProblems
+    warning: str
+
+
 def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:
     # pipx is self-managed only on POSIX, where its venv links bin/python to the interpreter it is built on
     return (
@@ -108,14 +129,6 @@ def _records_stale_self_managed_python(venv_metadata: PipxMetadata) -> bool:
         and (recorded := venv_metadata.source_interpreter) is not None
         and not backs_self_managed_venv(recorded, venv_metadata.venv_dir)
     )
-
-
-def _venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
-    venv: Final[Venv] = Venv(venv_dir)
-    venv_problems, warning_message = venv_health_check(venv)
-    if venv_problems.any_():
-        return PipxMetadata(venv_dir, read=False), venv_problems, warning_message
-    return venv.pipx_metadata, venv_problems, ""
 
 
 def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvProblems:
@@ -165,11 +178,11 @@ def _list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPr
 def _list_text(venv_dirs: Iterable[Path], venv_root_dir: str, *, include_injected: bool) -> VenvProblems:
     print(f"venvs are in {BOLD(venv_root_dir)}")  # ruff:ignore[print]  # user-facing CLI output
     print(  # ruff:ignore[print]  # user-facing CLI output
-        f"apps are exposed on your $PATH at {BOLD(str(paths.CTX.bin_dir))}"
+        f"apps are exposed on your $PATH at {BOLD(str(CTX.bin_dir))}"
     )
-    print(f"manual pages are exposed at {BOLD(str(paths.CTX.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"manual pages are exposed at {BOLD(str(CTX.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
     print(  # ruff:ignore[print]  # user-facing CLI output
-        f"shell completions are exposed at {BOLD(str(paths.CTX.completion_dir))}"
+        f"shell completions are exposed at {BOLD(str(CTX.completion_dir))}"
     )
 
     all_venv_problems = VenvProblems()

@@ -5,16 +5,15 @@ import os
 import re
 import shutil
 import sys
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, current_log_file, hold_first_venv_until_others_start, run_pipx_cli
 from package_info import PKG
-from pipx import paths
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.wrap import pipx_wrap
 
@@ -53,8 +52,8 @@ def test_install_all(
     assert not run_pipx_cli(["list", "--json"])
 
     installed_names: Final[list[str]] = sorted(json.loads(capsys.readouterr().out)["venvs"])
-    black_metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "black")
-    pycowsay_metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    black_metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "black")
+    pycowsay_metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (
         installed_names,
         sorted(black_metadata.injected_packages),
@@ -109,29 +108,28 @@ def test_install_all_restores_pins(
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (metadata.main_package.pinned, metadata.injected_packages["black"].pinned) == expected_pins
 
 
 @pytest.mark.parametrize(
-    ("python_arg", "use_recorded"),
+    ("python_arg", "source"),
     [
-        pytest.param([], True, id="recorded"),
-        pytest.param(["--python", sys.executable], False, id="explicit"),
+        pytest.param([], "recorded", id="recorded"),
+        pytest.param(["--python", sys.executable], "explicit", id="explicit"),
     ],
 )
 def test_install_all_selects_interpreter(
     recorded_snapshot: tuple[Path, Path],
     mocker: MockerFixture,
     python_arg: list[str],
-    use_recorded: bool,
+    source: str,
 ) -> None:
     spec_file, recorded = recorded_snapshot
     install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
     assert not run_pipx_cli(["install-all", str(spec_file), *python_arg])
-    assert Path(install.call_args.args[3].python).resolve() == (
-        recorded if use_recorded else Path(sys.executable).resolve()
-    )
+    expected: Final[dict[str, Path]] = {"recorded": recorded, "explicit": Path(sys.executable).resolve()}
+    assert Path(install.call_args.args[3].python).resolve() == expected[source]
 
 
 @pytest.fixture
@@ -279,7 +277,7 @@ def test_install_all_restores_recorded_args(
 
     assert not run_pipx_cli(["install-all", *install_all_args, str(spec_file)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "black")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "black")
     assert (
         metadata.venv_args,
         metadata.main_package.pip_args,
@@ -313,7 +311,7 @@ def test_install_all_drops_recorded_pip_args_for_another_backend(
 
     assert not run_pipx_cli(["install-all", "--backend", "uv", str(spec_file)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (metadata.backend, metadata.main_package.pip_args, metadata.injected_packages["black"].pip_args) == (
         "uv",
         [],
@@ -346,7 +344,7 @@ def test_install_all_keeps_ambiguous_pip_abbreviation_as_typed(
 
     assert (
         "Ignoring pip args recorded for the pip backend of pycowsay: --pr\n" in caplog.text,
-        PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args,
+        PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args,
     ) == (True, [])
 
 
@@ -445,9 +443,10 @@ def test_install_all_translates_recorded_pip_args_for_another_backend(
         ["install", "--backend", recorded_backend, f"--pip-args={recorded_args.format(**values)}", "pycowsay"]
     ])
 
-    assert not run_pipx_cli(["install-all", "--backend", "uv" if recorded_backend == "pip" else "pip", str(spec_file)])
+    other_backend: Final[str] = {"pip": "uv", "uv": "pip"}[recorded_backend]
+    assert not run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").main_package.pip_args == expected_args.format(**values).split()
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pip_args == expected_args.format(**values).split()
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
@@ -475,7 +474,7 @@ def test_install_all_refuses_untranslatable_index_args(
     spec_file: Final[Path] = make_snapshot([
         ["install", "--backend", recorded_backend, f"--pip-args={recorded_args}", "pycowsay"]
     ])
-    other_backend: Final[str] = "uv" if recorded_backend == "pip" else "pip"
+    other_backend: Final[str] = {"pip": "uv", "uv": "pip"}[recorded_backend]
 
     result: Final[int] = run_pipx_cli(["install-all", "--backend", other_backend, str(spec_file)])
 
@@ -483,7 +482,7 @@ def test_install_all_refuses_untranslatable_index_args(
         f"Cannot install pycowsay with the {other_backend} backend: its recorded index option {untranslatable} has "
         f"no {other_backend} equivalent, and dropping it could install from a different index."
     )
-    assert (result, expected in " ".join(capsys.readouterr().err.split()), (paths.CTX.venvs / "pycowsay").exists()) == (
+    assert (result, expected in " ".join(capsys.readouterr().err.split()), (CTX.venvs / "pycowsay").exists()) == (
         1,
         True,
         False,
@@ -546,7 +545,7 @@ def test_install_all_prints_progress_in_spec_order(
     spec_file: Path,
 ) -> None:
     venv_names: Final[list[str]] = list(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"])
-    before_venv_subprocess(paths.CTX.venvs / venv_names[0], lambda: time.sleep(0.3))
+    hold_first_venv_until_others_start(before_venv_subprocess, venv_names)
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
@@ -582,7 +581,7 @@ def test_install_all_leaves_injected_packages_of_a_skipped_environment(
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
-    assert list(PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages) == []
+    assert list(PipxMetadata(CTX.venvs / "pycowsay").injected_packages) == []
 
 
 def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) -> None:
@@ -592,7 +591,7 @@ def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) ->
 
     exit_code: Final[int] = run_pipx_cli(["install-all", str(spec_file)])
 
-    assert (exit_code, sorted(venv_dir.name for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir())) == (
+    assert (exit_code, sorted(venv_dir.name for venv_dir in CTX.venvs.iterdir() if venv_dir.is_dir())) == (
         1,
         ["pycowsay"],
     )
@@ -603,9 +602,10 @@ def test_install_all_gives_shared_man_page_to_the_first_venv(
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
 ) -> None:
     spec_file: Final[Path] = make_snapshot([["install", "pycowsay"], ["install", "pycowsay", "--suffix=_x"]])
-    first: Final[Path] = paths.CTX.venvs / next(iter(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"]))
-    before_venv_subprocess(first, lambda: time.sleep(0.5))
+    venv_names: Final[list[str]] = list(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"])
+    hold_first_venv_until_others_start(before_venv_subprocess, venv_names)
+    first: Final[Path] = CTX.venvs / venv_names[0]
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
-    assert (paths.CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(first)
+    assert (CTX.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(first)

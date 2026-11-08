@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv"]
+__lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources, get_venv_resource_paths
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import safe_unlink
 from pipx.venv import Venv
@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 
 
 def expose(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool) -> OperationResult[ExposureData]:
+    """Expose the apps and man pages of an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the exposure.
+    :returns: the result with the exposure of each environment.
+    """
     return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=True)
 
 
@@ -59,7 +67,26 @@ def _set_exposure(
         venv.pipx_metadata.exposure_enabled = True
         venv.pipx_metadata.write()
         if collisions:
-            return _collision_outcome(command, venv.name, collisions, exposed_any=len(collisions) < attempted)
+            summary: Final[str] = (
+                f"{venv.name}: skipped {len(collisions)} resource(s) already present in the target directory"
+            )
+            return OperationResult(
+                command=command,
+                data=ExposureData(
+                    environments=(_EnvironmentExposure(environment=venv.name, status=_ExposureStatus.EXPOSED),)
+                ),
+                messages=(OutputMessage(text=summary, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+                exit_code=ExitCode(1),
+                errors=tuple(
+                    OperationError(
+                        code="environment_expose_conflict",
+                        message=f"{path} already exists and does not belong to {venv.name}",
+                        environment=venv.name,
+                    )
+                    for path in collisions
+                ),
+                succeeded=len(collisions) < attempted,
+            )
         prefix: Final[str] = (
             "already " if _exposed_resources(venv, local_bin_dir, local_man_dir) == linked_before else ""
         )
@@ -84,11 +111,6 @@ def _failure(command: tuple[str, ...], environment: str, error: str) -> Operatio
     )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ExposureData(OperationData):
-    environments: tuple[_EnvironmentExposure, ...]
-
-
 def _success(
     command: tuple[str, ...], environment: str, status: _ExposureStatus, message: str
 ) -> OperationResult[ExposureData]:
@@ -97,17 +119,6 @@ def _success(
         data=ExposureData(environments=(_EnvironmentExposure(environment=environment, status=status),)),
         messages=(OutputMessage(text=message),),
     )
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _EnvironmentExposure:
-    environment: str
-    status: _ExposureStatus
-
-
-class _ExposureStatus(StrEnum):
-    EXPOSED = "exposed"
-    UNEXPOSED = "unexposed"
 
 
 def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
@@ -124,40 +135,44 @@ def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> 
         resource_paths |= get_venv_resource_paths(
             "completion",
             venv.man_path.parent / completion_section,
-            paths.CTX.completion_dir / completion_section,
+            CTX.completion_dir / completion_section,
             package_infos,
         )
     return resource_paths
 
 
-def _collision_outcome(
-    command: tuple[str, ...], environment: str, collisions: list[Path], *, exposed_any: bool
-) -> OperationResult[ExposureData]:
-    summary: Final[str] = (
-        f"{environment}: skipped {len(collisions)} resource(s) already present in the target directory"
-    )
-    return OperationResult(
-        command=command,
-        data=ExposureData(
-            environments=(_EnvironmentExposure(environment=environment, status=_ExposureStatus.EXPOSED),)
-        ),
-        messages=(OutputMessage(text=summary, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
-        exit_code=ExitCode(1),
-        errors=tuple(
-            OperationError(
-                code="environment_expose_conflict",
-                message=f"{path} already exists and does not belong to {environment}",
-                environment=environment,
-            )
-            for path in collisions
-        ),
-        succeeded=exposed_any,
-    )
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ExposureData(OperationData):
+    """Result data of the expose and unexpose commands.
+
+    :ivar environments: the exposure status of each environment.
+    """
+
+    environments: tuple[_EnvironmentExposure, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _EnvironmentExposure:
+    environment: str
+    status: _ExposureStatus
+
+
+class _ExposureStatus(StrEnum):
+    EXPOSED = "exposed"
+    UNEXPOSED = "unexposed"
 
 
 def unexpose(
     venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool
 ) -> OperationResult[ExposureData]:
+    """Remove the exposed apps and man pages of an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the removal.
+    :returns: the result with the exposure of each environment.
+    """
     return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=False)
 
 

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS
 from pipx.package_specifier import (
     absolute_path_pip_args,
     extract_index_options,
@@ -289,7 +289,7 @@ def test_trusted_recorded_pip_args_refuses_sticky_dir(sticky_dir: Path, tmp_path
 def test_trusted_recorded_pip_args_refuses_path_owned_by_another_account(tmp_path: Path, mocker: MockerFixture) -> None:
     certificate: Final[Path] = tmp_path.resolve() / "ca.pem"
     certificate.write_text("", encoding="utf-8")
-    mocker.patch("os.geteuid", return_value=certificate.stat().st_uid + 1)
+    mocker.patch("os.geteuid", return_value=certificate.stat().st_uid + 1, autospec=True)
 
     with pytest.raises(PipxError, match=re.escape(f"another account can change {certificate},")):
         trusted_recorded_pip_args(["--cert", str(certificate)], tmp_path)

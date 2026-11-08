@@ -5,6 +5,7 @@ __lazy_modules__ = [
     "pipx",
     "pipx.commands.reinstall",
     "pipx.options",
+    "pipx.paths",
     "pipx.trash",
     "pipx.venv",
     "subprocess",
@@ -17,10 +18,11 @@ from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
-from pipx import constants, paths
+from pipx import constants
 from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.trash import rmdir
 from pipx.venv import Venv, VenvContainer
@@ -34,8 +36,13 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 def list_interpreters(
     venv_container: VenvContainer,
 ) -> OperationResult[InterpreterData]:
+    """List the standalone Python interpreters that pipx installed.
+
+    :param venv_container: the container of the environments, to find which ones use each interpreter.
+    :returns: the result listing the interpreters and the environments that use them.
+    """
     venvs: Final[list[Venv]] = _venvs_using_standalone_interpreter(venv_container)
-    output: Final[list[str]] = [f"Standalone interpreters are in {paths.CTX.standalone_python_cachedir}"]
+    output: Final[list[str]] = [f"Standalone interpreters are in {CTX.standalone_python_cachedir}"]
     listed: Final[list[_Interpreter]] = []
     for interpreter in _installed_standalone_interpreters():
         output.append(f"Python {interpreter.name}")
@@ -71,7 +78,7 @@ def _installed_standalone_interpreters() -> list[Path]:
     # a dot-prefixed directory is the staging or backup copy of a fetch that may still be running, not an interpreter
     return [
         python_dir
-        for python_dir in paths.CTX.standalone_python_cachedir.iterdir()
+        for python_dir in CTX.standalone_python_cachedir.iterdir()
         if python_dir.is_dir() and not python_dir.name.startswith(".")
     ]
 
@@ -92,6 +99,13 @@ class _Interpreter:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InterpreterData(OperationData):
+    """Result data of the interpreter commands.
+
+    :ivar interpreters: the interpreters in use.
+    :ivar removed: the names of the interpreters that were removed.
+    :ivar upgraded: the interpreters that were upgraded.
+    """
+
     interpreters: tuple[_Interpreter, ...]
     removed: tuple[str, ...]
     upgraded: tuple[_UpgradedInterpreter, ...]
@@ -100,6 +114,11 @@ class InterpreterData(OperationData):
 def prune_interpreters(
     venv_container: VenvContainer,
 ) -> OperationResult[InterpreterData]:
+    """Remove the standalone Python interpreters that no environment uses.
+
+    :param venv_container: the container of the environments, to find which interpreters are in use.
+    :returns: the result listing the removed interpreters.
+    """
     venvs: Final[list[Venv]] = _venvs_using_standalone_interpreter(venv_container)
     removed: Final[list[str]] = []
     for interpreter in _installed_standalone_interpreters():
@@ -118,6 +137,12 @@ def prune_interpreters(
 
 
 def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> OperationResult[InterpreterData]:
+    """Upgrade the standalone Python interpreters to their latest builds.
+
+    :param venv_container: the container of the environments.
+    :param verbose: show the progress of the index lookup.
+    :returns: the result listing the upgraded interpreters.
+    """
     from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
     with animate("Getting the index of the latest standalone python builds", do_animation=not verbose):
@@ -166,8 +191,8 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                     reinstall(
                         venv.root,
                         ReinstallOptions(
-                            local_bin_dir=paths.CTX.bin_dir,
-                            local_man_dir=paths.CTX.man_dir,
+                            local_bin_dir=CTX.bin_dir,
+                            local_man_dir=CTX.man_dir,
                             python=upgraded_python,
                             verbose=verbose,
                             # the new build is what this rebuild is for, so a package whose Requires-Python rules it

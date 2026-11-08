@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import (
+from harness import (
     PIPX_METADATA_LEGACY_VERSIONS,
     SKIP_IF_WINDOWS,
     app_name,
@@ -22,7 +22,7 @@ from helpers import (
     write_wheel,
 )
 from package_info import PKG
-from pipx import paths
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 
@@ -44,7 +44,7 @@ def test_inject_json(capsys: pytest.CaptureFixture[str]) -> None:
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "black",
                         "status": "injected",
                         "version": "22.8.0",
@@ -149,7 +149,7 @@ def test_inject_json_reports_partial_failure(
                 "packages": [
                     {
                         "environment": "pycowsay",
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "empty-project",
                         "status": "injected",
                         "version": "0.1.0",
@@ -234,7 +234,7 @@ def test_inject_rejects_pylock(
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (
         "Cannot inject into locked environment pycowsay" in error and "`pipx reinstall pycowsay`" in error,
-        PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages,
+        PipxMetadata(CTX.venvs / "pycowsay").injected_packages,
     ) == (True, {})
 
 
@@ -284,14 +284,14 @@ def test_inject_main_package_extra(
     suffix: str,
 ) -> None:
     assert not run_pipx_cli(["install", str(local_extras_wheel), "--backend", backend, f"--suffix={suffix}"])
-    venv_dir: Final[Path] = paths.CTX.venvs / canonicalize_name(f"repeatme{suffix}")
+    venv_dir: Final[Path] = CTX.venvs / canonicalize_name(f"repeatme{suffix}")
     environment: Final[str | None] = PipxMetadata(venv_dir).environment
     assert environment is not None
     assert not run_pipx_cli(["inject", environment, f"{local_extras_wheel}[cow]", "--backend", backend])
     assert not run_pipx_cli(["reinstall", environment])
 
     output: Final[str] = subprocess.run(
-        [paths.CTX.bin_dir / app_name(f"repeatme{suffix}"), "hello"],
+        [CTX.bin_dir / app_name(f"repeatme{suffix}"), "hello"],
         capture_output=True,
         text=True,
         check=True,
@@ -325,7 +325,7 @@ def test_inject_main_package_extra_keeps_recorded_source(
 
     assert not run_pipx_cli(["inject", "repeatme", injected.format_map(sources)])
 
-    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.package_or_url == recorded.format_map(sources)
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.package_or_url == recorded.format_map(sources)
 
 
 @pytest.mark.parametrize(
@@ -343,7 +343,7 @@ def test_inject_main_package_extra_with_other_source_needs_force(
 
     assert (
         "Pass '--force' to force installation." in " ".join(capsys.readouterr().out.split()),
-        PipxMetadata(paths.CTX.venvs / "repeatme").main_package.package_or_url,
+        PipxMetadata(CTX.venvs / "repeatme").main_package.package_or_url,
     ) == (True, str(local_extras_wheel))
 
 
@@ -415,8 +415,8 @@ def test_inject_local_project_uses_built_name_when_backend_ignores_project_table
     assert not run_pipx_cli(["inject", "--include-apps", "empty-project", str(project_ignoring_project_table)])
 
     assert (
-        list(PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages),
-        (paths.CTX.bin_dir / app_name("realapp")).exists(),
+        list(PipxMetadata(CTX.venvs / "empty-project").injected_packages),
+        (CTX.bin_dir / app_name("realapp")).exists(),
     ) == (["real-pkg"], True)
 
 
@@ -435,13 +435,13 @@ def test_inject_include_resources_from_dependency(
         "PyCowsay",
     ])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages["repeatme"]
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
         metadata.include_apps,
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("repeatme")).exists(),
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
+        (CTX.bin_dir / app_name("repeatme")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
     ) == (True, ["pycowsay"], True, True, False)
 
 
@@ -453,7 +453,7 @@ def test_inject_main_package_preserves_included_dependency(
 
     assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
-    assert PipxMetadata(paths.CTX.venvs / "repeatme").main_package.include_resources_from == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.include_resources_from == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -467,12 +467,12 @@ def test_inject_force_replaces_included_dependency_resources(
 
     assert not run_pipx_cli(["inject", "empty-project", package, "--force", "--include-resources-from", "black"])
 
-    metadata: Final[PackageInfo] = PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages["repeatme"]
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
         metadata.include_resources_from,
-        (paths.CTX.bin_dir / app_name("pycowsay")).exists(),
-        (paths.CTX.man_dir / "man6" / "pycowsay.6").exists(),
-        (paths.CTX.bin_dir / app_name("black")).exists(),
+        (CTX.bin_dir / app_name("pycowsay")).exists(),
+        (CTX.man_dir / "man6" / "pycowsay.6").exists(),
+        (CTX.bin_dir / app_name("black")).exists(),
     ) == (["black"], False, False, True)
 
 
@@ -492,7 +492,7 @@ def test_inject_include_resources_from_missing_dependency_rolls_back(
         "Cannot expose resources from black for package repeatme. "
         "Dependencies with apps, manual pages, or shell completions: pycowsay." in error,
         bool(run_pipx_cli(["runpip", "empty-project", "show", "repeatme"])),
-        PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages,
+        PipxMetadata(CTX.venvs / "empty-project").injected_packages,
     ) == (True, True, {})
 
 
@@ -519,7 +519,7 @@ def test_inject_include_apps_without_apps_rolls_back(
 
     assert (
         run_pipx_cli(["runpip", "empty-project", "show", "foo-bar-x"]),
-        PipxMetadata(paths.CTX.venvs / "empty-project").injected_packages,
+        PipxMetadata(CTX.venvs / "empty-project").injected_packages,
     ) == (1, {})
 
 
@@ -578,7 +578,7 @@ def test_force_inject_keeps_injected_pin() -> None:
 
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--force"])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pinned
+    assert PipxMetadata(CTX.venvs / "pycowsay").injected_packages["black"].pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -598,7 +598,7 @@ def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCapture
 
     assert (
         "--force-reinstall" in caplog.text,
-        PipxMetadata(paths.CTX.venvs / "pycowsay").injected_packages["black"].pip_args,
+        PipxMetadata(CTX.venvs / "pycowsay").injected_packages["black"].pip_args,
     ) == (True, ["--no-cache-dir"])
 
 
@@ -636,7 +636,7 @@ def test_inject_inherits_cooldown(
 
     assert not run_pipx_cli(["inject", "pycowsay", pip_args, str(empty_project_wheel)])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (
         "--uploaded-prior-to P7D" in caplog.text,
         metadata.injected_packages["empty-project"].cooldown_days,

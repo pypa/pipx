@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.util", "pipx.wrap", "re", "shlex", "typing", "userpath"]
+__lazy_modules__ = ["pipx.paths", "pipx.util", "pipx.wrap", "re", "shlex", "typing", "userpath"]
 
 import logging
 import re
@@ -12,9 +12,9 @@ from typing import Final
 
 import userpath
 
-from pipx import paths
 from pipx.constants import EXIT_CODE_OK, MACOS, ExitCode
 from pipx.emojis import HAZARD, STARS
+from pipx.paths import CTX
 from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
@@ -24,8 +24,17 @@ _GLOBAL_PATH_FILE: Final[Path] = Path("/etc/paths.d/pipx" if MACOS else "/etc/pr
 
 
 def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: bool, is_global: bool) -> ExitCode:
+    """Add the pipx bin directory to the user or global PATH.
+
+    :param force: rewrite PATH entries that already exist.
+    :param prepend: put the bin directory at the start of PATH.
+    :param all_shells: update the startup files of every shell.
+    :param dry_run: report the changes without writing them.
+    :param is_global: update the global PATH instead of the user PATH.
+    :returns: the exit code.
+    """
     if is_global:
-        written: Final[bool] = _ensure_global_path(paths.CTX.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
+        written: Final[bool] = _ensure_global_path(CTX.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
         print()  # ruff:ignore[print]  # user-facing CLI output
 
         if dry_run:
@@ -34,13 +43,13 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
             )
         elif written:
             print(  # ruff:ignore[print]  # user-facing CLI output
-                pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect.") + "\n"
+                pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect."), end="\n\n"
             )
 
         print(f"Otherwise pipx is ready to go! {STARS}")  # ruff:ignore[print]  # user-facing CLI output
         return EXIT_CODE_OK
 
-    bin_paths: Final[set[Path]] = {paths.CTX.bin_dir}
+    bin_paths: Final[set[Path]] = {CTX.bin_dir}
     if (pipx_user_bin_path := _get_pipx_user_bin_path()) is not None:
         bin_paths.add(pipx_user_bin_path)
 
@@ -66,8 +75,8 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
                 Consider adding shell completions for pipx. Run 'pipx
                 completions' for instructions.
                 """
-            )
-            + "\n"
+            ),
+            end="\n\n",
         )
     elif not need_shell_restart and all(userpath.in_current_path(str(bin_path)) for bin_path in bin_paths):
         sys.stdout.flush()
@@ -89,8 +98,8 @@ def ensure_pipx_paths(*, force: bool, prepend: bool, all_shells: bool, dry_run: 
                 changes to take effect. Alternatively, you can source your shell's
                 config file with e.g. 'source ~/.bashrc'.
                 """
-            )
-            + "\n"
+            ),
+            end="\n\n",
         )
 
     print(f"Otherwise pipx is ready to go! {STARS}")  # ruff:ignore[print]  # user-facing CLI output
@@ -176,6 +185,15 @@ def _get_pipx_user_bin_path() -> Path | None:
 
 
 def ensure_path(location: Path, *, force: bool, prepend: bool, all_shells: bool, dry_run: bool) -> tuple[bool, bool]:
+    """Add a directory to PATH in the user's shell startup files.
+
+    :param location: the directory to add.
+    :param force: rewrite PATH entries that already exist.
+    :param prepend: put the directory at the start of PATH.
+    :param all_shells: update the startup files of every shell.
+    :param dry_run: report the changes without writing them.
+    :returns: whether the PATH was changed, and whether the shell must restart to see the change.
+    """
     location_str: Final[str] = str(location)
     need_shell_restart: Final[bool] = userpath.need_shell_restart(location_str)
     in_current_path: Final[bool] = userpath.in_current_path(location_str)

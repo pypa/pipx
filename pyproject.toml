@@ -208,7 +208,7 @@ lint.per-file-ignores."tests/**/*.py" = [
   "too-many-arguments",                   # pytest injects each fixture as an argument
 ]
 lint.isort = { known-first-party = [
-  "helpers",
+  "harness",
   "package_info",
   "pipx",
 ], required-imports = [
@@ -300,3 +300,6 @@ matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_am
 # expires 2026-11-09
 # expires 2026-11-09
 packages.release-creator.uploaded-prior-to = 2026-11-02T21:45:00Z
+
+[tool.simplint]
+docstring-style = "rst"

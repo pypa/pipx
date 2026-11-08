@@ -9,13 +9,13 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.backends._base",
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.run_uv",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.redact",
     "pipx.requires_python",
     "pipx.script",
@@ -44,12 +44,11 @@ from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 from shutil import which
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final, NamedTuple, NoReturn
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.backends._base import UV
 from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
@@ -58,6 +57,7 @@ from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, download_script, local_script, read_script_metadata
@@ -81,7 +81,16 @@ _RUN_KEY_BYTES: Final[int] = 32
 
 
 def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
-    requirement_name: Final[str] = _requirement_name(app)
+    """Run an app from a package in a temporary or cached environment, replacing the current process.
+
+    :param app: the app name, or the requirement, script or URL that provides it.
+    :param options: the options of the run.
+    :param spec: the package spec to install, derived from the app when None.
+    """
+    try:
+        requirement_name = Requirement(app).name
+    except InvalidRequirement:
+        requirement_name = app
     package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
     # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
     # `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from the installed entry points
@@ -118,13 +127,6 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
         )
 
 
-def _requirement_name(app: str) -> str:
-    try:
-        return Requirement(app).name
-    except InvalidRequirement:
-        return app
-
-
 def _is_vcs_url(value: str) -> bool:
     vcs, separator, _ = urllib.parse.urlparse(value).scheme.partition("+")
     return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
@@ -140,6 +142,13 @@ def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
 
 
 def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
+    """Return the script that an app names, or None when the app is not a script.
+
+    :param app: the app name, a path or a URL.
+    :param is_path: whether the app was given as a path.
+    :returns: the script path, the script content for a named pipe, or None.
+    :raises PipxError: when a path does not exist, or a URL does not end with ``.py``.
+    """
     app_path: Final[Path] = Path(app)
     if not is_path:
         try:
@@ -392,20 +401,15 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     # digest leaves this function, so proxy URLs and tokens in the environment never reach the cache path or the logs.
     key: Final = json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
     # other accounts can list the cache, so an unkeyed digest would let them test guesses at a token against a name
-    digest: Final = (
-        hashlib.sha256(key) if (secret := _cache_secret()) is None else hmac.new(secret, key, hashlib.sha256)
-    )
-    return Path(paths.CTX.venv_cache) / digest.hexdigest()[:15]
-
-
-def _cache_secret() -> bytes | None:
-    secret_path: Final[Path] = Path(paths.CTX.venv_cache) / _RUN_KEY_FILENAME
+    secret_path: Final[Path] = Path(CTX.venv_cache) / _RUN_KEY_FILENAME
     try:
-        return _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
+        secret = _read_cache_secret(secret_path) or _write_cache_secret(secret_path)
     except OSError as error:
         # a cache pipx cannot write to can still serve the entries already in it, so name them the way it always did
         _LOGGER.debug("Cannot use %s (%s), so run cache names are not keyed with a secret", secret_path, error)
-        return None
+        secret = None
+    digest: Final = hashlib.sha256(key) if secret is None else hmac.new(secret, key, hashlib.sha256)
+    return Path(CTX.venv_cache) / digest.hexdigest()[:15]
 
 
 def _read_cache_secret(secret_path: Path) -> bytes | None:
@@ -475,11 +479,40 @@ def _running_uv_script_venv(venv: Venv, *, use_cache: bool, refresh: bool) -> Ge
         Path(running.lock_file).unlink(missing_ok=True)
 
 
+def _in_use(venv_dir: Path) -> bool:
+    from filelock import FileLock, Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
+    in_use = False
+    for lock_file in venv_dir.parent.glob(f".{venv_dir.name}.run-*.lock"):
+        lock = FileLock(lock_file)
+        try:
+            lock.acquire(timeout=0)
+        except Timeout:
+            in_use = True
+            continue
+        # the run that held it has ended or, on POSIX, handed its process over to uv
+        lock.release()
+        lock_file.unlink(missing_ok=True)
+    return in_use
+
+
+def _exec_script(
+    python_path: Path,
+    content: str | Path,
+    app_args: list[str],
+    python_args: list[str],
+) -> NoReturn:
+    if isinstance(content, Path):
+        exec_app([python_path, *python_args, content, *app_args])
+    else:
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
+
+
 @contextmanager
 def _locked_venv_cache(venv_dir: Path) -> Generator[None, None, None]:
     from filelock import Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
-    venv_container: Final[VenvContainer] = VenvContainer(paths.CTX.venv_cache)
+    venv_container: Final[VenvContainer] = VenvContainer(CTX.venv_cache)
     for cached_venv_dir in sorted(venv_container.iter_venv_dirs()):
         if cached_venv_dir == venv_dir:
             continue
@@ -510,23 +543,6 @@ def _remove_expired_venv(venv_dir: Path) -> None:
         rmdir(venv_dir)
 
 
-def _in_use(venv_dir: Path) -> bool:
-    from filelock import FileLock, Timeout  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
-
-    in_use = False
-    for lock_file in venv_dir.parent.glob(f".{venv_dir.name}.run-*.lock"):
-        lock = FileLock(lock_file)
-        try:
-            lock.acquire(timeout=0)
-        except Timeout:
-            in_use = True
-            continue
-        # the run that held it has ended or, on POSIX, handed its process over to uv
-        lock.release()
-        lock_file.unlink(missing_ok=True)
-    return in_use
-
-
 def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, refresh: bool) -> None:
     venv_dir: Final[Path] = venv.root
     if refresh and venv_dir.exists():
@@ -537,18 +553,6 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, r
         rmdir(venv_dir)
 
 
-def _exec_script(
-    python_path: Path,
-    content: str | Path,
-    app_args: list[str],
-    python_args: list[str],
-) -> NoReturn:
-    if isinstance(content, Path):
-        exec_app([python_path, *python_args, content, *app_args])
-    else:
-        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
-
-
 def run_package(
     app: str,
     package_or_url: str,
@@ -557,6 +561,15 @@ def run_package(
     infer_app_name: bool,
     resolved_backend: str,
 ) -> NoReturn:
+    """Run an app of a package in a temporary or cached environment, replacing the current process.
+
+    :param app: the app name.
+    :param package_or_url: the package spec or URL to install.
+    :param options: the options of the run.
+    :param infer_app_name: whether the app name is inferred from the package.
+    :param resolved_backend: the backend that installs the package.
+    :raises PipxError: when the app cannot run, such as with ``--pypackages`` and no local bin directory.
+    """
     if not options.no_path_check and (app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
@@ -633,7 +646,7 @@ def _prepare_venv(
     options: RunOptions,
     *,
     infer_app_name: bool,
-) -> tuple[Venv, str, str]:
+) -> _PreparedVenv:
     app, app_filename = app_names
     pip_args: Final[list[str]] = options.pip_args
     venv: Final[Venv] = Venv(venv_dir, python=options.python, verbose=options.verbose, backend=options.backend)
@@ -694,7 +707,13 @@ def _prepare_venv(
         # the next run's cache sweep removes a venv built without the cache
         (venv_dir / _VENV_EXPIRED_FILENAME).touch()
 
-    return venv, app, app_filename
+    return _PreparedVenv(venv, app, app_filename)
+
+
+class _PreparedVenv(NamedTuple):
+    venv: Venv
+    app: str
+    app_filename: str
 
 
 __all__ = [

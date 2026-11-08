@@ -33,10 +33,19 @@ from pipx.util import PipxError
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    #: The default Python, which the module ``__getattr__`` computes on first access.
     DEFAULT_PYTHON: str
 
 
 def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions) -> str:
+    """Find the interpreter for a Python version, fetching a standalone one when the options allow it.
+
+    :param python_version: the Python version or path to find.
+    :param fetch_python: when to fetch a standalone Python.
+    :returns: the path of the interpreter.
+    :raises InterpreterResolutionError: when no interpreter is found.
+    :raises PipxError: when fetching is always on and the version is not a bare Python version.
+    """
     if fetch_python == FetchPythonOptions.ALWAYS:
         if _has_path_separator(python_version) or Path(python_version).is_file():
             msg = (
@@ -59,9 +68,9 @@ def find_python_interpreter(python_version: str, fetch_python: FetchPythonOption
     try:
         if py_executable := find_py_launcher_python(python_version):
             return py_executable
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
         if fetch_python != FetchPythonOptions.MISSING:
-            raise InterpreterResolutionError(source="py launcher", version=python_version) from e
+            raise InterpreterResolutionError(source="py launcher", version=python_version) from error
 
     if fetch_python == FetchPythonOptions.MISSING:
         return _fetch_standalone_interpreter(python_version)
@@ -78,37 +87,10 @@ def _fetch_standalone_interpreter(python_version: str) -> str:
 
     try:
         return standalone_python.download_python_build_standalone(python_version)
-    except PipxError as e:
-        raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
-
-
-class InterpreterResolutionError(PipxError):
-    def __init__(self, source: str, version: str) -> None:
-        message = (
-            f"No executable for the provided Python version '{version}' found in {source}."
-            " Check that the provided version is "
-        )
-        match source:
-            case "py launcher":
-                message += "listed when running `py --list`."
-            case "PATH":
-                message += "on your PATH or the file path is valid. "
-                if "/" in version:
-                    message += "The provided version looks like a path, but no executable was found there."
-                elif "python" not in version:
-                    message += (
-                        "The provided version looks like a version, "
-                        "but neither the python command nor the Python Launcher is on PATH."
-                    )
-            case "the python-build-standalone project":
-                message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
-            case "PIPX_DEFAULT_PYTHON":
-                message += (
-                    "on your PATH or the file path is valid. "
-                    "Try setting it to an executable name (e.g. python3.10) "
-                    "or a full path (e.g. /usr/bin/python3.10)."
-                )
-        super().__init__(message)
+    except PipxError as error:
+        raise InterpreterResolutionError(
+            source="the python-build-standalone project", version=python_version
+        ) from error
 
 
 def _find_unix_command_python(python_version: str) -> str | None:
@@ -147,6 +129,11 @@ def _find_unix_command_python(python_version: str) -> str | None:
 
 
 def find_py_launcher_python(python_version: str | None = None) -> str | None:
+    """Return the path of the py launcher when it can find the requested Python version.
+
+    :param python_version: the Python version to look for, or None to accept any version.
+    :returns: the path of the launcher, or None when it cannot provide the version.
+    """
     py = shutil.which("py")
     if py and python_version:
         python_semver = python_version
@@ -158,7 +145,14 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
         # the Unix launcher reads only -X and -X.Y as a version and hands any other flag to the first interpreter its
         # search finds, which can be a .venv in a parent directory; see Action::from_main and venv_path_search in
         # https://github.com/brettcannon/python-launcher/blob/3c9f207c07d5fed612b04dbf2980f67d40aa24b3/src/cli.rs
-        if not WINDOWS and not re.fullmatch(r"[0-9]+(\.[0-9]+)?", python_semver):
+        if not WINDOWS and not re.fullmatch(
+            r"""
+            [0-9]+        # major version
+            (?:\.[0-9]+)?  # optional minor version
+            """,
+            python_semver,
+            re.VERBOSE,
+        ):
             return None
         py = subprocess.run(
             [py, f"-{python_semver}", "-c", "import sys; print(sys.executable)"],
@@ -169,11 +163,50 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
     return py
 
 
+class InterpreterResolutionError(PipxError):
+    """Error raised when no interpreter matches a Python version.
+
+    :param source: where the search looked.
+    :param version: the Python version that was searched for.
+    """
+
+    def __init__(self, source: str, version: str) -> None:
+        message = (
+            f"No executable for the provided Python version '{version}' found in {source}."
+            " Check that the provided version is "
+        )
+        match source:
+            case "py launcher":
+                message += "listed when running `py --list`."
+            case "PATH":
+                message += "on your PATH or the file path is valid. "
+                if "/" in version:
+                    message += "The provided version looks like a path, but no executable was found there."
+                elif "python" not in version:
+                    message += (
+                        "The provided version looks like a version, "
+                        "but neither the python command nor the Python Launcher is on PATH."
+                    )
+            case "the python-build-standalone project":
+                message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
+            case "PIPX_DEFAULT_PYTHON":
+                message += (
+                    "on your PATH or the file path is valid. "
+                    "Try setting it to an executable name (e.g. python3.10) "
+                    "or a full path (e.g. /usr/bin/python3.10)."
+                )
+        super().__init__(message)
+
+
 def get_default_python_spec() -> str:
+    """Return the Python spec that new environments use by default.
+
+    :returns: the spec, from ``PIPX_DEFAULT_PYTHON`` or the running interpreter.
+    """
     return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
 
 
-def __getattr__(name: str) -> object:
+def __getattr__(name: str) -> str:
     if name == "DEFAULT_PYTHON":
         return get_default_python()
     msg = f"module {__name__!r} has no attribute {name!r}"
@@ -182,15 +215,15 @@ def __getattr__(name: str) -> object:
 
 @cache
 def get_default_python() -> str:
+    """Return the path of the default Python interpreter.
+
+    :returns: the path of the interpreter.
+    """
     if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
-        return _get_sys_executable()
+        if WINDOWS:
+            return _find_default_windows_python()
+        return str(Path(sys.executable).resolve())
     return _resolve_python(python)
-
-
-def _get_sys_executable() -> str:
-    if WINDOWS:
-        return _find_default_windows_python()
-    return str(Path(sys.executable).resolve())
 
 
 def _find_default_windows_python() -> str:
@@ -214,6 +247,10 @@ def _find_default_windows_python() -> str:
 
 
 def has_venv() -> bool:
+    """Return whether the running Python ships the ``venv`` module.
+
+    :returns: whether the module is available.
+    """
     return find_spec("venv") is not None
 
 
@@ -229,6 +266,11 @@ def _resolve_python(python: str) -> str:
 
 
 def recordable_interpreter(python: Path) -> Path | None:
+    """Return the interpreter to record for an environment, resolving a virtual environment to the one it was made from.
+
+    :param python: the interpreter the environment was created with.
+    :returns: the interpreter to record, or None when the base interpreter cannot be found.
+    """
     # an interpreter inside a virtual environment, such as an activated bootstrap's python3, goes away with that
     # environment, and whoever creates the path again decides what install-all runs from a snapshot; the new
     # environment runs on the base interpreter instead
@@ -244,6 +286,11 @@ def recordable_interpreter(python: Path) -> Path | None:
 
 
 def read_pyvenv_cfg(pyvenv_cfg: Path) -> dict[str, str]:
+    """Read the keys of a ``pyvenv.cfg`` file.
+
+    :param pyvenv_cfg: the file to read.
+    :returns: the keys and values, empty when the file cannot be read.
+    """
     config: Final[ConfigParser] = ConfigParser()
     try:
         # pyvenv.cfg has no section header, which ConfigParser requires

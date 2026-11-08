@@ -10,12 +10,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli, write_import_probe
+from harness import SKIP_IF_WINDOWS, run_pipx_cli, write_import_probe
 from package_info import PKG
-from pipx import paths, trash
 from pipx.commands import transaction
 from pipx.commands.transaction import VenvBackup, preserve_venv
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.trash import rmdir
 from pipx.util import PipxError
 from pipx.venv import VenvContainer
 
@@ -27,8 +28,8 @@ if TYPE_CHECKING:
 
 def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace(venv_dir: Path) -> None:
     with preserve_venv(venv_dir, enabled=True):
-        siblings: Final[set[str]] = {path.name for path in paths.CTX.venvs.iterdir() if path.is_dir()}
-        backups: Final[list[Path]] = [path for path in paths.CTX.trash.iterdir() if path.is_dir()]
+        siblings: Final[set[str]] = {path.name for path in CTX.venvs.iterdir() if path.is_dir()}
+        backups: Final[list[Path]] = [path for path in CTX.trash.iterdir() if path.is_dir()]
 
     assert (siblings, len(backups)) == ({"demo"}, 1)
 
@@ -37,7 +38,7 @@ def test_preserve_venv_keeps_the_backup_out_of_the_venv_namespace(venv_dir: Path
 def venv_dir(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
 ) -> Path:
-    venv_dir: Final[Path] = paths.CTX.venvs / "demo"
+    venv_dir: Final[Path] = CTX.venvs / "demo"
     venv_dir.mkdir(parents=True)
     (venv_dir / "marker").write_text("v1", encoding="utf-8")
     return venv_dir
@@ -74,7 +75,7 @@ def test_preserve_venv_without_upfront_copy_discards_the_removed_venv_on_success
         backup.remove_venv()
         venv_dir.mkdir()
 
-    assert (list(venv_dir.iterdir()), [path for path in paths.CTX.trash.iterdir() if path.is_dir()]) == ([], [])
+    assert (list(venv_dir.iterdir()), [path for path in CTX.trash.iterdir() if path.is_dir()]) == ([], [])
 
 
 @pytest.mark.usefixtures("signal_handlers")
@@ -88,7 +89,7 @@ def test_preserve_venv_finishes_the_restore_through_an_interrupt(venv_dir: Path,
 
 
 def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
-    trash.rmdir(path, safe_rm=safe_rm)
+    rmdir(path, safe_rm=safe_rm)
     signal.raise_signal(signal.SIGINT)
 
 
@@ -120,7 +121,7 @@ def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: 
 
     with preserve_venv(venv_dir, enabled=True, copy_upfront=False) as backup:
         backup.remove_venv()
-        moved: Final[list[str]] = [(path / "marker").read_text(encoding="utf-8") for path in paths.CTX.trash.iterdir()]
+        moved: Final[list[str]] = [(path / "marker").read_text(encoding="utf-8") for path in CTX.trash.iterdir()]
 
     assert (venv_dir.exists(), moved, attempts) == (False, ["v1"], [venv_dir, venv_dir])
 
@@ -168,7 +169,7 @@ def _venv_lock_held_elsewhere(venv_dir: Path) -> Generator[None]:
     held, release = Event(), Event()
 
     def hold() -> None:
-        with VenvContainer(paths.CTX.venvs).venv_lock(venv_dir):
+        with VenvContainer(CTX.venvs).venv_lock(venv_dir):
             held.set()
             release.wait()
 
@@ -183,16 +184,16 @@ def _venv_lock_held_elsewhere(venv_dir: Path) -> Generator[None]:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_setup_sweeps_trash_entries_no_command_holds() -> None:
-    paths.CTX.trash.mkdir(parents=True)
+    CTX.trash.mkdir(parents=True)
     for name in ("demo-abcd1234-pipx-backup", "demo-abcd1234-pipx-reinstall", "pipx-trash.app"):
-        (paths.CTX.trash / name).mkdir()
+        (CTX.trash / name).mkdir()
         # the lock a pipx that imported from its copy leaves behind once it exits
-        (paths.CTX.trash / name / "pipx_in_use.lock").touch()
-    (paths.CTX.trash / "pipx-trash.app.exe").touch()
+        (CTX.trash / name / "pipx_in_use.lock").touch()
+    (CTX.trash / "pipx-trash.app.exe").touch()
 
     run_pipx_cli(["list"])
 
-    assert list(paths.CTX.trash.glob("*")) == []
+    assert list(CTX.trash.glob("*")) == []
 
 
 @SKIP_IF_WINDOWS
@@ -200,8 +201,8 @@ def test_setup_sweeps_trash_entries_no_command_holds() -> None:
 def test_setup_leaves_the_target_of_a_symlinked_trash(tmp_path: Path) -> None:
     (target := tmp_path / "elsewhere").mkdir()
     (target / "file").touch()
-    paths.CTX.trash.parent.mkdir(parents=True, exist_ok=True)
-    paths.CTX.trash.symlink_to(target)
+    CTX.trash.parent.mkdir(parents=True, exist_ok=True)
+    CTX.trash.symlink_to(target)
 
     run_pipx_cli(["list"])
 
@@ -223,7 +224,7 @@ def test_self_change_imports_submodules_of_the_running_version(
     run_from_venv: Callable[[Path], None], package: str, command: list[str]
 ) -> None:
     assert not run_pipx_cli(["install", package])
-    venv_dir: Final[Path] = paths.CTX.venvs / package.partition("==")[0]
+    venv_dir: Final[Path] = CTX.venvs / package.partition("==")[0]
     run_from_venv(venv_dir)
 
     assert not run_pipx_cli(command)
@@ -237,7 +238,7 @@ def test_self_upgrade_failure_imports_from_the_restored_venv(
     run_from_venv: Callable[[Path], None], tmp_path: Path
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    venv_dir: Final[Path] = paths.CTX.venvs / "pycowsay"
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
     run_from_venv(venv_dir)
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
     metadata.main_package = replace(metadata.main_package, package_or_url=str(tmp_path / "missing"))
@@ -257,7 +258,7 @@ def test_self_change_keeps_its_copy_through_a_later_trash_sweep(
     run_from_venv: Callable[[Path], None], command: list[str]
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    run_from_venv(paths.CTX.venvs / "pycowsay")
+    run_from_venv(CTX.venvs / "pycowsay")
     assert not run_pipx_cli(command)
 
     # another pipx run sweeps the trash once the command above released the venv lock

@@ -20,7 +20,15 @@ from packaging.utils import canonicalize_name
 from pipx.constants import ExitCode
 from pipx.options import OutdatedOptions
 from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
-from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import (
+    JsonValue,
+    OperationData,
+    OperationError,
+    OperationResult,
+    OutputLevel,
+    OutputMessage,
+    OutputStream,
+)
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -37,6 +45,13 @@ def list_outdated(
     *,
     include_injected: bool,
 ) -> OperationResult[OutdatedData]:
+    """List the packages of the given environments that have a newer version.
+
+    :param venv_container: the container of the environments.
+    :param venv_dirs: the directories of the environments to check.
+    :param include_injected: whether to check the injected packages too.
+    :returns: the result listing the outdated packages.
+    """
     data: Final[OutdatedData] = inspect_outdated(
         venv_container, OutdatedOptions(include_injected=include_injected), venv_dirs=venv_dirs
     )
@@ -75,6 +90,13 @@ def list_outdated(
 def inspect_outdated(
     venv_container: VenvContainer, options: OutdatedOptions, *, venv_dirs: Collection[Path] | None = None
 ) -> OutdatedData:
+    """Find the environments and packages that have a newer version.
+
+    :param venv_container: the container of the environments.
+    :param options: the options of the check.
+    :param venv_dirs: the directories of the environments to check, all of them when None.
+    :returns: the outdated packages, the skipped packages and the environments that failed the check.
+    """
     selected_venv_dirs: Final[tuple[Path, ...]] = tuple(
         sorted(
             venv_dir
@@ -264,15 +286,27 @@ class _EnvironmentOutdated:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedData(OperationData):
+    """Result data of the outdated command.
+
+    :ivar packages_checked: the number of packages that were checked.
+    :ivar packages: the packages that are outdated.
+    :ivar skipped: the packages that were skipped, with the reason.
+    :ivar failures: the environments that could not be checked.
+    """
+
     packages_checked: int
     packages: tuple[_OutdatedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]
     failures: tuple[_FailedEnvironment, ...]
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> dict[str, JsonValue]:
+        """Return the result data without the failures, which the JSON output omits.
+
+        :returns: the result data as a dictionary.
+        """
         # the envelope reports failures as top-level errors, and upgrade still reads the field; the base is named
         # because a slots dataclass breaks zero-argument super() before Python 3.14
-        data: Final[dict[str, object]] = OperationData.to_dict(self)
+        data: Final[dict[str, JsonValue]] = OperationData.to_dict(self)
         del data["failures"]
         return data
 

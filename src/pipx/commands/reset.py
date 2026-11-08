@@ -1,15 +1,22 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["contextlib", "pipx", "pipx.commands.common", "pipx.commands.uninstall", "pipx.trash", "pipx.venv"]
+__lazy_modules__ = [
+    "contextlib",
+    "pipx.commands.common",
+    "pipx.commands.uninstall",
+    "pipx.paths",
+    "pipx.trash",
+    "pipx.venv",
+]
 
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.commands.common import get_venv_package_infos, get_venv_resource_paths
 from pipx.commands.uninstall import UninstallData, uninstall_all
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
 from pipx.trash import rmdir
 from pipx.venv import Venv
@@ -28,7 +35,27 @@ def reset(
     verbose: bool,
     dry_run: bool,
 ) -> OperationResult[ResetData]:
-    targets: Final[tuple[Path, ...]] = _reset_targets()
+    """Remove every environment, exposed resource and cached file that pipx manages.
+
+    :param venv_container: the container of the environments.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the reset.
+    :param dry_run: list what would be removed without removing it.
+    :returns: the result listing the packages and the paths removed.
+    """
+    targets: Final[tuple[Path, ...]] = tuple(
+        target
+        for target in (
+            CTX.venvs,
+            CTX.shared_libs,
+            CTX.venv_cache,
+            CTX.standalone_python_cachedir,
+            CTX.logs,
+            CTX.trash,
+        )
+        if target.is_dir()
+    )
     if dry_run:
         # the exposed apps, manual pages, and completions live outside the pipx home, so list them too or the dry run
         # understates what a real reset unlinks
@@ -60,24 +87,9 @@ def reset(
         ),
         messages=(
             *uninstalled.messages,
-            OutputMessage(text=f"pipx is back to a fresh install under {paths.CTX.home}.", stream=OutputStream.STDOUT),
+            OutputMessage(text=f"pipx is back to a fresh install under {CTX.home}.", stream=OutputStream.STDOUT),
         ),
         exit_code=uninstalled.exit_code,
-    )
-
-
-def _reset_targets() -> tuple[Path, ...]:
-    return tuple(
-        target
-        for target in (
-            paths.CTX.venvs,
-            paths.CTX.shared_libs,
-            paths.CTX.venv_cache,
-            paths.CTX.standalone_python_cachedir,
-            paths.CTX.logs,
-            paths.CTX.trash,
-        )
-        if target.is_dir()
     )
 
 
@@ -97,7 +109,7 @@ def _exposed_resource_paths(
             exposed |= get_venv_resource_paths(
                 "completion",
                 venv.man_path.parent / completion_section,
-                paths.CTX.completion_dir / completion_section,
+                CTX.completion_dir / completion_section,
                 package_infos,
             )
     return tuple(sorted(exposed))
@@ -105,28 +117,30 @@ def _exposed_resource_paths(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ResetData(OperationData):
+    """Result data of the reset command.
+
+    :ivar packages: the names of the packages whose environments were reset.
+    :ivar removed: the names of the directories that were removed.
+    """
+
     packages: tuple[str, ...]
     removed: tuple[str, ...]
 
 
 def _remove(target: Path) -> bool:
-    if target == paths.CTX.logs:
-        _clear_logs(target)
+    if target == CTX.logs:
+        # this command logs into one of these files, and Windows refuses to unlink a file it holds open
+        for entry in target.iterdir():
+            if entry == CTX.log_file:
+                continue
+            if entry.is_dir():
+                rmdir(entry, safe_rm=False)
+            else:
+                with suppress(OSError):
+                    entry.unlink()
         return True
     rmdir(target, safe_rm=False)
     return not target.is_dir()
-
-
-def _clear_logs(logs: Path) -> None:
-    # this command logs into one of these files, and Windows refuses to unlink a file it holds open
-    for entry in logs.iterdir():
-        if entry == paths.CTX.log_file:
-            continue
-        if entry.is_dir():
-            rmdir(entry, safe_rm=False)
-        else:
-            with suppress(OSError):
-                entry.unlink()
 
 
 __all__ = [

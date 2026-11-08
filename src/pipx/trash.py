@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "random", "shutil", "string"]
+__lazy_modules__ = ["pathlib", "pipx.paths", "random", "shutil", "string"]
 
 import logging
 import random
@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -19,7 +19,32 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
+def rmdir_via_trash(path: Path) -> None:
+    """Remove a directory by moving it to the trash, or by deleting it when the move fails.
+
+    :param path: the directory to remove.
+    """
+    # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
+    try:
+        path.rename(trash := _get_trash_file(path))
+    except OSError:
+        rmdir(path)
+    else:
+        rmdir(trash)
+
+
+def _get_trash_file(path: Path) -> Path:
+    CTX.trash.mkdir(exist_ok=True)
+    prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
+    return CTX.trash / f"{prefix}.{path.name}"
+
+
 def rmdir(path: Path, *, safe_rm: bool = True) -> None:
+    """Remove a directory and its contents.
+
+    :param path: the directory to remove, nothing happens when it is not a directory.
+    :param safe_rm: move the directory to the trash when it cannot be deleted, instead of only warning.
+    """
     if not path.is_dir():
         return
 
@@ -40,23 +65,11 @@ def rmdir(path: Path, *, safe_rm: bool = True) -> None:
             _LOGGER.warning("Failed to delete %s. You may need to delete it manually.", path)
 
 
-def _get_trash_file(path: Path) -> Path:
-    paths.CTX.trash.mkdir(exist_ok=True)
-    prefix: Final[str] = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
-    return paths.CTX.trash / f"{prefix}.{path.name}"
-
-
-def rmdir_via_trash(path: Path) -> None:
-    # a removal killed halfway leaves the directory whole or gone from its parent, never partly deleted in place
-    try:
-        path.rename(trash := _get_trash_file(path))
-    except OSError:
-        rmdir(path)
-    else:
-        rmdir(trash)
-
-
 def safe_unlink(file: Path) -> None:
+    """Remove a file or a link, moving it to the trash when Windows keeps it open.
+
+    :param file: the file or link to remove, nothing happens when it does not exist.
+    """
     if not file.is_file() and not file.is_symlink():
         return
     try:
@@ -68,9 +81,23 @@ def safe_unlink(file: Path) -> None:
 
 @contextmanager
 def running_launcher_moved_aside(scripts_dir: Path) -> Generator[None]:
+    """Move a running launcher out of the way for the enclosed block, and restore it after.
+
+    :param scripts_dir: the directory of the scripts that the block rewrites.
+    :yields: nothing, while the enclosed block runs.
+    """
     # Windows lets a running file be renamed but not deleted, so the launcher this pipx started from waits in the trash
     # while an installer that deletes files in place rewrites the scripts directory
-    if (launcher := _running_launcher(scripts_dir)) is None:
+    # the Windows launcher passes its own path, without the .exe suffix, to Python as the script name
+    launcher: Final[Path | None] = next(
+        (
+            candidate.resolve()
+            for candidate in (Path(sys.argv[0]), Path(f"{sys.argv[0]}.exe"))
+            if candidate.is_file() and candidate.resolve().parent == scripts_dir.resolve()
+        ),
+        None,
+    )
+    if launcher is None:
         yield
         return
     aside: Final[Path] = _get_trash_file(launcher)
@@ -86,14 +113,6 @@ def running_launcher_moved_aside(scripts_dir: Path) -> Generator[None]:
         # the installer had nothing to replace, or failed before writing the new launcher
         if not launcher.exists():
             aside.rename(launcher)
-
-
-def _running_launcher(scripts_dir: Path) -> Path | None:
-    # the Windows launcher passes its own path, without the .exe suffix, to Python as the script name
-    for candidate in (Path(sys.argv[0]), Path(f"{sys.argv[0]}.exe")):
-        if candidate.is_file() and (launcher := candidate.resolve()).parent == scripts_dir.resolve():
-            return launcher
-    return None
 
 
 __all__ = [

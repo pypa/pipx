@@ -8,8 +8,12 @@ from docutils.writers.manpage import Writer
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
-class CustomBuildHook(BuildHookInterface):
-    def initialize(self, version: str, build_data: dict[str, object]) -> None:
+class _CustomBuildHook(BuildHookInterface):
+    def initialize(
+        self,
+        version: str,
+        build_data: dict[str, object],  # simplint: ignore[SMP602]  # hatchling's base type is Any
+    ) -> None:
         del version, build_data
         if self.target_name != "wheel":
             return
@@ -24,6 +28,4 @@ class CustomBuildHook(BuildHookInterface):
         (output / "pipx.1").write_bytes(publish_string(source, writer=Writer(), settings_overrides={"report_level": 5}))
 
 
-__all__ = [
-    "CustomBuildHook",
-]
+__all__ = []

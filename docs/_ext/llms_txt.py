@@ -109,10 +109,6 @@ def _render_curated(titles: dict[str, str], grouped: dict[str, list[str]], proje
     return "".join(f"{line}\n" for line in lines)
 
 
-class _Link(Protocol):
-    def __call__(self, docname: str, label: str | None = None) -> str: ...
-
-
 def _render_full(titles: dict[str, str], grouped: dict[str, list[str]], project_summary: str, link: _Link) -> str:
     lines: Final[list[str]] = [
         f"# {titles.get('index', 'pipx')} — full documentation map",
@@ -128,3 +124,7 @@ def _render_full(titles: dict[str, str], grouped: dict[str, list[str]], project_
         if pages := grouped[key]:
             lines.extend(["", f"## {heading}", *[link(docname) for docname in pages]])
     return "".join(f"{line}\n" for line in lines)
+
+
+class _Link(Protocol):
+    def __call__(self, docname: str, label: str | None = None) -> str: ...

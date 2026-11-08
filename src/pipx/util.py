@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # simplint: ignore[SMP104]  # public module with __all__; renaming breaks importers
 
 __lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
 
@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from pipx.constants import MINGW, WINDOWS
 from pipx.redact import redact_url_credentials
@@ -19,6 +19,14 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class PipxError(Exception):
+    """Error that a pipx command reports to the user.
+
+    :param message: the message to show.
+    :param wrap_message: wrap the message to the width of the terminal.
+    :param backend_output: the output of pip or uv, which a result envelope carries when the terminal already showed it.
+    :ivar raw_message: the message as given, without wrapping.
+    """
+
     def __init__(self, message: str, *, wrap_message: bool = True, backend_output: str = "") -> None:
         self.raw_message: Final[str] = message
         # what pip or uv said, for a result envelope to carry when the terminal already showed it live
@@ -27,12 +35,21 @@ class PipxError(Exception):
 
 
 class InstalledNameMismatchError(PipxError):
+    """Error raised when an installed package has a name other than the one that was requested.
+
+    :param installed_name: the name the installed package has.
+    """
+
     def __init__(self, installed_name: str) -> None:
         self.installed_name: Final[str] = installed_name
         super().__init__(f"The package spec installed {installed_name!r}, a different name than expected.")
 
 
 def mkdir(path: Path) -> None:
+    """Create a directory and its parents, unless it exists already.
+
+    :param path: the directory to create.
+    """
     if path.is_dir():
         return
     _LOGGER.info("creating directory %s", path)
@@ -40,42 +57,92 @@ def mkdir(path: Path) -> None:
 
 
 def get_pypackage_bin_path(binary_name: str) -> Path:
+    """Return the path of a binary in a ``__pypackages__`` directory for the running Python version.
+
+    :param binary_name: the file name of the binary, without a directory.
+    :returns: the path of the binary.
+    """
     return Path("__pypackages__") / f"{sys.version_info.major}.{sys.version_info.minor}" / "lib" / "bin" / binary_name
 
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> VenvPaths:
+        """Return the bin directory, the interpreter and the man directory of a virtual environment.
+
+        :param root: the directory of the virtual environment.
+        :returns: the three paths.
+        """
         # the Microsoft Store Python redirects paths for sandboxing, so work from the real root:
         # https://github.com/pypa/pipx/issues/1164
         real_root: Final[Path] = root.resolve()
         bin_path: Final[Path] = real_root / ("bin" if MINGW else "Scripts")
-        return bin_path, bin_path / "python.exe", real_root / "share" / "man"
+        return VenvPaths(bin_path, bin_path / "python.exe", real_root / "share" / "man")
 
 else:
 
-    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> VenvPaths:
+        """Return the bin directory, the interpreter and the man directory of a virtual environment.
+
+        :param root: the directory of the virtual environment.
+        :returns: the three paths.
+        """
         bin_path: Final[Path] = root / "bin"
-        return bin_path, bin_path / "python", root / "share" / "man"
+        return VenvPaths(bin_path, bin_path / "python", root / "share" / "man")
+
+
+class VenvPaths(NamedTuple):
+    """The directories and the interpreter of a virtual environment.
+
+    :param bin_path: the bin directory.
+    :param python_path: the interpreter.
+    :param man_path: the man directory.
+    """
+
+    bin_path: Path
+    python_path: Path
+    man_path: Path
 
 
 def open_owner_only(path: str | os.PathLike[str], flags: int) -> int:
+    """Open a file that only its owner can read.
+
+    :param path: the file to open.
+    :param flags: the flags to open the file with, as for ``os.open``.
+    :returns: the file descriptor.
+    """
     # logs record command lines that can carry secrets, and a global store keeps them under a world-readable /opt/pipx
     return os.open(path, flags, 0o600)
 
 
 def full_package_description(package_name: str, package_spec: str) -> str:
+    """Describe a package for the user, with the credentials in its spec redacted.
+
+    :param package_name: the package name, compared with the spec to decide whether to show both.
+    :param package_spec: the spec the package was installed from.
+    :returns: the description.
+    """
     if package_name == package_spec:
         return redact_url_credentials(package_name)
     return f"{package_name} from spec {redact_url_credentials(package_spec)!r}"
 
 
 def is_file_name(name: str) -> bool:
+    """Return whether a name is a plain file name, which stays inside the directory it is joined to.
+
+    :param name: the name to check.
+    :returns: whether the name is a plain file name.
+    """
     # joined to a directory, ".." names its parent and a separator or a drive leads anywhere
     return name not in {"", ".."} and Path(name).name == name
 
 
 def reject_empty_index(pip_args: Sequence[str]) -> None:
+    """Refuse an index argument that has no value.
+
+    :param pip_args: the arguments to check.
+    :raises PipxError: when an index option has an empty value.
+    """
     # an empty value usually comes from an unset variable, as in --index-url "$INDEX_URL", and uv reads it as the
     # default index
     for position, argument in enumerate(pip_args):
@@ -92,6 +159,7 @@ def reject_empty_index(pip_args: Sequence[str]) -> None:
 __all__ = [
     "InstalledNameMismatchError",
     "PipxError",
+    "VenvPaths",
     "full_package_description",
     "get_pypackage_bin_path",
     "get_venv_paths",

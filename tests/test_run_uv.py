@@ -7,23 +7,22 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
-from pipx import paths, subprocess_runner
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
 from pipx.constants import FetchPythonOptions
 from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
+from pipx.subprocess_runner import exec_app
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from unittest.mock import MagicMock
-
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.fixture
 def fake_uv(mocker: MockerFixture) -> Path:
     binary: Final[Path] = Path("/opt/uv/bin/uv")
-    mocker.patch("pipx.commands.run_uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.commands.run_uv.resolve_uv_binary", return_value=binary, autospec=True)
     return binary
 
 
@@ -60,8 +59,8 @@ def script_run(tmp_path: Path) -> partial[NoReturn]:
 
 
 @pytest.fixture
-def exec_mock(mocker: MockerFixture) -> MagicMock:
-    mocked_exec: Final[MagicMock] = mocker.create_autospec(subprocess_runner.exec_app, side_effect=RuntimeError("exec"))
+def exec_mock(mocker: MockerFixture) -> MockType:
+    mocked_exec: Final[MockType] = mocker.create_autospec(exec_app, side_effect=RuntimeError("exec"))
     mocker.patch("pipx.commands.run_uv.exec_app", new=mocked_exec)
     return mocked_exec
 
@@ -74,7 +73,7 @@ def exec_mock(mocker: MockerFixture) -> MagicMock:
     ],
 )
 def test_run_via_uv_tool_run_basic(
-    exec_mock: MagicMock,
+    exec_mock: MockType,
     fake_uv: Path,
     tool_run: partial[NoReturn],
     cooldown_days: int | None,
@@ -104,7 +103,7 @@ def test_run_via_uv_tool_run_basic(
 
 
 @pytest.mark.usefixtures("tool_run")
-def test_run_via_uv_tool_run_threads_spec_and_with(exec_mock: MagicMock, fake_uv: Path) -> None:
+def test_run_via_uv_tool_run_threads_spec_and_with(exec_mock: MockType, fake_uv: Path) -> None:
     with pytest.raises(RuntimeError, match="exec"):
         run_via_uv_tool_run(
             "rope",
@@ -144,9 +143,7 @@ def test_run_via_uv_tool_run_threads_spec_and_with(exec_mock: MagicMock, fake_uv
 
 
 @pytest.mark.usefixtures("fake_uv")
-def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
-    exec_mock: MagicMock, tool_run: partial[NoReturn]
-) -> None:
+def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(exec_mock: MockType, tool_run: partial[NoReturn]) -> None:
     with pytest.raises(RuntimeError, match="exec"):
         tool_run(_RUN_OPTIONS)
 
@@ -154,7 +151,7 @@ def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
 
 
 @pytest.mark.usefixtures("fake_uv")
-def test_run_via_uv_tool_run_refreshes_cache(exec_mock: MagicMock, tool_run: partial[NoReturn]) -> None:
+def test_run_via_uv_tool_run_refreshes_cache(exec_mock: MockType, tool_run: partial[NoReturn]) -> None:
     with pytest.raises(RuntimeError, match="exec"):
         tool_run(replace(_RUN_OPTIONS, refresh=True))
 
@@ -169,7 +166,7 @@ def test_run_via_uv_tool_run_refreshes_cache(exec_mock: MagicMock, tool_run: par
     ],
 )
 def test_run_script_via_uv_run_uses_uv_run_script(
-    exec_mock: MagicMock,
+    exec_mock: MockType,
     fake_uv: Path,
     script_run: partial[NoReturn],
     cooldown_days: int | None,
@@ -191,7 +188,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
         "--active",
         "--script",
         "--project",
-        str(paths.CTX.home),
+        str(CTX.home),
         "--python",
         "python3.12",
         *cooldown_args,
@@ -201,7 +198,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
 
 
 @pytest.mark.usefixtures("fake_uv")
-def test_run_script_via_uv_run_refreshes_cache(exec_mock: MagicMock, script_run: partial[NoReturn]) -> None:
+def test_run_script_via_uv_run_refreshes_cache(exec_mock: MockType, script_run: partial[NoReturn]) -> None:
     with pytest.raises(RuntimeError, match="exec"):
         script_run(replace(_RUN_OPTIONS, refresh=True))
 

@@ -9,13 +9,13 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Protocol, TypedDict
+from typing import TYPE_CHECKING, Final, NamedTuple, Protocol, TypedDict
 
 import pytest
 from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
-from helpers import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, current_log_file, run_pipx_cli
 from package_info import PKG
 from pipx import main, paths
 from pipx.backends import registry
@@ -29,18 +29,18 @@ from pipx.main import (
     prog_name,
 )
 from pipx.options import BackendOptions
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
 from pipx.version import version
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
-_ROOT: Final = Path(__file__).parents[1]
-_MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
+_ROOT: Final[Path] = Path(__file__).parents[1]
+_MANPAGE_RST: Final[Path] = _ROOT / "docs" / "man" / "pipx.1.rst"
 _SKIP_WITHOUT_PERMISSIONS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     sys.platform == "win32" or os.geteuid() == 0, reason="needs POSIX permissions that bind the current user"
 )
@@ -48,9 +48,9 @@ _ENVIRONMENT_VALUE: Final[list[str]] = ["environment", "--value", "PIPX_HOME"]
 
 
 @pytest.fixture
-def exit_early(mocker: MockerFixture) -> MagicMock:
+def exit_early(mocker: MockerFixture) -> MockType:
     # the real sys.exit would end the test run, so raise instead and let each test catch it
-    return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"))
+    return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"), autospec=True)
 
 
 @pytest.mark.parametrize(
@@ -61,7 +61,7 @@ def exit_early(mocker: MockerFixture) -> MagicMock:
         pytest.param(["help", "install"], "usage: pipx install", id="help-for-subcommand"),
     ],
 )
-def test_help_text(exit_early: MagicMock, capsys: pytest.CaptureFixture[str], argv: list[str], expected: str) -> None:
+def test_help_text(exit_early: MockType, capsys: pytest.CaptureFixture[str], argv: list[str], expected: str) -> None:
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(argv)
 
@@ -69,7 +69,7 @@ def test_help_text(exit_early: MagicMock, capsys: pytest.CaptureFixture[str], ar
     assert expected in capsys.readouterr().out
 
 
-def test_version(exit_early: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+def test_version(exit_early: MockType, capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["--version"])
 
@@ -430,8 +430,8 @@ def test_get_pip_args_keeps_non_empty_index_in_pip_args(pip_args: str) -> None:
     assert get_pip_args(argparse.Namespace(pip_args=pip_args)) == pip_args.split()
 
 
-_LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
-_GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
+_LOCAL: Final[pytest.ParameterSet] = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
+_GLOBAL: Final[pytest.ParameterSet] = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
 
 
 @_SKIP_WITHOUT_PERMISSIONS
@@ -480,7 +480,7 @@ def locked_home(
     mocker.patch("platformdirs.user_log_path", autospec=True, return_value=tmp_path / "logs")
     (locked := tmp_path / "locked").mkdir(mode=0o500)
     monkeypatch.setattr(paths, request.param, home := locked / "pipx")
-    paths.CTX.make_local()
+    CTX.make_local()
     yield home
     locked.chmod(0o700)
 
@@ -509,16 +509,6 @@ class _Envelope(TypedDict):
     errors: list[dict[str, str | None]]
 
 
-def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None]]:
-    document: Final[_Envelope] = json.loads(stdout)
-    return (
-        document["command"],
-        document["status"],
-        document["exit_code"],
-        [error["code"] for error in document["errors"]],
-    )
-
-
 @pytest.mark.parametrize(
     "patches",
     [
@@ -541,6 +531,23 @@ def test_json_output_reports_invalid_environment_variable_in_envelope(
     assert _envelope_failure(capsys.readouterr().out) == (["cache", "dir"], "error", 1, ["pipx_error"])
 
 
+def _envelope_failure(stdout: str) -> _EnvelopeFailure:
+    document: Final[_Envelope] = json.loads(stdout)
+    return _EnvelopeFailure(
+        document["command"],
+        document["status"],
+        document["exit_code"],
+        [error["code"] for error in document["errors"]],
+    )
+
+
+class _EnvelopeFailure(NamedTuple):
+    command: list[str]
+    status: str
+    exit_code: int
+    error_codes: list[str | None]
+
+
 @pytest.mark.parametrize(
     "argv",
     [
@@ -561,8 +568,8 @@ def test_json_output_reports_rejected_arguments_in_envelope(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
-    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.registry.find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
 
     assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
 
@@ -572,7 +579,7 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
-    find_uv_binary: Final[MagicMock] = mocker.patch(
+    find_uv_binary: Final[MockType] = mocker.patch(
         "pipx.backends.registry.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
     )
 
@@ -589,8 +596,8 @@ def test_validate_backend_silent_on_env_uv_missing(
     # diagnostic commands (`pipx environment`, `pipx list`) must keep working without a startup warning that the later
     # UvBackend.__init__ error would contradict; patch both the source and the registry lookup, as either one left
     # unpatched would find uv
-    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
 
@@ -600,8 +607,8 @@ def test_validate_backend_silent_on_env_uv_missing(
 
 
 def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
-    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"))
-    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
     with pytest.raises(PipxError, match="uv' executable could not be found"):
         _validate_backend_available(BackendOptions(cli="uv"))
 
@@ -635,17 +642,17 @@ def test_log_masks_command_line_password_with_space() -> None:
 def test_log_dir_is_created_owner_only() -> None:
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(CTX.logs.stat().st_mode) == 0o700
 
 
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("pipx_temp_env", "permissive_umask")
 def test_log_dir_left_world_readable_is_tightened() -> None:
-    paths.CTX.logs.mkdir(mode=0o755, parents=True)
+    CTX.logs.mkdir(mode=0o755, parents=True)
 
     assert not run_pipx_cli(["list"])
 
-    assert stat.S_IMODE(paths.CTX.logs.stat().st_mode) == 0o700
+    assert stat.S_IMODE(CTX.logs.stat().st_mode) == 0o700
 
 
 @SKIP_IF_WINDOWS
@@ -662,7 +669,7 @@ def test_log_dir_that_cannot_change_mode_still_logs(mocker: MockerFixture) -> No
 
     assert not run_pipx_cli(["list"])
 
-    assert current_log_file().parent == paths.CTX.logs
+    assert current_log_file().parent == CTX.logs
 
 
 @pytest.mark.parametrize(

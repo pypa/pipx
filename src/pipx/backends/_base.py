@@ -35,6 +35,32 @@ class Backend(ABC):
         verbose: bool,
     ) -> None: ...
 
+    def install_lock(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        lock_file: Path,
+        pip_args: list[str],
+        verbose: bool,
+    ) -> CompletedProcess[str]:
+        """Install the packages of a lock file into an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param lock_file: the lock file to install from.
+        :param pip_args: extra arguments for the installer.
+        :param verbose: show the output of the installer.
+        :returns: the completed installer process.
+        """
+        return self.install(
+            venv_root=venv_root,
+            venv_python=venv_python,
+            requirements=["--requirement", str(lock_file)],
+            pip_args=pip_args,
+            verbose=verbose,
+        )
+
     @abstractmethod
     def install(  # ruff:ignore[too-many-arguments]  # install flags map one-to-one onto backend CLI options
         self,
@@ -48,23 +74,6 @@ class Backend(ABC):
         log_pip_errors: bool = True,
         verbose: bool,
     ) -> CompletedProcess[str]: ...
-
-    def install_lock(
-        self,
-        *,
-        venv_root: Path,
-        venv_python: Path,
-        lock_file: Path,
-        pip_args: list[str],
-        verbose: bool,
-    ) -> CompletedProcess[str]:
-        return self.install(
-            venv_root=venv_root,
-            venv_python=venv_python,
-            requirements=["--requirement", str(lock_file)],
-            pip_args=pip_args,
-            verbose=verbose,
-        )
 
     @staticmethod
     @abstractmethod

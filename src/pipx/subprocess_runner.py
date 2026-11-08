@@ -61,6 +61,11 @@ _STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to
 
 
 def run_pypackage_bin(bin_path: Path, args: list[str]) -> NoReturn:
+    """Replace the current process with a script in a ``__pypackages__`` directory.
+
+    :param bin_path: the script to run.
+    :param args: the arguments to pass to the script.
+    """
     exec_app(
         [str(bin_path.resolve()), *args],
         extra_python_paths=[".", str(bin_path.parent.parent)],
@@ -72,6 +77,12 @@ def exec_app(
     env: dict[str, str] | None = None,
     extra_python_paths: list[str] | None = None,
 ) -> NoReturn:
+    """Run a command in place of the current process and exit with its return code.
+
+    :param cmd: the command and its arguments.
+    :param env: the environment of the command, the current one when None.
+    :param extra_python_paths: directories to add to ``PYTHONPATH`` for the command.
+    """
     environment: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ) if env is None else env, force_utf8=False)
 
     if extra_python_paths is not None:
@@ -107,8 +118,23 @@ def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict
 
 
 def get_site_packages(python: Path) -> list[Path]:
-    if (site_packages := _site_packages_from_layout(python.parent.parent)) is not None:
-        return site_packages
+    """Return the site-packages directories of an interpreter.
+
+    :param python: the interpreter.
+    :returns: the directories, the pure and the platform ones when they differ.
+    """
+    venv: Final[Path] = python.parent.parent
+    # reading the directories a CPython venv creates spares starting its interpreter; any other layout asks sysconfig
+    if (windows_site_packages := venv / "Lib" / "site-packages").is_dir():
+        return [windows_site_packages]
+    match list(venv.glob("lib/python3*/site-packages")):
+        case [purelib_dir]:
+            lib64_dir: Final[Path] = venv / "lib64" / purelib_dir.parent.name / "site-packages"
+            return (
+                [purelib_dir, lib64_dir]
+                if lib64_dir.is_dir() and not lib64_dir.samefile(purelib_dir)
+                else [purelib_dir]
+            )
     purelib, _, platlib = (
         run_subprocess(
             [
@@ -129,18 +155,6 @@ def get_site_packages(python: Path) -> list[Path]:
     return [purelib_path, platlib_path]
 
 
-def _site_packages_from_layout(venv: Path) -> list[Path] | None:
-    # reading the directories a CPython venv creates spares starting its interpreter; any other layout asks sysconfig
-    if (windows_site_packages := venv / "Lib" / "site-packages").is_dir():
-        return [windows_site_packages]
-    match list(venv.glob("lib/python3*/site-packages")):
-        case [purelib]:
-            platlib: Final[Path] = venv / "lib64" / purelib.parent.name / "site-packages"
-            return [purelib, platlib] if platlib.is_dir() and not platlib.samefile(purelib) else [purelib]
-        case _:
-            return None
-
-
 def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subprocess.run exposing its capture and logging switches
     cmd: Sequence[str | Path],
     *,
@@ -154,12 +168,21 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     stream_output: bool = False,
     interactive: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    env: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ))
-    for key, value in (env_overrides or {}).items():
-        if value is None:
-            env.pop(key, None)
-        else:
-            env[key] = value
+    """Run a command and return its completed process.
+
+    :param cmd: the command and its arguments.
+    :param capture_stdout: capture the standard output instead of showing it.
+    :param capture_stderr: capture the standard error instead of showing it.
+    :param log_cmd_str: the text to log for the command, the command itself when None.
+    :param log_stdout: log the standard output.
+    :param log_stderr: log the standard error.
+    :param run_dir: the directory to run the command in.
+    :param env_overrides: variables to set for the command, with None removing them.
+    :param stream_output: show the output while the command runs.
+    :param interactive: let the command use the terminal, with nothing captured.
+    :returns: the completed process.
+    """
+    env: Final[dict[str, str]] = _subprocess_env(env_overrides)
 
     _LOGGER.info("running %s", redact_command_line(cmd) if log_cmd_str is None else log_cmd_str)
     if run_dir:
@@ -192,39 +215,8 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             cwd=run_dir,
         )
     else:
-        # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
-        hold_stderr: Final[bool] = not capture_stderr and output_is_held()
-        with (
-            subprocess.Popen(
-                cmd_str_list,
-                env=env,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE if capture_stdout else None,
-                stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
-                encoding="utf-8",
-                errors="replace",
-                text=True,
-                cwd=run_dir,
-                # a terminal's Ctrl-C then reaches pipx alone, which decides whether the child finishes; a new session
-                # rather than just a new group, as the terminal stops a background group reading or writing it
-                start_new_session=True,
-                creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
-            ) as process,
-            stopped_on_interrupt(process),
-        ):
-            try:
-                stdout, stderr = process.communicate()
-            except BaseException:
-                # like subprocess.run, so an interrupt does not leave the child running
-                process.kill()
-                raise
-        if hold_stderr:
-            sys.stderr.write(stderr)
-        completed_process = subprocess.CompletedProcess(
-            process.args,
-            process.returncode,
-            _without_terminal_escapes(stdout),
-            None if hold_stderr else _without_terminal_escapes(stderr),
+        completed_process = _run_captured(
+            cmd_str_list, env, run_dir=run_dir, capture_stdout=capture_stdout, capture_stderr=capture_stderr
         )
 
     # an installer quotes an operand it rejects as typed, so its output can carry the credentials of a URL
@@ -239,6 +231,16 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     _LOGGER.debug("returncode: %s", completed_process.returncode)
 
     return completed_process
+
+
+def _subprocess_env(env_overrides: dict[str, str | None] | None) -> dict[str, str]:
+    env: Final[dict[str, str]] = _fix_subprocess_env(dict(os.environ))
+    for key, value in (env_overrides or {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
+    return env
 
 
 def _run_streaming_subprocess(
@@ -324,34 +326,30 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     # hand the child a pseudo-terminal instead whenever the platform offers one
     if not WINDOWS and destination.isatty():
         reader, child = pty.openpty()
-        _match_terminal_size(child)
+        size: Final[os.terminal_size] = shutil.get_terminal_size()
+        with suppress(OSError):
+            fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
         return _StreamChannel(reader=reader, child=child, terminal=True)
     reader, child = os.pipe()
     return _StreamChannel(reader=reader, child=child, terminal=False)
 
 
-def _match_terminal_size(child: int) -> None:
-    size: Final[os.terminal_size] = shutil.get_terminal_size()
-    with suppress(OSError):
-        fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
-
-
-@dataclass(slots=True, kw_only=True)
+@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() must record which descriptors are closed
 class _StreamChannel:
     reader: int
     child: int
     terminal: bool
-
-    def close_child(self) -> None:
-        if self.child != -1:
-            os.close(self.child)
-            self.child = -1
 
     def close(self) -> None:
         self.close_child()
         if self.reader != -1:
             os.close(self.reader)
             self.reader = -1
+
+    def close_child(self) -> None:
+        if self.child != -1:
+            os.close(self.child)
+            self.child = -1
 
 
 def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) -> None:
@@ -400,11 +398,71 @@ def _without_terminal_escapes(output: str | None) -> str | None:
     # reads out of the captured copy
     if output is None:
         return None
-    return re.sub(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])", "", output)
+    return re.sub(
+        r"""
+        \x1b(?:
+            \[[0-?]*[\ -/]*[@-~]         # control sequence: parameters, intermediates, final byte
+          | \][^\x07\x1b]*(?:\x07|\x1b\\)  # operating system command: text ended by BEL or ST
+          | [@-Z\\-_]                     # two-byte escape
+        )
+        """,
+        "",
+        output,
+        flags=re.VERBOSE,
+    )
+
+
+def _run_captured(
+    cmd_str_list: list[str],
+    env: dict[str, str],
+    *,
+    run_dir: str | None,
+    capture_stdout: bool,
+    capture_stderr: bool,
+) -> subprocess.CompletedProcess[str]:
+    # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
+    hold_stderr: Final[bool] = not capture_stderr and output_is_held()
+    with (
+        subprocess.Popen(
+            cmd_str_list,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
+            encoding="utf-8",
+            errors="replace",
+            text=True,
+            cwd=run_dir,
+            # a terminal's Ctrl-C then reaches pipx alone, which decides whether the child finishes; a new session
+            # rather than just a new group, as the terminal stops a background group reading or writing it
+            start_new_session=True,
+            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        ) as process,
+        stopped_on_interrupt(process),
+    ):
+        try:
+            stdout, stderr = process.communicate()
+        except BaseException:
+            # like subprocess.run, so an interrupt does not leave the child running
+            process.kill()
+            raise
+    if hold_stderr:
+        sys.stderr.write(stderr)
+    return subprocess.CompletedProcess(
+        process.args,
+        process.returncode,
+        _without_terminal_escapes(stdout),
+        None if hold_stderr else _without_terminal_escapes(stderr),
+    )
 
 
 @contextmanager
 def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None, None]:
+    """Send the standard output of the subprocesses of the enclosed block to standard error.
+
+    :param enabled: whether to redirect the output.
+    :yields: nothing, while the enclosed block runs.
+    """
     token: Final = _STREAM_STDOUT_TO_STDERR.set(enabled)
     try:
         yield
@@ -413,6 +471,12 @@ def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None
 
 
 def subprocess_post_check(completed_process: subprocess.CompletedProcess[str], *, streamed: bool = False) -> None:
+    """Raise when a subprocess has failed, after showing the output it captured.
+
+    :param completed_process: the finished process.
+    :param streamed: whether its output was already shown live, so it is not shown again.
+    :raises PipxError: when the process exited with a non-zero return code.
+    """
     if not completed_process.returncode:
         return
     # a streamed run already showed its output live

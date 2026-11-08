@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["concurrent.futures", "functools", "signal"]
 
+import enum
 import logging
 import os
 import signal
@@ -38,6 +39,10 @@ _UNRAISED_INTERRUPT: Final[Event] = Event()
 
 @contextmanager
 def stopping_children_on_signals() -> Generator[Event, None, None]:
+    """Stop the child processes and raise ``KeyboardInterrupt`` when an interrupt arrives during the enclosed block.
+
+    :yields: an event that is set when an interrupt arrives.
+    """
     signalled: Final[Event] = Event()
     if current_thread() is not main_thread():
         yield signalled
@@ -68,6 +73,10 @@ def stopping_children_on_signals() -> Generator[Event, None, None]:
 
 
 def stop_process_group(process: _Child) -> None:
+    """Stop the process group of a child, or the child itself on Windows.
+
+    :param process: the child to stop.
+    """
     if WINDOWS:
         process.terminate()
         return
@@ -79,6 +88,10 @@ def stop_process_group(process: _Child) -> None:
 
 @contextmanager
 def uninterrupted() -> Generator[None]:
+    """Defer interrupts until the enclosed block finishes.
+
+    :yields: nothing, while the enclosed block runs.
+    """
     if current_thread() is not main_thread():
         yield
         return
@@ -106,6 +119,13 @@ def fan_out(
     sequential: bool,
     interrupted: Callable[[int], _ResultT] | None = None,
 ) -> list[_ResultT]:
+    """Run tasks concurrently, or one after the other when sequential, and return their results in task order.
+
+    :param tasks: the tasks to run.
+    :param sequential: run the tasks one after the other.
+    :param interrupted: the result of a task that an interrupt skipped, or None to re-raise the interrupt.
+    :returns: the results of the tasks.
+    """
     # the output reads as if the tasks ran one after another: the earliest unfinished task writes to the terminal, the
     # others buffer until their turn
     if sequential or not tasks:
@@ -159,6 +179,76 @@ class _Turn(Condition):
     __exit__ = property(lambda self: self._lock.__exit__)
 
 
+def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT]:
+    # executor threads do not inherit the submitter's context, which carries pipx's switches as well as the slot
+    context: Final[Context] = copy_context()
+    context.run(_SLOT.set, slot)
+    return partial(context.run, task)
+
+
+def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
+    # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
+    # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
+    try:
+        slot.children.submitted.wait()
+        if slot.children.stopping:
+            raise KeyboardInterrupt
+        return task()
+    finally:
+        # a task that ends without taking a lock must not hold back the later tasks waiting to take theirs
+        slot.pass_lock()
+
+
+def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
+    for future, next_slot in zip(futures, slots[1:], strict=False):
+        _wait_interruptibly((future,))
+        # the first failure in task order propagates, so the tasks not started yet must not start
+        if not future.cancelled() and future.exception() is not None:
+            for later in futures:
+                later.cancel()
+        next_slot.go_live()
+    # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
+    _wait_interruptibly(futures)
+
+
+def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
+    # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
+    # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
+    while wait(futures, timeout=0.1).not_done:
+        if _UNRAISED_INTERRUPT.is_set():
+            raise KeyboardInterrupt
+
+
+def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
+    _UNRAISED_INTERRUPT.clear()
+    # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
+    for future in futures:
+        future.cancel()
+    if finishing := children.stop():
+        _LOGGER.warning(
+            "Finishing the %d environment(s) already being changed; press Ctrl-C again to stop them too.", finishing
+        )
+
+
+def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
+    # a further Ctrl-C must not cut short the wait for tasks rolling back: Python 3.12 marks a thread whose join was
+    # interrupted as stopped, so the interpreter exits without waiting and kills the task mid rollback
+    while True:
+        try:
+            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
+            for slot in slots:
+                slot.go_live()
+            _wait_interruptibly(futures)
+        except KeyboardInterrupt:
+            _interrupt(futures, children)
+        else:
+            return
+
+
+class _Stopped(enum.Enum):
+    STOPPED = enum.auto()
+
+
 @dataclass(slots=True, kw_only=True)
 class _Children:
     lock: Condition
@@ -169,7 +259,7 @@ class _Children:
     stopping: bool = False
     interrupted: bool = False
     # the writer that left each stream's last line open
-    open_lines: dict[TextIO, object] = field(default_factory=dict)
+    open_lines: dict[TextIO, _Slot | _Stopped | None] = field(default_factory=dict)
 
     def stop(self) -> int:
         # the first interrupt stops the children of the tasks not finishing their work, the second stops every child
@@ -177,7 +267,7 @@ class _Children:
             if self.stopping or not self.finishing:
                 self.interrupted = True
                 # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
-                self.open_lines = dict.fromkeys(self.open_lines, object())
+                self.open_lines = dict.fromkeys(self.open_lines, _Stopped.STOPPED)
             self.stopping = True
             for process, slot in self.running.items():
                 if self.stops(slot):
@@ -187,7 +277,7 @@ class _Children:
     def stops(self, slot: _Slot) -> bool:
         return self.interrupted or (self.stopping and slot not in self.finishing)
 
-    def write(self, target: TextIO, text: str, writer: object) -> int:
+    def write(self, target: TextIO, text: str, writer: _Slot | None) -> int:
         with self.lock:
             # once interrupted, tasks write out of turn and must not run on into a line another one left unfinished
             if self.interrupted and self.open_lines.get(target, writer) is not writer and text[:1] not in {"\n", "\r"}:
@@ -257,7 +347,7 @@ class _RoutedStream:
         self._target: Final[TextIO] = target
         self._children: Final[_Children] = children
 
-    def __getattr__(self, name: str) -> object:
+    def __getattr__(self, name: str) -> object:  # simplint: ignore[SMP602]  # TextIO attributes have unrelated types
         return getattr(self._target, name)
 
     def write(self, text: str) -> int:
@@ -273,78 +363,21 @@ class _RoutedStream:
             self._target.flush()
 
 
-def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT]:
-    # executor threads do not inherit the submitter's context, which carries pipx's switches as well as the slot
-    context: Final[Context] = copy_context()
-    context.run(_SLOT.set, slot)
-    return partial(context.run, task)
-
-
-def _once_submitted(slot: _Slot, task: Callable[[], _ResultT]) -> _ResultT:
-    # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
-    # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
-    try:
-        slot.children.submitted.wait()
-        if slot.children.stopping:
-            raise KeyboardInterrupt
-        return task()
-    finally:
-        # a task that ends without taking a lock must not hold back the later tasks waiting to take theirs
-        slot.pass_lock()
-
-
-def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
-    for future, next_slot in zip(futures, slots[1:], strict=False):
-        _wait_interruptibly((future,))
-        # the first failure in task order propagates, so the tasks not started yet must not start
-        if not future.cancelled() and future.exception() is not None:
-            for later in futures:
-                later.cancel()
-        next_slot.go_live()
-    # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
-    _wait_interruptibly(futures)
-
-
-def _wait_interruptibly(futures: Sequence[Future[_ResultT]]) -> None:
-    # a blocked wait does not wake for a signal another thread handled or one that landed just before it blocked, so
-    # wait in slices for the interpreter to run the handler and raise KeyboardInterrupt promptly
-    while wait(futures, timeout=0.1).not_done:
-        if _UNRAISED_INTERRUPT.is_set():
-            raise KeyboardInterrupt
-
-
-def _interrupt(futures: list[Future[_ResultT]], children: _Children) -> None:
-    _UNRAISED_INTERRUPT.clear()
-    # the children run in process groups of their own, out of reach of the terminal's Ctrl-C, so pipx stops them itself
-    for future in futures:
-        future.cancel()
-    if finishing := children.stop():
-        _LOGGER.warning(
-            "Finishing the %d environment(s) already being changed; press Ctrl-C again to stop them too.", finishing
-        )
-
-
-def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Children) -> None:
-    # a further Ctrl-C must not cut short the wait for tasks rolling back: Python 3.12 marks a thread whose join was
-    # interrupted as stopped, so the interpreter exits without waiting and kills the task mid rollback
-    while True:
-        try:
-            # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
-            for slot in slots:
-                slot.go_live()
-            _wait_interruptibly(futures)
-        except KeyboardInterrupt:
-            _interrupt(futures, children)
-        else:
-            return
-
-
 def output_is_held() -> bool:
+    """Return whether the output of this task is held back until its turn.
+
+    :returns: whether the output is held.
+    """
     return (slot := _SLOT.get()) is not None and not slot.live
 
 
 @contextmanager
 def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
+    """Wait for the turn of a fan-out task before the enclosed block changes state shared by the tasks.
+
+    :param done: return whether the change is already made, so the task making it need not wait.
+    :yields: nothing, once the turn is taken or the change is already made.
+    """
     # a change to state all tasks share waits for the earlier tasks unless done() reports it made, so the task making
     # it, its arguments and its output match a sequential run
     if (slot := _SLOT.get()) is None:
@@ -361,6 +394,11 @@ def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
 
 @contextmanager
 def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
+    """Acquire a file lock in the order of the fan-out tasks.
+
+    :param lock: the lock to acquire.
+    :yields: the acquired lock.
+    """
     # a task waiting for its turn holds its lock, so two pipx runs taking the same locks in different task orders could
     # each wait for the other forever; taking them in task order leaves no task waiting its turn on a lock another run
     # holds while it waits for this run
@@ -375,6 +413,11 @@ def locked_in_order(lock: BaseFileLock) -> Generator[BaseFileLock, None, None]:
 
 @contextmanager
 def finished_on_interrupt() -> Generator[None, None, None]:
+    """Let the children of a fan-out task finish when an interrupt arrives, instead of stopping them.
+
+    :yields: nothing, while the enclosed block runs.
+    :raises KeyboardInterrupt: when an interrupt arrives after the children were asked to stop.
+    """
     if (slot := _SLOT.get()) is None or not slot.children.finishes:
         yield
         return
@@ -392,6 +435,12 @@ def finished_on_interrupt() -> Generator[None, None, None]:
 
 @contextmanager
 def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
+    """Stop a child process when an interrupt arrives during the enclosed block.
+
+    :param process: the child to stop.
+    :yields: nothing, while the enclosed block runs.
+    :raises KeyboardInterrupt: when an interrupt arrives during the enclosed block.
+    """
     # stopping ends the child's process group as a whole, so the child must run in one of its own
     if (slot := _SLOT.get()) is None:
         with _LOOSE_CHILDREN_LOCK:

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import traceback
+from email.message import Message
+from http.client import HTTPResponse
 from typing import TYPE_CHECKING, Final
 from urllib.error import URLError
 from zipfile import ZipFile
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx.redact import redact_url_credentials
 from pipx.script import (
     ScriptMetadata,
@@ -21,9 +23,8 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_read_script_metadata() -> None:
@@ -189,7 +190,7 @@ def test_local_script_ignores_file_below_cwd_named_like_url(
 
 @SKIP_IF_WINDOWS
 def test_installable_script_downloads_url_over_file_below_cwd(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, urlopen: MagicMock
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, urlopen: MockType
 ) -> None:
     monkeypatch.chdir(tmp_path)
     url: Final[str] = "https://example.invalid/app.py"
@@ -207,10 +208,11 @@ def test_installable_script_downloads_url_over_file_below_cwd(
 
 
 @pytest.fixture
-def urlopen(mocker: MockerFixture) -> MagicMock:
-    response: Final[MagicMock] = mocker.MagicMock()
+def urlopen(mocker: MockerFixture) -> MockType:
+    response: Final[MockType] = mocker.create_autospec(HTTPResponse, instance=True)
     response.__enter__.return_value = response
-    return mocker.patch("urllib.request.urlopen", return_value=response)
+    response.headers = mocker.create_autospec(Message, instance=True)
+    return mocker.patch("urllib.request.urlopen", return_value=response, autospec=True)
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
@@ -233,7 +235,7 @@ def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: 
         script_name_from_spec("https://example.invalid/app.py", expected_apps)
 
 
-def test_download_script_bounds_the_response_size(urlopen: MagicMock) -> None:
+def test_download_script_bounds_the_response_size(urlopen: MockType) -> None:
     urlopen.return_value.configure_mock(**{
         "read.return_value": b"x" * (10 * 1024 * 1024 + 1),
         "headers.get_content_charset.return_value": "utf-8",
@@ -243,7 +245,7 @@ def test_download_script_bounds_the_response_size(urlopen: MagicMock) -> None:
         download_script("https://example.invalid/big.py")
 
 
-def test_download_script_bounds_the_wait(urlopen: MagicMock) -> None:
+def test_download_script_bounds_the_wait(urlopen: MockType) -> None:
     urlopen.return_value.configure_mock(
         length=None, **{"read.return_value": b"print('hi')\n", "headers.get_content_charset.return_value": "utf-8"}
     )
@@ -274,7 +276,7 @@ def test_read_script_metadata_invalid_requirement_hides_url_credentials() -> Non
     ],
 )
 def test_download_script_reports_decode_failure(
-    urlopen: MagicMock, body: bytes, charset: str, cause: type[Exception]
+    urlopen: MockType, body: bytes, charset: str, cause: type[Exception]
 ) -> None:
     urlopen.return_value.configure_mock(
         length=None, **{"read.return_value": body, "headers.get_content_charset.return_value": charset}
@@ -309,7 +311,7 @@ def test_script_url_with_invalid_port_reports_url(capsys: pytest.CaptureFixture[
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_ftp_script_url_passes_credentials_to_urllib(mocker: MockerFixture) -> None:
-    urlopen: Final[MagicMock] = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"))
+    urlopen: Final[MockType] = mocker.patch("urllib.request.urlopen", side_effect=URLError("refused"), autospec=True)
 
     assert run_pipx_cli(["run", "ftp://alice:s3cr3t@localhost/tool.py"]) == 1
 

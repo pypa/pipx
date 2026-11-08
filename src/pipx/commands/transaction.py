@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pathlib", "pipx", "pipx.fanout", "pipx.trash", "pipx.util", "pipx.venv", "shutil", "tempfile"]
+__lazy_modules__ = [
+    "pathlib",
+    "pipx.fanout",
+    "pipx.paths",
+    "pipx.trash",
+    "pipx.util",
+    "pipx.venv",
+    "shutil",
+    "tempfile",
+]
 
 import sys
 from contextlib import contextmanager, suppress
@@ -10,8 +19,8 @@ from tempfile import mkdtemp
 from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final
 
-from pipx import paths
 from pipx.fanout import finished_on_interrupt, uninterrupted
+from pipx.paths import CTX
 from pipx.trash import rmdir
 from pipx.util import PipxError
 from pipx.venv import VenvContainer
@@ -24,6 +33,7 @@ if TYPE_CHECKING:
 _UNFINISHED_MARKER: Final[str] = "pipx_unfinished"
 _IN_USE_LOCK: Final[str] = "pipx_in_use.lock"
 _BACKUP_SUFFIX: Final[str] = "-pipx-backup"
+#: Suffix of the backup directory that holds an environment while it is rebuilt.
 REINSTALL_BACKUP_SUFFIX: Final[str] = "-pipx-reinstall"
 # filelock releases a lock it garbage collects, so the locks on copies the running pipx imports from live here
 _HELD_COPIES: Final[dict[Path, BaseFileLock]] = {}
@@ -31,6 +41,15 @@ _HELD_COPIES: Final[dict[Path, BaseFileLock]] = {}
 
 @contextmanager
 def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -> Generator[VenvBackup]:
+    """Back up an environment for the enclosed block so a failed rebuild can restore it.
+
+    Nothing is copied unless the block deletes the environment or pipx runs from it.
+
+    :param venv_dir: the directory of the environment.
+    :param enabled: back up the environment; when False the block does nothing extra.
+    :param copy_upfront: copy the environment before the block instead of only when it is deleted.
+    :yields: nothing, while the enclosed block runs.
+    """
     backup: Final[VenvBackup] = VenvBackup(venv_dir, enabled=enabled)
     if enabled and (copy_upfront or runs_from_venv(venv_dir)):
         backup.copy()
@@ -44,6 +63,12 @@ def preserve_venv(venv_dir: Path, *, enabled: bool, copy_upfront: bool = True) -
 
 
 class VenvBackup:
+    """Backup of an environment that a rebuild may restore or discard.
+
+    :param venv_dir: the environment to back up.
+    :param enabled: whether the backup is made at all.
+    """
+
     def __init__(self, venv_dir: Path, *, enabled: bool) -> None:
         self._venv_dir: Final[Path] = venv_dir
         self._enabled: Final[bool] = enabled
@@ -51,6 +76,10 @@ class VenvBackup:
         self._holds_imports: bool = False
 
     def copy(self) -> None:
+        """Copy the environment into a new backup directory.
+
+        :raises PipxError: when the environment cannot be copied.
+        """
         backup_dir: Final[Path] = self._new_backup_dir()
         try:
             copytree(self._venv_dir, backup_dir, symlinks=True)
@@ -64,14 +93,13 @@ class VenvBackup:
     def _new_backup_dir(self) -> Path:
         # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate
         # it as a broken environment; the trash shares the home's filesystem, so restoring it is an atomic rename
-        paths.CTX.trash.mkdir(parents=True, exist_ok=True)
-        backup_dir: Final[Path] = Path(
-            mkdtemp(prefix=f"{self._venv_dir.name}-", suffix=_BACKUP_SUFFIX, dir=paths.CTX.trash)
-        )
+        CTX.trash.mkdir(parents=True, exist_ok=True)
+        backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{self._venv_dir.name}-", suffix=_BACKUP_SUFFIX, dir=CTX.trash))
         backup_dir.rmdir()
         return backup_dir
 
     def remove_venv(self) -> None:
+        """Remove the environment, moving it to the backup directory when a restore is possible."""
         if self._enabled and self._backup_dir is None:
             # a rename costs the same for any environment size, so rebuilds back up only when they delete
             backup_dir: Final[Path] = self._new_backup_dir()
@@ -83,6 +111,7 @@ class VenvBackup:
             rmdir(self._venv_dir)
 
     def restore(self) -> None:
+        """Put the backed up environment back in place, replacing the rebuilt one."""
         if self._backup_dir is not None:
             # a signal between the two steps would leave the venv deleted and its only copy in the trash
             with uninterrupted():
@@ -93,16 +122,27 @@ class VenvBackup:
                     repoint_imports(self._backup_dir, Path(sys.prefix))
 
     def discard(self) -> None:
+        """Delete the backup directory, unless the running pipx still imports from it."""
         # the running pipx keeps importing from its copy, so the trash cleanup of the next pipx run removes it
         if self._backup_dir is not None and not self._holds_imports:
             rmdir(self._backup_dir)
 
 
 def runs_from_venv(venv_dir: Path) -> bool:
+    """Return whether pipx runs from the given environment.
+
+    :param venv_dir: the directory of the environment.
+    :returns: whether the running interpreter belongs to the environment.
+    """
     return Path(sys.prefix).resolve() == venv_dir.resolve()
 
 
 def import_from_copy(copy_dir: Path) -> bool:
+    """Make the running pipx import from a copy of its environment.
+
+    :param copy_dir: the copy of the environment that pipx imports from.
+    :returns: whether the imports were moved to the copy.
+    """
     if not repoint_imports(Path(sys.prefix), copy_dir):
         return False
     from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
@@ -115,6 +155,12 @@ def import_from_copy(copy_dir: Path) -> bool:
 
 
 def repoint_imports(source: Path, target: Path) -> bool:
+    """Point the module search paths of the running process from one directory to another.
+
+    :param source: the directory the imports come from.
+    :param target: the directory the imports move to.
+    :returns: whether any import path changed.
+    """
     # pipx changing the venv it runs from puts another version in its place; later imports (lazy ones and those inside
     # functions) must load the old code from its copy, or old and new modules mix; sys.path finds top-level modules and
     # each package's __path__ its submodules
@@ -132,6 +178,10 @@ def _moved(entry: str, source: Path, target: Path) -> str:
 
 
 def release_copy(copy_dir: Path) -> None:
+    """Release the lock that keeps a copy in use.
+
+    :param copy_dir: the copy of the environment.
+    """
     # the copy goes back in place of the venv, which must not carry the lock file
     if (lock := _HELD_COPIES.pop(copy_dir, None)) is not None:
         lock.release()
@@ -139,6 +189,12 @@ def release_copy(copy_dir: Path) -> None:
 
 
 def rename_once_released(source: Path, target: Path) -> None:
+    """Rename a directory, retrying while Windows keeps it busy.
+
+    :param source: the directory to rename.
+    :param target: the new path of the directory.
+    :raises OSError: when the rename keeps failing after the retries.
+    """
     # Windows refuses to rename a directory while a handle inside it is open, and a concurrent rebuild of another venv
     # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
     for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
@@ -153,6 +209,14 @@ def rename_once_released(source: Path, target: Path) -> None:
 
 @contextmanager
 def marked_unfinished(venv_dir: Path) -> Generator[None]:
+    """Mark an environment as unfinished for the enclosed block.
+
+    The mark stays when the block is interrupted or crashes, so the next upgrade or reinstall rebuilds the environment.
+    A PipxError clears it.
+
+    :param venv_dir: the directory of the environment.
+    :yields: nothing, while the enclosed block runs.
+    """
     # an interrupt, a crash or a kill leaves the mark behind, which tells the next upgrade or reinstall to rebuild the
     # environment; an error pipx reports clears it
     with finished_on_interrupt():
@@ -167,15 +231,21 @@ def marked_unfinished(venv_dir: Path) -> Generator[None]:
 
 
 def is_unfinished(venv_dir: Path) -> bool:
+    """Return whether an environment was left unfinished by an interrupted block.
+
+    :param venv_dir: the directory of the environment.
+    :returns: whether the environment is marked unfinished.
+    """
     return (venv_dir / _UNFINISHED_MARKER).is_file()
 
 
 def empty_trash() -> None:
+    """Delete the backups in the trash that nothing is using."""
     # rmdir refuses a symlinked trash, so handing one to it never empties the link's target
-    if paths.CTX.trash.is_symlink() or not paths.CTX.trash.is_dir():
-        rmdir(paths.CTX.trash, safe_rm=False)
+    if CTX.trash.is_symlink() or not CTX.trash.is_dir():
+        rmdir(CTX.trash, safe_rm=False)
         return
-    for entry in paths.CTX.trash.iterdir():
+    for entry in CTX.trash.iterdir():
         if entry.is_symlink() or not entry.is_dir():
             with suppress(OSError):
                 entry.unlink()
@@ -194,7 +264,7 @@ def _is_backup_in_use(entry: Path) -> bool:
     from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
 
     venv_name: Final[str] = entry.name.removesuffix(suffix).rpartition("-")[0]
-    if _is_held(VenvContainer(paths.CTX.venvs).venv_lock(paths.CTX.venvs / venv_name)):
+    if _is_held(VenvContainer(CTX.venvs).venv_lock(CTX.venvs / venv_name)):
         return True
     # only a copy some pipx imported from has the lock file, and acquiring a missing one would create it
     return (in_use := entry / _IN_USE_LOCK).is_file() and _is_held(FileLock(in_use))

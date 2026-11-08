@@ -3,9 +3,9 @@ from __future__ import annotations
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
+    "pipx.paths",
     "pipx.redact",
     "pipx.trash",
     "pipx.venv",
@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.colors import BOLD
 from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
@@ -42,6 +41,7 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import STARS
+from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import safe_unlink
@@ -64,6 +64,13 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def uninject(venv_dir: Path, dependencies: list[str], options: UninjectOptions) -> OperationResult[InjectionData]:
+    """Remove dependencies that were injected into an environment.
+
+    :param venv_dir: the directory of the environment.
+    :param dependencies: the names of the packages to remove.
+    :param options: the options of the removal.
+    :returns: the result listing the removed packages, and the failures.
+    """
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         return _uninject_failure(
             venv_dir.name,
@@ -246,7 +253,7 @@ def _get_include_resource_paths(
             path
             for section in COMPLETION_SECTIONS
             for path in get_package_completion_paths(
-                package, venv.man_path.parent / section, paths.CTX.completion_dir / section
+                package, venv.man_path.parent / section, CTX.completion_dir / section
             )
             if f"{path.parent.parent.name}/{path.parent.name}/{path.name}" in completions
         }

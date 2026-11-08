@@ -1,27 +1,29 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
 import sys
 import sysconfig
+import threading
 import zipfile
 from dataclasses import replace
 from typing import TYPE_CHECKING, Final, Protocol, TypedDict
-from unittest import mock
 
 import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import paths
 from pipx.main import cli
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import get_venv_paths
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 WIN: Final[bool] = sys.platform.startswith("win")
@@ -97,16 +99,17 @@ def app_name(app: str) -> str:
 
 
 def run_pipx_cli(pipx_args: list[str]) -> int:
-    with mock.patch.object(sys, "argv", ["pipx", *pipx_args]):
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(sys, "argv", ["pipx", *pipx_args])
         return cli()
 
 
 def pipx_subprocess_env() -> dict[str, str]:
     return os.environ | {
-        "PIPX_BIN_DIR": str(paths.CTX.bin_dir),
-        "PIPX_HOME": str(paths.CTX.home),
-        "PIPX_MAN_DIR": str(paths.CTX.man_dir),
-        "PIPX_SHARED_LIBS": str(paths.CTX.shared_libs),
+        "PIPX_BIN_DIR": str(CTX.bin_dir),
+        "PIPX_HOME": str(CTX.home),
+        "PIPX_MAN_DIR": str(CTX.man_dir),
+        "PIPX_SHARED_LIBS": str(CTX.shared_libs),
     }
 
 
@@ -116,13 +119,13 @@ def unwrap_log_text(log_text: str) -> str:
 
 
 def current_log_file() -> Path:
-    log_file: Final = paths.CTX.log_file
+    log_file: Final = CTX.log_file
     assert log_file is not None
     return log_file
 
 
 def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> None:
-    venv_dir: Final[Path] = paths.CTX.venvs / canonicalize_name(venv_name)
+    venv_dir: Final[Path] = CTX.venvs / canonicalize_name(venv_name)
     if metadata_version is None:
         (venv_dir / "pipx_metadata.json").unlink()
         return
@@ -222,7 +225,7 @@ def drop_extra_app(project: Path) -> None:
 
 
 def remove_venv_interpreter(venv_name: str) -> None:
-    _, venv_python_path, _ = get_venv_paths(paths.CTX.venvs / venv_name)
+    _, venv_python_path, _ = get_venv_paths(CTX.venvs / venv_name)
     assert venv_python_path.is_file()
     venv_python_path.unlink()
 
@@ -270,7 +273,7 @@ def write_dist_info(
 
 def module_version(venv_name: str) -> str:
     return subprocess.check_output(
-        [Venv(paths.CTX.venvs / venv_name).python_path, "-c", f"import {venv_name}; print({venv_name}.VERSION)"],
+        [Venv(CTX.venvs / venv_name).python_path, "-c", f"import {venv_name}; print({venv_name}.VERSION)"],
         text=True,
     ).strip()
 
@@ -284,6 +287,40 @@ def write_import_probe(venv_dir: Path, value: str) -> None:
 def file_or_symlink(path: Path) -> bool:
     # exists() is false for a broken symlink
     return path.exists() or path.is_symlink()
+
+
+def wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
+    logged: Final[threading.Event] = threading.Event()
+    handler: Final[logging.Handler] = _SetOnLogMatch(text, logged)
+    logging.getLogger().addHandler(handler)
+    try:
+        assert any(text in message for message in caplog.messages) or logged.wait(timeout=5)
+    finally:
+        logging.getLogger().removeHandler(handler)
+
+
+class _SetOnLogMatch(logging.Handler):
+    def __init__(self, text: str, logged: threading.Event) -> None:
+        super().__init__()
+        self._text = text
+        self._logged = logged
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if self._text in record.getMessage():
+            self._logged.set()
+
+
+def hold_first_venv_until_others_start(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
+) -> None:
+    others_started: Final[dict[str, threading.Event]] = {name: threading.Event() for name in venv_names[1:]}
+    for name, started in others_started.items():
+        before_venv_subprocess(CTX.venvs / name, started.set)
+
+    def hold() -> None:
+        assert all(started.wait(timeout=5) for started in others_started.values())
+
+    before_venv_subprocess(CTX.venvs / venv_names[0], hold)
 
 
 __all__ = [
@@ -302,12 +339,14 @@ __all__ = [
     "current_log_file",
     "drop_extra_app",
     "file_or_symlink",
+    "hold_first_venv_until_others_start",
     "mock_legacy_venv",
     "module_version",
     "pipx_subprocess_env",
     "remove_venv_interpreter",
     "run_pipx_cli",
     "unwrap_log_text",
+    "wait_for_log",
     "write_dist_info",
     "write_import_probe",
     "write_wheel",

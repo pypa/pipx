@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import current_log_file, run_pipx_cli
-from pipx import constants, main, paths
+from harness import current_log_file, run_pipx_cli
+from pipx import constants, main
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -41,8 +42,8 @@ def test_max_logs_counts_the_new_log(
 
 @pytest.fixture
 def log_dir() -> Path:
-    paths.CTX.logs.mkdir(parents=True)
-    return paths.CTX.logs
+    CTX.logs.mkdir(parents=True)
+    return CTX.logs
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -109,7 +110,7 @@ def test_max_logs_rotates_without_lock_support(
 ) -> None:
     monkeypatch.setenv("PIPX_MAX_LOGS", "1")
     (log_dir / "cmd_2024-01-01_00.00.00.log").touch()
-    mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"))
+    mocker.patch("fcntl.flock", side_effect=OSError(errno.ENOLCK, "No locks available"), autospec=True)
 
     assert not run_pipx_cli(["list"])
 

@@ -8,23 +8,22 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Protocol
 from venv import EnvBuilder
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS
 from pipx.fanout import fan_out
 from pipx.redact import redact_url_credentials
 from pipx.subprocess_runner import exec_app, get_site_packages, run_subprocess, subprocess_post_check
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
-    from unittest.mock import MagicMock
+    from collections.abc import Iterator
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.write(1, b'after\\n')"
@@ -36,7 +35,7 @@ _STREAM_ENCODING: Final[dict[str, str]] = {"PYTHONIOENCODING": "cp850", "PYTHONL
 
 def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("pipx.subprocess_runner.WINDOWS", False)
-    execvpe: Final[MagicMock] = mocker.patch(
+    execvpe: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.os.execvpe", autospec=True, side_effect=RuntimeError
     )
 
@@ -48,7 +47,7 @@ def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monk
 
 def test_exec_app_preserves_stream_encoding_on_windows(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("pipx.subprocess_runner.WINDOWS", True)
-    run: Final[MagicMock] = mocker.patch(
+    run: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.subprocess.run", autospec=True, side_effect=RuntimeError
     )
 
@@ -230,8 +229,10 @@ def test_subprocess_stream_reports_the_terminal_to_the_child(
 ) -> None:
     monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
     monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=stdout_is_a_terminal)
-    mocker.patch("pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=stdout_is_a_terminal, autospec=True)
+    mocker.patch(
+        "pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)), autospec=True
+    )
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [
             sys.executable,
@@ -255,7 +256,7 @@ def test_subprocess_stream_child_sees_a_terminal_only_behind_one(
     mocker: MockerFixture, destination_is_a_terminal: bool, expected: str
 ) -> None:
     destination: Final[StringIO] = StringIO()
-    mocker.patch.object(destination, "isatty", return_value=destination_is_a_terminal)
+    mocker.patch.object(destination, "isatty", return_value=destination_is_a_terminal, autospec=True)
     mocker.patch("pipx.subprocess_runner.sys.stdout", destination)
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
@@ -279,7 +280,7 @@ def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:
         capture_stderr=False,
         stream_output=True,
     )
-    expected: Final[str] = "x" * (read_size - 1) + "\n"
+    expected: Final[str] = f"{'x' * (read_size - 1)}\n"
 
     assert (destination.getvalue(), result.stdout) == (expected, expected)
 
@@ -344,14 +345,16 @@ def test_subprocess_stream_propagates_ctrl_c() -> None:
         )
 
 
+class _Task(Protocol):
+    def __call__(self, *args: object) -> None: ...
+
+
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c_while_readers_start(mocker: MockerFixture) -> None:
     submit: Final = ThreadPoolExecutor.submit
 
-    def interrupted_second_reader(
-        executor: ThreadPoolExecutor, fn: Callable[..., None], /, *args: object
-    ) -> Future[None]:
+    def interrupted_second_reader(executor: ThreadPoolExecutor, fn: _Task, /, *args: object) -> Future[None]:
         # Ctrl-C lands after the terminal's reader started but before the next one did, as seen on free-threaded CI
         if submitted:
             raise KeyboardInterrupt
@@ -387,7 +390,7 @@ def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
 @SKIP_IF_WINDOWS
 def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
     destination: Final[StringIO] = StringIO()
-    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch.object(destination, "isatty", return_value=True, autospec=True)
     mocker.patch("pipx.subprocess_runner.sys.stdout", destination)
     destination.close()
 
@@ -408,8 +411,10 @@ def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture)
 def terminal_stdout(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
     monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=True)
-    mocker.patch("pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    mocker.patch("pipx.subprocess_runner.sys.stdout.isatty", return_value=True, autospec=True)
+    mocker.patch(
+        "pipx.subprocess_runner.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)), autospec=True
+    )
 
 
 @pytest.mark.parametrize(
@@ -457,10 +462,9 @@ def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp
         text=True,
     ).stdout.splitlines()
     purelib, platlib = (Path(path) for path in output)
+    distinct_dirs: Final[set[Path]] = {purelib.resolve(), platlib.resolve()}
 
-    assert get_site_packages(interpreter) == (
-        [purelib] if purelib.resolve() == platlib.resolve() else [purelib, platlib]
-    )
+    assert get_site_packages(interpreter) == [purelib, platlib][: len(distinct_dirs)]
 
 
 @pytest.mark.parametrize(

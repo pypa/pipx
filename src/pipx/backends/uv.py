@@ -5,8 +5,8 @@ __lazy_modules__ = [
     "importlib",
     "json",
     "pathlib",
-    "pipx",
     "pipx.backends.pip",
+    "pipx.paths",
     "pipx.subprocess_runner",
     "pipx.trash",
     "pipx.util",
@@ -27,11 +27,11 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx import paths
 from pipx.animate import animate
 from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.constants import WINDOWS
+from pipx.paths import CTX
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
 from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 # uv lets UV_DEFAULT_INDEX override a command-line --index-url, but not --default-index
+#: The uv flags that take the place of each pip index flag.
 PIP_TO_UV_INDEX_FLAGS: Final[dict[str, str]] = dict.fromkeys(("--index-url", "-i"), "--default-index")
 
 
@@ -59,6 +60,11 @@ _VERSION_RE: Final[re.Pattern[str]] = re.compile(r"uv\s+(\S+)")
 
 
 class UvBackend(Backend):
+    """Backend that installs packages with ``uv pip``, into the interpreter of each environment.
+
+    :cvar name: the name the backend is chosen by.
+    """
+
     name = UV
 
     def __init__(self) -> None:
@@ -67,11 +73,20 @@ class UvBackend(Backend):
         _LOGGER.info("using %s uv %s from %s", source, _check_uv_version(self._binary), self._binary)
 
     def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+        """Return whether environments need the shared pip libraries.
+
+        :returns: always False, as uv environments ship no pip.
+        """
         return False
 
     def upgrade_packaging_libraries(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self, venv_python: Path, pip_args: list[str]
     ) -> None:
+        """Do nothing, as uv environments ship no pip to upgrade.
+
+        :param venv_python: the interpreter of the environment.
+        :param pip_args: extra arguments for the installer.
+        """
         del venv_python, pip_args  # uv venvs ship no pip to upgrade
 
     def create_venv(  # ruff:ignore[too-many-arguments]  # Backend interface method mirroring venv-creation inputs
@@ -84,6 +99,16 @@ class UvBackend(Backend):
         include_pip: bool,
         verbose: bool,
     ) -> None:
+        """Create a virtual environment with uv.
+
+        :param root: the directory of the environment.
+        :param python: the interpreter to create the environment with.
+        :param venv_args: extra arguments for ``uv venv``.
+        :param pip_args: extra arguments for the installer, unused as uv seeds no pip.
+        :param include_pip: whether the environment ships its own pip, which uv cannot do.
+        :param verbose: show the progress of the creation.
+        :raises PipxError: when the environment is asked to ship pip.
+        """
         del pip_args  # uv venv has no pip to seed
         if include_pip:
             msg = (
@@ -111,7 +136,7 @@ class UvBackend(Backend):
         # shows its own spinner in place of uv's bar, and uv hides the bar under --verbose anyway. UV_PROJECT moves
         # uv's project-config search from its working directory, which can sit in a shared /tmp, to pipx's home; user
         # and system config still load.
-        return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_PROJECT": str(paths.CTX.home)}
+        return {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1", "UV_PROJECT": str(CTX.home)}
 
     def install(  # ruff:ignore[too-many-arguments]  # Backend interface method mapping flags to uv options
         self,
@@ -125,6 +150,18 @@ class UvBackend(Backend):
         log_pip_errors: bool = True,
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Install requirements into an environment with ``uv pip``.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param requirements: the requirements to install, including option pairs such as ``--requirement`` and a file.
+        :param pip_args: extra arguments for uv.
+        :param no_deps: skip the dependencies of the requirements.
+        :param upgrade_package: the package to upgrade, if any.
+        :param log_pip_errors: log the output of uv when it fails.
+        :param verbose: show the progress of the installation.
+        :returns: the completed uv process.
+        """
         reject_empty_index(pip_args)
         cmd = self._uv_pip_command("install", venv_python, verbose=verbose)
         # uv's --upgrade re-resolves every dependency, pip's only-if-needed default upgrades only the named package
@@ -169,6 +206,11 @@ class UvBackend(Backend):
 
     @staticmethod
     def cooldown_args(cooldown_days: int | None) -> list[str]:
+        """Return the uv arguments that exclude releases published within the last cooldown days.
+
+        :param cooldown_days: the number of days a release must have been out, or None to skip the cooldown.
+        :returns: the uv arguments.
+        """
         return [] if not cooldown_days else ["--exclude-newer", f"P{cooldown_days}D"]
 
     def uninstall(
@@ -179,6 +221,14 @@ class UvBackend(Backend):
         packages: Sequence[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
+        """Uninstall packages from an environment with ``uv pip``.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param packages: the names of the packages to uninstall.
+        :param verbose: show the output of uv.
+        :returns: the completed uv process.
+        """
         cmd: Final = [*self._uv_pip_command("uninstall", venv_python, verbose=verbose), *packages]
         process: Final = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=self._env_overrides())
         subprocess_post_check(process)
@@ -191,6 +241,14 @@ class UvBackend(Backend):
         venv_python: Path,
         not_required: bool,
     ) -> set[str]:
+        """Return the names of the packages installed in an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param not_required: return only the packages that no other package requires.
+        :returns: the normalized names of the packages.
+        :raises PipxError: when uv cannot list the packages.
+        """
         if not_required:
             from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
@@ -215,6 +273,14 @@ class UvBackend(Backend):
         index_args: list[str],
         exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
+        """Return the installed packages that have a newer version in the index.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param index_args: the index arguments to query.
+        :param exclude: the names of the packages to leave out of the check.
+        :returns: the outdated packages.
+        """
         reject_empty_index(index_args)
         cmd: Final = [
             *self._uv_pip_command("list", venv_python, verbose=False),
@@ -237,6 +303,17 @@ class UvBackend(Backend):
         verbose: bool,
         in_working_dir: bool = False,
     ) -> CompletedProcess[str]:
+        """Run a pip command through ``uv pip`` in an environment.
+
+        :param venv_root: the directory of the environment.
+        :param venv_python: the interpreter of the environment.
+        :param args: the pip subcommand and its arguments.
+        :param capture_stdout: capture the standard output instead of showing it.
+        :param capture_stderr: capture the standard error instead of showing it.
+        :param verbose: show the output of uv.
+        :param in_working_dir: run in the current working directory instead of the environment's root.
+        :returns: the completed uv process.
+        """
         # with no args, show pip's help as `pipx runpip TOOL` does under the pip backend
         cmd: list[str | Path] = [self._binary, "pip", args[0] if args else "--help", "--python", str(venv_python)]
         # As with pip, verbose only means "do not silence": uv's --verbose prints DEBUG logs, and runpip always sets it
@@ -258,6 +335,11 @@ class UvBackend(Backend):
 
 
 def resolve_uv_binary() -> Path:
+    """Return the path of the uv executable.
+
+    :returns: the path of the executable.
+    :raises PipxError: when no uv executable can be found.
+    """
     # checks the version here so callers outside UvBackend, such as `pipx run`'s uv tool run shortcut, get pipx's
     # version error instead of an opaque one from uv
     binary, _ = find_uv_binary()
@@ -275,6 +357,11 @@ def resolve_uv_binary() -> Path:
 # cached so `upgrade-all` and similar loops over many venvs walk PATH once
 @cache
 def find_uv_binary() -> tuple[Path | None, str]:
+    """Find the uv executable, preferring the one bundled with the uv package over the one on the PATH.
+
+    :returns: the path of the executable, or None when none is found, and where it came from: ``bundled``, ``path`` or
+        ``missing``.
+    """
     if _FIND_UV_BIN_FROM_EXTRA is not None:
         try:
             bundled: Final = Path(_FIND_UV_BIN_FROM_EXTRA())
@@ -351,6 +438,11 @@ def _uv_version(binary: Path) -> Version:
 # cached so auto-detection, which runs once per venv, warns once per process
 @cache
 def uv_meets_minimum_version(binary: Path) -> bool:
+    """Return whether a uv binary is new enough for pipx to use it, and log a warning when it is not.
+
+    :param binary: the path of the uv executable.
+    :returns: whether the binary meets the minimum version.
+    """
     if (version := _uv_version(binary)) >= _MIN_UV_VERSION:
         return True
     _LOGGER.warning(

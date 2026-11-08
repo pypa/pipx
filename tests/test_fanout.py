@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import FileLock, Timeout
 
-from helpers import SKIP_IF_WINDOWS
+from harness import SKIP_IF_WINDOWS, wait_for_log
 from pipx.fanout import (
     fan_out,
     finished_on_interrupt,
@@ -202,7 +202,7 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     def rolling_back() -> None:
         for _ in range(2):
             signal.pthread_kill(main_thread, signal.SIGINT)
-            time.sleep(0.2)
+            time.sleep(0.2)  # simplint: ignore[SMP808]  # the second signal must land during the rollback
         rolled_back.append("first")
 
     with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
@@ -319,7 +319,7 @@ def _exits_within(pid: int, *, seconds: float) -> bool:
             os.kill(pid, 0)
         except ProcessLookupError:
             return True
-        time.sleep(0.05)
+        time.sleep(0.05)  # simplint: ignore[SMP808]  # the child is external; only its pid shows the exit
     return False
 
 
@@ -364,12 +364,12 @@ def test_fan_out_finishes_started_work_after_first_interrupt(caplog: pytest.LogC
     def finishing() -> str:
         with finished_on_interrupt():
             signal.pthread_kill(main_thread, signal.SIGINT)
-            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            wait_for_log(caplog, "Finishing the 1 environment(s)")
             run_subprocess([sys.executable, "-c", "pass"])
         return "finished"
 
     def not_started() -> str:
-        _wait_for_log(caplog, "Finishing the 1 environment(s)")
+        wait_for_log(caplog, "Finishing the 1 environment(s)")
         with finished_on_interrupt():
             return "started"
 
@@ -387,7 +387,7 @@ def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptur
     def finishing() -> str:
         with finished_on_interrupt():
             signal.pthread_kill(main_thread, signal.SIGINT)
-            _wait_for_log(caplog, "Finishing the 1 environment(s)")
+            wait_for_log(caplog, "Finishing the 1 environment(s)")
             signal.pthread_kill(main_thread, signal.SIGINT)
             run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
         return "finished"
@@ -396,12 +396,6 @@ def test_fan_out_stops_started_work_on_second_interrupt(caplog: pytest.LogCaptur
         assert fan_out([finishing], sequential=False, interrupted=lambda index: f"interrupted {index}") == [
             "interrupted 0"
         ]
-
-
-def _wait_for_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
-    deadline: Final[float] = time.monotonic() + 5
-    while not any(text in message for message in caplog.messages) and time.monotonic() < deadline:
-        time.sleep(0.01)
 
 
 def test_fan_out_runs_off_the_main_thread() -> None:

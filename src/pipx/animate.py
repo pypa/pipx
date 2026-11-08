@@ -17,12 +17,15 @@ from pipx.fanout import output_is_held
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+#: Whether standard error is a terminal.
 STDERR_IS_TTY: Final[bool] = bool(sys.stderr and sys.stderr.isatty())
 
+#: The escape sequence that clears the current line.
 CLEAR_LINE: Final[str] = "\033[K"
+#: Frames of the spinner, used when emojis are shown.
 EMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
+#: Frames of the spinner, used when emojis are not shown.
 NONEMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("", ".", "..", "...")
-_MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
 
 
 if WINDOWS:
@@ -34,11 +37,19 @@ if WINDOWS:
 
 @contextmanager
 def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[None, None, None]:
+    """Show a spinner with a message while the enclosed block runs, or the message alone when there is no animation.
+
+    :param message: the message to show.
+    :param do_animation: whether to animate the spinner, which needs a terminal.
+    :param delay: seconds to wait before the spinner starts.
+    :yields: nothing, while the enclosed block runs.
+    """
     if (handlers := logging.getLogger("pipx").handlers) and handlers[0].level > logging.WARNING:
         yield
         return
 
-    if not do_animation or not _env_supports_animation():
+    minimum_columns: Final[int] = 16
+    if not do_animation or not STDERR_IS_TTY or shutil.get_terminal_size(fallback=(0, 0)).columns <= minimum_columns:
         sys.stderr.write(f"{message}...\n")
         yield
         return
@@ -72,10 +83,6 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
         _clear_line()
 
 
-def _env_supports_animation() -> bool:
-    return STDERR_IS_TTY and shutil.get_terminal_size(fallback=(0, 0)).columns > _MINIMUM_COLS_ALLOW_ANIMATION
-
-
 def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner) -> None:
     term_cols: Final[int] = shutil.get_terminal_size(fallback=(9999, 24)).columns
     event.wait(delay)
@@ -97,11 +104,6 @@ def _print_animation(message: str, event: Event, delay: float, spinner: _Spinner
                 break
 
 
-def _clear_line() -> None:
-    sys.stderr.write(f"\r{CLEAR_LINE}")
-    sys.stdout.write(f"\r{CLEAR_LINE}")
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _Spinner:
     frames: tuple[str, ...]
@@ -109,7 +111,13 @@ class _Spinner:
     at_line_start: bool
 
 
+def _clear_line() -> None:
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
+
+
 def hide_cursor() -> None:
+    """Hide the cursor on standard error while a spinner runs."""
     if STDERR_IS_TTY:
         if WINDOWS:
             _win_cursor(visible=False)
@@ -130,6 +138,7 @@ def _win_cursor(*, visible: bool) -> None:
 
 
 def show_cursor() -> None:
+    """Show the cursor on standard error again after a spinner stops."""
     if STDERR_IS_TTY:
         if WINDOWS:
             _win_cursor(visible=True)

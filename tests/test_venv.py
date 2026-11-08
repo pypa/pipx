@@ -5,17 +5,17 @@ import platform
 import shutil
 import subprocess
 import sys
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 from venv import EnvBuilder
 
 import pytest
 
-from helpers import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
+from harness import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from package_info import PKG
-from pipx import paths, pipx_metadata_file
 from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
 from pipx.options import BackendOptions, ExposureOptions
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.paths import CTX
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError, get_venv_paths
 from pipx.venv import Venv, reset_backend_override_warnings
@@ -23,15 +23,20 @@ from pipx.venv import Venv, reset_backend_override_warnings
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
     from pipx.constants import ExitCode
 
 
+class _SitePackagesVenv(NamedTuple):
+    venv: Venv
+    site_packages: tuple[Path, Path]
+    run_subprocess: MockType
+
+
 @pytest.fixture
-def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv, tuple[Path, Path], MagicMock]:
+def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePackagesVenv:
     venv: Final[Venv] = Venv(tmp_path / "demo")
     venv.python_path.parent.mkdir(parents=True)
     venv.python_path.touch()
@@ -46,20 +51,20 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
     platlib_demo.mkdir(parents=True)
     (platlib_demo / "METADATA").write_text("Name: demo2\nVersion: 1.0\n", encoding="utf-8")
 
-    run_subprocess: Final[MagicMock] = mocker.patch(
+    run_subprocess: Final[MockType] = mocker.patch(
         "pipx.subprocess_runner.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
     )
-    return venv, (purelib_demo, platlib_demo), run_subprocess
+    return _SitePackagesVenv(venv, (purelib_demo, platlib_demo), run_subprocess)
 
 
-def test_has_package(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:
+def test_has_package(venv_with_site_packages: _SitePackagesVenv) -> None:
     venv, _, _ = venv_with_site_packages
     assert (venv.has_package("demo"), venv.has_package("demo2")) == (True, True)
 
 
-def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:
+def test_has_app_caches_site_packages(venv_with_site_packages: _SitePackagesVenv) -> None:
     venv, (purelib_demo, _), run_subprocess = venv_with_site_packages
     (purelib_demo / "entry_points.txt").write_text("[pipx.run]\ndemo = demo:main\n", encoding="utf-8")
 
@@ -67,7 +72,7 @@ def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple
 
 
 def test_run_app_rejects_python_args_without_entry_point(
-    venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock],
+    venv_with_site_packages: _SitePackagesVenv,
 ) -> None:
     venv, _, _ = venv_with_site_packages
 
@@ -88,7 +93,7 @@ def test_run_app_rejects_python_args_without_entry_point(
 def test_install_records_the_venv_python_version(backend: str) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, "pycowsay"])
 
-    assert PipxMetadata(paths.CTX.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"
+    assert PipxMetadata(CTX.venvs / "pycowsay").python_version == f"Python {platform.python_version()}"
 
 
 _CREDENTIALED_REQUIREMENT: Final[str] = "helper @ http://u:s3cr3ttok@127.0.0.1:9/helper-1.0-py3-none-any.whl"
@@ -144,7 +149,7 @@ def test_install_unmanaged_packages_logs_without_url_credentials(
 def test_venv_without_pyvenv_cfg_refuses_installer(
     operation: Callable[[Venv], set[str] | ExitCode | None], tmp_path: Path, mocker: MockerFixture
 ) -> None:
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True)
     mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
     venv: Final[Venv] = Venv(tmp_path / "demo")
 
@@ -158,7 +163,7 @@ def test_venv_without_pyvenv_cfg_refuses_installer(
 def test_runpip_refuses_venv_without_pyvenv_cfg(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     # a wheel's data file can own pyvenv.cfg, and upgrading to a release without it deletes the file
-    (paths.CTX.venvs / "pycowsay" / "pyvenv.cfg").unlink()
+    (CTX.venvs / "pycowsay" / "pyvenv.cfg").unlink()
     capsys.readouterr()
 
     assert (run_pipx_cli(["runpip", "pycowsay", "list"]), "pipx reinstall pycowsay" in capsys.readouterr().err) == (
@@ -182,7 +187,7 @@ def test_backend_override_warning_dedups_per_venv(
         "backend": "pip",
         "pipx_metadata_version": "0.6",
     }
-    (venv_dir / pipx_metadata_file.PIPX_INFO_FILENAME).write_text(json.dumps(metadata_payload))
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(metadata_payload))
     reset_backend_override_warnings()
     caplog.set_level("WARNING", logger="pipx.venv")
 
@@ -214,7 +219,7 @@ def test_venv_without_record_resolves_like_a_fresh_one(
 def test_package_name_determination_preserves_install_error(mocker: MockerFixture, tmp_path: Path) -> None:
     (tmp_path / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(tmp_path)
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True)
     # Python before 3.14 ignores a keyword argument naming a method of an autospec
     backend.cooldown_args.return_value = []
     backend.install.return_value = subprocess.CompletedProcess(
@@ -224,8 +229,8 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
         stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
     )
     mocker.patch.object(venv, "_backend", backend)
-    mocker.patch.object(venv, "list_installed_packages", return_value=set())
-    mocker.patch("pipx.venv.get_site_packages", return_value=[])
+    mocker.patch.object(venv, "list_installed_packages", return_value=set(), autospec=True)
+    mocker.patch("pipx.venv.get_site_packages", return_value=[], autospec=True)
 
     with pytest.raises(PipxError) as excinfo:
         venv.install_package_no_deps("requires-newer-python", [], None)
@@ -262,12 +267,12 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
     (root := site_packages / "probe-venv").mkdir()
     (root / "pyvenv.cfg").touch()
     venv: Final[Venv] = Venv(root)
-    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
+    backend: Final[MockType] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
     # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
     backend.install.side_effect = install
     mocker.patch.object(venv, "_backend", backend)
-    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}])
-    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages])
+    mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}], autospec=True)
+    mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages], autospec=True)
     return venv
 
 
@@ -293,6 +298,6 @@ def test_install_from_bootstrap_venv_records_interpreter_outside_it(tmp_path: Pa
 
     assert not run_pipx_cli(["install", "--python", str(bootstrap_python), PKG["pycowsay"]["spec"]])
 
-    recorded: Final[Path | None] = PipxMetadata(paths.CTX.venvs / "pycowsay").source_interpreter
+    recorded: Final[Path | None] = PipxMetadata(CTX.venvs / "pycowsay").source_interpreter
     assert recorded is not None
     assert (recorded.is_file(), recorded.is_relative_to(bootstrap)) == (True, False)

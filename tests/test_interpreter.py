@@ -11,18 +11,17 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 import pipx.interpreter
-import pipx.paths
 import pipx.standalone_python
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter, recordable_interpreter
+from pipx.paths import CTX
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 def test_import_defers_default_python_resolution() -> None:
@@ -159,7 +158,9 @@ def test_windows_python_no_version_no_venv_no_python(monkeypatch: pytest.MonkeyP
 )
 @pytest.mark.usefixtures("windows_store_python")
 def test_windows_python_no_venv_store_stub_rejected(mocker: MockerFixture, returncode: int, stdout: bytes) -> None:
-    mocker.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], returncode, stdout=stdout))
+    mocker.patch.object(
+        subprocess, "run", return_value=subprocess.CompletedProcess([], returncode, stdout=stdout), autospec=True
+    )
 
     with pytest.raises(PipxError):
         pipx.interpreter.get_default_python()
@@ -173,7 +174,9 @@ def windows_store_python(monkeypatch: pytest.MonkeyPatch, windows_default_python
 
 @pytest.mark.usefixtures("windows_store_python")
 def test_windows_python_no_venv_store_python_that_prints_its_version(mocker: MockerFixture) -> None:
-    mocker.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=b"3.8"))
+    mocker.patch.object(
+        subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=b"3.8"), autospec=True
+    )
 
     assert pipx.interpreter.get_default_python() == "WindowsApps"
 
@@ -305,16 +308,25 @@ def test_find_python_interpreter_unresolvable_raises(python_version: str) -> Non
         pytest.param(FetchPythonOptions.ALWAYS, id="always"),
     ],
 )
+@pytest.mark.parametrize(
+    "executable_name",
+    [
+        pytest.param("python.exe", id="windows", marks=pytest.mark.skipif(not WINDOWS, reason="Windows only")),
+        pytest.param("python3", id="posix", marks=pytest.mark.skipif(WINDOWS, reason="POSIX only")),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
-def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: FetchPythonOptions) -> None:
+def test_fetch_missing_python(
+    monkeypatch: pytest.MonkeyPatch, fetch_python: FetchPythonOptions, executable_name: str
+) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
     target_python: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
 
     python_path: Final[str] = find_python_interpreter(target_python, fetch_python=fetch_python)
 
     assert target_python in python_path
-    assert str(pipx.paths.CTX.standalone_python_cachedir) in python_path
-    assert python_path.endswith("python.exe" if WINDOWS else "python3")
+    assert str(CTX.standalone_python_cachedir) in python_path
+    assert python_path.endswith(executable_name)
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
 
@@ -338,9 +350,9 @@ def test_fetch_python_unsupported_platform_raises(
     libc: str,
     expected_platform: str,
 ) -> None:
-    mocker.patch.object(pipx.standalone_python.platform, "system", return_value=system)
-    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value=machine)
-    mocker.patch.object(pipx.standalone_python.platform, "libc_ver", return_value=(libc, ""))
+    mocker.patch.object(pipx.standalone_python.platform, "system", return_value=system, autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value=machine, autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "libc_ver", return_value=(libc, ""), autospec=True)
 
     with pytest.raises(InterpreterResolutionError, match="python-build-standalone") as error:
         find_python_interpreter("3.99", fetch_python=FetchPythonOptions.ALWAYS)
@@ -351,9 +363,9 @@ def test_fetch_python_retries_incomplete_install(
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    mocker.patch.object(pipx.standalone_python.platform, "system", return_value="Plan9")
-    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value="riscv64")
-    (install_dir := pipx.paths.CTX.standalone_python_cachedir / "3.98").mkdir(parents=True)
+    mocker.patch.object(pipx.standalone_python.platform, "system", return_value="Plan9", autospec=True)
+    mocker.patch.object(pipx.standalone_python.platform, "machine", return_value="riscv64", autospec=True)
+    (install_dir := CTX.standalone_python_cachedir / "3.98").mkdir(parents=True)
 
     with pytest.raises(InterpreterResolutionError):
         find_python_interpreter("3.98", fetch_python=FetchPythonOptions.ALWAYS)
@@ -391,7 +403,7 @@ def test_fetch_python_non_version_keeps_pipx_home(
     monkeypatch: pytest.MonkeyPatch, python_version: str, fetch_python: FetchPythonOptions
 ) -> None:
     monkeypatch.setattr(shutil, "which", lambda _name: None)
-    cache_dir: Final[Path] = pipx.paths.CTX.standalone_python_cachedir
+    cache_dir: Final[Path] = CTX.standalone_python_cachedir
     kept: Final[list[Path]] = [cache_dir / "3.98", cache_dir.parent / "venvs" / "app"]
     for directory in kept:
         directory.mkdir(parents=True)
@@ -447,7 +459,7 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch: pytest.MonkeyP
 def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
     mocker: MockerFixture, python_version: str
 ) -> None:
-    launcher: Final[MagicMock] = mocker.patch.object(subprocess, "run", autospec=True)
+    launcher: Final[MockType] = mocker.patch.object(subprocess, "run", autospec=True)
 
     with pytest.raises(InterpreterResolutionError, match="found in PATH"):
         find_python_interpreter(python_version, FetchPythonOptions.NEVER)
@@ -456,7 +468,9 @@ def test_find_python_interpreter_skips_unix_py_launcher_for_non_selector(
 
 @pytest.fixture
 def unix_py_launcher_on_path(mocker: MockerFixture) -> None:
-    mocker.patch.object(shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None)
+    mocker.patch.object(
+        shutil, "which", side_effect=lambda name: "/usr/bin/py" if name == "py" else None, autospec=True
+    )
 
 
 @pytest.mark.skipif(WINDOWS, reason="Python Launcher for Unix")
@@ -532,4 +546,4 @@ def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, e
     (bin_dir := bootstrap / "bin").mkdir()
     (python := bin_dir / "python3").touch()
 
-    assert recordable_interpreter(python) == (None if expected is None else base_dir / expected)
+    assert recordable_interpreter(python) == {name: base_dir / name for name in ("python3", "python3.14")}.get(expected)

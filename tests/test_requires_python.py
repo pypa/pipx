@@ -11,10 +11,11 @@ import pytest
 from flit_core.wheel import make_wheel_in
 from packaging.specifiers import SpecifierSet
 
-from helpers import run_pipx_cli
-from pipx import paths, standalone_python
+from harness import run_pipx_cli
+from pipx import standalone_python
 from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.requires_python import interpreter_for, rejected_constraint, unsatisfied_constraint
 from pipx.util import PipxError
@@ -119,10 +120,11 @@ def fake_interpreters(mocker: MockerFixture) -> _FakeInterpreters:
                 return f"/downloaded/{fetched[minor]}"
             raise InterpreterResolutionError(source="the system", version=minor)
 
-        mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve)
+        mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve, autospec=True)
         mocker.patch(
             "pipx.requires_python.run_subprocess",
             side_effect=lambda cmd, **_: CompletedProcess(cmd, 0, stdout=f"{cmd[0].rsplit('/', 1)[1]}\n"),
+            autospec=True,
         )
 
     return install
@@ -194,7 +196,7 @@ def test_interpreter_for_reports_a_constraint_no_release_meets() -> None:
 def test_install_moves_to_a_python_the_package_supports(wheel_excluding_this_python: Path, backend: str) -> None:
     assert not run_pipx_cli(["install", "--backend", backend, str(wheel_excluding_this_python)])
 
-    recorded: Final[str] = PipxMetadata(paths.CTX.venvs / "needs-older").python_version or ""
+    recorded: Final[str] = PipxMetadata(CTX.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
@@ -244,7 +246,7 @@ def test_install_keeps_the_default_python_for_the_other_packages(project_excludi
     # a URL carries no name, so pipx meets the constraint while it resolves the names, before it builds any environment
     assert not run_pipx_cli(["install", "--backend", "pip", project_excluding_this_python.as_uri(), "pycowsay"])
 
-    recorded: Final[str] = PipxMetadata(paths.CTX.venvs / "pycowsay").python_version or ""
+    recorded: Final[str] = PipxMetadata(CTX.venvs / "pycowsay").python_version or ""
     assert recorded == f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
@@ -272,7 +274,7 @@ def test_install_force_moving_to_a_supported_python_keeps_the_recorded_backend(
 
     assert not run_pipx_cli(["install", "--force", *backend_args, str(make_needs_project(f"<{this_python}"))])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "needs-older")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "needs-older")
     assert (metadata.backend, (metadata.python_version or "").startswith(f"Python {this_python}.")) == (recorded, False)
 
 
@@ -285,7 +287,7 @@ def test_install_uv_moves_off_a_default_python_below_the_lower_bound(
 
     assert not run_pipx_cli(["install", "--backend", "uv", str(project)])
 
-    recorded: Final[str] = PipxMetadata(paths.CTX.venvs / "needs-older").python_version or ""
+    recorded: Final[str] = PipxMetadata(CTX.venvs / "needs-older").python_version or ""
     assert not recorded.startswith(f"Python {older_python.rsplit('python', 1)[1]}.")
 
 
@@ -340,7 +342,7 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
 ) -> None:
     project: Final[Path] = make_needs_project(f">={MINIMUM_PYTHON_VERSION}")
     assert not run_pipx_cli(["install", "--backend", "pip", str(project)])
-    venv_dir: Final[Path] = paths.CTX.venvs / "needs-older"
+    venv_dir: Final[Path] = CTX.venvs / "needs-older"
     recorded: Final[str] = (metadata_file := venv_dir / "pipx_metadata.json").read_text()
     (marker := venv_dir / "marker").touch()
     pyproject: Final[Path] = project / "pyproject.toml"
@@ -366,7 +368,7 @@ def test_install_force_failing_on_a_supported_python_keeps_the_environment(
 @pytest.mark.usefixtures("older_python", "mocked_github_api", "capsys")
 def test_interpreter_upgrade_keeps_the_standalone_python_the_package_rules_out(
     make_needs_project: Callable[[str], Path],
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
     monkeypatch: pytest.MonkeyPatch,
     backend: str,
 ) -> None:
@@ -381,15 +383,17 @@ def test_interpreter_upgrade_keeps_the_standalone_python_the_package_rules_out(
         "--fetch-python=always",
         str(project),
     ])
-    standalone: Final[Path | None] = PipxMetadata(paths.CTX.venvs / "needs-older").source_interpreter
+    standalone: Final[Path | None] = PipxMetadata(CTX.venvs / "needs-older").source_interpreter
     pyproject: Final[Path] = project / "pyproject.toml"
     pyproject.write_text(pyproject.read_text().replace(f">={MINIMUM_PYTHON_VERSION}", f"<{this_minor}"))
-    newer_index: Final[dict[str, object]] = standalone_python_index(f"{this_minor}.{sys.version_info.micro + 1}")
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
+        f"{this_minor}.{sys.version_info.micro + 1}"
+    )
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
 
     assert (
         run_pipx_cli(["interpreter", "upgrade"]),
-        PipxMetadata(paths.CTX.venvs / "needs-older").source_interpreter,
+        PipxMetadata(CTX.venvs / "needs-older").source_interpreter,
     ) == (
         1,
         standalone,

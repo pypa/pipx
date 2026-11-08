@@ -22,18 +22,19 @@ from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
-    from unittest.mock import MagicMock
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 import pipx.main
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
+from harness import PACKAGE_CACHE_DIR_NAME, WIN, pipx_subprocess_env, run_pipx_cli, write_wheel
 from package_info import PKG
-from pipx import paths, shared_libs, subprocess_runner
+from pipx import shared_libs
 from pipx.commands.run import maybe_script_content, run_package
 from pipx.constants import FetchPythonOptions
 from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.subprocess_runner import exec_app
 from pipx.venv import VenvContainer
 
 
@@ -47,6 +48,11 @@ def test_help_text(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) ->
     assert "Download the latest version of a package" in capsys.readouterr().out
 
 
+@pytest.fixture
+def exec_via_subprocess(mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
+
+
 def execvpe_via_subprocess(_cmd_path: str, cmd_args: Sequence[str], env: Mapping[str, str]) -> None:
     sys.exit(
         subprocess.run(
@@ -58,18 +64,6 @@ def execvpe_via_subprocess(_cmd_path: str, cmd_args: Sequence[str], env: Mapping
             check=False,
         ).returncode
     )
-
-
-@pytest.fixture
-def exec_via_subprocess(mocker: MockerFixture) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
-
-
-def run_pipx_cli_exit(pipx_cmd_list: list[str], assert_exit: int | None = None) -> None:
-    with pytest.raises(SystemExit) as sys_exit:
-        run_pipx_cli(pipx_cmd_list)
-    if assert_exit is not None:
-        assert sys_exit.value.code == assert_exit
 
 
 @pytest.mark.parametrize(
@@ -87,6 +81,13 @@ def test_simple_run(capsys: pytest.CaptureFixture[str], package_name: str) -> No
     assert "Download the latest version of a package" not in capsys.readouterr().out
 
 
+def run_pipx_cli_exit(pipx_cmd_list: list[str], assert_exit: int | None = None) -> None:
+    with pytest.raises(SystemExit) as sys_exit:
+        run_pipx_cli(pipx_cmd_list)
+    if assert_exit is not None:
+        assert sys_exit.value.code == assert_exit
+
+
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_normalizes_inferred_package_name(monkeypatch: pytest.MonkeyPatch, backend: str) -> None:
@@ -100,7 +101,7 @@ def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture)
     # `uv tool run PyCowSay` would look for a `PyCowSay` script; only the venv path knows what the package installed
     run_pipx_cli_exit(["run", "--backend", "uv", "PyCowSay", "cowsay", "hi"], assert_exit=0)
 
-    assert f"exec_app: {paths.CTX.venv_cache}" in caplog.text
+    assert f"exec_app: {CTX.venv_cache}" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
@@ -171,7 +172,7 @@ def test_run_spec_honors_dotted_pipx_run_entry_point(
     )
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
-    assert f"exec_app: {paths.CTX.venv_cache}" in caplog.text
+    assert f"exec_app: {CTX.venv_cache}" in caplog.text
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -205,7 +206,7 @@ def test_no_cache_removes_cached_venv(caplog: pytest.LogCaptureFixture) -> None:
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_refresh_rebuilds_cached_environment() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    venv_dir: Final[Path] = next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())
+    venv_dir: Final[Path] = next(path for path in CTX.venv_cache.iterdir() if path.is_dir())
     marker: Final[Path] = venv_dir / "marker"
     marker.touch()
 
@@ -217,7 +218,7 @@ def test_run_refresh_rebuilds_cached_environment() -> None:
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_refresh_retains_replacement() -> None:
     run_pipx_cli_exit(["run", "--refresh", "pycowsay", "cowsay", "args"])
-    venv_dir: Final[Path] = next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())
+    venv_dir: Final[Path] = next(path for path in CTX.venv_cache.iterdir() if path.is_dir())
     marker: Final[Path] = venv_dir / "marker"
     marker.touch()
 
@@ -228,8 +229,8 @@ def test_run_refresh_retains_replacement() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> None:
-    paths.CTX.venv_cache.mkdir(parents=True, exist_ok=True)
-    held: Final[Path] = paths.CTX.venv_cache / "held-by-another-run"
+    CTX.venv_cache.mkdir(parents=True, exist_ok=True)
+    held: Final[Path] = CTX.venv_cache / "held-by-another-run"
     held.mkdir()
     (held / "pipx_expired_venv").touch()
 
@@ -265,10 +266,10 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_run_with_isolates_cache_by_dependency() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
-    plain_dirs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
+    plain_dirs: Final[set[Path]] = {path for path in CTX.venv_cache.iterdir() if path.is_dir()}
 
     run_pipx_cli_exit(["run", "--with", "six", "pycowsay", "cowsay", "hi"])
-    with_dirs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()} - plain_dirs
+    with_dirs: Final[set[Path]] = {path for path in CTX.venv_cache.iterdir() if path.is_dir()} - plain_dirs
 
     assert [bool(list(path.rglob("six-*.dist-info"))) for path in (*plain_dirs, *with_dirs)] == [False, True]
 
@@ -300,7 +301,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
 def test_run_script_searches_python_only_when_default_fails_requires_python(
     tmp_path: Path, mocker: MockerFixture, backend: str, requires_python: str, searched: set[str]
 ) -> None:
-    exec_mock: Final = mocker.create_autospec(subprocess_runner.exec_app, side_effect=SystemExit(0))
+    exec_mock: Final = mocker.create_autospec(exec_app, side_effect=SystemExit(0))
     mocker.patch("pipx.commands.run.exec_app", new=exec_mock)
     mocker.patch("pipx.commands.run_uv.exec_app", new=exec_mock)
     script: Final[Path] = tmp_path / "script.py"
@@ -350,7 +351,7 @@ def test_run_cache_options_are_mutually_exclusive(
 def test_run_does_not_mark_cache_as_installation() -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
 
-    assert PipxMetadata(next(path for path in paths.CTX.venv_cache.iterdir() if path.is_dir())).environment is None
+    assert PipxMetadata(next(path for path in CTX.venv_cache.iterdir() if path.is_dir())).environment is None
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
@@ -361,7 +362,7 @@ def test_run_cooldown_separates_cache(package_cache_dir: Path, caplog: pytest.Lo
         ["run", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"], "hello"],
         assert_exit=0,
     )
-    cached_venvs: Final[set[Path]] = {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
+    cached_venvs: Final[set[Path]] = {path for path in CTX.venv_cache.iterdir() if path.is_dir()}
     caplog.clear()
 
     run_pipx_cli_exit(
@@ -370,14 +371,14 @@ def test_run_cooldown_separates_cache(package_cache_dir: Path, caplog: pytest.Lo
     )
 
     assert (
-        len({path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}),
+        len({path for path in CTX.venv_cache.iterdir() if path.is_dir()}),
         "--uploaded-prior-to" in caplog.text,
     ) == (len(cached_venvs) + 1, False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
 def test_no_path_check(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
-    which: Final[MagicMock] = mocker.create_autospec(shutil.which, return_value="/fake/bin/pycowsay")
+    which: Final[MockType] = mocker.create_autospec(shutil.which, return_value="/fake/bin/pycowsay")
     mocker.patch("pipx.commands.run.which", new=which)
     mocker.patch("pipx.commands.run_uv.which", new=which)
 
@@ -393,7 +394,7 @@ def test_no_path_check(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env", "exec_via_subprocess")
 def test_cachedir_tag_created_with_signature(caplog: pytest.LogCaptureFixture) -> None:
-    tag_path: Final[Path] = paths.CTX.venv_cache / "CACHEDIR.TAG"
+    tag_path: Final[Path] = CTX.venv_cache / "CACHEDIR.TAG"
     assert not tag_path.exists()
     caplog.set_level(logging.DEBUG)
 
@@ -415,15 +416,15 @@ def test_cachedir_tag_not_recreated(caplog: pytest.LogCaptureFixture) -> None:
 
     assert (
         "Adding CACHEDIR.TAG to cache directory" in caplog.text,
-        (paths.CTX.venv_cache / "CACHEDIR.TAG").exists(),
+        (CTX.venv_cache / "CACHEDIR.TAG").exists(),
     ) == (False, True)
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env", "exec_via_subprocess")
 def test_cache_sweep_ignores_tag(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
-    tag_path: Final[Path] = paths.CTX.venv_cache / "CACHEDIR.TAG"
-    expired_venv: Final[Path] = paths.CTX.venv_cache / "expired"
+    tag_path: Final[Path] = CTX.venv_cache / "CACHEDIR.TAG"
+    expired_venv: Final[Path] = CTX.venv_cache / "expired"
     expired_venv.mkdir()
     mocker.patch(
         "pipx.commands.run.dt",
@@ -805,7 +806,7 @@ def test_run_script_with_uv_ignores_uv_toml_beside_script(tmp_path: Path) -> Non
 def test_run_script_uv_releases_cache_lock_before_handover(tmp_path: Path, mocker: MockerFixture) -> None:
     def handover(_cmd: Sequence[str | Path], env: dict[str, str]) -> NoReturn:
         # raises Timeout while held; exec_app waits for the script on Windows, so the lock would outlive the handover
-        with VenvContainer(paths.CTX.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
+        with VenvContainer(CTX.venv_cache).venv_lock(Path(env["VIRTUAL_ENV"])).acquire(timeout=0):
             raise SystemExit(0)
 
     mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=handover)
@@ -896,7 +897,7 @@ def test_run_script_uv_leaves_no_run_lock_files(uv_script: Path, mocker: MockerF
 
     run_pipx_cli_exit(["run", "--backend", "uv", str(uv_script)], assert_exit=0)
 
-    assert list(paths.CTX.venv_cache.glob(".*.run-*.lock")) == []
+    assert list(CTX.venv_cache.glob(".*.run-*.lock")) == []
 
 
 @pytest.mark.skipif(not WIN, reason="on POSIX pipx hands its process to uv, so it cannot remove the environment after")
@@ -905,7 +906,7 @@ def test_run_script_uv_removes_its_own_environment_once_done(
 ) -> None:
     venv_dir: Final[Path] = run_beside_running_uv_script(["--no-cache"], "running")
 
-    assert [path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()] == [venv_dir]
+    assert [path for path in CTX.venv_cache.iterdir() if path.is_dir()] == [venv_dir]
 
 
 @pytest.mark.parametrize(
@@ -975,7 +976,7 @@ def run_demodep_script(tmp_path: Path, publish_demodep: Callable[[str, str], Pat
 
     def run(backend: str) -> set[Path]:
         run_pipx_cli_exit(["run", "--backend", backend, f"--pip-args=--find-links={links}", str(script)], assert_exit=0)
-        return {path for path in paths.CTX.venv_cache.iterdir() if path.is_dir()}
+        return {path for path in CTX.venv_cache.iterdir() if path.is_dir()}
 
     return run
 
@@ -1211,7 +1212,7 @@ def test_run_script_interrupted_venv_creation_expires_cache(
     def interrupt() -> None:
         raise KeyboardInterrupt
 
-    before_venv_subprocess(paths.CTX.venv_cache, interrupt)
+    before_venv_subprocess(CTX.venv_cache, interrupt)
     assert run_pipx_cli(["run", "--backend", "pip", str(inline_script)]) == 1
     mocker.stopall()
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_via_subprocess)
@@ -1229,7 +1230,7 @@ def test_run_package_install_failure_expires_cache(package_cache_dir: Path) -> N
 
     assert run_pipx_cli(["run", "--backend", "pip", pip_args, "--spec", "pipx-missing-package", "missing-app"]) == 1
 
-    assert len(list(paths.CTX.venv_cache.glob("*/pipx_expired_venv"))) == 1
+    assert len(list(CTX.venv_cache.glob("*/pipx_expired_venv"))) == 1
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
@@ -1464,7 +1465,7 @@ def test_run_uv_dash_app_is_not_a_uv_option() -> None:
 def test_run_with() -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
 
-    assert list(paths.CTX.venv_cache.rglob("black-*.dist-info"))
+    assert list(CTX.venv_cache.rglob("black-*.dist-info"))
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
@@ -1488,7 +1489,7 @@ def test_run_with_cooldown(
     )
 
     assert (
-        bool(list(paths.CTX.venv_cache.rglob("empty_project-*.dist-info"))),
+        bool(list(CTX.venv_cache.rglob("empty_project-*.dist-info"))),
         "--uploaded-prior-to P7D" in caplog.text,
     ) == (True, True)
 
@@ -1511,7 +1512,7 @@ def test_run_with_pins_app_dependency(
         "empty-project",
     ])
 
-    assert [path.name for path in paths.CTX.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
+    assert [path.name for path in CTX.venv_cache.rglob("black-*.dist-info")] == ["black-22.8.0.dist-info"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1520,7 +1521,7 @@ def test_run_with_app_extra_exposes_nothing(local_extras_wheel: Path, mocker: Mo
 
     run_pipx_cli_exit(["run", "--spec", str(local_extras_wheel), "--with", f"{local_extras_wheel}[cow]", "repeatme"])
 
-    assert list(paths.CTX.bin_dir.iterdir()) == []
+    assert list(CTX.bin_dir.iterdir()) == []
 
 
 @pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
@@ -1732,8 +1733,8 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
 @pytest.fixture
 def plant_secret() -> Callable[[bytes], Path]:
     def plant(secret: bytes) -> Path:
-        paths.CTX.venv_cache.mkdir(parents=True, exist_ok=True)
-        secret_path: Final[Path] = paths.CTX.venv_cache / ".run-key"
+        CTX.venv_cache.mkdir(parents=True, exist_ok=True)
+        secret_path: Final[Path] = CTX.venv_cache / ".run-key"
         secret_path.write_bytes(secret)
         secret_path.chmod(0o600)
         return secret_path
@@ -1770,7 +1771,7 @@ def test_run_cache_name_is_stable_for_a_secret(
 def test_run_cache_secret_is_private(cache_lock_path: Callable[[list[str], list[str], list[str]], Path]) -> None:
     cache_lock_path(["black"], [], [])
 
-    assert (paths.CTX.venv_cache / ".run-key").stat().st_mode & 0o777 == 0o600
+    assert (CTX.venv_cache / ".run-key").stat().st_mode & 0o777 == 0o600
 
 
 @pytest.mark.parametrize(
@@ -1804,7 +1805,7 @@ def test_run_cache_secret_replaces_foreign_owned(
     mocker: MockerFixture,
 ) -> None:
     secret_path: Final[Path] = plant_secret(b"a" * 32)
-    mocker.patch("os.geteuid", return_value=secret_path.stat().st_uid + 1)
+    mocker.patch("os.geteuid", return_value=secret_path.stat().st_uid + 1, autospec=True)
     cache_lock_path(["black"], [], [])
 
     assert secret_path.read_bytes() != b"a" * 32
@@ -1820,13 +1821,13 @@ def test_run_cache_secret_keeps_the_one_a_concurrent_run_wrote(
     expected: Final[Path] = cache_lock_path(["black"], [], [])
     plant_secret(b"b" * 32)
     own: Final[Path] = cache_lock_path(["black"], [], [])
-    (paths.CTX.venv_cache / ".run-key").unlink()
+    (CTX.venv_cache / ".run-key").unlink()
 
     def concurrent_run_wins(size: int) -> bytes:
         plant_secret(b"a" * 32)
         return b"b" * size
 
-    mocker.patch("secrets.token_bytes", side_effect=concurrent_run_wins)
+    mocker.patch("secrets.token_bytes", side_effect=concurrent_run_wins, autospec=True)
 
     assert cache_lock_path(["black"], [], []) == expected != own
 
@@ -1837,7 +1838,7 @@ def test_run_cache_without_usable_secret_logs_fallback(
     caplog: pytest.LogCaptureFixture,
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch("tempfile.mkstemp", side_effect=PermissionError(13, "Permission denied"))
+    mocker.patch("tempfile.mkstemp", side_effect=PermissionError(13, "Permission denied"), autospec=True)
     caplog.set_level(logging.DEBUG)
     cache_lock_path(["black"], [], [])
 

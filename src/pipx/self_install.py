@@ -10,11 +10,15 @@ from pathlib import Path
 from typing import Final, TypeAlias
 
 _JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
-_PIPX_METADATA_FILENAME: Final[str] = "pipx_metadata.json"
+#: The directory that pipx installs into when it runs as a global, self-managed installation.
 DEFAULT_PIPX_GLOBAL_HOME: Final[Path] = Path("/opt/pipx")
 
 
 def discover_self_managed_environment() -> dict[str, str]:
+    """Return the environment variables of the self-managed pipx environment that pipx runs from.
+
+    :returns: the variables to apply, empty when pipx does not run from a self-managed environment.
+    """
     if os.name == "nt":
         return {}
 
@@ -23,7 +27,7 @@ def discover_self_managed_environment() -> dict[str, str]:
         return {}
 
     try:
-        metadata: Final[_JsonValue] = json.loads((venv / _PIPX_METADATA_FILENAME).read_text(encoding="utf-8"))
+        metadata: Final[_JsonValue] = json.loads((venv / "pipx_metadata.json").read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {}
     if not isinstance(metadata, dict):
@@ -60,6 +64,12 @@ def discover_self_managed_environment() -> dict[str, str]:
 
 
 def backs_self_managed_venv(source_interpreter: Path, venv: Path) -> bool:
+    """Return whether an interpreter is the one of a virtual environment.
+
+    :param source_interpreter: the interpreter to check.
+    :param venv: the directory of the virtual environment.
+    :returns: whether the interpreter is the Python of the environment.
+    """
     # a record pointing at a since-removed bootstrap venv must not outlive it or adopt whatever appears there later
     return source_interpreter.resolve() == (venv / "bin" / "python").resolve()
 
@@ -76,6 +86,11 @@ _SELF_MANAGED_ENVIRONMENT: Final[dict[str, str]] = discover_self_managed_environ
 
 
 def get_environment_value(name: str) -> str | None:
+    """Return the value of a variable, from the environment or the self-managed pipx environment.
+
+    :param name: the environment variable to look up, falling back to the self-managed pipx environment.
+    :returns: the value, or None when the variable is set nowhere.
+    """
     return os.environ.get(name, _SELF_MANAGED_ENVIRONMENT.get(name))
 
 

@@ -57,6 +57,8 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from typing import TypeIs
 
+    from filelock import BaseFileLock
+
     from pipx.options import SyncOptions
     from pipx.venv import VenvContainer
 
@@ -64,6 +66,13 @@ if TYPE_CHECKING:
 def sync_manifest(
     manifest_file: Path, venv_container: VenvContainer, options: SyncOptions
 ) -> OperationResult[ManifestData]:
+    """Install and update the tools that a manifest declares.
+
+    :param manifest_file: the manifest that declares the environments to sync.
+    :param venv_container: the container of the environments.
+    :param options: the options of the sync.
+    :returns: the result listing the synced environments and the failures.
+    """
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=True)
     failures: Final[list[_FailedTool]] = []
     messages: Final[list[OutputMessage]] = []
@@ -71,62 +80,17 @@ def sync_manifest(
     for tool in manifest.tools:
         venv_dir: Final[Path] = venv_container.get_venv_dir(tool.environment)
         with venv_container.venv_lock(venv_dir) as venv_lock:
-            existed: Final[bool] = venv_dir.is_dir()
-            recorded: Final[PipxMetadata] = PipxMetadata(venv_dir)
-            was_exposed: Final[bool] = existed and recorded.exposure_enabled
-            try:
-                if was_exposed:
-                    unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
-                # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
-                with force_replaces_only(()):
-                    outcome: Final = install(
-                        venv_dir,
-                        [tool.package_name],
-                        [tool.package],
-                        InstallOptions(
-                            local_bin_dir=options.local_bin_dir,
-                            local_man_dir=options.local_man_dir,
-                            python=options.python,
-                            pip_args=trusted_recorded_pip_args(recorded.main_package.pip_args, venv_dir),
-                            venv_args=recorded.venv_args,
-                            verbose=options.verbose,
-                            force=existed,
-                            reinstall=False,
-                            exposure=ExposureOptions(
-                                include_dependencies=tool.include_dependencies,
-                                include_resources_from=tool.include_resources_from,
-                                suffix=tool.suffix,
-                            ),
-                            preinstall_packages=None,
-                            expected_apps=tool.apps,
-                            lock_file=tool.lock_file,
-                            backend=options.backend,
-                            exposure_enabled=tool.expose,
-                            preserve_existing=True,
-                            replace_expected_apps=True,
-                            replace_lock=True,
-                            emit_output=False,
-                        ),
-                        venv_lock=venv_lock,
-                    )
-                error_message = outcome.errors[0].message if outcome.errors else None
-            except PipxError as error:
-                error_message = str(error)
-            except (Exception, KeyboardInterrupt):
-                # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
-                if was_exposed:
-                    expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
-                raise
-            # install returns a failed result rather than raising when it does not render, so check both
+            state: Final[_VenvState] = _read_venv_state(venv_dir)
+            error_message: Final[str | None] = _install_tool(tool, options, venv_dir, venv_lock, state)
             if error_message is not None:
                 failures.append(_FailedTool(environment=tool.environment, error=error_message))
                 messages.append(OutputMessage(text=error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
-                if was_exposed:
+                if state.was_exposed:
                     expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
             else:
                 synced.append(tool.environment)
                 # install links the main package alone, while unexpose also dropped the links of injected packages
-                if existed and tool.expose:
+                if state.existed and tool.expose:
                     expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
 
     if options.prune and not failures:
@@ -171,7 +135,8 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
             msg = f"Manifest tool {environment} must be a table."
             raise PipxError(msg)
         tools.append(_parse_tool(environment, package, values, path.parent, require_locks=require_locks))
-    if duplicates := _duplicate_lock_files(tools):
+    lock_file_counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
+    if duplicates := sorted(lock_file for lock_file, count in lock_file_counts.items() if count > 1):
         msg = f"Lock files must be unique per tool: {', '.join(map(str, duplicates))}"
         raise PipxError(msg)
     return _Manifest(path=path, tools=tuple(tools))
@@ -339,7 +304,12 @@ def _parse_lock_file(
         raise PipxError(msg)
     # joining onto the manifest directory keeps an absolute lock path as it is
     lock_file: Final[Path] = (manifest_dir / Path(lock_value).expanduser()).resolve()
-    if not _is_pylock_name(lock_file.name):
+    if lock_file.name != "pylock.toml" and not (
+        lock_file.name.startswith("pylock.")
+        and lock_file.name.endswith(".toml")
+        and bool(lock_name := lock_file.name.removeprefix("pylock.").removesuffix(".toml"))
+        and "." not in lock_name
+    ):
         msg = f"Manifest tool {environment} lock must be named pylock.toml or pylock.<name>.toml."
         raise PipxError(msg)
     if require_locks and not lock_file.is_file():
@@ -348,42 +318,70 @@ def _parse_lock_file(
     return lock_file
 
 
-def _is_pylock_name(name: str) -> bool:
-    if name == "pylock.toml":
-        return True
-    return (
-        name.startswith("pylock.")
-        and name.endswith(".toml")
-        and bool(lock_name := name.removeprefix("pylock.").removesuffix(".toml"))
-        and "." not in lock_name
-    )
+def _read_venv_state(venv_dir: Path) -> _VenvState:
+    existed: Final[bool] = venv_dir.is_dir()
+    recorded: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    return _VenvState(existed=existed, recorded=recorded, was_exposed=existed and recorded.exposure_enabled)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class _ManifestTool:
-    environment: str
-    package: str
-    package_name: str
-    suffix: str
-    apps: tuple[str, ...]
-    include_dependencies: bool
-    include_resources_from: tuple[str, ...]
-    expose: bool
-    lock_file: Path | None
+class _VenvState:
+    existed: bool
+    recorded: PipxMetadata
+    was_exposed: bool
 
 
-def _duplicate_lock_files(tools: list[_ManifestTool]) -> tuple[Path, ...]:
-    counts: Final[Counter[Path]] = Counter(tool.lock_file for tool in tools if tool.lock_file is not None)
-    return tuple(sorted(lock_file for lock_file, count in counts.items() if count > 1))
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Manifest:
-    path: Path
-    tools: tuple[_ManifestTool, ...]
-
-
-_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
+def _install_tool(
+    tool: _ManifestTool,
+    options: SyncOptions,
+    venv_dir: Path,
+    venv_lock: BaseFileLock,
+    state: _VenvState,
+) -> str | None:
+    try:
+        if state.was_exposed:
+            unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
+        # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
+        with force_replaces_only(()):
+            outcome: Final = install(
+                venv_dir,
+                [tool.package_name],
+                [tool.package],
+                InstallOptions(
+                    local_bin_dir=options.local_bin_dir,
+                    local_man_dir=options.local_man_dir,
+                    python=options.python,
+                    pip_args=trusted_recorded_pip_args(state.recorded.main_package.pip_args, venv_dir),
+                    venv_args=state.recorded.venv_args,
+                    verbose=options.verbose,
+                    force=state.existed,
+                    reinstall=False,
+                    exposure=ExposureOptions(
+                        include_dependencies=tool.include_dependencies,
+                        include_resources_from=tool.include_resources_from,
+                        suffix=tool.suffix,
+                    ),
+                    preinstall_packages=None,
+                    expected_apps=tool.apps,
+                    lock_file=tool.lock_file,
+                    backend=options.backend,
+                    exposure_enabled=tool.expose,
+                    preserve_existing=True,
+                    replace_expected_apps=True,
+                    replace_lock=True,
+                    emit_output=False,
+                ),
+                venv_lock=venv_lock,
+            )
+    except PipxError as error:
+        return str(error)
+    except (Exception, KeyboardInterrupt):
+        # install rolls the environment back on an interrupt or a crash too, to the copy taken after unexpose
+        if state.was_exposed:
+            expose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
+        raise
+    # install returns a failed result rather than raising when it does not render, so check both
+    return outcome.errors[0].message if outcome.errors else None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -412,11 +410,46 @@ def _prune_environments(
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ManifestData(OperationData):
+    """Result data of the manifest commands.
+
+    :ivar environments: the names of the environments that were synced.
+    :ivar locks: the lock files that were written.
+    """
+
     environments: tuple[str, ...]
     locks: tuple[str, ...]
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ManifestTool:
+    environment: str
+    package: str
+    package_name: str
+    suffix: str
+    apps: tuple[str, ...]
+    include_dependencies: bool
+    include_resources_from: tuple[str, ...]
+    expose: bool
+    lock_file: Path | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Manifest:
+    path: Path
+    tools: tuple[_ManifestTool, ...]
+
+
+_TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]
+
+
 def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
+    """Write the lock files of the tools that a manifest declares.
+
+    :param manifest_file: the manifest that declares the lock files to write.
+    :returns: the result listing the lock files that were written.
+    :raises PipxError: when the manifest declares no lock files, a lock file is outside the manifest directory, the nab
+        command is missing or the locks cannot be written.
+    """
     manifest: Final[_Manifest] = _load_manifest(manifest_file, require_locks=False)
     if not any(tool.lock_file is not None for tool in manifest.tools):
         msg = "The manifest does not declare any lock files."

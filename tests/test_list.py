@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from filelock import BaseFileLock
 
-from helpers import (
+from harness import (
     SKIP_IF_WINDOWS,
     app_name,
     assert_package_metadata,
@@ -28,11 +28,14 @@ from helpers import (
     write_wheel,
 )
 from package_info import PKG
-from pipx import constants, paths, shared_libs, venv
+from pipx import constants, shared_libs, venv
 from pipx.commands import common
 from pipx.commands.list_packages import list_packages
+from pipx.constants import EXIT_CODE_LIST_PROBLEM
 from pipx.options import ListOptions
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata, load_spec_file
+from pipx.shared_libs import SHARED_LIBS_MAX_AGE_SEC
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -63,7 +66,7 @@ def test_list_reports_unreadable_metadata_per_environment(
     capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture, flags: list[str], listed: str
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay", PKG["black"]["spec"]])
-    (paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
+    (CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME).chmod(0)
     capsys.readouterr()
     caplog.clear()
 
@@ -72,7 +75,7 @@ def test_list_reports_unreadable_metadata_per_environment(
         listed in capsys.readouterr().out,
         "package pycowsay has pipx metadata this user cannot read" in caplog.text,
         "has no internal pipx metadata" in caplog.text,
-    ) == (constants.EXIT_CODE_LIST_PROBLEM, True, True, False)
+    ) == (EXIT_CODE_LIST_PROBLEM, True, True, False)
 
 
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
@@ -81,11 +84,12 @@ def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) 
     lock: Final = mocker.create_autospec(BaseFileLock, instance=True)
     # Python before 3.14 ignores a keyword argument naming a method of an autospec
     lock.acquire.side_effect = PermissionError("read-only lock file")
-    mocker.patch.object(venv_container, "venv_lock", return_value=lock)
+    mocker.patch.object(venv_container, "venv_lock", return_value=lock, autospec=True)
     mocker.patch.object(
         importlib.import_module("pipx.commands.list_packages"),
         "get_venv_summary",
         return_value=("package example 1", common.VenvProblems()),
+        autospec=True,
     )
 
     assert not list_packages(
@@ -170,9 +174,9 @@ def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: 
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
-    (venv_dir := paths.CTX.venvs / "broken").mkdir(parents=True)
+    (venv_dir := CTX.venvs / "broken").mkdir(parents=True)
     (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
-    assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
+    assert run_pipx_cli(["list"]) == EXIT_CODE_LIST_PROBLEM
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -185,13 +189,21 @@ def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_ve
     assert not run_pipx_cli(["list"])
     captured: Final = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
-    assert f"shell completions are exposed at {paths.CTX.completion_dir}" in captured.out
+    assert f"shell completions are exposed at {CTX.completion_dir}" in captured.out
 
 
+@pytest.mark.parametrize(
+    "venv_bin_dir",
+    [
+        pytest.param("bin", id="posix", marks=pytest.mark.skipif(constants.WINDOWS, reason="POSIX venv layout")),
+        pytest.param(
+            "Scripts", id="windows", marks=pytest.mark.skipif(not constants.WINDOWS, reason="Windows venv layout")
+        ),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
-    venv_bin_dir: Final[str] = "Scripts" if constants.WINDOWS else "bin"
+def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_dir: str) -> None:
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
@@ -246,7 +258,7 @@ def self_managed_pipx(
     tmp_path: Path,
 ) -> PipxMetadata:
     assert not run_pipx_cli(["install", str(write_wheel(tmp_path / "wheels", "pipx", "1.0"))])
-    return PipxMetadata(paths.CTX.venvs / "pipx")
+    return PipxMetadata(CTX.venvs / "pipx")
 
 
 @pytest.fixture
@@ -281,7 +293,7 @@ def test_list_json_drops_self_managed_interpreter_not_backing_the_venv(
 def test_list_json_keeps_self_managed_interpreter_backing_the_venv(
     exported_self_managed_interpreter: Callable[[Path], dict[str, str] | None],
 ) -> None:
-    backing: Final[Path] = (paths.CTX.venvs / "pipx" / "bin" / "python").resolve()
+    backing: Final[Path] = (CTX.venvs / "pipx" / "bin" / "python").resolve()
 
     assert exported_self_managed_interpreter(backing) == {"__type__": "Path", "__Path__": str(backing)}
 
@@ -443,6 +455,62 @@ def test_list_waits_for_install(tmp_path: Path) -> None:
     )
 
 
+@contextmanager
+def _install_paused_under_lock(
+    tmp_path: Path, name: str, release: Path
+) -> Generator[subprocess.Popen[str], None, None]:
+    entered: Final[Path] = tmp_path / f"{name}-entered"
+    # the wheel's .pth imports its module whenever the environment's python starts, and pipx starts it to inspect the
+    # new environment while holding the lock
+    pause: Final[str] = (
+        "from pathlib import Path\n"
+        "from time import sleep\n"
+        f"Path({str(entered)!r}).touch()\n"
+        f"while not Path({str(release)!r}).exists():\n"
+        "    sleep(0.01)\n"
+    )
+    install: Final[subprocess.Popen[str]] = _start_pipx(
+        "install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance"
+    )
+    try:
+        while not entered.exists():
+            if install.poll() is not None:
+                pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
+            time.sleep(0.01)  # simplint: ignore[SMP808]  # a separate pipx process; only its marker file shows it
+        yield install
+    finally:
+        release.touch()
+        if install.returncode is None:
+            install.communicate()
+
+
+def _create_wheel(tmp_path: Path, name: str, module_prefix: str = "") -> Path:
+    # a prebuilt wheel skips the isolated build a project directory needs, which takes seconds on Windows
+    module: Final[str] = name.replace("-", "_")
+    dist_info: Final[str] = f"{module}-1.dist-info"
+    with zipfile.ZipFile(wheel := tmp_path / f"{module}-1-py3-none-any.whl", "w") as archive:
+        for path, content in {
+            f"{module}.py": f"{module_prefix}def main() -> None:\n    print({name!r})\n",
+            f"{module}.pth": f"import {module}\n",
+            f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: 1\n",
+            f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+            f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {module}:main\n",
+            f"{dist_info}/RECORD": "",
+        }.items():
+            archive.writestr(path, content)
+    return wheel
+
+
+def _start_pipx(*args: str) -> subprocess.Popen[str]:
+    return subprocess.Popen(
+        [sys.executable, "-m", "pipx", *args],
+        env=pipx_subprocess_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
     with _install_paused_under_lock(tmp_path, "blocked-app", tmp_path / "release") as blocked_install:
@@ -462,7 +530,7 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
         )
         blocked_returncode: Final[int | None] = blocked_install.poll()
 
-    assert (installed.returncode, blocked_returncode, (paths.CTX.venvs / "other-app").is_dir()) == (0, None, True), (
+    assert (installed.returncode, blocked_returncode, (CTX.venvs / "other-app").is_dir()) == (0, None, True), (
         installed.stdout,
         installed.stderr,
     )
@@ -500,7 +568,7 @@ def test_list_does_not_trigger_maintenance(flags: list[str]) -> None:
     now: Final[float] = time.time()
     shared_libs.SHARED_LIBS.create(verbose=True, pip_args=[])
     shared_libs.SHARED_LIBS.has_been_updated_this_run = False
-    os.utime(shared_libs.SHARED_LIBS.pip_path, (now, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    os.utime(shared_libs.SHARED_LIBS.pip_path, (now, -SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
     assert shared_libs.SHARED_LIBS.needs_upgrade
 
     run_pipx_cli(["list", *flags])
@@ -562,59 +630,3 @@ def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess
     assert "Failed to execute" in rendered
     assert "Process exited with return code 1" in rendered
     assert "unit test stderr" in rendered
-
-
-@contextmanager
-def _install_paused_under_lock(
-    tmp_path: Path, name: str, release: Path
-) -> Generator[subprocess.Popen[str], None, None]:
-    entered: Final[Path] = tmp_path / f"{name}-entered"
-    # the wheel's .pth imports its module whenever the environment's python starts, and pipx starts it to inspect the
-    # new environment while holding the lock
-    pause: Final[str] = (
-        "from pathlib import Path\n"
-        "from time import sleep\n"
-        f"Path({str(entered)!r}).touch()\n"
-        f"while not Path({str(release)!r}).exists():\n"
-        "    sleep(0.01)\n"
-    )
-    install: Final[subprocess.Popen[str]] = _start_pipx(
-        "install", str(_create_wheel(tmp_path, name, pause)), "--skip-maintenance"
-    )
-    try:
-        while not entered.exists():
-            if install.poll() is not None:
-                pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
-            time.sleep(0.01)
-        yield install
-    finally:
-        release.touch()
-        if install.returncode is None:
-            install.communicate()
-
-
-def _create_wheel(tmp_path: Path, name: str, module_prefix: str = "") -> Path:
-    # a prebuilt wheel skips the isolated build a project directory needs, which takes seconds on Windows
-    module: Final[str] = name.replace("-", "_")
-    dist_info: Final[str] = f"{module}-1.dist-info"
-    with zipfile.ZipFile(wheel := tmp_path / f"{module}-1-py3-none-any.whl", "w") as archive:
-        for path, content in {
-            f"{module}.py": f"{module_prefix}def main() -> None:\n    print({name!r})\n",
-            f"{module}.pth": f"import {module}\n",
-            f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: {name}\nVersion: 1\n",
-            f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
-            f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {module}:main\n",
-            f"{dist_info}/RECORD": "",
-        }.items():
-            archive.writestr(path, content)
-    return wheel
-
-
-def _start_pipx(*args: str) -> subprocess.Popen[str]:
-    return subprocess.Popen(
-        [sys.executable, "-m", "pipx", *args],
-        env=pipx_subprocess_env(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )

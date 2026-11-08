@@ -30,7 +30,7 @@ from filelock import FileLock
 from flit_core.wheel import make_wheel_in
 
 import pipx
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
+from harness import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
 from pipx import paths, shared_libs, standalone_python, venv
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
@@ -38,6 +38,7 @@ from pipx.backends.registry import get_backend
 from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
 from pipx.interpreter import get_default_python
+from pipx.paths import CTX
 from pipx.venv import reset_backend_override_warnings
 
 if TYPE_CHECKING:
@@ -82,21 +83,26 @@ def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[], None]], None]:
+    actions: Final[dict[str, Callable[[], None]]] = {}
+
     def patch(venv_dir: Path, action: Callable[[], None]) -> None:
+        # Popen can be patched only once per test: a second autospec of the mock raises InvalidSpecError
+        if not actions:
+            mocker.patch.object(subprocess, "Popen", side_effect=_dispatching(subprocess.Popen, actions), autospec=True)
         # the command list is matched through its repr, which escapes the backslashes of a Windows path
-        marker: Final[str] = repr(str(venv_dir))[1:-1]
-        mocker.patch.object(subprocess, "Popen", side_effect=_preceded(subprocess.Popen, marker, action))
+        actions[repr(str(venv_dir))[1:-1]] = action
 
     return patch
 
 
-def _preceded(call: Callable[_P, _R], marker: str, action: Callable[[], None]) -> Callable[_P, _R]:
-    def preceded(*args: _P.args, **kwargs: _P.kwargs) -> _R:
-        if marker in str(args[0]):
-            action()
+def _dispatching(call: Callable[_P, _R], actions: dict[str, Callable[[], None]]) -> Callable[_P, _R]:
+    def dispatching(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        for marker, action in actions.items():
+            if marker in str(args[0]):
+                action()
         return call(*args, **kwargs)
 
-    return preceded
+    return dispatching
 
 
 @pytest.fixture
@@ -265,6 +271,12 @@ def empty_project_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) ->
     return _build_wheel(root / "testdata/empty_project", tmp_path_factory.mktemp("wheel"))
 
 
+def _build_wheel(project: Path, wheel_dir: Path) -> Path:
+    # pip and uv build an installed directory in a fresh isolated environment, which takes seconds on Windows; tests
+    # that do not exercise the source tree install this in-process build instead
+    return make_wheel_in(project / "pyproject.toml", wheel_dir).file
+
+
 @pytest.fixture(scope="session")
 def local_extras_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build_wheel(root / "testdata/test_package_specifier/local_extras", tmp_path_factory.mktemp("wheel"))
@@ -280,12 +292,6 @@ def local_manpage_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) ->
     return _build_wheel(root / "testdata/test_package_specifier/local_manpage", tmp_path_factory.mktemp("wheel"))
 
 
-def _build_wheel(project: Path, wheel_dir: Path) -> Path:
-    # pip and uv build an installed directory in a fresh isolated environment, which takes seconds on Windows; tests
-    # that do not exercise the source tree install this in-process build instead
-    return make_wheel_in(project / "pyproject.toml", wheel_dir).file
-
-
 @pytest.fixture
 def copied_dependency_resource(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while building
@@ -295,7 +301,7 @@ def copied_dependency_resource(
 ) -> tuple[Path, bytes]:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     first_package: Final[Path] = _build_wheel(make_project_with_dependency("pycowsay==0.0.0.2"), tmp_path)
-    exposed_app: Final[Path] = paths.CTX.bin_dir / app_name("pycowsay")
+    exposed_app: Final[Path] = CTX.bin_dir / app_name("pycowsay")
     assert not run_pipx_cli(["install", str(first_package), "--include-deps"])
     return exposed_app, exposed_app.read_bytes()
 
@@ -369,7 +375,7 @@ def _resolve_lazy_imports() -> None:
     for module_info in pkgutil.walk_packages(pipx.__path__, "pipx."):
         importlib.import_module(module_info.name)
     for module in [module for name, module in sys.modules.items() if name == "pipx" or name.startswith("pipx.")]:
-        for name, value in list(vars(module).items()):
+        for name, value in list(module.__dict__.items()):
             if type(value) is lazy_type:
                 getattr(module, name)
 
@@ -393,7 +399,7 @@ def _isolate_pipx_paths(tmp_path: Path) -> Iterator[None]:
             scoped.setattr(paths, name, tmp_path / location)
         # where pipx logs when the pipx home refuses a log file; resolved per call, so it needs its own redirect
         scoped.setattr(platformdirs, "user_log_path", lambda *_args, **_kwargs: tmp_path / "fallback_logs")
-        paths.CTX.make_local()
+        CTX.make_local()
         yield
 
 
@@ -431,11 +437,13 @@ def standalone_python_build(tmp_path_factory: pytest.TempPathFactory) -> tuple[b
 
 
 @pytest.fixture(scope="session")
-def standalone_python_index(standalone_python_build: tuple[bytes, str]) -> Callable[[str], dict[str, object]]:
+def standalone_python_index(
+    standalone_python_build: tuple[bytes, str],
+) -> Callable[[str], dict[str, float | list[tuple[str, str]]]]:
     archive_bytes, _ = standalone_python_build
     digest: Final[str] = f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"
 
-    def build(full_version: str) -> dict[str, object]:
+    def build(full_version: str) -> dict[str, float | list[tuple[str, str]]]:
         suffixes: Final[list[str]] = [
             suffix
             for machines in standalone_python.MACHINE_SUFFIX.values()
@@ -455,7 +463,7 @@ def standalone_python_index(standalone_python_build: tuple[bytes, str]) -> Calla
 def mocked_github_api(
     monkeypatch: pytest.MonkeyPatch,
     standalone_python_build: tuple[bytes, str],
-    standalone_python_index: Callable[[str], dict[str, object]],
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
 ) -> None:
     archive_bytes, full_version = standalone_python_build
     index: Final = standalone_python_index(full_version)
@@ -515,7 +523,7 @@ def pipx_local_pypiserver(
         while not _accepts_connections(port):
             if pypiserver_process.poll() is not None:
                 pytest.fail(f"pypiserver exited with {pypiserver_process.returncode} before listening on {port}")
-            time.sleep(0.05)
+            time.sleep(0.05)  # simplint: ignore[SMP808]  # pypiserver is a separate process; its port is the signal
         # 127.0.0.1, not localhost: localhost made Windows runs far slower, likely from IPv6/IPv4 fallback timeouts
         url: Final[str] = f"http://127.0.0.1:{port}/simple/"
         while True:
@@ -589,32 +597,7 @@ def pipx_temp_env(
     _activate_temp_env(pipx_session_shared_dir, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
-    paths.CTX.make_local()
-
-
-@pytest.fixture
-def installed_pycowsay(
-    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
-    capsys: pytest.CaptureFixture[str],
-) -> Path:
-    assert not run_pipx_cli(["install", "pycowsay"])
-    capsys.readouterr()
-    return paths.CTX.venvs / "pycowsay"
-
-
-@pytest.fixture
-def pipx_ultra_temp_env(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    request: pytest.FixtureRequest,
-    utils_path_dirs: list[Path],
-    pipx_local_pypiserver: str,
-) -> Iterator[None]:
-    # every test starts as if pipx had never run, shared libs included
-    _activate_temp_env(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
-    yield
-    monkeypatch.undo()
-    paths.CTX.make_local()
+    CTX.make_local()
 
 
 def _activate_temp_env(
@@ -627,7 +610,7 @@ def _activate_temp_env(
 ) -> None:
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_SHARED_LIBS", pipx_shared_dir)
-    paths.CTX.make_local()  # paths.CTX reads the overrides only here
+    CTX.make_local()  # CTX reads the overrides only here
 
     # each importer binds SHARED_LIBS at import time, so each one gets the fresh instance
     fresh_shared_libs: Final = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]  # no public factory
@@ -642,17 +625,42 @@ def _activate_temp_env(
 
     # macOS needs /usr/bin on PATH to compile some packages, yet apps there (ansible on GitHub runners) trigger the
     # warnings test_install.py fails on, so PATH_ORIG keeps the full PATH for the tests that need it
-    monkeypatch.setenv("PATH_ORIG", f"{paths.CTX.bin_dir}{os.pathsep}{os.environ['PATH']}")
-    monkeypatch.setenv("PATH_TEST", str(paths.CTX.bin_dir))
-    monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (paths.CTX.bin_dir, *utils_path_dirs)))
+    monkeypatch.setenv("PATH_ORIG", f"{CTX.bin_dir}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setenv("PATH_TEST", str(CTX.bin_dir))
+    monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (CTX.bin_dir, *utils_path_dirs)))
     if WIN:
         # Windows tests take the copying path even when running elevated, where symlinks would work
         symlink_cache: Final = common._CAN_SYMLINK_CACHE  # ruff:ignore[private-member-access]  # no public seeding API
-        monkeypatch.setitem(symlink_cache, paths.CTX.bin_dir, False)
-        monkeypatch.setitem(symlink_cache, paths.CTX.man_dir, False)
+        monkeypatch.setitem(symlink_cache, CTX.bin_dir, False)
+        monkeypatch.setitem(symlink_cache, CTX.man_dir, False)
     if not request.config.option.net_pypiserver:
         monkeypatch.setenv("PIP_INDEX_URL", pypi)
         monkeypatch.setenv("UV_INDEX_URL", pypi)  # uv ignores PIP_INDEX_URL, so uv-backend tests would reach PyPI
+
+
+@pytest.fixture
+def installed_pycowsay(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # the temp env must be active while installing
+    capsys: pytest.CaptureFixture[str],
+) -> Path:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    return CTX.venvs / "pycowsay"
+
+
+@pytest.fixture
+def pipx_ultra_temp_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    utils_path_dirs: list[Path],
+    pipx_local_pypiserver: str,
+) -> Iterator[None]:
+    # every test starts as if pipx had never run, shared libs included
+    _activate_temp_env(tmp_path / "shareddir", monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
+    yield
+    monkeypatch.undo()
+    CTX.make_local()
 
 
 @pytest.fixture

@@ -7,27 +7,37 @@ import json
 import logging
 import sys
 from dataclasses import asdict, dataclass
-from typing import Any, Final, Generic, TypeVar
+from typing import Final, Generic, TypeAlias, TypeVar
 
 from pipx.constants import EXIT_CODE_OK, ExitCode
 
-_PIPX_RESULT_VERSION: Final[str] = "1"
-
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+
+#: A value that `json.loads` and `tomllib` produce, as a recursive alias.
+JsonValue: TypeAlias = bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"] | None
 
 
 class OutputLevel(enum.IntEnum):
+    """Severity of an output message.
+
+    :cvar NORMAL: an ordinary message.
+    :cvar ERROR: a message about a failure.
+    :cvar CRITICAL: a message about a failure that stops the command.
+    """
+
     NORMAL = 0
     ERROR = 1
     CRITICAL = 2
 
 
-class OutputFormat(enum.StrEnum):
-    HUMAN = "human"
-    JSON = "json"
-
-
 class OutputStream(enum.StrEnum):
+    """Stream that an output message is written to.
+
+    :cvar LOG: the log file.
+    :cvar STDOUT: the standard output.
+    :cvar STDERR: the standard error.
+    """
+
     LOG = "log"
     STDOUT = "stdout"
     STDERR = "stderr"
@@ -35,6 +45,14 @@ class OutputStream(enum.StrEnum):
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutputMessage:
+    """A line of output with its stream and severity.
+
+    :param text: the line of output.
+    :param stream: the stream the line is written to.
+    :param level: the severity of the line.
+    :param notice: whether the line reports a choice pipx made on the user's behalf.
+    """
+
     text: str
     stream: OutputStream = OutputStream.STDOUT
     level: OutputLevel = OutputLevel.NORMAL
@@ -45,6 +63,14 @@ class OutputMessage:
 # scripts key on the code and the identity fields, so they stay stable across releases
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationError:
+    """An error that a command reports in its result.
+
+    :param code: the code that scripts key on.
+    :param message: the description of the error for people.
+    :param environment: the environment the error relates to, or None.
+    :param package: the package the error relates to, or None.
+    """
+
     code: str
     message: str
     environment: str | None = None
@@ -53,7 +79,13 @@ class OperationError:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationData:
-    def to_dict(self) -> dict[str, Any]:
+    """Base class of the data that a command returns."""
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        """Return the data as a dictionary.
+
+        :returns: the fields of the data.
+        """
         return asdict(self)
 
 
@@ -62,6 +94,16 @@ _PayloadT = TypeVar("_PayloadT", bound=OperationData)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OperationResult(Generic[_PayloadT]):
+    """The outcome of a command: its messages, its exit code and its data.
+
+    :param command: the command that produced the result.
+    :param data: the data the command returned.
+    :param messages: the output messages the command produced.
+    :param exit_code: the exit code of the command.
+    :param errors: the errors the command reported.
+    :param succeeded: whether at least one operation produced a successful outcome.
+    """
+
     command: tuple[str, ...]
     data: _PayloadT
     messages: tuple[OutputMessage, ...] = ()
@@ -72,12 +114,23 @@ class OperationResult(Generic[_PayloadT]):
 
     @property
     def status(self) -> str:
+        """Return ``success``, ``partial`` or ``error``, from whether any error was reported and the command succeeded.
+
+        ``success`` when no error was reported, ``partial`` when an operation succeeded despite errors, else ``error``.
+        """
         if not self.errors:
             return "success"
         return "partial" if self.succeeded else "error"
 
 
 def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, quiet: int) -> ExitCode:
+    """Print a result in the requested format and return its exit code.
+
+    :param result: the result of the command.
+    :param output: the format to print the result in.
+    :param quiet: the level below which messages are not printed.
+    :returns: the exit code of the command.
+    """
     if output is OutputFormat.JSON:
         envelope: Final[str] = _render_envelope(
             result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
@@ -92,16 +145,27 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
     return result.exit_code
 
 
+class OutputFormat(enum.StrEnum):
+    """Format of the command output.
+
+    :cvar HUMAN: text for people.
+    :cvar JSON: a JSON document for scripts.
+    """
+
+    HUMAN = "human"
+    JSON = "json"
+
+
 def _render_envelope(
     command: tuple[str, ...],
     status: str,
     exit_code: ExitCode,
-    data: dict[str, Any],
+    data: dict[str, JsonValue],
     errors: tuple[OperationError, ...],
 ) -> str:
     return json.dumps(
         {
-            "pipx_result_version": _PIPX_RESULT_VERSION,
+            "pipx_result_version": "1",
             "command": list(command),
             "status": status,
             "exit_code": int(exit_code),
@@ -114,6 +178,11 @@ def _render_envelope(
 
 
 def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
+    """Print messages to their streams, skipping those below the quiet level.
+
+    :param messages: the messages to print.
+    :param quiet: the level below which messages are not printed.
+    """
     for message in messages:
         if quiet <= message.level:
             if message.stream is OutputStream.LOG:
@@ -123,10 +192,18 @@ def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
 
 
 def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: ExitCode) -> str:
+    """Render an error as the JSON envelope that a command prints.
+
+    :param command: the command that failed.
+    :param error: the error to render.
+    :param exit_code: the exit code of the command.
+    :returns: the JSON text.
+    """
     return _render_envelope(command, "error", exit_code, {}, (error,))
 
 
 __all__ = [
+    "JsonValue",
     "OperationData",
     "OperationError",
     "OperationResult",

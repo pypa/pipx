@@ -1,3 +1,5 @@
+# prek runs lower priorities first and equal ones concurrently, so hooks sharing a priority never write the same
+# file; pre-commit ignores the key and runs hooks in file order.
 default_language_version:
   python: python3.15
 repos:
@@ -5,22 +7,30 @@ repos:
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        priority: 1
       - id: check-added-large-files
+        priority: 8
       - id: trailing-whitespace
+        priority: 2
       - id: check-merge-conflict
+        priority: 8
       - id: check-case-conflict
+        priority: 8
   - repo: https://github.com/google/yamlfmt
     rev: 21ca5323a9c87ee37a434e0ca908efc0a89daa07 # frozen: v0.21.0
     hooks:
       - id: yamlfmt
+        priority: 3
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: a76b92851fc9eede9f9bc4073eb55202f34eb0df # frozen: 0.39.0
     hooks:
       - id: check-github-workflows
+        priority: 8
   - repo: https://github.com/hukkin/mdformat
     rev: 82912cdaea4fb830f751504486a7879c70526547 # frozen: 1.0.0
     hooks:
       - id: mdformat
+        priority: 3
         args: ["--wrap", "120"]
         additional_dependencies:
           - mdformat-mkdocs==5.3.0
@@ -34,16 +44,28 @@ repos:
     rev: 50e0f3aee9dc5747a5f173f79a7417403c18dda6 # frozen: v2.30.3
     hooks:
       - id: pyproject-fmt
+        priority: 3
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c # frozen: v0.17.3
     hooks:
       - id: ruff-check
+        priority: 5
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
+  - repo: https://github.com/gaborbernat/simplint-pre-commit
+    rev: "f15525433ac9797aa1580f46fdadfe60dd77923c" # frozen: v0.8.0
+    hooks:
+      - id: simplint
+        priority: 6
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c # frozen: v0.17.3
+    hooks:
       - id: ruff-format
+        priority: 7
   - repo: https://github.com/henryiii/flake8-lazy
     rev: 2db69f40494cc912ede966160695ede82eb6ebac # frozen: v0.10.1
     hooks:
       - id: flake8-lazy
+        priority: 4
         args: ["--apply=list"]
         files: ^src/
   # ty runs in the `type` tox environment via GitHub Actions, not here: pre-commit.ci cannot install its
@@ -52,6 +74,7 @@ repos:
     rev: c1813841673cdcd6cf602dde1edb78a5d5e45235 # frozen: v2.2.1
     hooks:
       - id: docstrfmt
+        priority: 3
         files: |
           (?x)
           ^docs/changelog[.]rst$  # Only the generated release history.
@@ -62,6 +85,7 @@ repos:
     rev: 57b21406f092110c18776e39b0bda50d37c945c8 # frozen: v2.4.3
     hooks:
       - id: codespell
+        priority: 8
         additional_dependencies:
           - tomli==2.5.0
         exclude: ^testdata

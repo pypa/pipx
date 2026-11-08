@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import site
-import sys
 from typing import TYPE_CHECKING, Final
+
+import pytest
+
+from harness import WIN
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_pth_file_readable_with_non_ascii_path(tmp_path: Path) -> None:
-    non_ascii_path: Final[Path] = (
-        tmp_path / ("àéîöü" if sys.platform == "win32" else "用户") / "pipx" / "shared" / "site-packages"
-    )
+@pytest.mark.parametrize(
+    "non_ascii_dir",
+    [
+        pytest.param("用户", id="posix", marks=pytest.mark.skipif(WIN, reason="the Windows case uses Latin letters")),
+        pytest.param("àéîöü", id="windows", marks=pytest.mark.skipif(not WIN, reason="Windows only")),
+    ],
+)
+def test_pth_file_readable_with_non_ascii_path(tmp_path: Path, non_ascii_dir: str) -> None:
+    non_ascii_path: Final[Path] = tmp_path / non_ascii_dir / "pipx" / "shared" / "site-packages"
     non_ascii_path.mkdir(parents=True)
     (tmp_path / "pipx_shared.pth").write_text(f"{non_ascii_path}\n")
     known_paths: Final[set[str]] = set()

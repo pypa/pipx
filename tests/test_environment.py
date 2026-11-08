@@ -8,15 +8,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
 from pipx import paths
 from pipx.commands.environment import DERIVED_ENVIRONMENT_VARIABLES, ENVIRONMENT_VARIABLES
-from pipx.paths import get_expanded_environ
+from pipx.paths import CTX, get_expanded_environ
 
 if TYPE_CHECKING:
-    from unittest.mock import MagicMock
-
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 _ENVIRONMENT_VARIABLES_DOC: Final[Path] = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
 # docstrfmt indents RST section titles by one space, and that indent is what keeps these off the prose naming
@@ -39,19 +37,19 @@ def test_cli_value_skips_unrelated_discovery(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     environment_module: Final = importlib.import_module("pipx.commands.environment")
-    resolve_backend_name: Final[MagicMock] = mocker.patch.object(
+    resolve_backend_name: Final[MockType] = mocker.patch.object(
         environment_module,
         "resolve_backend_name",
         autospec=True,
         return_value=("pip", "auto-pip"),
     )
-    find_uv_binary: Final[MagicMock] = mocker.patch.object(
+    find_uv_binary: Final[MockType] = mocker.patch.object(
         environment_module,
         "find_uv_binary",
         autospec=True,
         return_value=(None, "missing"),
     )
-    get_default_python: Final[MagicMock] = mocker.patch.object(environment_module, "get_default_python", autospec=True)
+    get_default_python: Final[MockType] = mocker.patch.object(environment_module, "get_default_python", autospec=True)
 
     assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
 
@@ -60,7 +58,7 @@ def test_cli_value_skips_unrelated_discovery(
         resolve_backend_name.call_count,
         find_uv_binary.call_count,
         get_default_python.call_count,
-    ) == (str(paths.CTX.home), 0, 0, 0)
+    ) == (str(CTX.home), 0, 0, 0)
 
 
 @pytest.mark.parametrize(
@@ -203,13 +201,13 @@ def test_cli_logs_fallback_home(
     fallback_home: Final[Path] = tmp_path / "fallback"
     fallback_home.mkdir()
     monkeypatch.setattr(paths, "FALLBACK_PIPX_HOMES", [fallback_home])
-    paths.CTX.make_local()
+    CTX.make_local()
     monkeypatch.setenv("COLUMNS", "1000")
 
     assert not run_pipx_cli(["environment", "--verbose"])
 
     assert (
-        f"Both a specific pipx home folder ({paths.CTX.home}) and the fallback pipx home folder ({fallback_home}) "
+        f"Both a specific pipx home folder ({CTX.home}) and the fallback pipx home folder ({fallback_home}) "
         "exist. If you are done migrating from the fallback to the new location, it is safe to delete the fallback "
         "location.\n"
     ) in capsys.readouterr().err

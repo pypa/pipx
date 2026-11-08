@@ -68,7 +68,36 @@ def _generate_manpage_rst(parser: ArgumentParser) -> str:
     ]
     lines.extend(_commands_section(commands))
     lines.extend(_global_options_section(parser))
-    lines.extend(_static_sections())
+    lines.extend([
+        "ENVIRONMENT VARIABLES",
+        "---------------------",
+        "",
+        "**PIPX_HOME**",
+        "    Directory for pipx-managed environments and state.",
+        "",
+        "**PIPX_BIN_DIR**",
+        "    Directory where pipx exposes application commands.",
+        "",
+        "**PIPX_DEFAULT_PYTHON**",
+        "    Default interpreter used to create environments.",
+        "",
+        "**PIPX_USE_EMOJI**",
+        "    Set to ``0`` to disable emoji output.",
+        "",
+        "SEE ALSO",
+        "--------",
+        "",
+        "Full documentation: https://pipx.pypa.io/",
+        "",
+        r"**pip**\(1), **virtualenv**\(1)",
+        "",
+        "AUTHORS",
+        "-------",
+        "",
+        "Chad Smith and contributors",
+        "",
+        "https://github.com/pypa/pipx",
+    ])
     return "".join(f"{line}\n" for line in lines)
 
 
@@ -110,39 +139,6 @@ def _format_option(action: Action) -> str:
     if action.metavar:
         option += f" *{action.metavar if isinstance(action.metavar, str) else action.metavar[0]}*"
     return option
-
-
-def _static_sections() -> list[str]:
-    return [
-        "ENVIRONMENT VARIABLES",
-        "---------------------",
-        "",
-        "**PIPX_HOME**",
-        "    Directory for pipx-managed environments and state.",
-        "",
-        "**PIPX_BIN_DIR**",
-        "    Directory where pipx exposes application commands.",
-        "",
-        "**PIPX_DEFAULT_PYTHON**",
-        "    Default interpreter used to create environments.",
-        "",
-        "**PIPX_USE_EMOJI**",
-        "    Set to ``0`` to disable emoji output.",
-        "",
-        "SEE ALSO",
-        "--------",
-        "",
-        "Full documentation: https://pipx.pypa.io/",
-        "",
-        r"**pip**\(1), **virtualenv**\(1)",
-        "",
-        "AUTHORS",
-        "-------",
-        "",
-        "Chad Smith and contributors",
-        "",
-        "https://github.com/pypa/pipx",
-    ]
 
 
 if __name__ == "__main__":

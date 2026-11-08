@@ -7,31 +7,30 @@ import re
 import shutil
 import signal
 import subprocess
-import time
-from threading import Barrier
+from threading import Barrier, Event
 from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
 
 import pytest
 
-from helpers import (
+from harness import (
     PIPX_METADATA_LEGACY_VERSIONS,
     SKIP_IF_WINDOWS,
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    wait_for_log,
 )
 from package_info import PKG
-from pipx import paths
 from pipx.constants import EXIT_CODE_LIST_PROBLEM
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
-    from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 _P = ParamSpec("_P")
@@ -71,8 +70,9 @@ def test_upgrade_all_checks_current_packages_concurrently(
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
-    for suffix in ("_one", "_two", "_three"):
-        assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_one"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_two"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_three"])
     capsys.readouterr()
     barrier: Final[Barrier] = Barrier(3)
 
@@ -93,7 +93,7 @@ def test_upgrade_all_checks_current_packages_concurrently(
         barrier.wait(timeout=5)
         return subprocess.CompletedProcess(cmd, returncode=0, stdout="[]", stderr="")
 
-    check: Final[MagicMock] = mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, side_effect=check_package)
+    check: Final[MockType] = mocker.patch("pipx.backends.pip.run_subprocess", autospec=True, side_effect=check_package)
 
     assert (run_pipx_cli(["upgrade-all"]), check.call_count) == (0, 3)
 
@@ -110,7 +110,7 @@ def test_upgrade_all_does_not_copy_current_environment(
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
     )
-    backup: Final[MagicMock] = mocker.patch("pipx.commands.transaction.copytree", autospec=True)
+    backup: Final[MockType] = mocker.patch("pipx.commands.transaction.copytree", autospec=True)
 
     assert (run_pipx_cli(["upgrade-all"]), backup.call_count) == (0, 0)
 
@@ -131,7 +131,7 @@ def test_upgrade_all_updates_current_cooldowns(
 
     assert not run_pipx_cli(["upgrade-all", "--include-injected", "--cooldown", "0"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (metadata.main_package.cooldown_days, metadata.injected_packages["black"].cooldown_days) == (0, 0)
 
 
@@ -166,7 +166,7 @@ def test_upgrade_all_reports_outdated_check_failure(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(
@@ -191,7 +191,7 @@ def test_upgrade_all_skips_pinned_package_check(
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
     caplog.clear()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
@@ -222,7 +222,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -232,7 +232,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
@@ -262,7 +262,7 @@ def test_upgrade_all_pylock_json(
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
     capsys.readouterr()
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
@@ -270,13 +270,13 @@ def test_upgrade_all_pylock_json(
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(paths.CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
     assert (json.loads(capsys.readouterr().out)["data"]["packages"], check.call_count) == (
         [
             {
                 "environment": "pycowsay",
                 "injected": False,
-                "location": str(paths.CTX.venvs / "pycowsay"),
+                "location": str(CTX.venvs / "pycowsay"),
                 "package": "pycowsay",
                 "previous_version": "0.0.0.2",
                 "status": "locked",
@@ -352,7 +352,7 @@ def test_upgrade_all_json_editable_skip(capsys: pytest.CaptureFixture[str], empt
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_with_index_args(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    check: Final[MagicMock] = mocker.patch(
+    check: Final[MockType] = mocker.patch(
         "pipx.backends.pip.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
@@ -393,15 +393,18 @@ def test_upgrade_all_legacy_venv(metadata_version: str) -> None:
 def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
 ) -> None:
-    slow: Final[Path] = paths.CTX.venvs / outdated_venv_names[0]
+    slow: Final[Path] = CTX.venvs / outdated_venv_names[0]
+    other_backup_started: Final[Event] = Event()
 
     # the backup of an environment with expected apps precedes its upgrade progress line
     def backup(source: Path, destination: Path, *, symlinks: bool) -> Path:
         if source == slow:
-            time.sleep(0.3)
+            other_backup_started.wait(timeout=5)
+        else:
+            other_backup_started.set()
         return shutil.copytree(source, destination, symlinks=symlinks)
 
-    mocker.patch("pipx.commands.transaction.copytree", side_effect=backup)
+    mocker.patch("pipx.commands.transaction.copytree", side_effect=backup, autospec=True)
 
     assert not run_pipx_cli(["upgrade-all"])
 
@@ -413,7 +416,7 @@ def outdated_venv_names(capsys: pytest.CaptureFixture[str]) -> list[str]:
     for app, spec in (("black", PKG["black"]["spec"]), ("isort", PKG["isort"]["spec"])):
         assert not run_pipx_cli(["install", "--app", app, spec])
     capsys.readouterr()
-    return [venv_dir.name for venv_dir in paths.CTX.venvs.iterdir() if venv_dir.is_dir()]
+    return [venv_dir.name for venv_dir in CTX.venvs.iterdir() if venv_dir.is_dir()]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -453,7 +456,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
 def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
-    metadata_file: Final[Path] = paths.CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata_file: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
     metadata: Final = json.loads(metadata_file.read_text(encoding="utf-8"))
     metadata["main_package"]["app_paths"] = None
     metadata_file.write_text(json.dumps(metadata), encoding="utf-8")
@@ -482,7 +485,9 @@ def test_upgrade_all_finishes_upgrade_in_progress_on_first_interrupt(
 def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> Callable[[int], None]:
     # signal pipx alone as pip starts upgrading the first black venv, as pressing Ctrl-C that many times would
     def patch(presses: int) -> None:
-        mocker.patch.object(subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog))
+        mocker.patch.object(
+            subprocess, "Popen", side_effect=_interrupting(subprocess.Popen, presses, caplog), autospec=True
+        )
 
     return patch
 
@@ -494,11 +499,8 @@ def _interrupting(call: Callable[_P, _R], presses: int, caplog: pytest.LogCaptur
         if pending[0] and "--upgrade" in (command := str(args[0])) and f"{os.sep}black" in command:
             for press in range(pending.pop()):
                 os.kill(os.getpid(), signal.SIGINT)
-                deadline: Final[float] = time.monotonic() + 5
-                while press == 0 and not any("Finishing" in message for message in caplog.messages):
-                    if time.monotonic() > deadline:
-                        break
-                    time.sleep(0.01)
+                if press == 0:
+                    wait_for_log(caplog, "Finishing")
             pending.append(0)
         return call(*args, **kwargs)
 
@@ -531,7 +533,7 @@ def test_upgrade_all_does_not_start_upgrades_after_interrupt(
     assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix=_x"])
     capsys.readouterr()
     # one worker, so the upgrade of the other venv waits for the interrupted one
-    mocker.patch.object(os, "cpu_count", return_value=1)
+    mocker.patch.object(os, "cpu_count", return_value=1, autospec=True)
     interrupt_upgrade(1)
 
     exit_code: Final[int] = run_pipx_cli(["upgrade-all"])

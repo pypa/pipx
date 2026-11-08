@@ -7,11 +7,11 @@ import stat
 import sys
 from dataclasses import asdict, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 
-from helpers import (
+from harness import (
     LEGACY_MAIN_PACKAGE,
     SKIP_IF_WINDOWS,
     LegacyMetadata,
@@ -20,9 +20,10 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import paths, pipx_metadata_file
+from pipx import pipx_metadata_file
 from pipx.backends._base import UV  # ruff:ignore[import-private-name]  # no public home
 from pipx.constants import PIPX_SHARED_PTH
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pytest_mock import MockerFixture
+
+    from pipx.result import JsonValue
 
 _MAIN_PACKAGE: Final[PackageInfo] = PackageInfo(
     package="test_package",
@@ -73,15 +76,15 @@ def venv_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def payload(venv_dir: Path) -> dict[str, Any]:
+def payload(venv_dir: Path) -> dict[str, JsonValue]:
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
     metadata.main_package = _MAIN_PACKAGE
     return metadata.to_dict()
 
 
 @pytest.fixture
-def read_payload(venv_dir: Path) -> Callable[[dict[str, Any]], PipxMetadata]:
-    def read(payload: dict[str, Any]) -> PipxMetadata:
+def read_payload(venv_dir: Path) -> Callable[[dict[str, JsonValue]], PipxMetadata]:
+    def read(payload: dict[str, JsonValue]) -> PipxMetadata:
         (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath), encoding="utf-8")
         return PipxMetadata(venv_dir)
 
@@ -117,7 +120,7 @@ def test_pipx_metadata_file_create(venv_dir: Path) -> None:
 
 
 def test_pipx_metadata_file_defaults_exposure_for_version_0_6(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.6"
     payload.pop("exposure_enabled")
@@ -126,25 +129,29 @@ def test_pipx_metadata_file_defaults_exposure_for_version_0_6(
 
 
 def test_pipx_metadata_file_defaults_expected_apps_from_version_0_7(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.7"
-    payload["main_package"].pop("expected_apps")
+    _main_package(payload).pop("expected_apps")
 
     assert read_payload(payload).main_package.expected_apps == []
 
 
+def _main_package(payload: dict[str, JsonValue]) -> dict[str, JsonValue]:
+    return cast("dict[str, JsonValue]", payload["main_package"])
+
+
 def test_pipx_metadata_file_defaults_lock_file_from_version_0_8(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.8"
-    payload["main_package"].pop("lock_file")
+    _main_package(payload).pop("lock_file")
 
     assert read_payload(payload).main_package.lock_file is None
 
 
 def test_pipx_metadata_file_defaults_environment_from_version_0_8(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.8"
     payload.pop("environment")
@@ -153,43 +160,43 @@ def test_pipx_metadata_file_defaults_environment_from_version_0_8(
 
 
 def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.9"
-    payload["main_package"].pop("include_resources_from")
+    _main_package(payload).pop("include_resources_from")
 
     assert read_payload(payload).main_package.include_resources_from == []
 
 
 def test_pipx_metadata_file_migrates_include_apps_from(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
-    payload["main_package"].pop("include_resources_from")
-    payload["main_package"]["include_apps_from"] = ["numpy"]
+    _main_package(payload).pop("include_resources_from")
+    _main_package(payload)["include_apps_from"] = ["numpy"]
 
     assert read_payload(payload).main_package.include_resources_from == ["numpy"]
 
 
 def test_pipx_metadata_file_keys_injected_package_by_name(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
-    payload["main_package"]["suffix"] = "@1"
+    _main_package(payload)["suffix"] = "@1"
     payload["injected_packages"] = {"inj_package@1": asdict(replace(_INJECTED_PACKAGE, suffix="@1"))}
 
     assert list(read_payload(payload).injected_packages) == ["inj_package"]
 
 
 def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["pipx_metadata_version"] = "0.10"
-    payload["main_package"].pop("cooldown_days")
+    _main_package(payload).pop("cooldown_days")
 
     assert read_payload(payload).main_package.cooldown_days is None
 
 
 def test_pipx_metadata_file_keeps_only_recordable_venv_args(
-    tmp_path: Path, payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata]
+    tmp_path: Path, payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     payload["venv_args"] = ["--clear", str(tmp_path / "other"), "--system-site-packages"]
 
@@ -197,7 +204,9 @@ def test_pipx_metadata_file_keeps_only_recordable_venv_args(
 
 
 def test_pipx_metadata_file_warns_about_ignored_venv_args(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata], caplog: pytest.LogCaptureFixture
+    payload: dict[str, JsonValue],
+    read_payload: Callable[[dict[str, JsonValue]], PipxMetadata],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     payload["venv_args"] = ["--clear", "other"]
 
@@ -207,7 +216,9 @@ def test_pipx_metadata_file_warns_about_ignored_venv_args(
 
 
 def test_pipx_metadata_file_reads_unknown_backend_as_pip(
-    payload: dict[str, Any], read_payload: Callable[[dict[str, Any]], PipxMetadata], caplog: pytest.LogCaptureFixture
+    payload: dict[str, JsonValue],
+    read_payload: Callable[[dict[str, JsonValue]], PipxMetadata],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     payload["backend"] = "conda"
 
@@ -293,7 +304,7 @@ def test_write_preserves_existing_metadata_after_os_error(
     metadata_path.write_text(previous_metadata, encoding="utf-8")
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
     metadata.main_package = _MAIN_PACKAGE
-    mocker.patch.object(Path, "replace", side_effect=OSError("disk full"))
+    mocker.patch.object(Path, "replace", side_effect=OSError("disk full"), autospec=True)
 
     metadata.write()
 
@@ -343,7 +354,7 @@ def test_write_keeps_metadata_owner_only(venv_dir: Path) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_install() -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
@@ -355,7 +366,7 @@ def test_package_install() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_package_inject() -> None:
-    pipx_venvs_dir: Final[Path] = paths.CTX.home / "venvs"
+    pipx_venvs_dir: Final[Path] = CTX.home / "venvs"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])

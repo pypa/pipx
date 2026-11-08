@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from harness import run_pipx_cli
 from package_info import PKG
-from pipx import paths
+from pipx.paths import CTX
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,7 +43,7 @@ def test_unpin_json(capsys: pytest.CaptureFixture[str]) -> None:
                     {
                         "environment": "pycowsay",
                         "injected": False,
-                        "location": str(paths.CTX.venvs / "pycowsay"),
+                        "location": str(CTX.venvs / "pycowsay"),
                         "package": "pycowsay",
                         "status": "unpinned",
                         "version": "0.0.0.2",

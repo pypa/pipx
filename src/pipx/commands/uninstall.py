@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.trash", "pipx.venv", "shutil"]
+__lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv", "shutil"]
 
 import logging
 from dataclasses import dataclass
@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
     from pipx.pipx_metadata_file import PackageInfo
 
-from pipx import paths
 from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
     drop_links_taken_over,
@@ -28,6 +27,7 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import HAZARD, SLEEP, STARS
+from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.trash import rmdir_via_trash, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -42,6 +42,14 @@ def uninstall_all(
     *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
+    """Uninstall every environment, with the apps and man pages it exposes.
+
+    :param venv_container: the container of the environments.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the uninstall.
+    :returns: the result listing the uninstalled packages and the errors.
+    """
     errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[_UninstalledPackage]] = []
@@ -72,6 +80,14 @@ def uninstall(
     *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
+    """Uninstall an environment, with the apps and man pages it exposes.
+
+    :param venv_dir: the directory of the environment.
+    :param local_bin_dir: the directory the apps are exposed in.
+    :param local_man_dir: the directory the man pages are exposed in.
+    :param verbose: show the progress of the uninstall.
+    :returns: the result of the uninstall.
+    """
     if not venv_dir.exists():
         messages: Final[list[OutputMessage]] = [OutputMessage(text=f"Nothing to uninstall for {venv_dir.name} {SLEEP}")]
         if app := which(venv_dir.name):
@@ -103,7 +119,7 @@ def uninstall(
         resource_paths |= get_venv_resource_paths(
             "completion",
             venv.man_path.parent / completion_section,
-            paths.CTX.completion_dir / completion_section,
+            CTX.completion_dir / completion_section,
             package_infos,
         )
 
@@ -133,11 +149,6 @@ def uninstall(
     )
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class UninstallData(OperationData):
-    packages: tuple[_UninstalledPackage, ...]
-
-
 def _remove_resource(path: Path) -> None:
     try:
         safe_unlink(path)
@@ -145,6 +156,16 @@ def _remove_resource(path: Path) -> None:
         _LOGGER.info("pipx did not find resource %s", path)
     else:
         _LOGGER.info("pipx removed resource %s", path)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UninstallData(OperationData):
+    """Result data of the uninstall commands.
+
+    :ivar packages: the uninstalled packages.
+    """
+
+    packages: tuple[_UninstalledPackage, ...]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

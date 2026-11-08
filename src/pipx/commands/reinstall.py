@@ -5,7 +5,6 @@ __lazy_modules__ = [
     "functools",
     "packaging.utils",
     "pathlib",
-    "pipx",
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.install",
@@ -13,6 +12,7 @@ __lazy_modules__ = [
     "pipx.fanout",
     "pipx.options",
     "pipx.package_specifier",
+    "pipx.paths",
     "pipx.pipx_metadata_file",
     "pipx.redact",
     "pipx.trash",
@@ -31,7 +31,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx import paths
 from pipx.commands.common import (
     add_suffix,
     drop_copies_claimed_elsewhere,
@@ -65,6 +64,7 @@ from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
 from pipx.options import CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
+from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -75,13 +75,19 @@ from pipx.venv import Venv, VenvContainer
 if TYPE_CHECKING:
     from filelock import BaseFileLock
 
-    from pipx.options import ReinstallOptions
+    from pipx.options import BackendOptions, ReinstallOptions
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def reinstall_all(venv_container: VenvContainer, options: ReinstallOptions) -> OperationResult[ReinstallData]:
+    """Reinstall every environment that is not skipped, with its packages and their exposed resources.
+
+    :param venv_container: the container of the environments.
+    :param options: the options of the reinstall.
+    :returns: the result listing the reinstalled environments.
+    """
     venv_dirs: Final[list[Path]] = [
         venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in options.skip
     ]
@@ -135,6 +141,14 @@ def _reinstall_locked(
 def reinstall(
     venv_dir: Path, options: ReinstallOptions, *, venv_lock: BaseFileLock | None
 ) -> OperationResult[ReinstallData]:
+    """Rebuild an environment from the package spec it was installed from, keeping its exposed apps.
+
+    :param venv_dir: the directory of the environment to rebuild.
+    :param options: the options of the reinstall.
+    :param venv_lock: the lock the caller holds on the environment, or None.
+    :returns: the outcome of the rebuild, or the reason nothing was rebuilt.
+    :raises PipxError: when the environment is pinned or has no record of the package it was installed from.
+    """
     if not venv_dir.exists():
         return _outcome(
             venv_dir.name,
@@ -228,29 +242,15 @@ def reinstall(
             _raise_first_error(installed.errors)
             messages.extend(installed.messages)
 
-            for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-                injected: Final = inject_dep(
-                    canonical_venv_dir,
-                    injected_name,
-                    _require_injected_url(injected_package, venv.name),
-                    InjectOptions(
-                        pip_args=injected_pip_args[injected_name],
-                        verbose=options.verbose,
-                        include_apps=injected_package.include_apps,
-                        include_dependencies=injected_package.include_dependencies,
-                        include_resources_from=injected_package.include_resources_from,
-                        force=True,
-                        # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
-                        # from the injected package's index when the injected package depends on it
-                        force_reinstall=False,
-                        with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
-                        backend=recorded_backend,
-                        cooldown_days=injected_package.cooldown_days,
-                        pinned=injected_package.pinned,
-                        emit_output=False,
-                    ),
+            messages.extend(
+                _reinject_packages(
+                    venv,
+                    canonical_venv_dir=canonical_venv_dir,
+                    options=options,
+                    injected_pip_args=injected_pip_args,
+                    backend=recorded_backend,
                 )
-                messages.extend(injected.messages)
+            )
 
         new_resource_paths: Final[set[Path]] = _get_expected_reinstall_resource_paths(
             Venv(canonical_venv_dir, verbose=options.verbose), options.local_bin_dir, options.local_man_dir
@@ -273,7 +273,7 @@ def reinstall(
     except KeyboardInterrupt:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
         give_back_shared_links(old_resource_paths, venv_dir)
-        _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]
+        _LOGGER.error("%s Interrupted; restored %s.", ERROR, venv.name)  # ruff:ignore[error-instead-of-exception]  # an interrupt is reported without a traceback
         raise
     except Exception:
         _restore_reinstall_backup(canonical_venv_dir, venv_dir, reinstall_backup_dir)
@@ -325,7 +325,7 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
         ),
         *(
             get_venv_resource_paths(
-                "completion", venv.man_path.parent / section, paths.CTX.completion_dir / section, package_infos
+                "completion", venv.man_path.parent / section, CTX.completion_dir / section, package_infos
             )
             for section in COMPLETION_SECTIONS
         ),
@@ -335,10 +335,8 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
 def _create_reinstall_backup(venv_dir: Path) -> Path:
     # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
     # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
-    paths.CTX.trash.mkdir(parents=True, exist_ok=True)
-    backup_dir: Final[Path] = Path(
-        mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=paths.CTX.trash)
-    )
+    CTX.trash.mkdir(parents=True, exist_ok=True)
+    backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix=REINSTALL_BACKUP_SUFFIX, dir=CTX.trash))
     backup_dir.rmdir()
     rename_once_released(venv_dir, backup_dir)
     return backup_dir
@@ -348,6 +346,41 @@ def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
     # raising from a helper keeps the raise out of the caller's try block
     if errors:
         raise PipxError(errors[0].message)
+
+
+def _reinject_packages(
+    venv: Venv,
+    *,
+    canonical_venv_dir: Path,
+    options: ReinstallOptions,
+    injected_pip_args: dict[str, list[str]],
+    backend: BackendOptions,
+) -> list[OutputMessage]:
+    messages: Final[list[OutputMessage]] = []
+    for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
+        injected: Final = inject_dep(
+            canonical_venv_dir,
+            injected_name,
+            _require_injected_url(injected_package, venv.name),
+            InjectOptions(
+                pip_args=injected_pip_args[injected_name],
+                verbose=options.verbose,
+                include_apps=injected_package.include_apps,
+                include_dependencies=injected_package.include_dependencies,
+                include_resources_from=injected_package.include_resources_from,
+                force=True,
+                # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
+                # from the injected package's index when the injected package depends on it
+                force_reinstall=False,
+                with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                backend=backend,
+                cooldown_days=injected_package.cooldown_days,
+                pinned=injected_package.pinned,
+                emit_output=False,
+            ),
+        )
+        messages.extend(injected.messages)
+    return messages
 
 
 def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
@@ -373,10 +406,7 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
             local_man_dir / man_path.parent.name / man_path.name for man_path in package_info.man_paths_to_expose
         )
         resource_paths.update(
-            paths.CTX.completion_dir
-            / completion_path.parent.parent.name
-            / completion_path.parent.name
-            / completion_path.name
+            CTX.completion_dir / completion_path.parent.parent.name / completion_path.parent.name / completion_path.name
             for completion_path in package_info.completion_paths_to_expose
         )
     return resource_paths
@@ -404,6 +434,11 @@ class _ReinstalledEnvironment:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ReinstallData(OperationData):
+    """Result data of the reinstall commands.
+
+    :ivar environments: the environments that were reinstalled.
+    """
+
     environments: tuple[_ReinstalledEnvironment, ...]
 
 

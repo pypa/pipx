@@ -18,6 +18,17 @@ def resolve_backend_name(
     metadata_value: str | None = None,
     auto: bool = True,
 ) -> tuple[str, str]:
+    """Resolve the backend to install with, and the source that chose it.
+
+    The CLI value outranks the metadata of an existing environment, which outranks the environment variable.
+
+    :param cli_value: the backend given on the command line.
+    :param env_value: the backend set by the environment.
+    :param metadata_value: the backend recorded in the environment's metadata.
+    :param auto: pick uv when a suitable uv binary is found, else pip.
+    :returns: the backend name and where it came from.
+    :raises PipxError: when a value names an unknown backend.
+    """
     # metadata outranks env so PIPX_DEFAULT_BACKEND=uv cannot retarget pip-backed venvs already on disk
     for candidate, source in ((cli_value, "cli"), (metadata_value, "metadata"), (env_value, "env")):
         if (validated := _validate(candidate)) is not None:
@@ -40,6 +51,12 @@ def _validate(candidate: str | None) -> str | None:
 # ask for the backend
 @cache
 def get_backend(name: str) -> Backend:
+    """Return the backend instance for a backend name.
+
+    :param name: the backend name, ``pip`` or ``uv``.
+    :returns: the backend instance, shared between calls.
+    :raises PipxError: when the name is unknown.
+    """
     if name == PIP:
         return PipBackend()
     if name == UV:
@@ -49,6 +66,12 @@ def get_backend(name: str) -> Backend:
 
 
 def assert_not_pip_under_uv(package_name: str, backend_name: str) -> None:
+    """Refuse to install pip with the uv backend, as uv environments ship no pip.
+
+    :param package_name: the name of the package to install.
+    :param backend_name: the backend that installs the package.
+    :raises PipxError: when the package is pip and the backend is not pip.
+    """
     if package_name == "pip" and backend_name != PIP:
         msg = (
             "The 'pip' package cannot be installed or exposed via the uv backend, since uv venvs "
@@ -59,6 +82,10 @@ def assert_not_pip_under_uv(package_name: str, backend_name: str) -> None:
 
 
 def env_default_backend() -> str | None:
+    """Return the backend that the ``PIPX_DEFAULT_BACKEND`` variable sets, if any.
+
+    :returns: the backend name, or None when the variable is unset or blank.
+    """
     return raw.strip() if (raw := os.environ.get("PIPX_DEFAULT_BACKEND")) else None
 
 
