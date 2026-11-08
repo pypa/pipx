@@ -205,7 +205,7 @@ def test_animate_skips_spinner_of_task_waiting_its_turn(
 
     def second() -> None:
         with pipx.animate.animate("waiting its turn", do_animation=True):
-            time.sleep(0.3)  # simplint: ignore[SMP808]  # the spinner must stay silent, so the body needs real time to pass
+            time.sleep(0.3)  # simplint: ignore[SMP808]  # the spinner must stay silent; the body needs real time
         second_done.set()
 
     fan_out([lambda: second_done.wait(timeout=5), second], sequential=False)

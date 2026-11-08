@@ -235,7 +235,11 @@ def test_reinstall_all_keeps_shared_man_page_with_its_owner(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
-    before_venv_subprocess(owner := CTX.venvs / "pycowsay", lambda: time.sleep(0.5))  # simplint: ignore[SMP808]  # slows the owner pip call so the suffixed venv goes first, and no event marks that order
+
+    def slow_owner() -> None:
+        time.sleep(0.5)  # simplint: ignore[SMP808]  # slows the owner's pip call so the suffixed venv goes first
+
+    before_venv_subprocess(owner := CTX.venvs / "pycowsay", slow_owner)
 
     assert not run_pipx_cli(["reinstall-all"])
 
@@ -357,7 +361,7 @@ def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
         # keep its new venv
         deadline: Final[float] = time.monotonic() + 5
         while not (venv_dirs[0] / "marker").exists() and time.monotonic() < deadline:
-            time.sleep(0.01)  # simplint: ignore[SMP808]  # the test waits for pipx to restore the first venv, and no event marks that restore
+            time.sleep(0.01)  # simplint: ignore[SMP808]  # pipx restores the first venv; no event marks that
 
     before_venv_subprocess(venv_dirs[0], interrupt)
     for venv_dir in venv_dirs[1:]:

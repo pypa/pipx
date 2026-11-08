@@ -476,7 +476,7 @@ def _install_paused_under_lock(
         while not entered.exists():
             if install.poll() is not None:
                 pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
-            time.sleep(0.01)  # simplint: ignore[SMP808]  # the install runs in a separate pipx process, so its marker file is the only signal
+            time.sleep(0.01)  # simplint: ignore[SMP808]  # a separate pipx process; only its marker file shows it
         yield install
     finally:
         release.touch()

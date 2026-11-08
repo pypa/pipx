@@ -202,7 +202,7 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     def rolling_back() -> None:
         for _ in range(2):
             signal.pthread_kill(main_thread, signal.SIGINT)
-            time.sleep(0.2)  # simplint: ignore[SMP808]  # the second signal has to land while the rollback runs, and no event marks that
+            time.sleep(0.2)  # simplint: ignore[SMP808]  # the second signal must land during the rollback
         rolled_back.append("first")
 
     with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
@@ -319,7 +319,7 @@ def _exits_within(pid: int, *, seconds: float) -> bool:
             os.kill(pid, 0)
         except ProcessLookupError:
             return True
-        time.sleep(0.05)  # simplint: ignore[SMP808]  # the child is an external process, and polling its pid is the only way to see it exit
+        time.sleep(0.05)  # simplint: ignore[SMP808]  # the child is external; only its pid shows the exit
     return False
 
 

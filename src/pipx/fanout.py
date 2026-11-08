@@ -347,7 +347,7 @@ class _RoutedStream:
         self._target: Final[TextIO] = target
         self._children: Final[_Children] = children
 
-    def __getattr__(self, name: str) -> object:  # simplint: ignore[SMP602]  # the forwarded TextIO attributes have unrelated types, so no narrower type covers them
+    def __getattr__(self, name: str) -> object:  # simplint: ignore[SMP602]  # TextIO attributes have unrelated types
         return getattr(self._target, name)
 
     def write(self, text: str) -> int:
