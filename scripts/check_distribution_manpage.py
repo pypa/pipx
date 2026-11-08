@@ -13,16 +13,6 @@ from docutils.writers.manpage import Writer
 def main() -> None:
     distribution_dir: Final[Path] = Path(sys.argv[1])
     rst: Final[str] = Path(sys.argv[2]).read_text(encoding="utf-8")
-    _check_source_archive(distribution_dir, rst.encode())
-    generated_manpage: Final[bytes] = publish_string(
-        "\n".join(line for line in rst.splitlines() if line.strip() != ":orphan:"),
-        writer=Writer(),
-        settings_overrides={"report_level": 5},
-    )
-    _check_wheel(distribution_dir, generated_manpage)
-
-
-def _check_source_archive(distribution_dir: Path, rst: bytes) -> None:
     source_archive_path: Final[Path] = _require_one(
         list(distribution_dir.glob("pipx-*.tar.gz")), "source archive", distribution_dir
     )
@@ -33,19 +23,16 @@ def _check_source_archive(distribution_dir: Path, rst: bytes) -> None:
         if len(sources) != 1:
             msg = f"Missing docs/man/pipx.1.rst from {source_archive_path.name}"
             raise SystemExit(msg)
-        if (extracted_source := source_archive.extractfile(sources[0])) is None or extracted_source.read() != rst:
+        if (
+            extracted_source := source_archive.extractfile(sources[0])
+        ) is None or extracted_source.read() != rst.encode():
             msg = f"Manpage source differs in {source_archive_path.name}"
             raise SystemExit(msg)
-
-
-def _require_one(paths: list[Path], description: str, distribution_dir: Path) -> Path:
-    if len(paths) != 1:
-        msg = f"Expected one pipx {description} in {distribution_dir}; found {len(paths)}"
-        raise SystemExit(msg)
-    return paths[0]
-
-
-def _check_wheel(distribution_dir: Path, generated_manpage: bytes) -> None:
+    generated_manpage: Final[bytes] = publish_string(
+        "\n".join(line for line in rst.splitlines() if line.strip() != ":orphan:"),
+        writer=Writer(),
+        settings_overrides={"report_level": 5},
+    )
     wheel_path: Final[Path] = _require_one(list(distribution_dir.glob("pipx-*.whl")), "wheel", distribution_dir)
     with zipfile.ZipFile(wheel_path) as wheel:
         manpages: Final[list[str]] = [
@@ -60,6 +47,13 @@ def _check_wheel(distribution_dir: Path, generated_manpage: bytes) -> None:
         if wheel.read(manpages[0]) != generated_manpage:
             msg = f"Manual page in {wheel_path.name} differs from generated output"
             raise SystemExit(msg)
+
+
+def _require_one(paths: list[Path], description: str, distribution_dir: Path) -> Path:
+    if len(paths) != 1:
+        msg = f"Expected one pipx {description} in {distribution_dir}; found {len(paths)}"
+        raise SystemExit(msg)
+    return paths[0]
 
 
 if __name__ == "__main__":
