@@ -18,3 +18,6 @@ jobs:
           persist-credentials: false
       - name: 🛡️ Run zizmor
         uses: zizmorcore/zizmor-action@v0.8.0
+        with:
+          # the action resolves latest to the newest release it knows, which predates lockfile support
+          version: 1.32.0
