@@ -302,9 +302,8 @@ decision-order = "stable"
 constraints = [ "pytest-timeout!=2.5.0" ]
 matrix.python = ">=3.15,<3.16"
 matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_amd64" ]
-# release-creator 4.4.0 needs a seven-day cutoff exception.
-# expires 2026-11-09
-# expires 2026-11-09
+# The current lock's 2026-11-03 anchor still needs release-creator 4.4.0.
+# expires 2026-11-16
 packages.release-creator.uploaded-prior-to = 2026-11-02T21:45:00Z
 # python-sbom 0.1.2 needs a seven-day cutoff exception.
 # expires 2026-11-15
