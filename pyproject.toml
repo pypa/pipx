@@ -5,6 +5,7 @@ requires = [
   "hatch-fancy-pypi-readme>=25.1",
   "hatch-vcs>=0.5",
   "hatchling>=1.32.4",
+  "python-sbom[hatch]>=0.1.2",
 ]
 
 [project]
@@ -109,6 +110,7 @@ build = [
   "hatch-fancy-pypi-readme>=25.1",
   "hatch-vcs>=0.5",
   "hatchling>=1.32.4",
+  "python-sbom[hatch]>=0.1.2",
   "setuptools>=80",
 ]
 docs-live = [
@@ -149,6 +151,7 @@ metadata.hooks.fancy-pypi-readme.content-type = "text/markdown"
 metadata.hooks.fancy-pypi-readme.fragments = [ { path = "docs/README.md" } ]
 build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
+build.hooks.python-sbom = {}
 build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
 build.targets.sdist.include = [
   "/docs/man",
@@ -287,6 +290,9 @@ standalone.lazy-exclude-modules = [
   "pipx.emojis",
 ]
 
+[tool.python-sbom]
+supplier = { name = "Python Packaging Authority", url = [ "https://www.pypa.io" ] }
+
 [tool.nab]
 mode = "universal"
 base-group = "project-runtime"
@@ -300,6 +306,9 @@ matrix.platforms = [ "linux_x86_64", "linux_aarch64", "macos_arm64", "windows_am
 # expires 2026-11-09
 # expires 2026-11-09
 packages.release-creator.uploaded-prior-to = 2026-11-02T21:45:00Z
+# python-sbom 0.1.2 needs a seven-day cutoff exception.
+# expires 2026-11-15
+packages.python-sbom.uploaded-prior-to = 2026-11-08T17:54:00Z
 
 [tool.simplint]
 docstring-style = "rst"

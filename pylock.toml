@@ -961,6 +961,31 @@ size = 7552
 sha256 = "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7"
 
 [[packages]]
+name = "installer"
+version = "1.1.0"
+marker = "\"build\" in dependency_groups"
+requires-python = ">=3.10"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "installer-1.1.0.tar.gz"
+upload-time = 2026-10-12 19:35:52.851170+00:00
+url = "https://files.pythonhosted.org/packages/56/d3/2fab33d15004d41ae8e7b5d3e310510f7f34a7e1dd032a3e60d8b38d8fba/installer-1.1.0.tar.gz"
+size = 481257
+
+[packages.sdist.hashes]
+sha256 = "5adc0c01ce62d809989e246987cd68944fe5df8af562d0358f65b2ab15cb5de7"
+
+[[packages.wheels]]
+name = "installer-1.1.0-py3-none-any.whl"
+upload-time = 2026-10-12 19:35:51.096942+00:00
+url = "https://files.pythonhosted.org/packages/d7/7a/63547a792a12148882205d79e07644091d5b7690f40c2bb9d41452a8bdc2/installer-1.1.0-py3-none-any.whl"
+size = 464466
+
+[packages.wheels.hashes]
+sha256 = "f55f5728ff61d3dd54dbc5a397cf3f7307cb64b180c20b72afbebf01c9e2c8a0"
+
+[[packages]]
 name = "jinja2"
 version = "3.1.6"
 marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"docs-live\" in dependency_groups or \"release\" in dependency_groups or \"release-news\" in dependency_groups or \"release-notes\" in dependency_groups or \"release-prepare\" in dependency_groups or \"type\" in dependency_groups"
@@ -1229,6 +1254,31 @@ size = 34277
 
 [packages.wheels.hashes]
 sha256 = "edaa16e6c14d7cf395d75d4bbd5a26390f4dc06501a33b4e76282b02cc688a25"
+
+[[packages]]
+name = "packageurl-python"
+version = "0.17.6"
+marker = "\"build\" in dependency_groups"
+requires-python = ">=3.8"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "packageurl_python-0.17.6.tar.gz"
+upload-time = 2025-11-24 15:20:17.998933+00:00
+url = "https://files.pythonhosted.org/packages/f5/d6/3b5a4e3cfaef7a53869a26ceb034d1ff5e5c27c814ce77260a96d50ab7bb/packageurl_python-0.17.6.tar.gz"
+size = 50618
+
+[packages.sdist.hashes]
+sha256 = "1252ce3a102372ca6f86eb968e16f9014c4ba511c5c37d95a7f023e2ca6e5c25"
+
+[[packages.wheels]]
+name = "packageurl_python-0.17.6-py3-none-any.whl"
+upload-time = 2025-11-24 15:20:16.962118+00:00
+url = "https://files.pythonhosted.org/packages/b1/2f/c7277b7615a93f51b5fbc1eacfc1b75e8103370e786fd8ce2abf6e5c04ab/packageurl_python-0.17.6-py3-none-any.whl"
+size = 36776
+
+[packages.wheels.hashes]
+sha256 = "31a85c2717bc41dd818f3c62908685ff9eebcb68588213745b14a6ee9e7df7c9"
 
 [[packages]]
 name = "packaging"
@@ -1731,6 +1781,38 @@ size = 39043
 
 [packages.wheels.hashes]
 sha256 = "95e644ce8625c62dc195a603da9f8138ca5a35048224911b2cf7b3028025527a"
+
+[[packages]]
+name = "python-sbom"
+version = "0.1.2"
+marker = "\"build\" in dependency_groups"
+requires-python = ">=3.11"
+dependencies = [
+    { name = "hatchling" },
+    { name = "installer" },
+    { name = "packageurl-python" },
+    { name = "packaging" },
+    { name = "zipremove" },
+]
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "python_sbom-0.1.2.tar.gz"
+upload-time = 2026-11-08 17:49:13.751304+00:00
+url = "https://files.pythonhosted.org/packages/65/a7/abd61bb6e6cf681fc9bf1ff02f2357caf0ae958e9613e1a0f2fe00672726/python_sbom-0.1.2.tar.gz"
+size = 245685
+
+[packages.sdist.hashes]
+sha256 = "5b611b565d6946926c8a1f6ec635beeea49887459f0a542f5350b77baafb2281"
+
+[[packages.wheels]]
+name = "python_sbom-0.1.2-py3-none-any.whl"
+upload-time = 2026-11-08 17:49:12.072616+00:00
+url = "https://files.pythonhosted.org/packages/5f/19/8c21420f27fcb14995e9b1c6cb451edaf341070d18996c42a96d77b80e64/python_sbom-0.1.2-py3-none-any.whl"
+size = 196051
+
+[packages.wheels.hashes]
+sha256 = "d831293bc389cbb9c444b30141692866d3c54f64e3c50a74fe6d74bd8517474a"
 
 [[packages]]
 name = "pyyaml"
@@ -3299,6 +3381,31 @@ size = 212375
 
 [packages.wheels.hashes]
 sha256 = "dc2b495a92b3971966bf102e73589f950db3ec1ca6713265355ce7771d97b199"
+
+[[packages]]
+name = "zipremove"
+version = "0.10.0"
+marker = "\"build\" in dependency_groups"
+requires-python = "~=3.7"
+index = "https://pypi.org/simple/"
+
+[packages.sdist]
+name = "zipremove-0.10.0.tar.gz"
+upload-time = 2026-07-17 15:50:45.516180+00:00
+url = "https://files.pythonhosted.org/packages/92/30/47d65b9213f52df8a51f603cb0a2e5ef02c22172a8a17805e46c3beabb0d/zipremove-0.10.0.tar.gz"
+size = 25448
+
+[packages.sdist.hashes]
+sha256 = "3c5957c115447b54299d3a23128764b59c4558fc98c4b878ff2dbc5db8a62021"
+
+[[packages.wheels]]
+name = "zipremove-0.10.0-py3-none-any.whl"
+upload-time = 2026-07-17 15:50:44.653422+00:00
+url = "https://files.pythonhosted.org/packages/0a/e4/2225c1890ce6e239ca23efabb80a3481229a14a2deaa489f5e89723a5aa6/zipremove-0.10.0-py3-none-any.whl"
+size = 11280
+
+[packages.wheels.hashes]
+sha256 = "04e15df7083642d5b791e51f597cffef8a92d770ecf5160c529b5a7b53b40100"
 
 [tool.nab]
 nab-version = "0.0.23"
