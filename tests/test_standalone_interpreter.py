@@ -9,6 +9,7 @@ import http.client
 import io
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -887,3 +888,25 @@ def test_upgrade_standalone_interpreter_skips_corrupt(
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
     download.assert_called_once_with("3.12", override=True)
+
+
+def _machine_install_suffix() -> str:
+    suffixes = standalone_python.MACHINE_SUFFIX[platform.system()][platform.machine()]
+    if isinstance(suffixes, dict):
+        suffixes = suffixes[platform.libc_ver()[0] or "musl"]
+    return suffixes[0]
+
+
+def test_list_pythons_skips_prerelease_builds(monkeypatch: pytest.MonkeyPatch) -> None:
+    digest: Final[str] = f"sha256:{'0' * 64}"
+    suffix: Final[str] = _machine_install_suffix()
+    releases: Final[list[tuple[str, str]]] = [
+        (f"https://example.invalid/cpython-3.16.0a1%2B20261026-{suffix}", digest),
+        (f"https://example.invalid/cpython-3.15.2%2B20261026-{suffix}", digest),
+    ]
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: {"fetched": 1.0, "releases": releases})
+
+    listed: Final = standalone_python.list_pythons(use_cache=True)
+
+    # the 3.16.0a1 build must not alias under the stable 3.16.0 key
+    assert list(listed) == ["3.15.2"]
