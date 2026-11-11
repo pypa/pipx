@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.expose",
     "pipx.commands.install",
     "pipx.commands.uninstall",
+    "pipx.fanout",
     "pipx.options",
     "pipx.package_specifier",
     "pipx.pipx_metadata_file",
@@ -24,7 +25,7 @@ __lazy_modules__ = [
 import subprocess
 import tomllib
 from collections import Counter
-from contextlib import suppress
+from contextlib import ExitStack, suppress
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -40,6 +41,7 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.fanout import uninterrupted
 from pipx.options import ExposureOptions, InstallOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
@@ -477,7 +479,10 @@ def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
 
 
 def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
-    with TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir:
+    with (
+        TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir,
+        ExitStack() as stack,
+    ):
         generated: Final[list[tuple[Path, Path]]] = []
         for tool in manifest.tools:
             if tool.lock_file is None:
@@ -517,6 +522,8 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
         # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
         # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
         applied: Final[list[tuple[Path, Path | None]]] = []
+        # A handled signal must not strand backups that temporary-directory cleanup would remove.
+        stack.enter_context(uninterrupted())
         try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler rolls back every applied lock
             for index, (generated_lock, lock_file) in enumerate(generated):
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
