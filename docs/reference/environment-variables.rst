@@ -5,6 +5,20 @@
 pipx has no user configuration file. Every setting is an environment variable, all of them optional. Run ``pipx
 environment`` to print each variable as set in your environment, followed by the values pipx derives from them.
 
+With ``pipx environment --value VARIABLE`` (or ``-V``), pipx prints the computed value if the variable appears in
+the full command's ``Derived values`` output. Otherwise it prints the raw environment value, or an empty line
+when unset. An empty value does not mean pipx has no default. For example, an unset ``PIPX_GLOBAL_BIN_DIR``
+prints an empty line even though global installs use ``/usr/local/bin`` by default. To inspect effective global
+paths, query the corresponding path variable with ``--global``::
+
+    pipx environment --global --value PIPX_HOME
+    pipx environment --global --value PIPX_BIN_DIR
+    pipx environment --global --value PIPX_MAN_DIR
+    pipx environment --global --value PIPX_COMPLETION_DIR
+
+``PIPX_COOLDOWN``, ``PIPX_FETCH_MISSING_PYTHON`` and ``PIPX_FETCH_PYTHON`` also report raw environment values.
+When unset, cooldown imposes no age restriction and Python fetching defaults to ``never``; see the table below.
+
 *******************
  Settable variables
 *******************
