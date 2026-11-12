@@ -542,7 +542,36 @@ def _range_response(mocker: MockerFixture, status: HTTPStatus, body: bytes) -> M
     return mocker.MagicMock(**{
         "__enter__.return_value.status": status,
         "__enter__.return_value.read.side_effect": [body, b""],
+        "__enter__.return_value.length": 0,
     })
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_download_resumes_after_body_cut_short(
+    published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
+    mocker: MockerFixture,
+) -> None:
+    archive_bytes: Final[bytes] = _python_archive_bytes()
+    urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
+    urlopen.side_effect = [
+        # a body cut short of its Content-Length ends with b"" instead of raising, and keeps the missing count in length
+        mocker.MagicMock(**{
+            "__enter__.return_value.status": HTTPStatus.OK,
+            "__enter__.return_value.read.side_effect": [archive_bytes[:10], b""],
+            "__enter__.return_value.length": len(archive_bytes) - 10,
+        }),
+        _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
+    ]
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+
+    python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
+
+    second_request: Final = urlopen.call_args_list[1].args[0]
+    assert (Path(python_path).is_file(), sleep.call_count, second_request.get_header("Range")) == (
+        True,
+        1,
+        "bytes=10-",
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
