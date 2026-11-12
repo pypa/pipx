@@ -334,7 +334,8 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     # a cached result would carry the previous test's patched shutil.which into this one
     find_uv_binary.cache_clear()
     uv_meets_minimum_version.cache_clear()
-    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # no public cache reset
+    # The private probe also caches the patched uv executable.
+    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # simplint: ignore[module-attribute-import]  # cache reset
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
@@ -523,8 +524,8 @@ def pipx_local_pypiserver(
         while not _accepts_connections(port):
             if pypiserver_process.poll() is not None:
                 pytest.fail(f"pypiserver exited with {pypiserver_process.returncode} before listening on {port}")
-            time.sleep(0.05)  # simplint: ignore[SMP808]  # pypiserver is a separate process; its port is the signal
-        # 127.0.0.1, not localhost: localhost made Windows runs far slower, likely from IPv6/IPv4 fallback timeouts
+            time.sleep(0.05)  # simplint: ignore[sleep-in-test]  # poll the external server port
+        # Windows CI runs were much slower with localhost, so use the IPv4 loopback address directly.
         url: Final[str] = f"http://127.0.0.1:{port}/simple/"
         while True:
             try:

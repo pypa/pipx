@@ -334,7 +334,7 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     return _StreamChannel(reader=reader, child=child, terminal=False)
 
 
-@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() must record which descriptors are closed
+@dataclass(slots=True, kw_only=True)  # simplint: ignore[dataclass-frozen]  # close() marks descriptors closed
 class _StreamChannel:
     reader: int
     child: int

@@ -9,7 +9,7 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.run_uv",
@@ -49,7 +49,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple, NoReturn
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
-from pipx.backends._base import UV
+from pipx.backends import UV
 from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run

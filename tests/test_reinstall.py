@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -529,7 +528,7 @@ def test_reinstall_all_quiet_says_nothing(capsys: pytest.CaptureFixture[str]) ->
 
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 

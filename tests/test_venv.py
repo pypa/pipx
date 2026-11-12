@@ -12,7 +12,7 @@ import pytest
 
 from harness import LEGACY_MAIN_PACKAGE, CurrentMetadata, run_pipx_cli
 from package_info import PKG
-from pipx.backends._base import UV, Backend  # ruff:ignore[import-private-name]  # no public home
+from pipx.backends import UV, Backend
 from pipx.options import BackendOptions, ExposureOptions
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata

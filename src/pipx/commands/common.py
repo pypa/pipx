@@ -1,4 +1,4 @@
-from __future__ import annotations  # simplint: ignore[SMP104]  # public module with __all__; renaming breaks importers
+from __future__ import annotations  # simplint: ignore[catch-all-module]  # established public import path
 
 __lazy_modules__ = [
     "collections",
@@ -6,7 +6,7 @@ __lazy_modules__ = [
     "importlib.machinery",
     "packaging.utils",
     "pathlib",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.backends.registry",
     "pipx.fanout",
     "pipx.package_specifier",
@@ -46,7 +46,7 @@ from typing import TYPE_CHECKING, Final, Literal, NamedTuple
 import userpath
 from packaging.utils import canonicalize_name
 
-from pipx.backends._base import PIP
+from pipx.backends import PIP
 from pipx.backends.registry import env_default_backend, resolve_backend_name
 from pipx.colors import BOLD, RED
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS

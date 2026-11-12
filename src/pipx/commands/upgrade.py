@@ -584,9 +584,7 @@ def _upgrade_listed_venv(
     )
 
 
-def _raise_check_failures(  # simplint: ignore[SMP505]  # ruff TRY301 rejects a raise inside the try block
-    venv: Venv, check_failures: dict[str, list[str]]
-) -> None:
+def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
     # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
     if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
         raise PipxError("\n".join(errors), wrap_message=False)

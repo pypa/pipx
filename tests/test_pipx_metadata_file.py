@@ -21,7 +21,7 @@ from harness import (
 )
 from package_info import PKG
 from pipx import pipx_metadata_file
-from pipx.backends._base import UV  # ruff:ignore[import-private-name]  # no public home
+from pipx.backends import UV
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata

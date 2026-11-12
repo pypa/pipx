@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
     from packaging.utils import NormalizedName
 
-    from pipx.backends._base import Backend, OutdatedPackage
+    from pipx.backends import Backend, OutdatedPackage
     from pipx.venv_inspect import VenvMetadata
 
 from packaging.utils import InvalidName, canonicalize_name

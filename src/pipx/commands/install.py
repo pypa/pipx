@@ -4,7 +4,7 @@ __lazy_modules__ = [
     "functools",
     "json",
     "packaging.utils",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.transaction",
@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
-from pipx.backends._base import PIP
+from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
     expose_shared_resources_in_order,

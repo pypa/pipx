@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "pathlib",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.package_specifier",
     "pipx.redact",
     "pipx.util",
@@ -18,7 +18,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 
-from pipx.backends._base import KNOWN_BACKENDS
+from pipx.backends import KNOWN_BACKENDS
 from pipx.emojis import HAZARD
 from pipx.package_specifier import replayable_pip_args
 from pipx.redact import redact_url_credentials
@@ -54,7 +54,7 @@ class _RawPackageInfo(TypedDict, total=False):
     lock_file: Path | None
     include_resources_from: list[str]
     cooldown_days: int | None
-    man_pages: list[str]  # simplint: ignore[SMP530]  # TypedDict mirrors the metadata file; VenvMetadata is public
+    man_pages: list[str]  # simplint: ignore[duplicate-code]  # separate metadata types share fields
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]
@@ -234,7 +234,9 @@ class PipxMetadata:
             json.dumps(self.to_dict(), indent=4, sort_keys=True, cls=JsonEncoderHandlesPath).encode("utf-8")
         )
 
-    def to_dict(self) -> dict[str, Any]:  # simplint: ignore[SMP602]  # list[str] is invariant, so JsonValue rejects it
+    def to_dict(
+        self,
+    ) -> dict[str, Any]:  # simplint: ignore[imprecise-annotation]  # list[str] is invariant, so JsonValue rejects it
         """Return the metadata as a dictionary, ready to be written as JSON.
 
         :returns: the metadata as a dictionary.
@@ -449,7 +451,7 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
 
     def default(
         self,
-        o: object,  # simplint: ignore[SMP101, SMP602]  # JSONEncoder.default is declared as default(o: Any)
+        o: object,  # simplint: ignore[single-letter-name, imprecise-annotation]  # JSONEncoder override
     ) -> dict[str, str]:
         """Return the JSON form of a path, as a dictionary tagged with its type.
 

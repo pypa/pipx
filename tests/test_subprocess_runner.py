@@ -22,7 +22,6 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -181,7 +180,7 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         stream_output=True,
     )
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, result.stdout, result.stderr) == (
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",

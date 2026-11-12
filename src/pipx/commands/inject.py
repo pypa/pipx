@@ -4,7 +4,7 @@ __lazy_modules__ = [
     "functools",
     "packaging.utils",
     "pathlib",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.backends.registry",
     "pipx.commands.common",
     "pipx.commands.transaction",
@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx.backends._base import UV
+from pipx.backends import UV
 from pipx.backends.registry import assert_not_pip_under_uv
 from pipx.colors import BOLD
 from pipx.commands.common import (

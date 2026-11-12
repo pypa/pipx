@@ -281,8 +281,7 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
     return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
 
 
-def _fetch_release_data(  # simplint: ignore[SMP505]  # the retry loop would pass ruff's try-clause limit
-) -> dict[str, list[dict[str, str]]]:
+def _fetch_release_data() -> dict[str, list[dict[str, str]]]:
     attempt = 0
     while True:
         attempt += 1
@@ -346,9 +345,7 @@ def _download_resuming(url: str, archive: Path) -> None:
                 return
 
 
-def _unpack(  # simplint: ignore[SMP505]  # inlined, the unpack passes ruff's nested-block limit
-    full_version: str, archive: Path, download_dir: Path, expected_checksum: str
-) -> None:
+def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
     with animate(f"Unpacking python {full_version} build", do_animation=True):
         sha256_hash: Final = hashlib.sha256()
         with Path(archive).open("rb") as python_zip:
@@ -371,9 +368,7 @@ def _unpack(  # simplint: ignore[SMP505]  # inlined, the unpack passes ruff's ne
             raise PipxError(msg) from error
 
 
-def _extract_safely(  # simplint: ignore[SMP505]  # the loop would pass ruff's nested-block limit
-    tar: tarfile.TarFile, dest: Path
-) -> None:
+def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
     root: Final[Path] = dest.resolve()
     for member in tar.getmembers():
         if member.isdev():
@@ -400,17 +395,18 @@ def _reject_escape(member: tarfile.TarInfo, root: Path) -> None:
 
 def _escapes(root: Path, target: Path) -> bool:
     # members are extracted one at a time, so resolve the links unpacked so far for as much of the path as exists
-    for existing in (target, *target.parents):
+    existing = target
+    while True:
         try:
             # strict: a lenient realpath takes a link it cannot follow (a loop, an overlong chain) for a directory
             followed = os.path.realpath(existing, strict=True)
         except FileNotFoundError:
+            existing = existing.parent
             continue
         except OSError:
             return True
         resolved = Path(os.path.normpath(Path(followed, target.relative_to(existing))))
         return resolved != root and root not in resolved.parents
-    return True  # pragma: no cover  # target is below root, which exists, so the loop always returns
 
 
 def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -> None:

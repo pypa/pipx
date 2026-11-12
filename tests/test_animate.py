@@ -21,7 +21,6 @@ from pipx.fanout import fan_out
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 _TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 41, 2))
@@ -191,7 +190,7 @@ def test_env_no_animate(
     with pipx.animate.animate(_TEST_STRING_40_CHAR, do_animation=True):
         pass
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", f"{_TEST_STRING_40_CHAR}...\n")
 
 
@@ -205,7 +204,8 @@ def test_animate_skips_spinner_of_task_waiting_its_turn(
 
     def second() -> None:
         with pipx.animate.animate("waiting its turn", do_animation=True):
-            time.sleep(0.3)  # simplint: ignore[SMP808]  # the spinner must stay silent; the body needs real time
+            # An incorrectly started spinner needs time to emit output.
+            time.sleep(0.3)  # simplint: ignore[sleep-in-test]  # spinner timing
         second_done.set()
 
     fan_out([lambda: second_done.wait(timeout=5), second], sequential=False)
