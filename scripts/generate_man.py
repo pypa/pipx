@@ -5,15 +5,14 @@ from __future__ import annotations
 import os
 import sys
 import textwrap
-from argparse import (
-    SUPPRESS,
-    Action,
-    ArgumentParser,
-    # argparse exposes no public subparser action type.
-    _SubParsersAction,  # ruff:ignore[import-private-name]  # simplint: ignore[private-import-path]
-)
+from argparse import SUPPRESS, Action, ArgumentParser
 from pathlib import Path
-from typing import Final
+from typing import Final, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class _SubparserChoices(Protocol):
+    _choices_actions: list[Action]
 
 
 def main() -> None:
@@ -106,7 +105,7 @@ def _get_subcommands(parser: ArgumentParser) -> list[tuple[str, str]]:
     if parser._subparsers is None:  # ruff:ignore[private-member-access]  # argparse exposes no public subparser API
         return []
     for action in parser._subparsers._actions:  # ruff:ignore[private-member-access]  # argparse exposes no public subparser API
-        if isinstance(action, _SubParsersAction):
+        if isinstance(action, _SubparserChoices):
             return [(choice.dest, choice.help or "") for choice in action._choices_actions]  # ruff:ignore[private-member-access]  # argparse exposes no public subparser API
     return []
 
@@ -125,7 +124,7 @@ def _global_options_section(parser: ArgumentParser) -> list[str]:
     lines: Final[list[str]] = ["GLOBAL OPTIONS", "--------------", ""]
     seen: Final[set[int]] = set()
     for action in parser._actions:  # ruff:ignore[private-member-access]  # argparse exposes no public action list API
-        if id(action) in seen or action.help == SUPPRESS or isinstance(action, _SubParsersAction):
+        if id(action) in seen or action.help == SUPPRESS or isinstance(action, _SubparserChoices):
             continue
         seen.add(id(action))
         if option := _format_option(action):
