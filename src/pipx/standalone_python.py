@@ -206,6 +206,11 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
         for link, digest in python_releases:
             if not link.endswith(download_link_suffix):
                 continue
+            # a prerelease build (cpython-3.16.0a1) aliases under the stable version key, since the
+            # version match below stops before the suffix; skip it, so a request for that version
+            # either finds a final build or fails loudly instead of silently installing an alpha
+            if re.search(r"cpython-\d+\.\d+\.\d+(?:a|b|rc)\d+", link):
+                continue
             if (match := re.search(r"cpython-(\d+\.\d+\.\d+)", link)) is None:
                 msg = f"Could not parse a Python version from {link!r}."
                 raise PipxError(msg)
