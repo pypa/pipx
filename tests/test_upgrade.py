@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 
@@ -76,7 +75,7 @@ def test_upgrade_failure_prints_installer_error_once(capsys: pytest.CaptureFixtu
 
     assert run_pipx_cli(["upgrade", *flags, "--pip-args=--no-such-flag", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out + captured.err).count("no such option: --no-such-flag") == 1
 
 
@@ -287,7 +286,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["upgrade"],
@@ -672,7 +671,7 @@ def test_upgrade_with_extras(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade", "pycowsay[test_extra]"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert ("pycowsay is already at latest version" in captured.out, "Package is not installed" in captured.err) == (
         True,
         False,
@@ -764,7 +763,7 @@ def test_upgrade_injected_uses_stored_pip_args(empty_project_wheel: Path) -> Non
 def test_upgrade_install_json_stays_pure(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay", "--install", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     # parsing fails if the internal install printed human text ahead of the document
     document: Final = json.loads(captured.out)
     assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")

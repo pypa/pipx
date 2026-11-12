@@ -578,7 +578,7 @@ class VenvMetadata:
     app_paths: list[Path]
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
-    man_pages: list[str]  # simplint: ignore[SMP530]  # TypedDict mirrors the metadata file; VenvMetadata is public
+    man_pages: list[str]  # simplint: ignore[duplicate-code]  # separate metadata types share fields
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]

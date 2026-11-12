@@ -1,4 +1,4 @@
-from __future__ import annotations  # simplint: ignore[SMP104]  # public module with __all__; renaming breaks importers
+from __future__ import annotations  # simplint: ignore[catch-all-module]  # shared helpers have callers across pipx
 
 __lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
 

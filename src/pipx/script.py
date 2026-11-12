@@ -183,9 +183,7 @@ def download_script(url: str) -> str:
         raise PipxError(msg) from error
 
 
-def _reject_incomplete_script(  # simplint: ignore[SMP505]  # inlined, the try clause breaks ruff's statement limit
-    url: str, response: HTTPResponse | addinfourl, data: bytes
-) -> None:
+def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
     if len(data) > _MAX_SCRIPT_BYTES:
         msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
         raise PipxError(msg)

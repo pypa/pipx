@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -179,7 +178,7 @@ def test_upgrade_all_reports_outdated_check_failure(
 
     assert run_pipx_cli(["upgrade-all"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (check.call_count, "Package backend exited with code 1" in captured.err) == (1, True)
 
 
@@ -211,7 +210,7 @@ def test_upgrade_all_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade-all", "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 
@@ -223,7 +222,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["upgrade-all"],
@@ -298,7 +297,7 @@ def test_upgrade_all_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["upgrade-all"],
@@ -443,7 +442,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
 
     exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         exit_code,
         f"upgraded package {outdated_venv_names[1]} from " in captured.out,

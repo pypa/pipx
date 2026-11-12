@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
     _FakeInterpreters: TypeAlias = Callable[[dict[str, str], dict[str, str]], None]
@@ -304,7 +303,7 @@ def test_install_json_reports_the_python_it_moved_to_on_stderr(
 
     assert not run_pipx_cli(["install", "--output", "json", "--backend", backend, str(project)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out)["status"], "This package needs Python >=" in captured.err) == ("success", True)
 
 

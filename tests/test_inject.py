@@ -29,14 +29,12 @@ from pipx.redact import redact_url_credentials
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureResult
-
 
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_inject_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -72,7 +70,7 @@ def test_inject_json_reports_locked_environment(
 
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -105,7 +103,7 @@ def test_inject_json_reports_already_installed(
 
     assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -137,7 +135,7 @@ def test_inject_json_reports_partial_failure(
     missing_project: Final[Path] = tmp_path / "missing-project"
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay", str(empty_project), str(missing_project)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         captured.err,
         json.loads(captured.out),
@@ -178,7 +176,7 @@ def test_inject_json_reports_no_packages(
 ) -> None:
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -203,7 +201,7 @@ def test_inject_json_reports_no_packages(
 def test_inject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "-qq", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         "injected package" not in captured.out,
         "done!" not in captured.err,

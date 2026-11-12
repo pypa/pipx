@@ -28,13 +28,15 @@ from typing import TYPE_CHECKING, Final
 from packaging.version import InvalidVersion, Version
 
 from pipx.animate import animate
-from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
+from pipx.backends import UV, Backend, OutdatedPackage
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.constants import WINDOWS
 from pipx.paths import CTX
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
 from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
+
+from ._base import outdated_packages_from_process
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence

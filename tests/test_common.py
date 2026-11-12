@@ -30,7 +30,6 @@ from pipx.venv import Venv
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.mark.structures import ParameterSet
     from pytest_mock import MockerFixture, MockType
 
 
@@ -240,7 +239,7 @@ def test_expose_force_replaces_link_to_resource_another_venv_is_replacing(tmp_pa
     assert (expose_resources_globally("app", tmp_path, [path], force=True), link.readlink()) == ([], path)
 
 
-_HELD_RESOURCES: Final[list[ParameterSet]] = [
+_HELD_RESOURCES: Final[list[pytest.ParameterSet]] = [
     pytest.param("app", "bin/tool", "tool", "app_paths", id="app"),
     pytest.param("man", "share/man/man1/tool.1", "man1/tool.1", "man_paths", id="man"),
     pytest.param(
@@ -504,7 +503,7 @@ def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: s
     assert add_suffix(name, "@1") == expected
 
 
-_NAME_BY_BACKEND: Final[list[ParameterSet]] = [
+_NAME_BY_BACKEND: Final[list[pytest.ParameterSet]] = [
     pytest.param("pip", None, "", "Foo_Bar.X", id="pip-keeps-declared-name"),
     pytest.param("pip", None, "[extra]", "Foo_Bar.X", id="pip-with-extras"),
     pytest.param("uv", None, "[extra]", "foo-bar-x", id="uv-normalizes-name"),
