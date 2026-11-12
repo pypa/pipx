@@ -42,7 +42,8 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from typing import TypeIs
+    from http.client import HTTPResponse
+    from typing import BinaryIO, TypeIs
 
     from filelock import BaseFileLock
 
@@ -333,16 +334,25 @@ def _download_resuming(url: str, archive: Path) -> None:
             request = Request(url, headers={"Range": f"bytes={written}-"} if written else {})  # ruff:ignore[suspicious-url-open-usage]
             try:
                 with urlopen(request, timeout=_URL_OPEN_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # the URL is from the pinned release index, not user input
-                    if written and response.status != HTTPStatus.PARTIAL_CONTENT:
-                        # the server ignored the range request and answered with the whole file
-                        file_handle.seek(0)
-                        file_handle.truncate()
-                    # 32KB chunks keep memory flat
-                    file_handle.writelines(iter(partial(response.read, 32768), b""))
+                    _write_body(response, file_handle, resumed=bool(written))
             except _TRANSIENT_NETWORK_ERRORS as error:
                 _backoff_or_raise(error, attempt, url)
             else:
                 return
+
+
+def _write_body(response: HTTPResponse, file_handle: BinaryIO, *, resumed: bool) -> None:
+    if resumed and response.status != HTTPStatus.PARTIAL_CONTENT:
+        # the server ignored the range request and answered with the whole file
+        file_handle.seek(0)
+        file_handle.truncate()
+    # 32KB chunks keep memory flat
+    file_handle.writelines(iter(partial(response.read, 32768), b""))
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, so raise a transient error to retry and resume from the bytes already on disk
+    if missing := getattr(response, "length", None):
+        received: Final[bytes] = b""
+        raise http.client.IncompleteRead(received, missing)
 
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
