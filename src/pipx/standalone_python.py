@@ -351,8 +351,19 @@ def _write_body(response: HTTPResponse, file_handle: BinaryIO, *, resumed: bool)
     # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
     # missing byte count in length, so raise a transient error to retry and resume from the bytes already on disk
     if missing := getattr(response, "length", None):
-        received: Final[bytes] = b""
-        raise http.client.IncompleteRead(received, missing)
+        raise _BodyCutShort(file_handle.tell(), missing)
+
+
+class _BodyCutShort(http.client.IncompleteRead):
+    # the bytes read so far are on disk, not in memory, so count them in the message in place of a partial body
+    def __init__(self, written: int, missing: int) -> None:
+        super().__init__(b"", missing)
+        self.written: Final[int] = written
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.written} bytes on disk, {self.expected} more expected)"
+
+    __str__ = __repr__
 
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:

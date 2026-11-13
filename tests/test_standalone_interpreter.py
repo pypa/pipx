@@ -8,6 +8,7 @@ import hashlib
 import http.client
 import io
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -550,7 +551,9 @@ def _range_response(mocker: MockerFixture, status: HTTPStatus, body: bytes) -> M
 def test_standalone_python_download_resumes_after_body_cut_short(
     published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.DEBUG, logger=standalone_python.__name__)
     archive_bytes: Final[bytes] = _python_archive_bytes()
     urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
     urlopen.side_effect = [
@@ -567,10 +570,13 @@ def test_standalone_python_download_resumes_after_body_cut_short(
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
     second_request: Final = urlopen.call_args_list[1].args[0]
-    assert (Path(python_path).is_file(), sleep.call_count, second_request.get_header("Range")) == (
+    # the retry log counts the bytes kept on disk, not a partial body held in memory
+    retry_cause: Final[str] = caplog.messages[0].partition("failed ")[2]
+    assert (Path(python_path).is_file(), sleep.call_count, second_request.get_header("Range"), retry_cause) == (
         True,
         1,
         "bytes=10-",
+        f"(_BodyCutShort(10 bytes on disk, {len(archive_bytes) - 10} more expected)); retrying",
     )
 
 
