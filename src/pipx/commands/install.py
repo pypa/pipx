@@ -627,13 +627,15 @@ def _install_into_venv(
                 run.lock_file if options.replace_lock else run.lock_file or recorded_lock
             )
             build: Final[_EnvironmentBuild] = _EnvironmentBuild(
-                venv_args=options.venv_args,
+                creation=_VenvCreation(
+                    venv_args=options.venv_args,
+                    override_shared=installs_pip,
+                    exposure_enabled=venv.pipx_metadata.exposure_enabled
+                    if options.exposure_enabled is None
+                    else options.exposure_enabled,
+                    preinstall_packages=options.preinstall_packages,
+                ),
                 pip_args=options.pip_args,
-                override_shared=installs_pip,
-                exposure_enabled=venv.pipx_metadata.exposure_enabled
-                if options.exposure_enabled is None
-                else options.exposure_enabled,
-                preinstall_packages=options.preinstall_packages,
                 package_name=package_name,
                 package_spec=package_spec,
                 force_reinstall=options.force and exists,
@@ -684,11 +686,8 @@ def _install_into_venv(
 # holds everything needed to fill a venv, letting pipx repeat it when the first interpreter turns out unsupported
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _EnvironmentBuild:
-    venv_args: list[str]
+    creation: _VenvCreation
     pip_args: list[str]
-    override_shared: bool
-    exposure_enabled: bool
-    preinstall_packages: list[str] | None
     package_name: str
     package_spec: str
     force_reinstall: bool
@@ -699,12 +698,12 @@ class _EnvironmentBuild:
     pinned: bool
 
     def run(self, venv: Venv) -> VenvMetadata:
-        venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
-        venv.pipx_metadata.exposure_enabled = self.exposure_enabled
+        venv.create_venv(self.creation.venv_args, self.pip_args, override_shared=self.creation.override_shared)
+        venv.pipx_metadata.exposure_enabled = self.creation.exposure_enabled
         venv.pipx_metadata.environment = venv.root.name
         # pipx writes the record last; a kill before it must not leave what looks like a pre-0.15 environment
         with marked_unfinished(venv.root):
-            for dependency in self.preinstall_packages or []:
+            for dependency in self.creation.preinstall_packages or []:
                 venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
             return venv.install_package(
                 package_name=self.package_name,
@@ -718,6 +717,14 @@ class _EnvironmentBuild:
                 cooldown_days=self.cooldown_days,
                 pinned=self.pinned,
             )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvCreation:
+    venv_args: list[str]
+    override_shared: bool
+    exposure_enabled: bool
+    preinstall_packages: list[str] | None
 
 
 def _handle_existing_install(
