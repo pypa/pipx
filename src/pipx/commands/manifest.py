@@ -40,7 +40,7 @@ from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.options import ExposureOptions, InstallOptions
+from pipx.options import EnvironmentOptions, ExistingOptions, ExposureOptions, InstallOptions, RecordOptions
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.redact import redact_url_credentials
@@ -350,25 +350,23 @@ def _install_tool(
                 InstallOptions(
                     local_bin_dir=options.local_bin_dir,
                     local_man_dir=options.local_man_dir,
-                    python=options.python,
+                    environment=EnvironmentOptions(python=options.python, venv_args=state.recorded.venv_args),
+                    existing=ExistingOptions(force=state.existed, preserve=True),
                     pip_args=trusted_recorded_pip_args(state.recorded.main_package.pip_args, venv_dir),
-                    venv_args=state.recorded.venv_args,
                     verbose=options.verbose,
-                    force=state.existed,
-                    reinstall=False,
                     exposure=ExposureOptions(
                         include_dependencies=tool.include_dependencies,
                         include_resources_from=tool.include_resources_from,
                         suffix=tool.suffix,
                     ),
-                    preinstall_packages=None,
-                    expected_apps=tool.apps,
-                    lock_file=tool.lock_file,
+                    record=RecordOptions(
+                        expected_apps=tool.apps,
+                        replace_expected_apps=True,
+                        lock_file=tool.lock_file,
+                        replace_lock=True,
+                        exposure_enabled=tool.expose,
+                    ),
                     backend=options.backend,
-                    exposure_enabled=tool.expose,
-                    preserve_existing=True,
-                    replace_expected_apps=True,
-                    replace_lock=True,
                     emit_output=False,
                 ),
                 venv_lock=venv_lock,

@@ -9,7 +9,13 @@ import pytest
 
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
 from pipx.constants import FetchPythonOptions
-from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
+from pipx.options import (
+    DEFAULT_BACKEND_OPTIONS,
+    AppLookupOptions,
+    CooldownOptions,
+    RunInterpreterOptions,
+    RunOptions,
+)
 from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.subprocess_runner import exec_app
@@ -29,20 +35,17 @@ def fake_uv(mocker: MockerFixture) -> Path:
 _RUN_OPTIONS: Final[RunOptions] = RunOptions(
     app_args=[],
     dependencies=[],
-    python="",
+    interpreter=RunInterpreterOptions(
+        python="", python_args=[], python_flag_passed=False, fetch_python=FetchPythonOptions.NEVER
+    ),
+    lookup=AppLookupOptions(is_path=False, pypackages=False, no_path_check=False),
     pip_args=[],
     venv_args=[],
-    is_path=False,
-    pypackages=False,
     verbose=False,
     use_cache=True,
-    python_args=[],
     refresh=False,
-    no_path_check=False,
     backend=DEFAULT_BACKEND_OPTIONS,
     cooldown=CooldownOptions(),
-    python_flag_passed=False,
-    fetch_python=FetchPythonOptions.NEVER,
 )
 
 
@@ -84,7 +87,7 @@ def test_run_via_uv_tool_run_basic(
             replace(
                 _RUN_OPTIONS,
                 app_args=["--check"],
-                python="python3.12",
+                interpreter=replace(_RUN_OPTIONS.interpreter, python="python3.12"),
                 cooldown=CooldownOptions(cli_days=cooldown_days),
             )
         )
@@ -112,7 +115,7 @@ def test_run_via_uv_tool_run_threads_spec_and_with(exec_mock: MockType, fake_uv:
                 _RUN_OPTIONS,
                 dependencies=["rich", "click"],
                 app_args=["--version"],
-                python="python3.12",
+                interpreter=replace(_RUN_OPTIONS.interpreter, python="python3.12"),
                 pip_args=["--index-url", "https://example.com/simple", "--pre"],
                 use_cache=False,
                 verbose=True,
@@ -177,7 +180,7 @@ def test_run_script_via_uv_run_uses_uv_run_script(
             replace(
                 _RUN_OPTIONS,
                 app_args=["--quiet"],
-                python="python3.12",
+                interpreter=replace(_RUN_OPTIONS.interpreter, python="python3.12"),
                 cooldown=CooldownOptions(cli_days=cooldown_days),
             )
         )

@@ -47,7 +47,7 @@ def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> N
     :raises PipxError: when venv arguments are given, which ``uv tool run`` cannot take.
     """
     _reject_venv_args(options.venv_args)
-    if not options.no_path_check and (existing_app_path := which(app)):
+    if not options.lookup.no_path_check and (existing_app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -61,8 +61,8 @@ def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> N
     cmd: list[str] = [str(resolve_uv_binary()), "tool", "run"]
     if package_or_url and package_or_url != app:
         cmd += ["--from", package_or_url]
-    if options.python:
-        cmd += ["--python", options.python]
+    if options.interpreter.python:
+        cmd += ["--python", options.interpreter.python]
     for dependency in options.dependencies:
         cmd += ["--with", dependency]
     if not options.use_cache:
@@ -172,8 +172,8 @@ def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions
     _reject_venv_args(options.venv_args)
     # uv searches for project config from --project, or else from the script's directory, which another account may own
     cmd: list[str] = [str(resolve_uv_binary()), "run", "--active", "--script", "--project", str(CTX.home)]
-    if options.python:
-        cmd += ["--python", options.python]
+    if options.interpreter.python:
+        cmd += ["--python", options.interpreter.python]
     if not options.use_cache:
         cmd.append("--no-cache")
     if options.refresh:

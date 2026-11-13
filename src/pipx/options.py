@@ -85,61 +85,92 @@ class ExposureOptions:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class EnvironmentOptions:
+    """Options that choose how the install builds a new environment.
+
+    :param python: the Python interpreter to build the environment with, or None for the default.
+    :param venv_args: extra arguments passed when creating the environment.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+    :param fetch_python: whether to fetch a missing Python interpreter.
+    :param preinstall_packages: packages installed before the main package, or None.
+    """
+
+    python: str | None
+    venv_args: list[str]
+    python_flag_passed: bool = False
+    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
+    preinstall_packages: list[str] | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ExistingOptions:
+    """Options that choose what the install does with an environment that already exists.
+
+    :param force: whether to replace an existing environment.
+    :param reinstall: whether the install rebuilds an existing environment.
+    :param preserve: whether to keep an existing environment that fails to install.
+    :param upgrade: whether to upgrade the installed package.
+    :param upgrade_strategy: the pip upgrade strategy, or None.
+    """
+
+    force: bool
+    reinstall: bool = False
+    preserve: bool = False
+    upgrade: bool = False
+    upgrade_strategy: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RecordOptions:
+    """Options that override what an existing environment recorded.
+
+    :param expected_apps: apps the install must expose.
+    :param replace_expected_apps: whether the expected apps replace the recorded ones.
+    :param lock_file: the lock file to install from, or None.
+    :param replace_lock: whether to replace the lock file.
+    :param exposure_enabled: whether exposure is enabled, or None to keep the recorded state.
+    :param pinned: whether the environment is pinned, or None to keep the recorded state.
+    """
+
+    expected_apps: Sequence[str] = ()
+    replace_expected_apps: bool = False
+    lock_file: Path | None = None
+    replace_lock: bool = False
+    exposure_enabled: bool | None = None
+    pinned: bool | None = None
+
+
+#: the record options of an install that keeps everything the environment recorded.
+DEFAULT_RECORD_OPTIONS: Final[RecordOptions] = RecordOptions()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class InstallOptions:
     """Options of the install command.
 
     :param local_bin_dir: the directory the app links are placed in.
     :param local_man_dir: the directory the man pages are placed in.
-    :param python: the Python interpreter to build the environment with, or None for the default.
+    :param environment: how a new environment is built.
+    :param existing: what happens to an environment that already exists.
     :param pip_args: extra arguments passed to pip.
-    :param venv_args: extra arguments passed when creating the environment.
     :param verbose: whether to print verbose output.
-    :param force: whether to replace an existing environment.
     :param backend: the backend that installs the package.
-
-    :param reinstall: whether the install rebuilds an existing environment.
     :param exposure: which apps and dependencies are exposed.
-    :param preinstall_packages: packages installed before the main package, or None.
-    :param expected_apps: apps the install must expose.
-    :param lock_file: the lock file to install from, or None.
-    :param python_flag_passed: whether ``--python`` was given on the command line.
-
-    :param exposure_enabled: whether exposure is enabled, or None to keep the recorded state.
-    :param upgrade: whether to upgrade the installed package.
-    :param upgrade_strategy: the pip upgrade strategy, or None.
+    :param record: what overrides the state the environment recorded.
     :param cooldown: the cooldown applied to the new releases.
-    :param pinned: whether the environment is pinned, or None to keep the recorded state.
-    :param preserve_existing: whether to keep an existing environment that fails to install.
-    :param fetch_python: whether to fetch a missing Python interpreter.
-
-    :param replace_expected_apps: whether the expected apps replace the recorded ones.
-    :param replace_lock: whether to replace the lock file.
     :param emit_output: whether to emit output messages.
     """
 
     local_bin_dir: Path
     local_man_dir: Path
-    python: str | None
+    environment: EnvironmentOptions
+    existing: ExistingOptions
     pip_args: list[str]
-    venv_args: list[str]
     verbose: bool
-    force: bool
     backend: BackendOptions
-    reinstall: bool = False
     exposure: ExposureOptions = ExposureOptions()
-    preinstall_packages: list[str] | None = None
-    expected_apps: Sequence[str] = ()
-    lock_file: Path | None = None
-    python_flag_passed: bool = False
-    exposure_enabled: bool | None = None
-    upgrade: bool = False
-    upgrade_strategy: str | None = None
+    record: RecordOptions = DEFAULT_RECORD_OPTIONS
     cooldown: CooldownOptions = DEFAULT_COOLDOWN_OPTIONS
-    pinned: bool | None = None
-    preserve_existing: bool = False
-    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
-    replace_expected_apps: bool = False
-    replace_lock: bool = False
     emit_output: bool = True
 
 
@@ -302,59 +333,82 @@ class OutdatedOptions:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class RunInterpreterOptions:
+    """Options that choose the Python interpreter the run command starts.
+
+    :param python: the Python interpreter to run with.
+    :param python_args: extra arguments passed to the Python interpreter.
+    :param python_flag_passed: whether ``--python`` was given on the command line.
+    :param fetch_python: whether to fetch a missing Python interpreter.
+    """
+
+    python: str
+    python_args: list[str]
+    python_flag_passed: bool
+    fetch_python: FetchPythonOptions
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AppLookupOptions:
+    """Options that choose how the run command finds the app.
+
+    :param is_path: whether the app is given as a path rather than a package name.
+    :param pypackages: whether to use a ``__pypackages__`` directory.
+    :param no_path_check: whether to skip the check that the app is not on the PATH.
+    """
+
+    is_path: bool
+    pypackages: bool
+    no_path_check: bool
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class RunOptions:
     """Options of the run command.
 
     :param app_args: arguments passed to the app.
     :param dependencies: extra requirements the environment is built with.
-    :param python: the Python interpreter to run with.
+    :param interpreter: the Python interpreter to run with.
+    :param lookup: how the app is found.
     :param pip_args: extra arguments passed to pip.
     :param venv_args: extra arguments passed when creating the environment.
-    :param is_path: whether the app is given as a path rather than a package name.
-    :param pypackages: whether to use a ``__pypackages__`` directory.
-
     :param verbose: whether to print verbose output.
     :param use_cache: whether to reuse a cached environment.
-    :param python_args: extra arguments passed to the Python interpreter.
-
     :param refresh: whether to rebuild the cached environment.
-
-    :param no_path_check: whether to skip the check that the app is not on the PATH.
     :param backend: the backend that installs the package.
     :param cooldown: the cooldown applied to the new releases.
-    :param python_flag_passed: whether ``--python`` was given on the command line.
-    :param fetch_python: whether to fetch a missing Python interpreter.
     """
 
     app_args: list[str]
     dependencies: list[str]
-    python: str
+    interpreter: RunInterpreterOptions
+    lookup: AppLookupOptions
     pip_args: list[str]
     venv_args: list[str]
-    is_path: bool
-    pypackages: bool
     verbose: bool
     use_cache: bool
-    python_args: list[str]
     refresh: bool
-    no_path_check: bool
     backend: BackendOptions
     cooldown: CooldownOptions
-    python_flag_passed: bool
-    fetch_python: FetchPythonOptions
 
 
 __all__ = [
     "DEFAULT_BACKEND_OPTIONS",
     "DEFAULT_COOLDOWN_OPTIONS",
+    "DEFAULT_RECORD_OPTIONS",
+    "AppLookupOptions",
     "BackendOptions",
     "CooldownOptions",
+    "EnvironmentOptions",
+    "ExistingOptions",
     "ExposureOptions",
     "InjectOptions",
     "InstallOptions",
     "ListOptions",
     "OutdatedOptions",
+    "RecordOptions",
     "ReinstallOptions",
+    "RunInterpreterOptions",
     "RunOptions",
     "SyncOptions",
     "UninjectOptions",

@@ -45,7 +45,15 @@ from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.options import CooldownOptions, ExposureOptions, InstallOptions, OutdatedOptions, ReinstallOptions
+from pipx.options import (
+    CooldownOptions,
+    EnvironmentOptions,
+    ExistingOptions,
+    ExposureOptions,
+    InstallOptions,
+    OutdatedOptions,
+    ReinstallOptions,
+)
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
@@ -119,15 +127,14 @@ def _upgrade_venv(
                 InstallOptions(
                     local_bin_dir=CTX.bin_dir,
                     local_man_dir=CTX.man_dir,
-                    python=options.python,
+                    environment=EnvironmentOptions(
+                        python=options.python,
+                        venv_args=options.venv_args,
+                        python_flag_passed=options.python_flag_passed,
+                    ),
+                    existing=ExistingOptions(force=options.force),
                     pip_args=options.pip_args,
-                    venv_args=options.venv_args,
                     verbose=options.verbose,
-                    force=options.force,
-                    reinstall=False,
-                    exposure=ExposureOptions(),
-                    preinstall_packages=None,
-                    python_flag_passed=options.python_flag_passed,
                     backend=options.backend,
                     cooldown=CooldownOptions(cli_days=options.cooldown.days),
                     emit_output=False,
