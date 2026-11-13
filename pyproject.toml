@@ -280,6 +280,8 @@ type = [
 [tool.flake8-lazy]
 standalone.line-length = 120
 standalone.lazy-exclude-modules = [
+  # flake8-lazy denotes this relative import this way; the package exports it eagerly
+  "{__spec__.parent}._base",
   # records whether stderr is a terminal at startup, which decides if spinners animate
   "pipx.animate",
   # records whether stdout is a terminal at startup and runs colorama.init() on Windows before anything prints

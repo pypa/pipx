@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["re"]
-
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
+
+_URL_CREDENTIALS: Final[re.Pattern[str]] = re.compile(r"(?<=://)([^/?#\r\n]*)@")
 
 
 def redact_command_line(cmd: Sequence[str | Path]) -> str:
@@ -33,8 +33,7 @@ def redact_url_credentials(text: str) -> str:
     # space, so callers mask each argument before joining a command line; a line break still ends it, as installer
     # output holds a URL per line. Across a space the match can start at a bare token and end at a later word's @, so a
     # user part holding an @ is masked as a bare user.
-    return re.sub(
-        r"(?<=://)([^/?#\r\n]*)@",
+    return _URL_CREDENTIALS.sub(
         lambda match: "****:****@" if (userinfo := match[1].partition(":"))[1] and "@" not in userinfo[0] else "****@",
         text,
     )

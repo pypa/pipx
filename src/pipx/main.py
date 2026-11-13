@@ -1,3 +1,4 @@
+# Retain legacy module and file entrypoints.  # simplint: ignore[entrypoint-module-name]
 # PYTHON_ARGCOMPLETE_OK
 
 """The command line interface to pipx"""
@@ -9,9 +10,8 @@ __lazy_modules__ = [
     "contextlib",
     "fcntl",
     "packaging.utils",
-    "pathlib",
     "pipx",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.backends.registry",
     "pipx.commands.environment",
     "pipx.commands.transaction",
@@ -29,7 +29,6 @@ __lazy_modules__ = [
     "pipx.version",
     "pipx.wrap",
     "platformdirs",
-    "re",
     "shlex",
     "textwrap",
     "urllib.parse",
@@ -51,13 +50,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, NoReturn, TextIO, cast
 
+if __name__ == "__main__" and not __package__:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    __package__ = "pipx"
+
 import argcomplete
 import platformdirs
 from packaging.utils import canonicalize_name
 
 from pipx import constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backends._base import KNOWN_BACKENDS, UV
+from pipx.backends import KNOWN_BACKENDS, UV
 from pipx.backends.registry import env_default_backend, get_backend, resolve_backend_name
 from pipx.colors import BOLD, GREEN
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
@@ -80,13 +83,18 @@ from pipx.interpreter import (
     get_default_python_spec,
 )
 from pipx.options import (
+    AppLookupOptions,
     BackendOptions,
     CooldownOptions,
+    EnvironmentOptions,
+    ExistingOptions,
     ExposureOptions,
     InjectOptions,
     InstallOptions,
     ListOptions,
+    RecordOptions,
     ReinstallOptions,
+    RunInterpreterOptions,
     RunOptions,
     SyncOptions,
     UninjectOptions,
@@ -110,6 +118,8 @@ from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 from pipx.wrap import pipx_wrap
 
+from ._env_parsing import compute_cooldown, compute_fetch_python, compute_max_logs
+
 if not WINDOWS:
     import fcntl
 
@@ -131,6 +141,16 @@ if TYPE_CHECKING:
     from pipx.commands.upgrade import SharedData, UpgradeData
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_LOG_NAME: Final[re.Pattern[str]] = re.compile(
+    r"""
+    cmd_
+    (?P<started>\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)  # start time of the run
+    (?:_(?P<counter>\d+))?                              # counter for runs that start in the same second
+    (?P<error_kind>_[a-z]+_errors)?                      # kind of an error log, such as _pip_errors
+    \.log
+    """,
+    re.VERBOSE,
+)
 
 _VenvCompleter = Callable[[str], list[str]]
 
@@ -189,17 +209,6 @@ def _dispatch(argv: list[str]) -> ExitCode:
             )
         )
         return ExitCode(1)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    """Build the argument parser of the pipx command line.
-
-    :returns: the parser.
-    """
-    # sphinx-argparse-cli renders the CLI reference from this parser, so the docs cannot drift from the arguments. The
-    # program is named here rather than taken from the docs builder's argv[0]: each subcommand parser copies prog when
-    # it is created, and the directive's :prog: option cannot rewrite it afterwards.
-    return get_command_parser(prog="pipx")
 
 
 def get_command_parser(*, prog: str | None = None) -> argparse.ArgumentParser:
@@ -371,11 +380,6 @@ def prog_name() -> str:
         prog: Final[str] = Path(sys.argv[0]).name
         return f"{sys.executable} -m pipx" if prog == "__main__.py" else prog
     return "pipx"
-
-
-class _LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def _split_lines(self, text: str, width: int) -> list[str]:
-        return textwrap.wrap(self._whitespace_matcher.sub(" ", text).strip(), width)
 
 
 def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -651,25 +655,23 @@ def _cmd_install(args: argparse.Namespace, ctx: _DispatchContext) -> OperationRe
         InstallOptions(
             local_bin_dir=CTX.bin_dir,
             local_man_dir=CTX.man_dir,
-            python=ctx.python,
+            environment=EnvironmentOptions(
+                python=ctx.python,
+                venv_args=ctx.venv_args,
+                python_flag_passed=ctx.python_flag_passed,
+                fetch_python=ctx.fetch_python,
+                preinstall_packages=args.preinstall,
+            ),
+            existing=ExistingOptions(force=args.force, upgrade=args.upgrade, upgrade_strategy=args.upgrade_strategy),
             pip_args=ctx.pip_args,
-            venv_args=ctx.venv_args,
             verbose=ctx.verbose,
-            force=args.force,
-            upgrade=args.upgrade,
-            reinstall=False,
             exposure=ExposureOptions(
                 include_dependencies=args.include_deps,
                 include_resources_from=args.include_resources_from,
                 suffix=args.suffix,
             ),
-            preinstall_packages=args.preinstall,
-            expected_apps=args.app or (),
-            lock_file=args.lock,
-            python_flag_passed=ctx.python_flag_passed,
-            fetch_python=ctx.fetch_python,
+            record=RecordOptions(expected_apps=args.app or (), lock_file=args.lock),
             backend=ctx.backend,
-            upgrade_strategy=args.upgrade_strategy,
             cooldown=ctx.cooldown,
             emit_output=False,
         ),
@@ -708,14 +710,14 @@ def _cmd_install_all(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCod
         InstallOptions(
             local_bin_dir=CTX.bin_dir,
             local_man_dir=CTX.man_dir,
-            python=ctx.python,
+            environment=EnvironmentOptions(
+                python=ctx.python, venv_args=ctx.venv_args, python_flag_passed=ctx.python_flag_passed
+            ),
+            existing=ExistingOptions(force=args.force),
             pip_args=ctx.pip_args,
-            venv_args=ctx.venv_args,
             verbose=ctx.verbose,
-            force=args.force,
             backend=ctx.backend,
             cooldown=ctx.cooldown,
-            python_flag_passed=ctx.python_flag_passed,
         ),
     )
 
@@ -754,10 +756,6 @@ def _add_uninject(
 def _complete_with(action: argparse.Action, completer: _VenvCompleter) -> None:
     # argcomplete reads the completer off the action, an attribute argparse does not declare
     cast("_CompletableAction", action).completer = completer
-
-
-class _CompletableAction(typing.Protocol):
-    completer: _VenvCompleter
 
 
 def _cmd_uninject(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResult[InjectionData]:
@@ -1209,10 +1207,6 @@ def _confirmed_reset(output: OutputFormat) -> bool:
     return answer.strip().casefold() in {"y", "yes"}
 
 
-def _output_format(args: argparse.Namespace) -> OutputFormat:
-    return OutputFormat(getattr(args, "output", OutputFormat.HUMAN))
-
-
 def _add_reinstall(
     subparsers: argparse._SubParsersAction,
     venv_completer: _VenvCompleter,
@@ -1476,17 +1470,6 @@ def _cmd_interpreter_upgrade(args: argparse.Namespace, ctx: _DispatchContext) ->
     return upgrade_interpreters(ctx.venv_container, verbose=ctx.verbose)
 
 
-def _make_print_help(
-    target_parser: argparse.ArgumentParser,
-) -> Callable[[argparse.Namespace, _DispatchContext], ExitCode]:
-    def _print_help(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
-        del args, ctx
-        target_parser.print_help()
-        return EXIT_CODE_OK
-
-    return _print_help
-
-
 def _add_cache(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "cache",
@@ -1673,14 +1656,6 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     parser.set_defaults(subparser=parser, func=_cmd_run)
 
 
-class _RunHelpFormatter(_LineWrapRawTextHelpFormatter):
-    def _format_args(self, action: argparse.Action, default_metavar: str) -> str:
-        # argparse renders a REMAINDER positional as a bare "..." in the usage line; its metavar names the required app
-        if action.nargs == argparse.REMAINDER:
-            return self._metavar_formatter(action, default_metavar)(1)[0]
-        return super()._format_args(action, default_metavar)
-
-
 def _split_python_args(python_args: str) -> list[str]:
     try:
         return shlex.split(python_args, posix=not WINDOWS)
@@ -1697,20 +1672,20 @@ def _cmd_run(args: argparse.Namespace, ctx: _DispatchContext) -> NoReturn:
         RunOptions(
             dependencies=args.with_,
             app_args=args.app_with_args[1:],
-            python=ctx.python,
+            interpreter=RunInterpreterOptions(
+                python=ctx.python,
+                python_args=args.python_args,
+                python_flag_passed=ctx.python_flag_passed,
+                fetch_python=ctx.fetch_python,
+            ),
+            lookup=AppLookupOptions(is_path=args.path, pypackages=args.pypackages, no_path_check=args.no_path_check),
             pip_args=ctx.pip_args,
             venv_args=ctx.venv_args,
-            is_path=args.path,
-            pypackages=args.pypackages,
             verbose=ctx.verbose,
             use_cache=not args.no_cache,
             refresh=args.refresh,
-            no_path_check=args.no_path_check,
             backend=ctx.backend,
             cooldown=ctx.cooldown,
-            python_args=args.python_args,
-            python_flag_passed=ctx.python_flag_passed,
-            fetch_python=ctx.fetch_python,
         ),
         spec=ctx.spec,
     )
@@ -1922,6 +1897,17 @@ fish:
     return ExitCode(0)
 
 
+def _make_print_help(
+    target_parser: argparse.ArgumentParser,
+) -> Callable[[argparse.Namespace, _DispatchContext], ExitCode]:
+    def _print_help(args: argparse.Namespace, ctx: _DispatchContext) -> ExitCode:
+        del args, ctx
+        target_parser.print_help()
+        return EXIT_CODE_OK
+
+    return _print_help
+
+
 def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argparse.Namespace:
     """Parse the command line, letting ``inject`` take its options after its positional arguments.
 
@@ -1941,27 +1927,6 @@ def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argpars
         parsed_args.command = "inject"
         return parsed_args
     return parser.parse_args(args)
-
-
-def _validate_environment_variables() -> None:
-    if _FETCH_PYTHON_INVALID:
-        msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
-        raise PipxError(msg)
-    if _FETCH_MISSING_PYTHON_RAW is not None:
-        if _FETCH_PYTHON_RAW is not None:
-            msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
-            raise PipxError(msg)
-        print(  # ruff:ignore[print]  # user-facing CLI output
-            f"{HAZARD} PIPX_FETCH_MISSING_PYTHON is deprecated; "
-            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
-            file=sys.stderr,
-        )
-    if _COOLDOWN_INVALID:
-        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
-        raise PipxError(msg)
-    if _MAX_LOGS_INVALID:
-        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
-        raise PipxError(msg)
 
 
 def _setup(args: argparse.Namespace) -> None:
@@ -2035,53 +2000,25 @@ def _setup(args: argparse.Namespace) -> None:
         )
 
 
-_FETCH_MISSING_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
-_FETCH_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_PYTHON")
-
-
-def _compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tuple[FetchPythonOptions, bool]:
-    fetch_missing: Final[bool] = (missing_raw or "").strip().lower() not in {"", "0", "false", "f", "no", "n", "off"}
-    raw: Final[str] = python_raw or (
-        FetchPythonOptions.MISSING.value if fetch_missing else FetchPythonOptions.NEVER.value
-    )
-    try:
-        return FetchPythonOptions(raw), False
-    except ValueError:
-        return FetchPythonOptions.NEVER, True
-
-
-_FETCH_PYTHON, _FETCH_PYTHON_INVALID = _compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
-
-_COOLDOWN_RAW: Final[str | None] = os.environ.get("PIPX_COOLDOWN")
-
-
-def _compute_cooldown(raw: str | None) -> tuple[int | None, bool]:
-    if raw is None or not (stripped := raw.strip()):
-        return None, False
-    try:
-        days: Final[int] = int(stripped)
-    except ValueError:
-        return None, True
-    return (days, False) if days >= 0 else (None, True)
-
-
-_COOLDOWN, _COOLDOWN_INVALID = _compute_cooldown(_COOLDOWN_RAW)
-
-
-_MAX_LOGS_RAW: Final[str | None] = os.environ.get("PIPX_MAX_LOGS")
-
-
-def _compute_max_logs(raw: str | None) -> tuple[int, bool]:
-    if raw is None or not (stripped := raw.strip()):
-        return 10, False
-    try:
-        logs: Final[int] = int(stripped)
-    except ValueError:
-        return 10, True
-    return (logs, False) if logs >= 0 else (10, True)
-
-
-_MAX_LOGS_INVALID: Final[bool] = _compute_max_logs(_MAX_LOGS_RAW)[1]
+def _validate_environment_variables() -> None:
+    if _FETCH_PYTHON_INVALID:
+        msg = f"PIPX_FETCH_PYTHON must be unset or one of: {', '.join(str(option) for option in FetchPythonOptions)}."
+        raise PipxError(msg)
+    if _FETCH_MISSING_PYTHON_RAW is not None:
+        if _FETCH_PYTHON_RAW is not None:
+            msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
+            raise PipxError(msg)
+        print(  # ruff:ignore[print]  # user-facing CLI output
+            f"{HAZARD} PIPX_FETCH_MISSING_PYTHON is deprecated; "
+            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
+            file=sys.stderr,
+        )
+    if _COOLDOWN_INVALID:
+        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
+        raise PipxError(msg)
+    if _MAX_LOGS_INVALID:
+        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
+        raise PipxError(msg)
 
 
 def _setup_logging(verbose: int) -> None:
@@ -2121,7 +2058,7 @@ def _open_log_file(pipx_log_dir: Path) -> TextIOWrapper:
         pipx_log_dir.chmod(0o700)
     log_stream: Final[TextIOWrapper] = _create_log_file(pipx_log_dir)
     # the validator's parser lets a blank PIPX_MAX_LOGS fall back to the default, where int() would fail on it
-    _rotate_logs(Path(log_stream.name), _compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
+    _rotate_logs(Path(log_stream.name), compute_max_logs(os.getenv("PIPX_MAX_LOGS"))[0])
     return log_stream
 
 
@@ -2150,20 +2087,10 @@ def _rotate_logs(current: Path, max_logs: int) -> None:
     # the current log counts toward the limit and must outlive its run, since a failure points the user at its
     # error log, so 0 keeps that one log
     keep_old: Final[int] = max(max_logs - 1, 0)
-    name_pattern: Final[re.Pattern[str]] = re.compile(
-        r"""
-        cmd_
-        (?P<started>\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)  # start time of the run
-        (?:_(?P<counter>\d+))?                              # counter for runs that start in the same second
-        (?P<error_kind>_[a-z]+_errors)?                      # kind of an error log, such as _pip_errors
-        \.log
-        """,
-        re.VERBOSE,
-    )
     command_logs: dict[tuple[str, int], Path] = {}
     error_logs: list[tuple[tuple[str, int], Path]] = []
     for path in current.parent.glob("cmd_*.log"):
-        if path != current and (match := name_pattern.fullmatch(path.name)):
+        if path != current and (match := _LOG_NAME.fullmatch(path.name)):
             run = (match["started"], int(match["counter"] or 0))
             if match["error_kind"]:
                 error_logs.append((run, path))
@@ -2369,12 +2296,65 @@ def _split_pip_args(value: str) -> list[str]:
         raise PipxError(msg) from exc
 
 
+def _output_format(args: argparse.Namespace) -> OutputFormat:
+    return OutputFormat(getattr(args, "output", OutputFormat.HUMAN))
+
+
 def _command_tokens(args: argparse.Namespace) -> tuple[str, ...]:
     tokens: Final[list[str]] = [args.command]
     for subcommand in ("cache_command", "interpreter_command", "manifest_command"):
         if value := getattr(args, subcommand, None):
             tokens.append(value)
     return tuple(tokens)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser of the pipx command line.
+
+    :returns: the parser.
+    """
+    # sphinx-argparse-cli renders the CLI reference from this parser, so the docs cannot drift from the arguments. The
+    # program is named here rather than taken from the docs builder's argv[0]: each subcommand parser copies prog when
+    # it is created, and the directive's :prog: option cannot rewrite it afterwards.
+    return get_command_parser(prog="pipx")
+
+
+class _LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    def _split_lines(self, text: str, width: int) -> list[str]:
+        return textwrap.wrap(self._whitespace_matcher.sub(" ", text).strip(), width)
+
+
+class _CompletableAction(typing.Protocol):
+    completer: _VenvCompleter
+
+
+class _RunHelpFormatter(_LineWrapRawTextHelpFormatter):
+    def _format_args(self, action: argparse.Action, default_metavar: str) -> str:
+        # argparse renders a REMAINDER positional as a bare "..." in the usage line; its metavar names the required app
+        if action.nargs == argparse.REMAINDER:
+            return self._metavar_formatter(action, default_metavar)(1)[0]
+        return super()._format_args(action, default_metavar)
+
+
+_FETCH_MISSING_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
+
+
+_FETCH_PYTHON_RAW: Final[str | None] = os.environ.get("PIPX_FETCH_PYTHON")
+
+
+_FETCH_PYTHON, _FETCH_PYTHON_INVALID = compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
+
+
+_COOLDOWN_RAW: Final[str | None] = os.environ.get("PIPX_COOLDOWN")
+
+
+_COOLDOWN, _COOLDOWN_INVALID = compute_cooldown(_COOLDOWN_RAW)
+
+
+_MAX_LOGS_RAW: Final[str | None] = os.environ.get("PIPX_MAX_LOGS")
+
+
+_MAX_LOGS_INVALID: Final[bool] = compute_max_logs(_MAX_LOGS_RAW)[1]
 
 
 if __name__ == "__main__":

@@ -29,14 +29,12 @@ from pipx.redact import redact_url_credentials
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureResult
-
 
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_inject_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -72,7 +70,7 @@ def test_inject_json_reports_locked_environment(
 
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -105,7 +103,7 @@ def test_inject_json_reports_already_installed(
 
     assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -137,7 +135,7 @@ def test_inject_json_reports_partial_failure(
     missing_project: Final[Path] = tmp_path / "missing-project"
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay", str(empty_project), str(missing_project)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         captured.err,
         json.loads(captured.out),
@@ -178,7 +176,7 @@ def test_inject_json_reports_no_packages(
 ) -> None:
     assert run_pipx_cli(["inject", "--output", "json", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["inject"],
@@ -203,7 +201,7 @@ def test_inject_json_reports_no_packages(
 def test_inject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "-qq", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         "injected package" not in captured.out,
         "done!" not in captured.err,
@@ -238,6 +236,9 @@ def test_inject_rejects_pylock(
     ) == (True, {})
 
 
+_INJECTED_PACKAGE_PATTERN: Final[re.Pattern[str]] = re.compile(r"injected package (.+?) into venv pycowsay")
+
+
 # also checks that the packages other tests inject install on their own
 @pytest.mark.parametrize(
     "pkg_spec",
@@ -260,7 +261,7 @@ def test_inject_single_package(
 
     assert (
         f"Injecting packages: {[pkg_spec]!r}" in caplog.text,
-        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+        set(_INJECTED_PACKAGE_PATTERN.findall(capsys.readouterr().out)),
     ) == (True, {pkg_spec.split("=", 1)[0].replace(".", "-")})
 
 
@@ -437,8 +438,8 @@ def test_inject_include_resources_from_dependency(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
-        metadata.include_apps,
-        metadata.include_resources_from,
+        metadata.exposure.include_apps,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("repeatme")).exists(),
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
@@ -453,7 +454,7 @@ def test_inject_main_package_preserves_included_dependency(
 
     assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
-    assert PipxMetadata(CTX.venvs / "repeatme").main_package.include_resources_from == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.exposure.include_resources_from == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -469,7 +470,7 @@ def test_inject_force_replaces_included_dependency_resources(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         (CTX.bin_dir / app_name("black")).exists(),
@@ -567,7 +568,7 @@ def test_inject_with_req_file(
     })
     assert (
         f"Injecting packages: {[spec for _, spec in packages]!r}" in caplog.text,
-        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+        set(_INJECTED_PACKAGE_PATTERN.findall(capsys.readouterr().out)),
     ) == (True, {pkg for pkg, _ in packages})
 
 

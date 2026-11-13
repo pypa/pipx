@@ -17,8 +17,9 @@ from packaging.utils import canonicalize_name
 
 from package_info import PKG
 from pipx.main import cli
+from pipx.options import ExposureOptions
 from pipx.paths import CTX
-from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PackageResources, PipxMetadata
 from pipx.util import get_venv_paths
 from pipx.venv import Venv
 
@@ -113,9 +114,12 @@ def pipx_subprocess_env() -> dict[str, str]:
     }
 
 
+_UNWRAP_LOG_TEXT_PATTERN: Final[re.Pattern[str]] = re.compile(r"\n\s+")
+
+
 def unwrap_log_text(log_text: str) -> str:
     # a captured log line starts with its severity, so a line opening with spaces continues a wrapped pipx message
-    return re.sub(r"\n\s+", " ", log_text)
+    return _UNWRAP_LOG_TEXT_PATTERN.sub(" ", log_text)
 
 
 def current_log_file() -> Path:
@@ -181,35 +185,41 @@ def create_package_info_ref(
         package=package_name,
         package_or_url=package["spec"],
         pip_args=[],
-        include_apps=include_apps,
-        include_dependencies=False,
-        apps=package["apps"],
-        app_paths=[pipx_venvs_dir / venv_name / ("Scripts" if WIN else "bin") / app for app in package["apps"]],
-        apps_of_dependencies=package["apps_of_dependencies"],
-        app_paths_of_dependencies=app_paths_of_dependencies or {},
-        man_pages=man_pages,
-        man_paths=[pipx_venvs_dir / venv_name / "share" / "man" / man_page for man_page in man_pages],
-        man_pages_of_dependencies=package.get("man_pages_of_dependencies", []),
-        man_paths_of_dependencies={},
+        exposure=ExposureOptions(include_apps=include_apps),
+        resources=PackageResources(
+            apps=package["apps"],
+            app_paths=[pipx_venvs_dir / venv_name / ("Scripts" if WIN else "bin") / app for app in package["apps"]],
+            apps_of_dependencies=package["apps_of_dependencies"],
+            app_paths_of_dependencies=app_paths_of_dependencies or {},
+            man_pages=man_pages,
+            man_paths=[pipx_venvs_dir / venv_name / "share" / "man" / man_page for man_page in man_pages],
+            man_pages_of_dependencies=package.get("man_pages_of_dependencies", []),
+        ),
         package_version=package["spec"].split("==")[-1],
     )
 
 
 def assert_package_metadata(test_metadata: PackageInfo, ref_metadata: PackageInfo) -> None:
     assert test_metadata.package_version
-    assert isinstance(test_metadata.apps, list)
-    assert isinstance(test_metadata.app_paths, list)
+    assert isinstance(test_metadata.resources.apps, list)
+    assert isinstance(test_metadata.resources.app_paths, list)
     assert _sorted_apps(test_metadata) == _sorted_apps(ref_metadata)
 
 
 def _sorted_apps(package: PackageInfo) -> PackageInfo:
     # pipx records apps in no fixed order
+    resources: Final[PackageResources] = package.resources
     return replace(
         package,
-        apps=sorted(package.apps),
-        app_paths=sorted(package.app_paths),
-        apps_of_dependencies=sorted(package.apps_of_dependencies),
-        app_paths_of_dependencies={key: sorted(value) for key, value in package.app_paths_of_dependencies.items()},
+        resources=replace(
+            resources,
+            apps=sorted(resources.apps),
+            app_paths=sorted(resources.app_paths),
+            apps_of_dependencies=sorted(resources.apps_of_dependencies),
+            app_paths_of_dependencies={
+                key: sorted(value) for key, value in resources.app_paths_of_dependencies.items()
+            },
+        ),
     )
 
 

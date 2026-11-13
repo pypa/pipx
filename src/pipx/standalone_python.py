@@ -10,7 +10,6 @@ __lazy_modules__ = [
     "pipx.paths",
     "pipx.util",
     "platform",
-    "re",
     "shutil",
     "tarfile",
     "urllib.request",
@@ -47,6 +46,15 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_PYTHON_PREFIX: Final[re.Pattern[str]] = re.compile(r"[c]?python")
+_STANDALONE_VERSION: Final[re.Pattern[str]] = re.compile(
+    r"""
+    [0-9]+                 # major version
+    (?:\.[0-9]+){0,2}       # up to two more numeric parts
+    """,
+    re.VERBOSE,
+)
+_DOWNLOAD_VERSION: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 # much of this module comes from https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
@@ -97,17 +105,10 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
     :raises PipxError: when the version is malformed.
     """
     # accept a command name such as python3.10 as well as the bare version 3.10
-    python_version = re.sub(r"[c]?python", "", python_version)
+    python_version = _PYTHON_PREFIX.sub("", python_version)
     # the version names the cache directory that a failed attempt is cleared from below, so a path, "." or ".." would
     # point that rmtree outside the cache; one to three numeric parts is all resolve_python_version can match anyway
-    if not re.fullmatch(
-        r"""
-        [0-9]+                 # major version
-        (?:\.[0-9]+){0,2}       # up to two more numeric parts
-        """,
-        python_version,
-        re.VERBOSE,
-    ):
+    if not _STANDALONE_VERSION.fullmatch(python_version):
         msg = f"Cannot fetch a standalone python build for {python_version!r}: expected a version such as '3.13'."
         raise PipxError(msg)
 
@@ -206,7 +207,7 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
         for link, digest in python_releases:
             if not link.endswith(download_link_suffix):
                 continue
-            if (match := re.search(r"cpython-(\d+\.\d+\.\d+)", link)) is None:
+            if (match := _DOWNLOAD_VERSION.search(link)) is None:
                 msg = f"Could not parse a Python version from {link!r}."
                 raise PipxError(msg)
             python_versions.setdefault(match[1], (link, digest))
@@ -281,8 +282,7 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
     return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
 
 
-def _fetch_release_data(  # simplint: ignore[SMP505]  # the retry loop would pass ruff's try-clause limit
-) -> dict[str, list[dict[str, str]]]:
+def _fetch_release_data() -> dict[str, list[dict[str, str]]]:
     attempt = 0
     while True:
         attempt += 1
@@ -346,9 +346,7 @@ def _download_resuming(url: str, archive: Path) -> None:
                 return
 
 
-def _unpack(  # simplint: ignore[SMP505]  # inlined, the unpack passes ruff's nested-block limit
-    full_version: str, archive: Path, download_dir: Path, expected_checksum: str
-) -> None:
+def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
     with animate(f"Unpacking python {full_version} build", do_animation=True):
         sha256_hash: Final = hashlib.sha256()
         with Path(archive).open("rb") as python_zip:
@@ -371,9 +369,7 @@ def _unpack(  # simplint: ignore[SMP505]  # inlined, the unpack passes ruff's ne
             raise PipxError(msg) from error
 
 
-def _extract_safely(  # simplint: ignore[SMP505]  # the loop would pass ruff's nested-block limit
-    tar: tarfile.TarFile, dest: Path
-) -> None:
+def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
     root: Final[Path] = dest.resolve()
     for member in tar.getmembers():
         if member.isdev():
@@ -400,17 +396,18 @@ def _reject_escape(member: tarfile.TarInfo, root: Path) -> None:
 
 def _escapes(root: Path, target: Path) -> bool:
     # members are extracted one at a time, so resolve the links unpacked so far for as much of the path as exists
-    for existing in (target, *target.parents):
+    existing = target
+    while True:
         try:
             # strict: a lenient realpath takes a link it cannot follow (a loop, an overlong chain) for a directory
             followed = os.path.realpath(existing, strict=True)
         except FileNotFoundError:
+            existing = existing.parent
             continue
         except OSError:
             return True
         resolved = Path(os.path.normpath(Path(followed, target.relative_to(existing))))
         return resolved != root and root not in resolved.parents
-    return True  # pragma: no cover  # target is below root, which exists, so the loop always returns
 
 
 def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -> None:

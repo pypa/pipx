@@ -15,12 +15,20 @@ if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
 
+#: Backend name for pip.
 PIP: Final[str] = "pip"
+#: Backend name for uv.
 UV: Final[str] = "uv"
+#: Names accepted by backend selection.
 KNOWN_BACKENDS: Final[tuple[str, ...]] = (PIP, UV)
 
 
 class Backend(ABC):
+    """Installer contract shared by the pip and uv backends.
+
+    :ivar name: the backend name written to environment metadata.
+    """
+
     name: str
 
     @abstractmethod
@@ -33,7 +41,16 @@ class Backend(ABC):
         pip_args: list[str],
         include_pip: bool,
         verbose: bool,
-    ) -> None: ...
+    ) -> None:
+        """Create an environment using the requested Python and installer options.
+
+        :param root: path for the new environment.
+        :param python: interpreter to use.
+        :param venv_args: arguments for environment creation.
+        :param pip_args: arguments for the installer.
+        :param include_pip: install pip into the environment.
+        :param verbose: show installer output.
+        """
 
     def install_lock(
         self,
@@ -73,11 +90,28 @@ class Backend(ABC):
         upgrade_package: str | None = None,
         log_pip_errors: bool = True,
         verbose: bool,
-    ) -> CompletedProcess[str]: ...
+    ) -> CompletedProcess[str]:
+        """Install requirements into an environment.
+
+        :param venv_root: path of the environment.
+        :param venv_python: interpreter in the environment.
+        :param requirements: packages or requirement files to install.
+        :param pip_args: extra arguments for the installer.
+        :param no_deps: skip dependencies.
+        :param upgrade_package: package to upgrade, if any.
+        :param log_pip_errors: write installer errors to the log.
+        :param verbose: show installer output.
+        :returns: the installer process result.
+        """
 
     @staticmethod
     @abstractmethod
-    def cooldown_args(cooldown_days: int | None) -> list[str]: ...
+    def cooldown_args(cooldown_days: int | None) -> list[str]:
+        """Return installer arguments that limit cache age.
+
+        :param cooldown_days: maximum cache age, or None for no limit.
+        :returns: installer arguments.
+        """
 
     @abstractmethod
     def uninstall(
@@ -87,7 +121,15 @@ class Backend(ABC):
         venv_python: Path,
         packages: Sequence[str],
         verbose: bool,
-    ) -> CompletedProcess[str]: ...
+    ) -> CompletedProcess[str]:
+        """Uninstall packages from an environment.
+
+        :param venv_root: path of the environment.
+        :param venv_python: interpreter in the environment.
+        :param packages: packages to uninstall.
+        :param verbose: show installer output.
+        :returns: the installer process result.
+        """
 
     @abstractmethod
     def list_installed(
@@ -96,7 +138,14 @@ class Backend(ABC):
         venv_root: Path,
         venv_python: Path,
         not_required: bool,
-    ) -> set[str]: ...
+    ) -> set[str]:
+        """List packages installed in an environment.
+
+        :param venv_root: path of the environment.
+        :param venv_python: interpreter in the environment.
+        :param not_required: include only packages without dependents.
+        :returns: installed package names.
+        """
 
     @abstractmethod
     def list_outdated(
@@ -106,7 +155,15 @@ class Backend(ABC):
         venv_python: Path,
         index_args: list[str],
         exclude: list[str],
-    ) -> tuple[OutdatedPackage, ...]: ...
+    ) -> tuple[OutdatedPackage, ...]:
+        """List installed packages with newer available versions.
+
+        :param venv_root: path of the environment.
+        :param venv_python: interpreter in the environment.
+        :param index_args: package index arguments.
+        :param exclude: package names to omit.
+        :returns: outdated packages.
+        """
 
     @abstractmethod
     def run_raw_pip(  # ruff:ignore[too-many-arguments]  # passes raw pip invocation controls through
@@ -119,13 +176,33 @@ class Backend(ABC):
         capture_stderr: bool = True,
         verbose: bool,
         in_working_dir: bool = False,
-    ) -> CompletedProcess[str]: ...
+    ) -> CompletedProcess[str]:
+        """Run installer arguments directly in an environment.
+
+        :param venv_root: path of the environment.
+        :param venv_python: interpreter in the environment.
+        :param args: installer arguments.
+        :param capture_stdout: capture standard output.
+        :param capture_stderr: capture standard error.
+        :param verbose: show installer output.
+        :param in_working_dir: run from the caller's working directory.
+        :returns: the installer process result.
+        """
 
     @abstractmethod
-    def needs_shared_libs(self) -> bool: ...
+    def needs_shared_libs(self) -> bool:
+        """Whether this backend uses pipx's shared package environment.
+
+        :returns: whether shared libraries are needed.
+        """
 
     @abstractmethod
-    def upgrade_packaging_libraries(self, venv_python: Path, pip_args: list[str]) -> None: ...
+    def upgrade_packaging_libraries(self, venv_python: Path, pip_args: list[str]) -> None:
+        """Upgrade packaging tools in an environment.
+
+        :param venv_python: interpreter in the environment.
+        :param pip_args: extra installer arguments.
+        """
 
 
 def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[OutdatedPackage, ...]:
@@ -144,6 +221,13 @@ def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[Outd
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OutdatedPackage:
+    """Installed package and the latest version known to its backend.
+
+    :param name: package name.
+    :param version: installed version.
+    :param latest_version: newest known version.
+    """
+
     name: str
     version: str
     latest_version: str

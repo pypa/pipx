@@ -12,8 +12,6 @@ from pipx.paths import CTX
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
-
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_unpin(capsys: pytest.CaptureFixture[str]) -> None:
@@ -34,7 +32,7 @@ def test_unpin_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["unpin", "pycowsay", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["unpin"],
@@ -68,7 +66,7 @@ def test_unpin_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["unpin", "pycowsay", "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 

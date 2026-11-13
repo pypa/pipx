@@ -37,7 +37,6 @@ from pipx.venv import Venv
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -118,7 +117,7 @@ def test_install_multiple_packages_reports_success_before_failure(capsys: pytest
 
     return_code: Final[int] = run_pipx_cli(["install", "pycowsay", missing_package])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         return_code,
         "installed package pycowsay" in captured.out,
@@ -534,7 +533,7 @@ def test_install_source_from_pylock(
     assert not run_pipx_cli(["install", *editable_args, "--lock", str(lock_file), str(project)])
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
-    assert (metadata.package_version, metadata.lock_file, metadata.apps, metadata.pip_args) == (
+    assert (metadata.package_version, metadata.lock_file, metadata.resources.apps, metadata.pip_args) == (
         "0.1.0",
         lock_file.resolve(),
         [app_name("empty-project")],
@@ -908,7 +907,7 @@ def test_install_missing_recorded_app_restores_existing_environment(
         "Package empty-project does not provide expected app empty-project. Available apps: none." in error,
         metadata.package_version,
         metadata.expected_apps,
-        metadata.apps,
+        metadata.resources.apps,
         (CTX.bin_dir / app_name("empty-project")).exists(),
     ) == (True, "0.1.0", ["empty-project"], [app_name("empty-project")], True)
 
@@ -1068,7 +1067,7 @@ def test_install_include_resources_from_dependency(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
@@ -1088,7 +1087,7 @@ def test_install_force_replaces_included_dependency_resources(local_extras_wheel
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         (CTX.bin_dir / app_name("black")).exists(),
@@ -1203,7 +1202,7 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
     CTX.bin_dir.mkdir(exist_ok=True, parents=True)
     (CTX.bin_dir / "pycowsay").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         "File exists at" in unwrap_log_text(caplog.text),
         "symlink missing or pointing to unexpected location" in captured.out,
@@ -1390,6 +1389,11 @@ def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], lo
     assert not exposed_man_page.exists()
 
 
+_TEST_INSTALL_UV_FAILURE_SHOWS_UV_ERROR_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"Errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx"
+)
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_uv_failure_shows_uv_error(
@@ -1399,10 +1403,7 @@ def test_install_uv_failure_shows_uv_error(
 
     assert run_pipx_cli(["install", "--backend", "uv", str(project)])
 
-    assert re.search(
-        r"Errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
-        capsys.readouterr().err,
-    )
+    assert _TEST_INSTALL_UV_FAILURE_SHOWS_UV_ERROR_PATTERN.search(capsys.readouterr().err)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1417,7 +1418,7 @@ def test_install_in_terminal_keeps_installer_output_off_screen(
 
     assert not run_pipx_cli(["install", "--backend", "pip", PKG["pycowsay"]["spec"]])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert ("installing pycowsay" in captured.err, "Collecting pycowsay" in captured.out + captured.err) == (
         True,
         False,
@@ -1433,7 +1434,7 @@ def test_install_pip_failure_prints_pip_error_once(
 
     assert run_pipx_cli(["install", "--backend", "pip", *flags, str(project)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out + captured.err).count("No matching distribution found for no-such-dependency-for-pipx") == 1
 
 
@@ -1481,7 +1482,7 @@ def test_install_masks_spec_credentials(
 
     assert run_pipx_cli(["install", "--backend", "uv", *flags, spec])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     log: Final[str] = current_log_file().read_text(encoding="utf-8")
     assert "s3cr3t" not in captured.out + captured.err + log
 
@@ -1555,17 +1556,26 @@ def test_install_json_failure_keeps_what_the_terminal_showed(
     assert ("pipx-final-frame" in message, "pipx-redrawn-frame" in message) == (True, False)
 
 
+_PIP_LOG_FILE_MATCH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"Full pip output in file:\s+(?P<log>\S.+)$", re.MULTILINE
+)
+
+_TEST_INSTALL_PIP_FAILURE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"pip failed (to build|while processing) package"
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
 
     err: Final[str] = capsys.readouterr().err
-    pip_log_file_match: Final = re.search(r"Full pip output in file:\s+(?P<log>\S.+)$", err, re.MULTILINE)
+    pip_log_file_match: Final = _PIP_LOG_FILE_MATCH_PATTERN.search(err)
     assert pip_log_file_match
     assert (
         "Fatal error from pip" in err,
         Path(pip_log_file_match["log"]).exists(),
-        re.search(r"pip failed (to build|while processing) package", err) is not None,
+        _TEST_INSTALL_PIP_FAILURE_PATTERN.search(err) is not None,
     ) == (True, True, True)
 
 
@@ -1718,8 +1728,7 @@ def test_install_inline_script_url_error(mocker: MockerFixture, capsys: pytest.C
 
     assert run_pipx_cli(["install", "--output", "json", "https://example.invalid/hello.py"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
+    failure: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
     assert ("Unable to read script" in " ".join(failure.split()), (CTX.venvs / "hello").exists()) == (
         True,
         False,
@@ -1733,8 +1742,7 @@ def test_install_inline_script_rolls_back_without_metadata(tmp_path: Path, capsy
 
     assert run_pipx_cli(["install", "--output", "json", str(script)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
+    failure: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
     assert ("has no PEP 723" in " ".join(failure.split()), (CTX.venvs / "plain").exists()) == (True, False)
 
 
@@ -1745,8 +1753,7 @@ def test_install_inline_script_rolls_back_obsolete_metadata(tmp_path: Path, caps
 
     assert run_pipx_cli(["install", "--output", "json", str(script)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
+    failure: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
     assert ("obsolete" in failure, (CTX.venvs / "obsolete").exists()) == (True, False)
 
 
@@ -1909,7 +1916,7 @@ def test_install_fetch_missing_python_invalid(
     capsys: pytest.CaptureFixture[str], python_version: str, fetch_flag: str, expect_deprecation: bool
 ) -> None:
     assert run_pipx_cli(["install", "--python", python_version, fetch_flag, "pycowsay"])
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         f"No executable for the provided Python version '{python_version}' found" in captured.out,
         "--fetch-missing-python is deprecated" in captured.err,
@@ -2029,7 +2036,7 @@ def test_shared_flag_before_nested_subcommand_rejected(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_quiet_flag(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--quiet", "--quiet", "pycowsay"])
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         "installed package" in captured.out,
         "These apps are now" in captured.out,
@@ -2043,7 +2050,7 @@ def test_install_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["install"],
@@ -2076,7 +2083,7 @@ def test_install_json_reports_existing(capsys: pytest.CaptureFixture[str]) -> No
 
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["install"],
@@ -2103,7 +2110,7 @@ def test_install_json_reports_existing(capsys: pytest.CaptureFixture[str]) -> No
 def test_install_json_reports_invalid_option(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--output", "json", "--upgrade-strategy", "eager", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["install"],
@@ -2132,7 +2139,7 @@ def test_install_json_attributes_name_resolution_failure(
 
     assert run_pipx_cli(["install", "--output", "json", str(empty_project), str(missing)])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out)["errors"][0]["environment"], captured.err) == (str(missing), "")
 
 
@@ -2140,7 +2147,7 @@ def test_install_json_attributes_name_resolution_failure(
 def test_install_json_reports_missing_app(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--output", "json", "--app", "missing", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         json.loads(captured.out),
         captured.err,
@@ -2173,7 +2180,7 @@ def test_install_json_reports_existing_upgrade_failure(capsys: pytest.CaptureFix
 
     assert run_pipx_cli(["install", "--output", "json", "--upgrade", "--app", "missing", "--suffix=-x", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out)["errors"], captured.err) == (
         [
             {

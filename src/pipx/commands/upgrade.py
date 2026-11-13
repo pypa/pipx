@@ -45,7 +45,14 @@ from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.options import CooldownOptions, ExposureOptions, InstallOptions, OutdatedOptions, ReinstallOptions
+from pipx.options import (
+    CooldownOptions,
+    EnvironmentOptions,
+    ExistingOptions,
+    InstallOptions,
+    OutdatedOptions,
+    ReinstallOptions,
+)
 from pipx.package_specifier import parse_specifier_for_upgrade, trusted_recorded_pip_args, valid_pypi_name
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
@@ -119,15 +126,14 @@ def _upgrade_venv(
                 InstallOptions(
                     local_bin_dir=CTX.bin_dir,
                     local_man_dir=CTX.man_dir,
-                    python=options.python,
+                    environment=EnvironmentOptions(
+                        python=options.python,
+                        venv_args=options.venv_args,
+                        python_flag_passed=options.python_flag_passed,
+                    ),
+                    existing=ExistingOptions(force=options.force),
                     pip_args=options.pip_args,
-                    venv_args=options.venv_args,
                     verbose=options.verbose,
-                    force=options.force,
-                    reinstall=False,
-                    exposure=ExposureOptions(),
-                    preinstall_packages=None,
-                    python_flag_passed=options.python_flag_passed,
                     backend=options.backend,
                     cooldown=CooldownOptions(cli_days=options.cooldown.days),
                     emit_output=False,
@@ -253,6 +259,27 @@ def _upgrade_venv_packages(
         return _upgrade_packages(venv, main_pip_args, options, packages_to_upgrade=packages_to_upgrade)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PackageUpgradeResult:
+    environment: str
+    package: str
+    previous_version: str
+    version: str
+    status: _UpgradeStatus
+    injected: bool
+    location: str
+    interpreter: str | None
+    backend: str
+    source: str | None = None
+
+
+class _UpgradeStatus(StrEnum):
+    LOCKED = "locked"
+    PINNED = "pinned"
+    UNCHANGED = "unchanged"
+    UPGRADED = "upgraded"
+
+
 def _upgrade_packages(
     venv: Venv,
     main_pip_args: list[str],
@@ -333,7 +360,7 @@ def _upgrade_package(
         package_name,
         parse_specifier_for_upgrade(package_metadata.package_or_url),
         pip_args,
-        exposure=ExposureOptions.recorded(package_metadata),
+        exposure=package_metadata.exposure,
         is_main_package=package_name == venv.main_package_name,
         expected_apps=package_metadata.expected_apps,
         cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
@@ -347,7 +374,7 @@ def _upgrade_package(
 
     return _PackageUpgradeResult(
         environment=venv.name,
-        package=f"{upgraded_metadata.package}{upgraded_metadata.suffix}",
+        package=f"{upgraded_metadata.package}{upgraded_metadata.exposure.suffix}",
         previous_version=package_metadata.package_version,
         version=upgraded_metadata.package_version,
         status=(
@@ -373,7 +400,7 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
     package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
     return _PackageUpgradeResult(
         environment=venv.name,
-        package=f"{package_metadata.package}{package_metadata.suffix}",
+        package=f"{package_metadata.package}{package_metadata.exposure.suffix}",
         previous_version=package_metadata.package_version,
         version=package_metadata.package_version,
         status=status,
@@ -383,6 +410,18 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
         backend=venv.pipx_metadata.backend,
         source=_local_source(package_metadata),
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UpgradeData(OperationData):
+    """Result data of the upgrade commands.
+
+    :ivar packages: the upgrade results of the packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
+
+    packages: tuple[_PackageUpgradeResult, ...]
+    skipped: tuple[_SkippedUpgrade, ...]
 
 
 def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> tuple[OutputMessage, ...]:
@@ -566,7 +605,7 @@ def _upgrade_listed_venv(
                     package_name
                     for package_name, package in venv.package_metadata.items()
                     if (package_name == venv.main_package_name or options.include_injected)
-                    and (venv.name, f"{package_name}{package.suffix}") in candidates
+                    and (venv.name, f"{package_name}{package.exposure.suffix}") in candidates
                 },
             )
         except PipxError as error:
@@ -584,12 +623,31 @@ def _upgrade_listed_venv(
     )
 
 
-def _raise_check_failures(  # simplint: ignore[SMP505]  # ruff TRY301 rejects a raise inside the try block
-    venv: Venv, check_failures: dict[str, list[str]]
-) -> None:
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvUpgrade:
+    messages: tuple[OutputMessage, ...] = ()
+    results: tuple[_PackageUpgradeResult, ...] = ()
+    skipped: tuple[_SkippedUpgrade, ...] = ()
+    failures: tuple[_FailedUpgrade, ...] = ()
+    interrupted: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedUpgrade:
+    environment: str
+    reason: str
+
+
+def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
     # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
     if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
         raise PipxError("\n".join(errors), wrap_message=False)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedUpgrade:
+    environment: str
+    error: str
 
 
 def _interrupted_upgrade(venv_dir: Path) -> _VenvUpgrade:
@@ -630,60 +688,6 @@ class SharedData(OperationData):
     """
 
     location: str
-
-
-class _UpgradeStatus(StrEnum):
-    LOCKED = "locked"
-    PINNED = "pinned"
-    UNCHANGED = "unchanged"
-    UPGRADED = "upgraded"
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _PackageUpgradeResult:
-    environment: str
-    package: str
-    previous_version: str
-    version: str
-    status: _UpgradeStatus
-    injected: bool
-    location: str
-    interpreter: str | None
-    backend: str
-    source: str | None = None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedUpgrade:
-    environment: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedUpgrade:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _VenvUpgrade:
-    messages: tuple[OutputMessage, ...] = ()
-    results: tuple[_PackageUpgradeResult, ...] = ()
-    skipped: tuple[_SkippedUpgrade, ...] = ()
-    failures: tuple[_FailedUpgrade, ...] = ()
-    interrupted: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class UpgradeData(OperationData):
-    """Result data of the upgrade commands.
-
-    :ivar packages: the upgrade results of the packages.
-    :ivar skipped: the packages that were skipped, with the reason.
-    """
-
-    packages: tuple[_PackageUpgradeResult, ...]
-    skipped: tuple[_SkippedUpgrade, ...]
 
 
 __all__ = [

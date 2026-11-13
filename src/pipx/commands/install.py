@@ -4,7 +4,7 @@ __lazy_modules__ = [
     "functools",
     "json",
     "packaging.utils",
-    "pipx.backends._base",
+    "pipx.backends",
     "pipx.commands.common",
     "pipx.commands.inject",
     "pipx.commands.transaction",
@@ -21,7 +21,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
-    "re",
 ]
 
 import json
@@ -34,7 +33,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
-from pipx.backends._base import PIP
+from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
     expose_shared_resources_in_order,
@@ -52,7 +51,16 @@ from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
-from pipx.options import BackendOptions, CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
+from pipx.options import (
+    BackendOptions,
+    CooldownOptions,
+    EnvironmentOptions,
+    ExistingOptions,
+    ExposureOptions,
+    InjectOptions,
+    InstallOptions,
+    RecordOptions,
+)
 from pipx.package_specifier import (
     changeable_by_others,
     package_spec_satisfied,
@@ -91,55 +99,7 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class InstallData(OperationData):
-    """Result data of the install command.
-
-    :ivar packages: the installed packages.
-    :ivar skipped: the install requests that were skipped, with the reason.
-    """
-
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _ExistingInstall:
-    continue_install: bool
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-    messages: tuple[OutputMessage, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InstalledPackage:
-    environment: str
-    package: str
-    version: str
-    location: str
-    interpreter: str | None
-    backend: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedInstall:
-    environment: str
-    package: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InstallRun:
-    options: InstallOptions
-    lock_file: Path | None
-    venv_container: VenvContainer
-    venv_lock: BaseFileLock | None
-    messages: list[OutputMessage]
-    packages: list[_InstalledPackage]
-    skipped: list[_SkippedInstall]
-    failures: list[_FailedInstall]
+_PYLOCK_NAME: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
 def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
@@ -212,11 +172,11 @@ def _install_spec_venv(
     venv_container: VenvContainer, venv_metadata: PipxMetadata, options: InstallOptions
 ) -> tuple[str, bool]:
     main_package: Final[PackageInfo] = venv_metadata.main_package
-    venv_dir: Final[Path] = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
+    venv_dir: Final[Path] = venv_container.get_venv_dir(f"{main_package.package}{main_package.exposure.suffix}")
     interpreter: Final[str | None] = (
-        options.python
-        if options.python_flag_passed
-        else _get_python_interpreter(venv_metadata.source_interpreter) or options.python
+        options.environment.python
+        if options.environment.python_flag_passed
+        else _get_python_interpreter(venv_metadata.source_interpreter) or options.environment.python
     )
     packages: Final[list[PackageInfo]] = [main_package, *venv_metadata.injected_packages.values()]
     try:
@@ -239,27 +199,30 @@ def _install_spec_venv(
                 InstallOptions(
                     local_bin_dir=options.local_bin_dir,
                     local_man_dir=options.local_man_dir,
-                    python=interpreter,
-                    pip_args=package_pip_args[0],
-                    venv_args=options.venv_args or venv_metadata.venv_args,
-                    verbose=options.verbose,
-                    force=options.force,
-                    reinstall=False,
-                    exposure=ExposureOptions(
-                        include_dependencies=main_package.include_dependencies,
-                        include_resources_from=main_package.include_resources_from,
-                        suffix=main_package.suffix,
+                    environment=EnvironmentOptions(
+                        python=interpreter,
+                        venv_args=options.environment.venv_args or venv_metadata.venv_args,
+                        python_flag_passed=options.environment.python_flag_passed,
+                        preinstall_packages=[],
                     ),
-                    preinstall_packages=[],
-                    expected_apps=main_package.expected_apps,
-                    lock_file=main_package.lock_file,
-                    python_flag_passed=options.python_flag_passed,
+                    existing=ExistingOptions(force=options.existing.force),
+                    pip_args=package_pip_args[0],
+                    verbose=options.verbose,
+                    exposure=ExposureOptions(
+                        include_dependencies=main_package.exposure.include_dependencies,
+                        include_resources_from=main_package.exposure.include_resources_from,
+                        suffix=main_package.exposure.suffix,
+                    ),
+                    record=RecordOptions(
+                        expected_apps=main_package.expected_apps,
+                        replace_expected_apps=True,
+                        lock_file=main_package.lock_file,
+                        replace_lock=True,
+                        exposure_enabled=venv_metadata.exposure_enabled,
+                        pinned=main_package.pinned,
+                    ),
                     backend=replace(options.backend, cli=options.backend.cli or venv_metadata.backend),
-                    exposure_enabled=venv_metadata.exposure_enabled,
-                    replace_expected_apps=True,
-                    replace_lock=True,
                     cooldown=CooldownOptions(cli_days=package_cooldown),
-                    pinned=main_package.pinned,
                 ),
                 venv_lock=venv_lock,
             )
@@ -274,11 +237,11 @@ def _install_spec_venv(
                     InjectOptions(
                         pip_args=inject_pip_args,
                         verbose=options.verbose,
-                        include_apps=inject_package.include_apps,
-                        include_dependencies=inject_package.include_dependencies,
-                        include_resources_from=inject_package.include_resources_from,
-                        force=options.force,
-                        with_suffix=inject_package.suffix == main_package.suffix,
+                        include_apps=inject_package.exposure.include_apps,
+                        include_dependencies=inject_package.exposure.include_dependencies,
+                        include_resources_from=inject_package.exposure.include_resources_from,
+                        force=options.existing.force,
+                        with_suffix=inject_package.exposure.suffix == main_package.exposure.suffix,
                         cooldown_days=_first_cooldown(options.cooldown.days, inject_package.cooldown_days),
                         pinned=inject_package.pinned,
                     ),
@@ -323,7 +286,7 @@ def _translate_recorded_pip_args(
     venv_metadata: PipxMetadata, packages: list[PackageInfo], backend: str
 ) -> list[list[str]]:
     # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
-    environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}"
+    environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.exposure.suffix}"
     translations: Final[list[tuple[list[str], list[str]]]] = [
         translate_pip_args(trusted_recorded_pip_args(package.pip_args, venv_metadata.venv_dir), backend, environment)
         for package in packages
@@ -448,7 +411,7 @@ def _prepare_install(
 ) -> _PreparedInstall:
     try:
         lock_file: Final[Path | None] = _validate_install_options(package_specs, options)
-        python: Final[str] = options.python or get_default_python()
+        python: Final[str] = options.environment.python or get_default_python()
     except PipxError as error:
         return _PreparedInstall(lock_file=None, package_names=[], interpreters=[], failure=(package_specs[0], error))
 
@@ -461,28 +424,28 @@ def _prepare_install(
 
 
 def _validate_install_options(package_specs: Sequence[str], options: InstallOptions) -> Path | None:
-    if options.upgrade_strategy is not None and not options.upgrade:
+    if options.existing.upgrade_strategy is not None and not options.existing.upgrade:
         msg = "--upgrade-strategy requires --upgrade"
         raise PipxError(msg)
-    if options.expected_apps and len(package_specs) != 1:
+    if options.record.expected_apps and len(package_specs) != 1:
         msg = "--app accepts one package spec"
         raise PipxError(msg)
-    if options.lock_file is None:
+    if options.record.lock_file is None:
         return None
     if len(package_specs) != 1:
         msg = "--lock accepts one package spec"
         raise PipxError(msg)
-    if options.preinstall_packages:
+    if options.environment.preinstall_packages:
         msg = "--lock cannot be combined with --preinstall"
         raise PipxError(msg)
-    if options.upgrade:
+    if options.existing.upgrade:
         msg = "--lock cannot be combined with --upgrade; use --force to apply a new lock"
         raise PipxError(msg)
     if options.cooldown.cli_days is not None:
         msg = "--lock cannot be combined with --cooldown"
         raise PipxError(msg)
-    lock_file: Final[Path] = options.lock_file.expanduser().resolve()
-    if not re.fullmatch(r"pylock(?:\.[^.]+)?\.toml", lock_file.name):
+    lock_file: Final[Path] = options.record.lock_file.expanduser().resolve()
+    if not _PYLOCK_NAME.fullmatch(lock_file.name):
         msg = f"Rename the lock file {lock_file.name!r} to pylock.toml or pylock.<name>.toml"
         raise PipxError(msg)
     if not lock_file.is_file():
@@ -513,8 +476,8 @@ def _resolve_package_names(
         )
 
     # a lock file already pins every version, leaving PIPX_COOLDOWN nothing to constrain
-    cooldown_days: Final[int | None] = None if options.lock_file is not None else options.cooldown.days
-    expected_apps: Final[tuple[str, ...]] = tuple(options.expected_apps)
+    cooldown_days: Final[int | None] = None if options.record.lock_file is not None else options.cooldown.days
+    expected_apps: Final[tuple[str, ...]] = tuple(options.record.expected_apps)
     resolved: Final[list[str]] = []
     interpreters: Final[list[str]] = []
     for package_spec in package_specs:
@@ -537,8 +500,8 @@ def _resolve_package_names(
                 # reading the name off a local project already runs an install, so the constraint surfaces here first
                 interpreter = _supported_python(
                     error.constraint,
-                    fetch_python=options.fetch_python,
-                    python_flag_passed=options.python_flag_passed,
+                    fetch_python=options.environment.fetch_python,
+                    python_flag_passed=options.environment.python_flag_passed,
                     messages=messages,
                 )
                 name = package_name_from_spec(
@@ -597,9 +560,33 @@ def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) 
     return result
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InstallData(OperationData):
+    """Result data of the install command.
+
+    :ivar packages: the installed packages.
+    :ivar skipped: the install requests that were skipped, with the reason.
+    """
+
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+
+
 def _error_report(error: PipxError) -> str:
     # a JSON consumer reads only the envelope, which needs the installer's reason the terminal showed beside it
     return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstallRun:
+    options: InstallOptions
+    lock_file: Path | None
+    venv_container: VenvContainer
+    venv_lock: BaseFileLock | None
+    messages: list[OutputMessage]
+    packages: list[_InstalledPackage]
+    skipped: list[_SkippedInstall]
+    failures: list[_FailedInstall]
 
 
 def _install_into_venv(
@@ -624,25 +611,27 @@ def _install_into_venv(
             )
             recorded_lock: Final[Path | None] = venv.pipx_metadata.main_package.lock_file
             required_lock: Final[Path | None] = (
-                run.lock_file if options.replace_lock else run.lock_file or recorded_lock
+                run.lock_file if options.record.replace_lock else run.lock_file or recorded_lock
             )
             build: Final[_EnvironmentBuild] = _EnvironmentBuild(
-                venv_args=options.venv_args,
+                creation=_VenvCreation(
+                    venv_args=options.environment.venv_args,
+                    override_shared=installs_pip,
+                    exposure_enabled=venv.pipx_metadata.exposure_enabled
+                    if options.record.exposure_enabled is None
+                    else options.record.exposure_enabled,
+                    preinstall_packages=options.environment.preinstall_packages,
+                ),
                 pip_args=options.pip_args,
-                override_shared=installs_pip,
-                exposure_enabled=venv.pipx_metadata.exposure_enabled
-                if options.exposure_enabled is None
-                else options.exposure_enabled,
-                preinstall_packages=options.preinstall_packages,
                 package_name=package_name,
                 package_spec=package_spec,
-                force_reinstall=options.force and exists,
+                force_reinstall=options.existing.force and exists,
                 exposure=options.exposure,
                 expected_apps=tuple(
                     dict.fromkeys(
-                        options.expected_apps
-                        if options.replace_expected_apps
-                        else options.expected_apps or venv.pipx_metadata.main_package.expected_apps
+                        options.record.expected_apps
+                        if options.record.replace_expected_apps
+                        else options.record.expected_apps or venv.pipx_metadata.main_package.expected_apps
                     )
                 ),
                 lock_file=required_lock,
@@ -650,9 +639,11 @@ def _install_into_venv(
                     required_lock,
                     options.cooldown,
                     venv.pipx_metadata.main_package.cooldown_days,
-                    modifies_existing=exists and options.force,
+                    modifies_existing=exists and options.existing.force,
                 ),
-                pinned=venv.pipx_metadata.main_package.pinned if options.pinned is None else options.pinned,
+                pinned=(
+                    venv.pipx_metadata.main_package.pinned if options.record.pinned is None else options.record.pinned
+                ),
             )
             if exists:
                 existing: Final[_ExistingInstall] = _handle_existing_install(
@@ -665,7 +656,7 @@ def _install_into_venv(
                     return True
                 # --force reuses the environment, so --python does not switch it; `pipx reinstall --python` does
                 if (
-                    options.python_flag_passed
+                    options.environment.python_flag_passed
                     and (recorded := venv.pipx_metadata.source_interpreter) is not None
                     and recorded.is_file()
                 ):
@@ -684,11 +675,8 @@ def _install_into_venv(
 # holds everything needed to fill a venv, letting pipx repeat it when the first interpreter turns out unsupported
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _EnvironmentBuild:
-    venv_args: list[str]
+    creation: _VenvCreation
     pip_args: list[str]
-    override_shared: bool
-    exposure_enabled: bool
-    preinstall_packages: list[str] | None
     package_name: str
     package_spec: str
     force_reinstall: bool
@@ -699,12 +687,12 @@ class _EnvironmentBuild:
     pinned: bool
 
     def run(self, venv: Venv) -> VenvMetadata:
-        venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
-        venv.pipx_metadata.exposure_enabled = self.exposure_enabled
+        venv.create_venv(self.creation.venv_args, self.pip_args, override_shared=self.creation.override_shared)
+        venv.pipx_metadata.exposure_enabled = self.creation.exposure_enabled
         venv.pipx_metadata.environment = venv.root.name
         # pipx writes the record last; a kill before it must not leave what looks like a pre-0.15 environment
         with marked_unfinished(venv.root):
-            for dependency in self.preinstall_packages or []:
+            for dependency in self.creation.preinstall_packages or []:
                 venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
             return venv.install_package(
                 package_name=self.package_name,
@@ -720,11 +708,19 @@ class _EnvironmentBuild:
             )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvCreation:
+    venv_args: list[str]
+    override_shared: bool
+    exposure_enabled: bool
+    preinstall_packages: list[str] | None
+
+
 def _handle_existing_install(
     venv: Venv, build: _EnvironmentBuild, options: InstallOptions, *, python: str
 ) -> _ExistingInstall:
     messages: Final[list[OutputMessage]] = []
-    if not options.reinstall and options.force and options.python_flag_passed:
+    if not options.existing.reinstall and options.existing.force and options.environment.python_flag_passed:
         messages.append(
             OutputMessage(
                 text=pipx_wrap(
@@ -736,7 +732,7 @@ def _handle_existing_install(
                 )
             )
         )
-    if options.force:
+    if options.existing.force:
         messages.append(OutputMessage(text=f"Installing to existing venv {venv.name!r}"))
         return _ExistingInstall(
             continue_install=True,
@@ -744,7 +740,7 @@ def _handle_existing_install(
             skipped=(),
             messages=tuple(messages),
         )
-    if options.upgrade:
+    if options.existing.upgrade:
         reason, upgrade_messages = _upgrade_existing_venv(venv, build, options)
         messages.extend(upgrade_messages)
         return _ExistingInstall(
@@ -776,6 +772,14 @@ def _handle_existing_install(
         skipped=(_SkippedInstall(environment=venv.name, package=build.package_name, reason="already-installed"),),
         messages=tuple(messages),
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ExistingInstall:
+    continue_install: bool
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+    messages: tuple[OutputMessage, ...]
 
 
 def _upgrade_existing_venv(
@@ -818,10 +822,10 @@ def _upgrade_existing_venv(
             build.package_name,
             build.package_spec,
             main_pip_args,
-            exposure=ExposureOptions.recorded(package_metadata),
+            exposure=package_metadata.exposure,
             is_main_package=True,
-            upgrade_only_pip_args=[f"--upgrade-strategy={options.upgrade_strategy}"]
-            if options.upgrade_strategy is not None
+            upgrade_only_pip_args=[f"--upgrade-strategy={options.existing.upgrade_strategy}"]
+            if options.existing.upgrade_strategy is not None
             else None,
             expected_apps=build.expected_apps,
             cooldown_days=build.cooldown_days,
@@ -851,6 +855,13 @@ def _record_expected_apps(venv: Venv, expected_apps: Sequence[str]) -> None:
     venv.pipx_metadata.write()
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedInstall:
+    environment: str
+    package: str
+    reason: str
+
+
 def _record_install_failure(
     failures: list[_FailedInstall],
     messages: list[OutputMessage],
@@ -859,6 +870,12 @@ def _record_install_failure(
 ) -> None:
     failures.append(_FailedInstall(environment=environment, error=_error_report(error)))
     messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedInstall:
+    environment: str
+    error: str
 
 
 def _build_and_expose(
@@ -875,14 +892,14 @@ def _build_and_expose(
         venv, options.local_bin_dir, options.local_man_dir
     )
     preserve_existing_venv: Final[bool] = exists and (
-        options.preserve_existing
+        options.existing.preserve
         or bool(build.expected_apps or options.exposure.include_resources_from)
         or build.lock_file is not None
     )
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
         with preserve_venv(venv_dir, enabled=exists, copy_upfront=preserve_existing_venv) as venv_backup:
             venv.check_upgrade_shared_libs(pip_args=options.pip_args, verbose=options.verbose)
-            if exists and (build.lock_file is not None or (options.replace_lock and recorded_lock is not None)):
+            if exists and (build.lock_file is not None or (options.record.replace_lock and recorded_lock is not None)):
                 rmdir(venv_dir)
                 venv = Venv(
                     venv_dir,
@@ -899,7 +916,7 @@ def _build_and_expose(
                     options.local_bin_dir,
                     options.local_man_dir,
                     venv_dir,
-                    force=options.force,
+                    force=options.existing.force,
                     previous_resource_paths=previous_resource_paths,
                 )
             )
@@ -932,8 +949,8 @@ def _install_on_supported_python(
 
     interpreter: Final[str] = _supported_python(
         constraint,
-        fetch_python=options.fetch_python,
-        python_flag_passed=options.python_flag_passed,
+        fetch_python=options.environment.fetch_python,
+        python_flag_passed=options.environment.python_flag_passed,
         messages=messages,
     )
     venv_backup.remove_venv()
@@ -957,6 +974,16 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstalledPackage:
+    environment: str
+    package: str
+    version: str
+    location: str
+    interpreter: str | None
+    backend: str
+
+
 def _generate_package_spec(package_info: PackageInfo) -> str:
     if not package_info.package_or_url:
         msg = f"A package spec is not available for {package_info.package}"
@@ -969,12 +996,6 @@ def _generate_package_spec(package_info: PackageInfo) -> str:
 
 def _first_cooldown(*candidates: int | None) -> int | None:
     return next((candidate for candidate in candidates if candidate is not None), None)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedInstall:
-    environment: str
-    error: str
 
 
 __all__ = [

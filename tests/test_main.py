@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import runpy
 import shutil
 import stat
 import subprocess
@@ -20,7 +21,6 @@ from package_info import PKG
 from pipx import main, paths
 from pipx.backends import registry
 from pipx.main import (
-    _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     build_parser,
     get_command_parser,
     get_pip_args,
@@ -28,7 +28,6 @@ from pipx.main import (
     parse_pipx_args,
     prog_name,
 )
-from pipx.options import BackendOptions
 from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
@@ -134,6 +133,32 @@ def test_module_starts_in_removed_working_directory(tmp_path: Path, monkeypatch:
     assert (result.returncode, result.stdout.strip()) == (0, version)
 
 
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param(["-m", "pipx.main"], id="module"),
+        pytest.param([str(main.__file__)], id="file"),
+    ],
+)
+def test_main_entrypoints_show_help(target: list[str]) -> None:
+    result = subprocess.run([sys.executable, *target, "--help"], check=False, capture_output=True, text=True)
+
+    assert (result.returncode, result.stdout.startswith("usage: main.py "), result.stderr) == (0, True, "")
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_main_file_dispatches_with_package_context(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sys, "argv", [str(main.__file__), "environment", "--value", "PIPX_HOME"])
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    with pytest.raises(SystemExit) as exit_code:
+        runpy.run_path(str(main.__file__), run_name="__main__")
+
+    assert (exit_code.value.code, capsys.readouterr().out.strip()) == (0, str(CTX.home))
+
+
 def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(sys, "argv", ["sphinx-build"])
     parser: Final[argparse.ArgumentParser] = build_parser()
@@ -143,6 +168,9 @@ def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys
 
     assert sys_exit.value.code == 0
     assert capsys.readouterr().out.startswith("usage: pipx run ")
+
+
+_TEST_RUN_HELP_PRINTS_USAGE_PREFIX_ONCE_IN_COLOR_PATTERN: Final[re.Pattern[str]] = re.compile(r"\x1b\[[0-9;]*m")
 
 
 @pytest.mark.usefixtures("exit_early")
@@ -156,7 +184,9 @@ def test_run_help_prints_usage_prefix_once_in_color(
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["run", "--help"])
 
-    assert re.sub(r"\x1b\[[0-9;]*m", "", capsys.readouterr().out).count("usage:") == 1
+    assert (
+        _TEST_RUN_HELP_PRINTS_USAGE_PREFIX_ONCE_IN_COLOR_PATTERN.sub("", capsys.readouterr().out).count("usage:") == 1
+    )
 
 
 @pytest.mark.parametrize("flag", [pytest.param("-qqq", id="quiet"), pytest.param("-vvvv", id="verbose")])
@@ -212,8 +242,11 @@ def test_manpage_matches_parser(tmp_path: Path) -> None:
     assert _MANPAGE_RST.read_bytes() == generated.read_bytes()
 
 
+_TEST_MANPAGE_SECTIONS_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\.SH (.+)$", re.MULTILINE)
+
+
 def test_manpage_sections(manpage_troff: bytes) -> None:
-    assert re.findall(r"^\.SH (.+)$", manpage_troff.decode(), re.MULTILINE) == [
+    assert _TEST_MANPAGE_SECTIONS_PATTERN.findall(manpage_troff.decode()) == [
         "Name",
         "SYNOPSIS",
         "DESCRIPTION",
@@ -225,8 +258,14 @@ def test_manpage_sections(manpage_troff: bytes) -> None:
     ]
 
 
+_TEST_MANPAGE_HEADER_PATTERN: Final[re.Pattern[str]] = re.compile(r'^\.TH "pipx" "1" .* "User Commands"$', re.MULTILINE)
+
+
 def test_manpage_header(manpage_troff: bytes) -> None:
-    assert re.search(r'^\.TH "pipx" "1" .* "User Commands"$', manpage_troff.decode(), re.MULTILINE)
+    assert _TEST_MANPAGE_HEADER_PATTERN.search(manpage_troff.decode())
+
+
+_RENDERED_PATTERN: Final[re.Pattern[str]] = re.compile(r".\x08")
 
 
 @pytest.mark.timeout(60)  # man printed nothing for 5 s on a busy Linux CI runner
@@ -241,7 +280,7 @@ def test_manpage_renders(man: str, manpage_troff: bytes, tmp_path: Path) -> None
         check=False,
         timeout=30,
     )
-    rendered: Final[str] = re.sub(r".\x08", "", result.stdout)
+    rendered: Final[str] = _RENDERED_PATTERN.sub("", result.stdout)
     assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
 
 
@@ -588,7 +627,8 @@ def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.Monke
     find_uv_binary.assert_not_called()
 
 
-def test_validate_backend_silent_on_env_uv_missing(
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_env_uv_missing_stays_silent(
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
@@ -601,16 +641,18 @@ def test_validate_backend_silent_on_env_uv_missing(
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "uv")
     caplog.set_level("WARNING", logger="pipx.main")
 
-    _validate_backend_available(BackendOptions(env="uv"))
+    assert run_pipx_cli(["environment"]) == 0
 
     assert not any("uv" in rec.message.lower() for rec in caplog.records)
 
 
-def test_validate_backend_raises_on_cli_uv_missing(mocker: MockerFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_uv_missing_fails(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(registry, "find_uv_binary", return_value=(None, "missing"), autospec=True)
     mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"), autospec=True)
-    with pytest.raises(PipxError, match="uv' executable could not be found"):
-        _validate_backend_available(BackendOptions(cli="uv"))
+    assert run_pipx_cli(["install", "--backend", "uv", "pycowsay"]) == 1
+
+    assert "uv' executable could not be found" in capsys.readouterr().err
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

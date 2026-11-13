@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import hashlib
 import importlib
 import io
@@ -20,7 +21,7 @@ from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
-from urllib.error import HTTPError, URLError
+from urllib.error import URLError
 from urllib.request import urlopen
 from venv import EnvBuilder
 
@@ -96,6 +97,7 @@ def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[]
 
 
 def _dispatching(call: Callable[_P, _R], actions: dict[str, Callable[[], None]]) -> Callable[_P, _R]:
+    @functools.wraps(call)
     def dispatching(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         for marker, action in actions.items():
             if marker in str(args[0]):
@@ -334,7 +336,8 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     # a cached result would carry the previous test's patched shutil.which into this one
     find_uv_binary.cache_clear()
     uv_meets_minimum_version.cache_clear()
-    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # no public cache reset
+    # The private probe also caches the patched uv executable.
+    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # simplint: ignore[module-attribute-import]  # cache reset
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
@@ -444,13 +447,14 @@ def standalone_python_index(
     digest: Final[str] = f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"
 
     def build(full_version: str) -> dict[str, float | list[tuple[str, str]]]:
-        suffixes: Final[list[str]] = [
-            suffix
-            for machines in standalone_python.MACHINE_SUFFIX.values()
-            for entry in machines.values()
-            for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
-            for suffix in suffix_list
-        ]
+        suffixes: Final[list[str]] = []
+        for machines in standalone_python.MACHINE_SUFFIX.values():
+            for entry in machines.values():
+                suffixes.extend(
+                    suffix
+                    for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
+                    for suffix in suffix_list
+                )
         return {
             "fetched": time.time(),
             "releases": [(f"https://example.invalid/cpython-{full_version}-{suffix}", digest) for suffix in suffixes],
@@ -523,15 +527,15 @@ def pipx_local_pypiserver(
         while not _accepts_connections(port):
             if pypiserver_process.poll() is not None:
                 pytest.fail(f"pypiserver exited with {pypiserver_process.returncode} before listening on {port}")
-            time.sleep(0.05)  # simplint: ignore[SMP808]  # pypiserver is a separate process; its port is the signal
-        # 127.0.0.1, not localhost: localhost made Windows runs far slower, likely from IPv6/IPv4 fallback timeouts
+            time.sleep(0.05)  # simplint: ignore[sleep-in-test]  # poll the external server port
+        # Windows CI runs were much slower with localhost, so use the IPv4 loopback address directly.
         url: Final[str] = f"http://127.0.0.1:{port}/simple/"
         while True:
             try:
                 with urlopen(url) as response:
                     if response.code == HTTPStatus.OK:
                         break
-            except (URLError, HTTPError):
+            except URLError:
                 continue
         yield url
     finally:

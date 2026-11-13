@@ -18,7 +18,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.transaction import preserve_venv, runs_from_venv
-from pipx.options import BackendOptions, ExposureOptions
+from pipx.options import BackendOptions
 from pipx.package_specifier import absolute_path_pip_args, extract_index_options, install_specs, replace_index_options
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -70,7 +70,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
             package_name=main_package.package,
             package_or_url=package_spec,
             pip_args=_updated_main_package_pip_args(main_package.pip_args, pip_args, editable=editable),
-            exposure=ExposureOptions.recorded(main_package),
+            exposure=main_package.exposure,
             is_main_package=True,
             pinned=main_package.pinned,
         )

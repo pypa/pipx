@@ -23,14 +23,13 @@ from pipx.paths import CTX
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
-    from _pytest.mark.structures import ParameterSet
     from pytest_mock import MockerFixture
 
-_METADATA_VERSIONS: Final[list[ParameterSet]] = [
+_METADATA_VERSIONS: Final[list[pytest.ParameterSet]] = [
     pytest.param(None, id="no-metadata"),
     *(pytest.param(version) for version in PIPX_METADATA_LEGACY_VERSIONS if version is not None),
 ]
-_POSIX_METADATA_VERSIONS: Final[list[ParameterSet]] = [
+_POSIX_METADATA_VERSIONS: Final[list[pytest.ParameterSet]] = [
     pytest.param(
         None,
         marks=pytest.mark.skipif(WIN, reason="without metadata and python, Windows cannot tell the app binaries apart"),

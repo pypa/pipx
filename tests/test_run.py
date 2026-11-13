@@ -31,7 +31,13 @@ from package_info import PKG
 from pipx import shared_libs
 from pipx.commands.run import maybe_script_content, run_package
 from pipx.constants import FetchPythonOptions
-from pipx.options import DEFAULT_BACKEND_OPTIONS, CooldownOptions, RunOptions
+from pipx.options import (
+    DEFAULT_BACKEND_OPTIONS,
+    AppLookupOptions,
+    CooldownOptions,
+    RunInterpreterOptions,
+    RunOptions,
+)
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.subprocess_runner import exec_app
@@ -1707,20 +1713,20 @@ def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], li
                 RunOptions(
                     app_args=[],
                     dependencies=dependencies,
-                    python="python3",
+                    interpreter=RunInterpreterOptions(
+                        python="python3",
+                        python_args=[],
+                        python_flag_passed=False,
+                        fetch_python=FetchPythonOptions.NEVER,
+                    ),
+                    lookup=AppLookupOptions(is_path=False, pypackages=False, no_path_check=True),
                     pip_args=pip_args,
                     venv_args=venv_args,
-                    is_path=False,
-                    pypackages=False,
                     verbose=False,
                     use_cache=True,
-                    python_args=[],
                     refresh=False,
-                    no_path_check=True,
                     backend=DEFAULT_BACKEND_OPTIONS,
                     cooldown=CooldownOptions(),
-                    python_flag_passed=False,
-                    fetch_python=FetchPythonOptions.NEVER,
                 ),
                 infer_app_name=False,
                 resolved_backend="pip",

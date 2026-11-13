@@ -1,4 +1,4 @@
-from __future__ import annotations  # simplint: ignore[SMP104]  # public module with __all__; renaming breaks importers
+from __future__ import annotations  # simplint: ignore[catch-all-module]  # shared helpers have callers across pipx
 
 __lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
 
@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final
 
 from pipx.constants import MINGW, WINDOWS
 from pipx.redact import redact_url_credentials
@@ -67,7 +67,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> VenvPaths:
+    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
         """Return the bin directory, the interpreter and the man directory of a virtual environment.
 
         :param root: the directory of the virtual environment.
@@ -77,31 +77,26 @@ if WINDOWS:
         # https://github.com/pypa/pipx/issues/1164
         real_root: Final[Path] = root.resolve()
         bin_path: Final[Path] = real_root / ("bin" if MINGW else "Scripts")
-        return VenvPaths(bin_path, bin_path / "python.exe", real_root / "share" / "man")
+        return (  # simplint: ignore[long-tuple-return]  # preserve the tuple return contract
+            bin_path,
+            bin_path / "python.exe",
+            real_root / "share" / "man",
+        )
 
 else:
 
-    def get_venv_paths(root: Path) -> VenvPaths:
+    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
         """Return the bin directory, the interpreter and the man directory of a virtual environment.
 
         :param root: the directory of the virtual environment.
         :returns: the three paths.
         """
         bin_path: Final[Path] = root / "bin"
-        return VenvPaths(bin_path, bin_path / "python", root / "share" / "man")
-
-
-class VenvPaths(NamedTuple):
-    """The directories and the interpreter of a virtual environment.
-
-    :param bin_path: the bin directory.
-    :param python_path: the interpreter.
-    :param man_path: the man directory.
-    """
-
-    bin_path: Path
-    python_path: Path
-    man_path: Path
+        return (  # simplint: ignore[long-tuple-return]  # preserve the tuple return contract
+            bin_path,
+            bin_path / "python",
+            root / "share" / "man",
+        )
 
 
 def open_owner_only(path: str | os.PathLike[str], flags: int) -> int:
@@ -159,7 +154,6 @@ def reject_empty_index(pip_args: Sequence[str]) -> None:
 __all__ = [
     "InstalledNameMismatchError",
     "PipxError",
-    "VenvPaths",
     "full_package_description",
     "get_pypackage_bin_path",
     "get_venv_paths",
