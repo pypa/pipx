@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -16,6 +17,10 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from pytest_mock import MockerFixture
+
+
+def test_fetch_info_in_venv_returns_tuple() -> None:
+    assert type(venv_inspect.fetch_info_in_venv(Path(sys.executable))) is tuple
 
 
 def test_inspect_venv_indexes_distribution_names_once(
