@@ -388,6 +388,11 @@ def test_upgrade_all_legacy_venv(metadata_version: str) -> None:
     assert not run_pipx_cli(["upgrade-all"])
 
 
+_TEST_UPGRADE_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^upgrading ([\w-]+)", re.MULTILINE
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
@@ -407,7 +412,9 @@ def test_upgrade_all_prints_progress_in_venv_order(
 
     assert not run_pipx_cli(["upgrade-all"])
 
-    assert re.findall(r"^upgrading ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == outdated_venv_names
+    assert (
+        _TEST_UPGRADE_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN.findall(capsys.readouterr().err) == outdated_venv_names
+    )
 
 
 @pytest.fixture

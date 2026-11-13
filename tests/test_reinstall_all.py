@@ -133,6 +133,11 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
     ) == (True, metadata_before, False, False)
 
 
+_TEST_REINSTALL_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^installing ([\w-]+)", re.MULTILINE
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str],
@@ -143,7 +148,7 @@ def test_reinstall_all_prints_progress_in_venv_order(
 
     assert not run_pipx_cli(["reinstall-all"])
 
-    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+    assert _TEST_REINSTALL_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN.findall(capsys.readouterr().err) == venv_names
 
 
 @pytest.fixture

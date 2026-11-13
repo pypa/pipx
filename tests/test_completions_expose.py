@@ -64,7 +64,7 @@ def test_install_selects_completion_only_dependency(
     ) == (["local-completion"], False, False, [True] * len(_SECTIONS))
 
 
-@pytest.mark.parametrize("section", list(_SECTIONS), ids=["bash", "zsh", "fish"])
+@pytest.mark.parametrize("section", [pytest.param(section, id=section) for section in _SECTIONS])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_exposes_the_completion_script(
     completion_wheel: str,

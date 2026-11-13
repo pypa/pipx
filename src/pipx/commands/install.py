@@ -21,7 +21,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
-    "re",
 ]
 
 import json
@@ -91,6 +90,7 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_PYLOCK_NAME: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -482,7 +482,7 @@ def _validate_install_options(package_specs: Sequence[str], options: InstallOpti
         msg = "--lock cannot be combined with --cooldown"
         raise PipxError(msg)
     lock_file: Final[Path] = options.lock_file.expanduser().resolve()
-    if not re.fullmatch(r"pylock(?:\.[^.]+)?\.toml", lock_file.name):
+    if not _PYLOCK_NAME.fullmatch(lock_file.name):
         msg = f"Rename the lock file {lock_file.name!r} to pylock.toml or pylock.<name>.toml"
         raise PipxError(msg)
     if not lock_file.is_file():

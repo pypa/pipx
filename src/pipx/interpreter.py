@@ -6,7 +6,6 @@ __lazy_modules__ = [
     "packaging",
     "pathlib",
     "pipx.self_install",
-    "re",
     "shutil",
     "subprocess",
 ]
@@ -31,6 +30,13 @@ from pipx.self_install import get_environment_value
 from pipx.util import PipxError
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_LAUNCHER_VERSION: Final[re.Pattern[str]] = re.compile(
+    r"""
+    [0-9]+        # major version
+    (?:\.[0-9]+)?  # optional minor version
+    """,
+    re.VERBOSE,
+)
 
 if TYPE_CHECKING:
     #: The default Python, which the module ``__getattr__`` computes on first access.
@@ -145,14 +151,7 @@ def find_py_launcher_python(python_version: str | None = None) -> str | None:
         # the Unix launcher reads only -X and -X.Y as a version and hands any other flag to the first interpreter its
         # search finds, which can be a .venv in a parent directory; see Action::from_main and venv_path_search in
         # https://github.com/brettcannon/python-launcher/blob/3c9f207c07d5fed612b04dbf2980f67d40aa24b3/src/cli.rs
-        if not WINDOWS and not re.fullmatch(
-            r"""
-            [0-9]+        # major version
-            (?:\.[0-9]+)?  # optional minor version
-            """,
-            python_semver,
-            re.VERBOSE,
-        ):
+        if not WINDOWS and not _LAUNCHER_VERSION.fullmatch(python_semver):
             return None
         py = subprocess.run(
             [py, f"-{python_semver}", "-c", "import sys; print(sys.executable)"],

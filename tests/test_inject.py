@@ -236,6 +236,9 @@ def test_inject_rejects_pylock(
     ) == (True, {})
 
 
+_INJECTED_PACKAGE_PATTERN: Final[re.Pattern[str]] = re.compile(r"injected package (.+?) into venv pycowsay")
+
+
 # also checks that the packages other tests inject install on their own
 @pytest.mark.parametrize(
     "pkg_spec",
@@ -258,7 +261,7 @@ def test_inject_single_package(
 
     assert (
         f"Injecting packages: {[pkg_spec]!r}" in caplog.text,
-        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+        set(_INJECTED_PACKAGE_PATTERN.findall(capsys.readouterr().out)),
     ) == (True, {pkg_spec.split("=", 1)[0].replace(".", "-")})
 
 
@@ -565,7 +568,7 @@ def test_inject_with_req_file(
     })
     assert (
         f"Injecting packages: {[spec for _, spec in packages]!r}" in caplog.text,
-        set(re.findall(r"injected package (.+?) into venv pycowsay", capsys.readouterr().out)),
+        set(_INJECTED_PACKAGE_PATTERN.findall(capsys.readouterr().out)),
     ) == (True, {pkg for pkg, _ in packages})
 
 

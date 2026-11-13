@@ -15,7 +15,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
-    "re",
 ]
 
 import logging
@@ -143,10 +142,9 @@ def inject(
 
 def _parse_requirements(filename: str) -> Iterator[str]:
     # strips comments the way pip does: https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    comment: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
     with Path(filename).open(encoding="utf-8") as requirements:
         for line in requirements:
-            if spec := comment.sub("", line).strip():
+            if spec := _REQUIREMENT_COMMENT.sub("", line).strip():
                 yield spec
 
 
@@ -378,6 +376,9 @@ def _install_into(
         ),
         emit_output=options.emit_output,
     )
+
+
+_REQUIREMENT_COMMENT: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
 class InjectionStatus(StrEnum):

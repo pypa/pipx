@@ -8,7 +8,6 @@ __lazy_modules__ = [
     "pipx.redact",
     "pipx.util",
     "pipx.wrap",
-    "re",
     "tomllib",
     "urllib.parse",
 ]
@@ -41,6 +40,16 @@ if TYPE_CHECKING:
     from pipx.result import JsonValue
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_INDEX_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9._-]+")
+_METADATA_PATH: Final[re.Pattern[str]] = re.compile(r"[^/]+\.dist-info/METADATA")
+_TRAILING_EXTRAS: Final[re.Pattern[str]] = re.compile(
+    r"""
+    (?P<path>.+)                # the path
+    (?P<extras>\[[^\[\]]+\])  # one trailing [extras] group
+    $
+    """,
+    re.VERBOSE,
+)
 
 _PIP_LONG_FLAGS: Final[frozenset[str]] = frozenset({
     "--break-system-packages",
@@ -304,15 +313,7 @@ def _split_path_extras(package_spec: str) -> tuple[str, str]:
     # a bracket can be part of a directory name, so only a trailing group on a path that does not exist is extras
     if Path(package_spec).expanduser().exists():
         return package_spec, ""
-    if extras_match := re.search(
-        r"""
-        (?P<path>.+)                # the path
-        (?P<extras>\[[^\[\]]+\])  # one trailing [extras] group
-        $
-        """,
-        package_spec,
-        re.VERBOSE,
-    ):
+    if extras_match := _TRAILING_EXTRAS.search(package_spec):
         return extras_match["path"], extras_match["extras"]
     return package_spec, ""
 
@@ -635,7 +636,7 @@ def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
         # index options whose value can be a local directory, with pip reading uv's --extra as --extra-index-url; uv
         # takes a named index as name=url
         name, separator, url = argument.value.partition("=")
-        values = {argument.value, url} if separator and re.fullmatch(r"[A-Za-z0-9._-]+", name) else {argument.value}
+        values = {argument.value, url} if separator and _INDEX_NAME.fullmatch(name) else {argument.value}
     else:
         return None
     return next(filter(None, (_changeable_by_others(value, base) for value in sorted(values))), None)
@@ -700,7 +701,7 @@ def translate_pip_args(pip_args: list[str], backend: str, environment: str) -> t
             case "--index":
                 # uv takes a named index as name=url, and the name means nothing to pip
                 name, _, url = value.partition("=")
-                translated.extend([spelling[to_pip], url if url and re.fullmatch(r"[A-Za-z0-9._-]+", name) else value])
+                translated.extend([spelling[to_pip], url if url and _INDEX_NAME.fullmatch(name) else value])
             case "--find-links":
                 # uv splits a --find-links value on commas, pip takes it as one location
                 translated.extend(
@@ -933,7 +934,7 @@ def wheel_project_name(package_spec: str) -> str | None:
 
     try:
         with zipfile.ZipFile(wheel) as archive:
-            match [entry for entry in archive.namelist() if re.fullmatch(r"[^/]+\.dist-info/METADATA", entry)]:
+            match [entry for entry in archive.namelist() if _METADATA_PATH.fullmatch(entry)]:
                 case [metadata]:
                     name: Final = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
                 case _:

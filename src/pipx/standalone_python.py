@@ -10,7 +10,6 @@ __lazy_modules__ = [
     "pipx.paths",
     "pipx.util",
     "platform",
-    "re",
     "shutil",
     "tarfile",
     "urllib.request",
@@ -47,6 +46,15 @@ if TYPE_CHECKING:
     from filelock import BaseFileLock
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_PYTHON_PREFIX: Final[re.Pattern[str]] = re.compile(r"[c]?python")
+_STANDALONE_VERSION: Final[re.Pattern[str]] = re.compile(
+    r"""
+    [0-9]+                 # major version
+    (?:\.[0-9]+){0,2}       # up to two more numeric parts
+    """,
+    re.VERBOSE,
+)
+_DOWNLOAD_VERSION: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 # much of this module comes from https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
@@ -97,17 +105,10 @@ def download_python_build_standalone(python_version: str, *, override: bool = Fa
     :raises PipxError: when the version is malformed.
     """
     # accept a command name such as python3.10 as well as the bare version 3.10
-    python_version = re.sub(r"[c]?python", "", python_version)
+    python_version = _PYTHON_PREFIX.sub("", python_version)
     # the version names the cache directory that a failed attempt is cleared from below, so a path, "." or ".." would
     # point that rmtree outside the cache; one to three numeric parts is all resolve_python_version can match anyway
-    if not re.fullmatch(
-        r"""
-        [0-9]+                 # major version
-        (?:\.[0-9]+){0,2}       # up to two more numeric parts
-        """,
-        python_version,
-        re.VERBOSE,
-    ):
+    if not _STANDALONE_VERSION.fullmatch(python_version):
         msg = f"Cannot fetch a standalone python build for {python_version!r}: expected a version such as '3.13'."
         raise PipxError(msg)
 
@@ -206,7 +207,7 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
         for link, digest in python_releases:
             if not link.endswith(download_link_suffix):
                 continue
-            if (match := re.search(r"cpython-(\d+\.\d+\.\d+)", link)) is None:
+            if (match := _DOWNLOAD_VERSION.search(link)) is None:
                 msg = f"Could not parse a Python version from {link!r}."
                 raise PipxError(msg)
             python_versions.setdefault(match[1], (link, digest))
