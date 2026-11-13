@@ -221,7 +221,7 @@ def _install_spec_venv(
     venv_container: VenvContainer, venv_metadata: PipxMetadata, options: InstallOptions
 ) -> tuple[str, bool]:
     main_package: Final[PackageInfo] = venv_metadata.main_package
-    venv_dir: Final[Path] = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
+    venv_dir: Final[Path] = venv_container.get_venv_dir(f"{main_package.package}{main_package.exposure.suffix}")
     interpreter: Final[str | None] = (
         options.environment.python
         if options.environment.python_flag_passed
@@ -258,9 +258,9 @@ def _install_spec_venv(
                     pip_args=package_pip_args[0],
                     verbose=options.verbose,
                     exposure=ExposureOptions(
-                        include_dependencies=main_package.include_dependencies,
-                        include_resources_from=main_package.include_resources_from,
-                        suffix=main_package.suffix,
+                        include_dependencies=main_package.exposure.include_dependencies,
+                        include_resources_from=main_package.exposure.include_resources_from,
+                        suffix=main_package.exposure.suffix,
                     ),
                     record=RecordOptions(
                         expected_apps=main_package.expected_apps,
@@ -286,11 +286,11 @@ def _install_spec_venv(
                     InjectOptions(
                         pip_args=inject_pip_args,
                         verbose=options.verbose,
-                        include_apps=inject_package.include_apps,
-                        include_dependencies=inject_package.include_dependencies,
-                        include_resources_from=inject_package.include_resources_from,
+                        include_apps=inject_package.exposure.include_apps,
+                        include_dependencies=inject_package.exposure.include_dependencies,
+                        include_resources_from=inject_package.exposure.include_resources_from,
                         force=options.existing.force,
-                        with_suffix=inject_package.suffix == main_package.suffix,
+                        with_suffix=inject_package.exposure.suffix == main_package.exposure.suffix,
                         cooldown_days=_first_cooldown(options.cooldown.days, inject_package.cooldown_days),
                         pinned=inject_package.pinned,
                     ),
@@ -335,7 +335,7 @@ def _translate_recorded_pip_args(
     venv_metadata: PipxMetadata, packages: list[PackageInfo], backend: str
 ) -> list[list[str]]:
     # recorded pip args can hold options only the recording backend accepts, such as pip's --progress-bar
-    environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.suffix}"
+    environment: Final[str] = f"{venv_metadata.main_package.package}{venv_metadata.main_package.exposure.suffix}"
     translations: Final[list[tuple[list[str], list[str]]]] = [
         translate_pip_args(trusted_recorded_pip_args(package.pip_args, venv_metadata.venv_dir), backend, environment)
         for package in packages
@@ -839,7 +839,7 @@ def _upgrade_existing_venv(
             build.package_name,
             build.package_spec,
             main_pip_args,
-            exposure=ExposureOptions.recorded(package_metadata),
+            exposure=package_metadata.exposure,
             is_main_package=True,
             upgrade_only_pip_args=[f"--upgrade-strategy={options.existing.upgrade_strategy}"]
             if options.existing.upgrade_strategy is not None

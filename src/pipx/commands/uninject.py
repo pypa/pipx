@@ -192,7 +192,7 @@ def _uninject_dep(
             if deps_of_uninstalled:
                 venv.uninstall_packages(*sorted(deps_of_uninstalled))
 
-    if package.include_apps:
+    if package.exposure.include_apps:
         # the uninstall dropped this package's record, so what the venv still expects belongs to its other packages
         expected: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
         for path in drop_links_taken_over(resource_paths - expected, venv.root):
@@ -210,7 +210,7 @@ def _uninject_dep(
             packages=(
                 InjectionPackage(
                     environment=venv.name,
-                    package=f"{package.package}{package.suffix}",
+                    package=f"{package.package}{package.exposure.suffix}",
                     version=package.package_version,
                     status=InjectionStatus.UNINJECTED,
                     location=str(venv.root),
@@ -230,7 +230,7 @@ def _injected_metadata_name(venv: Venv, package_name: str) -> str:
     # metadata keys an injected package by the name the installer reported, which pip leaves as declared (Mixed_Case),
     # and `inject --with-suffix` adds the environment suffix, so users spell it black@1 too
     for name, injected_package in venv.pipx_metadata.injected_packages.items():
-        if package_name in {canonicalize_name(name), canonicalize_name(f"{name}{injected_package.suffix}")}:
+        if package_name in {canonicalize_name(name), canonicalize_name(f"{name}{injected_package.exposure.suffix}")}:
             return name
     return package_name
 
@@ -238,7 +238,9 @@ def _injected_metadata_name(venv: Venv, package_name: str) -> str:
 def _get_include_resource_paths(
     package: PackageInfo, venv: Venv, local_bin_dir: Path, local_man_dir: Path
 ) -> set[Path]:
-    apps: Final[set[str]] = {name for app in package.apps_to_expose for name in exposed_app_names(app, package.suffix)}
+    apps: Final[set[str]] = {
+        name for app in package.apps_to_expose for name in exposed_app_names(app, package.exposure.suffix)
+    }
     man_pages: Final[set[str]] = set(package.man_pages_to_expose)
     completions: Final[set[str]] = set(package.completions_to_expose)
     return (

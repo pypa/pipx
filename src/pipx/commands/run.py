@@ -621,7 +621,9 @@ def run_package(
         venv = Venv(venv_dir, backend=options.backend)
         if infer_app_name and (cached := venv.pipx_metadata.main_package).package is not None:
             # repeat ``_prepare_venv``'s sole-script fallback, else the cache check below misses and rebuilds the venv
-            app, app_filename = _app_names(cached.apps[0] if len(cached.apps) == 1 else cached.package)
+            app, app_filename = _app_names(
+                cached.resources.apps[0] if len(cached.resources.apps) == 1 else cached.package
+            )
         _prepare_venv_cache(venv, venv.bin_path / app_filename, use_cache=options.use_cache, refresh=options.refresh)
 
         if venv.has_app(app, app_filename):
@@ -694,7 +696,7 @@ def _prepare_venv(
         raise
 
     if not venv.has_app(app, app_filename):
-        apps: Final[list[str]] = venv.pipx_metadata.main_package.apps
+        apps: Final[list[str]] = venv.pipx_metadata.main_package.resources.apps
         if app == package_name and len(apps) == 1:
             app, app_filename = _app_names(apps[0])
             print(f"NOTE: running app {app!r} from {package_name!r}")  # ruff:ignore[print]  # user-facing CLI output

@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Final, Self
+from typing import TYPE_CHECKING, Final
 
 from pipx.constants import FetchPythonOptions
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Sequence
     from pathlib import Path
-
-    from pipx.pipx_metadata_file import PackageInfo
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -66,22 +64,8 @@ class ExposureOptions:
 
     include_apps: bool = True
     include_dependencies: bool = False
-    include_resources_from: Sequence[str] = ()
+    include_resources_from: Sequence[str] = field(default_factory=list)
     suffix: str = ""
-
-    @classmethod
-    def recorded(cls, package_info: PackageInfo) -> Self:
-        """Return the exposure options that an environment was installed with.
-
-        :param package_info: the package whose recorded options are read.
-        :returns: the exposure options.
-        """
-        return cls(
-            include_apps=package_info.include_apps,
-            include_dependencies=package_info.include_dependencies,
-            include_resources_from=package_info.include_resources_from,
-            suffix=package_info.suffix,
-        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

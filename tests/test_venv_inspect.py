@@ -153,7 +153,7 @@ def _inspect_editable_man_pages(project: Path, source: str) -> list[str]:
     venv: Final[Path] = project.parent
     return venv_inspect.inspect_venv(
         "root-package", set(), venv / "bin", venv / "python", venv / "share" / "man"
-    ).man_pages
+    ).resources.man_pages
 
 
 @pytest.fixture
@@ -216,7 +216,7 @@ def test_inspect_venv_follows_extras_of_revisited_dependency(
 ) -> None:
     result: Final = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
 
-    assert sorted(result.apps_of_dependencies) == expected
+    assert sorted(result.resources.apps_of_dependencies) == expected
 
 
 def _inspect_extras_venv(
@@ -265,7 +265,7 @@ def extras_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
 def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_venv: Path) -> None:
     result: Final = _inspect_extras_venv(extras_venv, ("left", "right"))
 
-    assert (result.man_paths_of_dependencies, result.completion_paths_of_dependencies) == (
+    assert (result.resources.man_paths_of_dependencies, result.resources.completion_paths_of_dependencies) == (
         {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
         {"second-app": [extras_venv / "share" / "bash-completion" / "completions" / "second-app"]},
     )
@@ -287,7 +287,7 @@ def test_inspect_venv_reads_installed_files_only_without_record(
 ) -> None:
     _write_root_metadata(other_app_venv, metadata_files)
 
-    assert _inspect_root_package(other_app_venv).apps == expected
+    assert _inspect_root_package(other_app_venv).resources.apps == expected
 
 
 def _inspect_root_package(venv: Path) -> venv_inspect.VenvMetadata:
@@ -305,7 +305,7 @@ def test_inspect_venv_skips_installed_files_entry_in_a_symlink_loop(other_app_ve
     _write_root_metadata(other_app_venv, {"installed-files.txt": "loop\n../../bin/other\n"})
     (loop := other_app_venv / "lib" / "site-packages" / "loop").symlink_to(loop)
 
-    assert _inspect_root_package(other_app_venv).apps == ["other"]
+    assert _inspect_root_package(other_app_venv).resources.apps == ["other"]
 
 
 @pytest.mark.parametrize(
@@ -326,7 +326,7 @@ def test_inspect_venv_reads_entry_points_only_when_record_lists_them(
     )
     (root_package_venv / "bin" / "planted").touch()
 
-    assert _inspect_root_package(root_package_venv).apps == expected
+    assert _inspect_root_package(root_package_venv).resources.apps == expected
 
 
 def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Path) -> None:
@@ -350,7 +350,11 @@ def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Pat
         root_package_venv / "share" / "man",
     )
 
-    assert (result.apps, [Path(page) for page in result.man_pages], [Path(c) for c in result.completions]) == (
+    assert (
+        result.resources.apps,
+        [Path(page) for page in result.resources.man_pages],
+        [Path(c) for c in result.resources.completions],
+    ) == (
         ["app"],
         [Path("man1/app")],
         [Path("bash-completion/completions/app")],

@@ -185,7 +185,7 @@ def _list_venv_outdated(
     for package_name, package_info in venv.package_metadata.items():
         if package_name != venv.main_package_name and not include_injected:
             continue
-        display_name: Final[str] = f"{package_name}{package_info.suffix}"
+        display_name: Final[str] = f"{package_name}{package_info.exposure.suffix}"
         if package_info.package_or_url is None:
             failures.append(
                 _FailedEnvironment(environment=venv.name, error=f"Package {display_name} has corrupt pipx metadata.")
@@ -233,7 +233,7 @@ def _collect_outdated(
     return [
         _OutdatedPackage(
             environment=venv.name,
-            package=f"{managed_package.package}{managed_package.suffix}",
+            package=f"{managed_package.package}{managed_package.exposure.suffix}",
             version=package.version,
             latest_version=package.latest_version,
             injected=managed_package.package != venv.main_package_name,

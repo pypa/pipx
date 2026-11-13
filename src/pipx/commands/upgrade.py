@@ -49,7 +49,6 @@ from pipx.options import (
     CooldownOptions,
     EnvironmentOptions,
     ExistingOptions,
-    ExposureOptions,
     InstallOptions,
     OutdatedOptions,
     ReinstallOptions,
@@ -340,7 +339,7 @@ def _upgrade_package(
         package_name,
         parse_specifier_for_upgrade(package_metadata.package_or_url),
         pip_args,
-        exposure=ExposureOptions.recorded(package_metadata),
+        exposure=package_metadata.exposure,
         is_main_package=package_name == venv.main_package_name,
         expected_apps=package_metadata.expected_apps,
         cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
@@ -354,7 +353,7 @@ def _upgrade_package(
 
     return _PackageUpgradeResult(
         environment=venv.name,
-        package=f"{upgraded_metadata.package}{upgraded_metadata.suffix}",
+        package=f"{upgraded_metadata.package}{upgraded_metadata.exposure.suffix}",
         previous_version=package_metadata.package_version,
         version=upgraded_metadata.package_version,
         status=(
@@ -380,7 +379,7 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
     package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
     return _PackageUpgradeResult(
         environment=venv.name,
-        package=f"{package_metadata.package}{package_metadata.suffix}",
+        package=f"{package_metadata.package}{package_metadata.exposure.suffix}",
         previous_version=package_metadata.package_version,
         version=package_metadata.package_version,
         status=status,
@@ -573,7 +572,7 @@ def _upgrade_listed_venv(
                     package_name
                     for package_name, package in venv.package_metadata.items()
                     if (package_name == venv.main_package_name or options.include_injected)
-                    and (venv.name, f"{package_name}{package.suffix}") in candidates
+                    and (venv.name, f"{package_name}{package.exposure.suffix}") in candidates
                 },
             )
         except PipxError as error:

@@ -58,9 +58,9 @@ def test_install_selects_completion_only_dependency(
 
     metadata: Final = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (
-        metadata.include_resources_from,
-        bool(metadata.app_paths_of_dependencies),
-        bool(metadata.man_paths_of_dependencies),
+        metadata.exposure.include_resources_from,
+        bool(metadata.resources.app_paths_of_dependencies),
+        bool(metadata.resources.man_paths_of_dependencies),
         [(CTX.completion_dir / section / name).is_file() for section, name in _SECTIONS.items()],
     ) == (["local-completion"], False, False, [True] * len(_SECTIONS))
 

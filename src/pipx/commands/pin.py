@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.utils", "pipx.options", "pipx.venv"]
+__lazy_modules__ = ["packaging.utils", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -11,7 +11,6 @@ from packaging.utils import canonicalize_name
 from pipx.colors import BOLD
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
-from pipx.options import ExposureOptions
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 
@@ -73,7 +72,7 @@ def _pin_requested(venv: Venv, skip: Sequence[str]) -> _PinChanges:
             continue
         if (
             canonicalize_name(package_name) in skip_names
-            or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
+            or canonicalize_name(f"{package_name}{package.exposure.suffix}") in skip_names
         ):
             changes.skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
             continue
@@ -100,7 +99,7 @@ def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pi
         package_name=str(package.package),
         package_or_url=str(package.package_or_url),
         pip_args=package.pip_args,
-        exposure=ExposureOptions.recorded(package),
+        exposure=package.exposure,
         is_main_package=is_main_package,
         pinned=pinned,
     )
@@ -110,7 +109,7 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _ChangedPackage(
         environment=venv.name,
-        package=f"{package.package}{package.suffix}",
+        package=f"{package.package}{package.exposure.suffix}",
         version=package.package_version,
         status=status,
         injected=package_name != venv.main_package_name,

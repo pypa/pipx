@@ -438,8 +438,8 @@ def test_inject_include_resources_from_dependency(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
-        metadata.include_apps,
-        metadata.include_resources_from,
+        metadata.exposure.include_apps,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("repeatme")).exists(),
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
@@ -454,7 +454,7 @@ def test_inject_main_package_preserves_included_dependency(
 
     assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
-    assert PipxMetadata(CTX.venvs / "repeatme").main_package.include_resources_from == ["pycowsay"]
+    assert PipxMetadata(CTX.venvs / "repeatme").main_package.exposure.include_resources_from == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -470,7 +470,7 @@ def test_inject_force_replaces_included_dependency_resources(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").injected_packages["repeatme"]
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         (CTX.bin_dir / app_name("black")).exists(),

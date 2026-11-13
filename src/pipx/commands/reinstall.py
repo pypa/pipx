@@ -230,9 +230,9 @@ def reinstall(
                     pip_args=main_pip_args,
                     verbose=options.verbose,
                     exposure=ExposureOptions(
-                        include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-                        include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
-                        suffix=venv.pipx_metadata.main_package.suffix,
+                        include_dependencies=venv.pipx_metadata.main_package.exposure.include_dependencies,
+                        include_resources_from=venv.pipx_metadata.main_package.exposure.include_resources_from,
+                        suffix=venv.pipx_metadata.main_package.exposure.suffix,
                     ),
                     record=RecordOptions(
                         expected_apps=venv.pipx_metadata.main_package.expected_apps,
@@ -376,14 +376,14 @@ def _reinject_packages(
             InjectOptions(
                 pip_args=injected_pip_args[injected_name],
                 verbose=options.verbose,
-                include_apps=injected_package.include_apps,
-                include_dependencies=injected_package.include_dependencies,
-                include_resources_from=injected_package.include_resources_from,
+                include_apps=injected_package.exposure.include_apps,
+                include_dependencies=injected_package.exposure.include_dependencies,
+                include_resources_from=injected_package.exposure.include_resources_from,
                 force=True,
                 # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
                 # from the injected package's index when the injected package depends on it
                 force_reinstall=False,
-                with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                with_suffix=injected_package.exposure.suffix == venv.pipx_metadata.main_package.exposure.suffix,
                 backend=backend,
                 cooldown_days=injected_package.cooldown_days,
                 pinned=injected_package.pinned,
@@ -410,7 +410,7 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
     resource_paths: Final[set[Path]] = set()
     for package_info in venv.package_metadata.values():
         resource_paths.update(
-            local_bin_dir / add_suffix(app_path.name, package_info.suffix)
+            local_bin_dir / add_suffix(app_path.name, package_info.exposure.suffix)
             for app_path in package_info.app_paths_to_expose
         )
         resource_paths.update(

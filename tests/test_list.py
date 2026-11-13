@@ -223,7 +223,7 @@ def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_
     assert sorted(json_parsed["venvs"].keys()) == ["pycowsay", "pylint"]
 
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
+        PackageInfo.from_dict(json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
         create_package_info_ref("pycowsay", "pycowsay", pipx_venvs_dir),
     )
     assert json_parsed["venvs"]["pycowsay"]["metadata"]["injected_packages"] == {}
@@ -245,12 +245,12 @@ def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_
         },
     )
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
+        PackageInfo.from_dict(json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
         pylint_package_ref,
     )
     assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["black"]
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
+        PackageInfo.from_dict(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
         create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False),
     )
 

@@ -81,7 +81,7 @@ def test_sync_manifest_installs_declared_tool(
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay-managed")
     assert (
         metadata.main_package.package_or_url,
-        metadata.main_package.suffix,
+        metadata.main_package.exposure.suffix,
         metadata.main_package.expected_apps,
         (CTX.bin_dir / app_name("pycowsay-managed")).is_file(),
     ) == ("pycowsay==0.0.0.2", "-managed", ["pycowsay"], True)
@@ -111,7 +111,7 @@ def test_sync_manifest_selects_dependency_apps(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)

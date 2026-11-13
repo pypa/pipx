@@ -9,6 +9,7 @@ __lazy_modules__ = [
     "pipx.backends",
     "pipx.backends.registry",
     "pipx.fanout",
+    "pipx.options",
     "pipx.package_specifier",
     "pipx.paths",
     "pipx.pipx_metadata_file",
@@ -35,7 +36,7 @@ import time
 from collections import Counter
 from contextlib import AbstractContextManager, contextmanager, suppress
 from contextvars import ContextVar
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from importlib.machinery import all_suffixes
 from pathlib import Path
 from shutil import which
@@ -51,6 +52,7 @@ from pipx.colors import BOLD, RED
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import HAZARD, STARS
 from pipx.fanout import in_turn
+from pipx.options import ExposureOptions
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
@@ -137,7 +139,7 @@ def _expected_resource_paths(
         return set()
     return (
         {
-            local_bin_dir / add_suffix(path.name, package.suffix)
+            local_bin_dir / add_suffix(path.name, package.exposure.suffix)
             for package in packages
             for path in package.app_paths_to_expose
         }
@@ -351,16 +353,16 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
     # package_name is the metadata key, so it stays the bare name; the record's suffix field renders the suffix in the
     # summary below
     package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
-    display_name: Final[str] = f"{package_name}{package_metadata.suffix}"
+    display_name: Final[str] = f"{package_name}{package_metadata.exposure.suffix}"
 
-    if not package_metadata.apps:
+    if not package_metadata.resources.apps:
         library_name: Final[str] = package_metadata.package or package_name
         library_guidance: Final[str] = (
             "`pipx install` requires an application entry point. "
             f"Add this package to an existing environment with `pipx inject <environment> {library_name}`. "
             f"For a new application environment, place `--preinstall {library_name}` before the application spec."
         )
-        if not package_metadata.apps_of_dependencies:
+        if not package_metadata.resources.apps_of_dependencies:
             if venv.safe_to_remove():
                 venv.remove_venv()
             msg = f"""
@@ -373,7 +375,7 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
                 venv.remove_venv()
             dependency_apps: Final[str] = "\n".join(
                 f"{dependency}: {', '.join(app.name for app in apps)}"
-                for dependency, apps in package_metadata.app_paths_of_dependencies.items()
+                for dependency, apps in package_metadata.resources.app_paths_of_dependencies.items()
             )
             msg = f"""
                 No apps associated with package {display_name}. Use
@@ -431,7 +433,9 @@ def expose_package_resources(
     collisions: Final[list[Path]] = []
     if app_paths := package_metadata.app_paths_to_expose:
         collisions.extend(
-            expose_resources_globally("app", local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix)
+            expose_resources_globally(
+                "app", local_bin_dir, app_paths, force=force, suffix=package_metadata.exposure.suffix
+            )
         )
     if man_paths := package_metadata.man_paths_to_expose:
         collisions.extend(expose_resources_globally("man", local_man_dir, man_paths, force=force))
@@ -789,7 +793,7 @@ def _venv_claims(venv_dir: Path) -> set[Path]:
         CTX.bin_dir / name
         for package in packages
         for path in package.app_paths_to_expose
-        for name in exposed_app_names(path.name, package.suffix)
+        for name in exposed_app_names(path.name, package.exposure.suffix)
     }
 
 
@@ -946,7 +950,7 @@ def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
         (name, path)
         for package in packages
         for path in package.app_paths_to_expose
-        for name in exposed_app_names(path.name, package.suffix)
+        for name in exposed_app_names(path.name, package.exposure.suffix)
     )
 
 
@@ -1098,7 +1102,9 @@ def _get_list_output(venv: Venv, package_name: str, *, new_install: bool, includ
         else ""
     )
     suffix: Final[str] = (
-        f" ({BOLD(shlex.quote(f'{package_name}{package_metadata.suffix}'))})" if package_metadata.suffix else ""
+        f" ({BOLD(shlex.quote(f'{package_name}{package_metadata.exposure.suffix}'))})"
+        if package_metadata.exposure.suffix
+        else ""
     )
     output: Final[list[str]] = [
         (
@@ -1142,16 +1148,16 @@ def _get_exposed_resource_names(
     resource_packages: Final[tuple[PackageInfo, ...]] = (
         (package_metadata,)
         if new_install
-        else tuple(metadata for metadata in venv.package_metadata.values() if metadata.include_apps)
+        else tuple(metadata for metadata in venv.package_metadata.values() if metadata.exposure.include_apps)
     )
     exposed_binary_names: Final[list[str]] = sorted(
         path.name
         for path in get_exposed_paths_for_package(venv.bin_path, CTX.bin_dir, group_app_paths(resource_packages))
     )
     unavailable_binary_names: Final[list[str]] = sorted({
-        add_suffix(name, package_metadata.suffix)
-        for name in package_metadata.apps
-        if not exposed_app_names(name, package_metadata.suffix) & set(exposed_binary_names)
+        add_suffix(name, package_metadata.exposure.suffix)
+        for name in package_metadata.resources.apps
+        if not exposed_app_names(name, package_metadata.exposure.suffix) & set(exposed_binary_names)
     })
     man_paths: Final[list[Path]] = [path for metadata in resource_packages for path in metadata.man_paths_to_expose]
     exposed_man_pages: Final[list[str]] = sorted(
@@ -1159,7 +1165,7 @@ def _get_exposed_resource_names(
         for man_section in MAN_SECTIONS
         for path in get_exposed_man_paths_for_package(venv.man_path / man_section, CTX.man_dir / man_section, man_paths)
     )
-    unavailable_man_pages: Final[list[str]] = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
+    unavailable_man_pages: Final[list[str]] = sorted(set(package_metadata.resources.man_pages) - set(exposed_man_pages))
     return _ExposedResourceNames(
         exposed_binary_names=exposed_binary_names,
         unavailable_binary_names=unavailable_binary_names,
@@ -1247,18 +1253,15 @@ def get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
             package=venv.root.name,
             package_or_url="",
             pip_args=[],
-            include_apps=True,
-            include_dependencies=False,
-            apps=venv_metadata.apps,
-            app_paths=venv_metadata.app_paths,
-            apps_of_dependencies=venv_metadata.apps_of_dependencies,
-            app_paths_of_dependencies=venv_metadata.app_paths_of_dependencies,
-            man_pages=venv_metadata.man_pages,
-            man_paths=venv_metadata.man_paths,
-            man_pages_of_dependencies=venv_metadata.man_pages_of_dependencies,
-            man_paths_of_dependencies=venv_metadata.man_paths_of_dependencies,
+            exposure=ExposureOptions(),
+            resources=replace(
+                venv_metadata.resources,
+                completions=[],
+                completion_paths=[],
+                completions_of_dependencies=[],
+                completion_paths_of_dependencies={},
+            ),
             package_version=venv_metadata.package_version,
-            suffix="",
         ),
     )
 

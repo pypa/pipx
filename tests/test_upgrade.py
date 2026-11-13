@@ -686,7 +686,7 @@ def test_upgrade_preserves_included_dependency(local_extras_wheel: Path) -> None
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)

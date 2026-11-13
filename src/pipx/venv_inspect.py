@@ -8,6 +8,7 @@ __lazy_modules__ = [
     "packaging.requirements",
     "packaging.utils",
     "pathlib",
+    "pipx.pipx_metadata_file",
     "pipx.requires_python",
     "pipx.subprocess_runner",
     "pipx.util",
@@ -35,6 +36,7 @@ from packaging.requirements import Requirement
 from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+from pipx.pipx_metadata_file import PackageResources
 from pipx.requires_python import unsatisfied_constraint
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError, is_file_name
@@ -104,26 +106,28 @@ def inspect_venv(
             resources_of_dependencies.app_paths[dep] = _windows_extra_app_paths(dep_paths)
 
     return VenvMetadata(
-        apps=apps,
-        app_paths=_windows_extra_app_paths(app_paths) if WINDOWS else app_paths,
-        apps_of_dependencies=apps_of_dependencies,
-        app_paths_of_dependencies=resources_of_dependencies.app_paths,
-        man_pages=man_pages,
-        man_paths=[venv_man_path / man_page for man_page in man_pages],
-        man_pages_of_dependencies=[
-            str(Path(dep_path.parent.name) / dep_path.name)
-            for dep_paths in resources_of_dependencies.man_paths.values()
-            for dep_path in dep_paths
-        ],
-        man_paths_of_dependencies=resources_of_dependencies.man_paths,
-        completions=completions,
-        completion_paths=[venv_share_path / completion for completion in completions],
-        completions_of_dependencies=[
-            dep_path.relative_to(venv_share_path).as_posix()
-            for dep_paths in resources_of_dependencies.completion_paths.values()
-            for dep_path in dep_paths
-        ],
-        completion_paths_of_dependencies=resources_of_dependencies.completion_paths,
+        resources=PackageResources(
+            apps=apps,
+            app_paths=_windows_extra_app_paths(app_paths) if WINDOWS else app_paths,
+            apps_of_dependencies=apps_of_dependencies,
+            app_paths_of_dependencies=resources_of_dependencies.app_paths,
+            man_pages=man_pages,
+            man_paths=[venv_man_path / man_page for man_page in man_pages],
+            man_pages_of_dependencies=[
+                str(Path(dep_path.parent.name) / dep_path.name)
+                for dep_paths in resources_of_dependencies.man_paths.values()
+                for dep_path in dep_paths
+            ],
+            man_paths_of_dependencies=resources_of_dependencies.man_paths,
+            completions=completions,
+            completion_paths=[venv_share_path / completion for completion in completions],
+            completions_of_dependencies=[
+                dep_path.relative_to(venv_share_path).as_posix()
+                for dep_paths in resources_of_dependencies.completion_paths.values()
+                for dep_path in dep_paths
+            ],
+            completion_paths_of_dependencies=resources_of_dependencies.completion_paths,
+        ),
         package_version=root_dist.version,
         python_version=f"Python {venv_env['python_full_version']}",
         unsupported_python=unsatisfied_constraint(root_dist.metadata.get("Requires-Python"), venv_python_version),
@@ -547,36 +551,13 @@ def _windows_extra_app_paths(app_paths: list[Path]) -> list[Path]:
 class VenvMetadata:
     """Metadata of the apps, man pages and dependencies that a virtual environment provides.
 
-    :param apps: names of the apps of the package.
-    :param app_paths: paths of the apps of the package.
-    :param apps_of_dependencies: names of the apps of the dependencies.
-    :param app_paths_of_dependencies: paths of the apps of each dependency, keyed by package name.
-    :param man_pages: names of the man pages of the package.
-    :param man_paths: paths of the man pages of the package.
-    :param man_pages_of_dependencies: names of the man pages of the dependencies.
-    :param man_paths_of_dependencies: paths of the man pages of each dependency, keyed by package name.
-
-    :param completions: names of the completion scripts of the package.
-    :param completion_paths: paths of the completion scripts of the package.
-    :param completions_of_dependencies: names of the completion scripts of the dependencies.
-    :param completion_paths_of_dependencies: paths of the completion scripts of each dependency, by package name.
+    :param resources: the apps, man pages and completion scripts of the package and of its dependencies.
     :param package_version: the installed version of the package.
     :param python_version: the version of the Python interpreter of the environment.
     :param unsupported_python: the Python requirement of the package that the environment does not satisfy, or None.
     """
 
-    apps: list[str]
-    app_paths: list[Path]
-    apps_of_dependencies: list[str]
-    app_paths_of_dependencies: dict[str, list[Path]]
-    man_pages: list[str]  # simplint: ignore[duplicate-code]  # separate metadata types share fields
-    man_paths: list[Path]
-    man_pages_of_dependencies: list[str]
-    man_paths_of_dependencies: dict[str, list[Path]]
-    completions: list[str]
-    completion_paths: list[Path]
-    completions_of_dependencies: list[str]
-    completion_paths_of_dependencies: dict[str, list[Path]]
+    resources: PackageResources
     package_version: str
     python_version: str
     unsupported_python: SpecifierSet | None
