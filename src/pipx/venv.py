@@ -196,14 +196,13 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         self._existing: Final[bool] = self.root.exists() and next(self.root.iterdir(), None) is not None
         # a directory without a readable record (an install that failed before writing it) has no backend to keep
         recorded: Final[bool] = self._existing and self.pipx_metadata.read_metadata_version is not None
-        self._backend_name, self._backend_source = self._resolve_backend(
+        self._backend: Final[_ChosenBackend] = self._resolve_backend(
             root=self.root,
             existing=recorded,
             metadata_backend=self.pipx_metadata.backend if recorded else None,
             cli_backend=backend.cli,
             env_backend=backend.env,
         )
-        self._backend: Backend | None = None
         self._site_packages: list[Path] | None = None
         self._uses_shared_libs_cache: bool | None = None
 
@@ -215,7 +214,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         metadata_backend: str | None,
         cli_backend: str | None,
         env_backend: str | None,
-    ) -> tuple[str, str]:
+    ) -> _ChosenBackend:
         # an existing venv keeps its recorded backend, since `uv pip install` into a pip-backed venv leaves it
         # inconsistent; `pipx reinstall NAME --backend X` is the supported switch
         if existing and cli_backend is not None and cli_backend != metadata_backend:
@@ -236,12 +235,15 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # from overriding a backend the user already chose through the environment
         if env_backend is None:
             env_backend = env_default_backend()
-        return resolve_backend_name(cli_value=cli_backend, env_value=env_backend, metadata_value=metadata_backend)
+        name, source = resolve_backend_name(
+            cli_value=cli_backend, env_value=env_backend, metadata_value=metadata_backend
+        )
+        return _ChosenBackend(name=name, source=source)
 
     @property
     def backend_source(self) -> str:
         """Where the backend was chosen from, such as the command line or the environment."""
-        return self._backend_source
+        return self._backend.source
 
     @property
     def name(self) -> str:
@@ -302,9 +304,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     @property
     def backend(self) -> Backend:
         """The backend that installs the packages of the environment."""
-        if self._backend is None:
-            self._backend = get_backend(self._backend_name)
-        return self._backend
+        return self._backend.backend
 
     def create_venv(self, venv_args: list[str], pip_args: list[str], *, override_shared: bool = False) -> None:
         """Create the virtual environment on disk with its backend.
@@ -315,7 +315,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         """
         _LOGGER.info("Creating virtual environment")
         if override_shared:
-            assert_not_pip_under_uv("pip", self._backend_name)
+            assert_not_pip_under_uv("pip", self._backend.name)
         self.backend.create_venv(
             self.root,
             python=self.python,
@@ -328,7 +328,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
 
         self.pipx_metadata.venv_args = venv_args
         # recorded only here, so a --backend override on an existing venv (`pipx upgrade --backend uv`) cannot flip it
-        self.pipx_metadata.backend = self._backend_name
+        self.pipx_metadata.backend = self._backend.name
         # update_package_metadata records it from the package inspection, sparing a `python --version` run
         self.pipx_metadata.python_version = None
         if source_interpreter := shutil.which(self.python):
@@ -364,7 +364,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # check_upgrade_shared_libs owns the shared pip, refreshing it when stale or below its floor unless disabled; a
         # uv venv has nothing to upgrade, and checking before building UvBackend keeps `upgrade-all` working once uv is
         # gone
-        if self.uses_shared_libs or self._backend_name == "uv":
+        if self.uses_shared_libs or self._backend.name == "uv":
             return
         with self.pipx_metadata.preserved():
             self.backend.upgrade_packaging_libraries(self._installer_python, pip_args)
@@ -526,7 +526,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     @property
     def backend_name(self) -> str:
         """The name of the backend that installs the packages of the environment."""
-        return self._backend_name
+        return self._backend.name
 
     @staticmethod
     def _as_displayed(output: str) -> str:
@@ -1031,6 +1031,22 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         if process.returncode:
             _LOGGER.error("%r failed", " ".join(redact_url_credentials(str(arg)) for arg in process.args))
         return ExitCode(process.returncode)
+
+
+class _ChosenBackend:
+    __slots__ = ("_backend", "name", "source")
+
+    def __init__(self, *, name: str, source: str) -> None:
+        self.name: Final[str] = name
+        self.source: Final[str] = source
+        self._backend: Backend | None = None
+
+    @property
+    def backend(self) -> Backend:
+        # built on first use, as the uv backend locates its binary when built
+        if self._backend is None:
+            self._backend = get_backend(self.name)
+        return self._backend
 
 
 __all__ = [
