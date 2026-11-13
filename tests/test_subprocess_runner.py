@@ -30,7 +30,10 @@ _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.w
 _COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
-_STREAM_ENCODING: Final[MappingProxyType[str, str]] = MappingProxyType({"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"})
+_STREAM_ENCODING: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "PYTHONIOENCODING": "cp850",
+    "PYTHONLEGACYWINDOWSSTDIO": "cp850",
+})
 
 
 def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
