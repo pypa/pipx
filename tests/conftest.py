@@ -447,13 +447,14 @@ def standalone_python_index(
     digest: Final[str] = f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"
 
     def build(full_version: str) -> dict[str, float | list[tuple[str, str]]]:
-        suffixes: Final[list[str]] = [
-            suffix
-            for machines in standalone_python.MACHINE_SUFFIX.values()
-            for entry in machines.values()
-            for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
-            for suffix in suffix_list
-        ]
+        suffixes: Final[list[str]] = []
+        for machines in standalone_python.MACHINE_SUFFIX.values():
+            for entry in machines.values():
+                suffixes.extend(
+                    suffix
+                    for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
+                    for suffix in suffix_list
+                )
         return {
             "fetched": time.time(),
             "releases": [(f"https://example.invalid/cpython-{full_version}-{suffix}", digest) for suffix in suffixes],

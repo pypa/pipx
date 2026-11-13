@@ -22,12 +22,13 @@ def test_documentation_links_do_not_use_mkdocs_page_urls(root: Path) -> None:
     # Read the Docs serves the built tree as is, so the old shape returns 404. The terminator set covers a bare URL, a
     # markdown link and a quoted value, because the Release Notes link lives in a TOML string.
     mkdocs_page_url: Final[re.Pattern[str]] = _MKDOCS_PAGE_URL_PATTERN
-    stale: Final[list[str]] = [
-        f"{path.relative_to(root).as_posix()}: {url}"
-        # pyproject.toml's urls table feeds the PyPI sidebar, where a user reported the stale Release Notes link
-        for glob in ("*.md", "*.rst", "pyproject.toml", ".github/*.md", "docs/**/*.md", "docs/**/*.rst")
-        for path in sorted(root.glob(glob))
-        for url in mkdocs_page_url.findall(path.read_text(encoding="utf-8"))
-    ]
+    stale: Final[list[str]] = []
+    # pyproject.toml's urls table feeds the PyPI sidebar, where a user reported the stale Release Notes link
+    for glob in ("*.md", "*.rst", "pyproject.toml", ".github/*.md", "docs/**/*.md", "docs/**/*.rst"):
+        stale.extend(
+            f"{path.relative_to(root).as_posix()}: {url}"
+            for path in sorted(root.glob(glob))
+            for url in mkdocs_page_url.findall(path.read_text(encoding="utf-8"))
+        )
 
     assert stale == []

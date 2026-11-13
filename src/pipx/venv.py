@@ -853,13 +853,11 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         site_packages: Final[list[Path]] = list(self.site_packages)
         if (shared_pth := site_packages[0] / PIPX_SHARED_PTH).is_file():
             site_packages.extend(Path(line) for line in shared_pth.read_text().splitlines())
-        return {
-            name
-            for directory in site_packages
-            for pattern in ("*.dist-info", "*.egg-info")
-            for path in directory.glob(pattern)
-            if (name := self._distribution_name(path))
-        }
+        names: Final[set[str]] = set()
+        for directory in site_packages:
+            for pattern in ("*.dist-info", "*.egg-info"):
+                names.update(name for path in directory.glob(pattern) if (name := self._distribution_name(path)))
+        return names
 
     def run_app(
         self,

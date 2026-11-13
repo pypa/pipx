@@ -789,12 +789,11 @@ def _venv_claims(venv_dir: Path) -> set[Path]:
     if not metadata.exposure_enabled or metadata.main_package.package is None:
         return set()
     packages: Final[list[PackageInfo]] = [metadata.main_package, *metadata.injected_packages.values()]
-    return _expected_resource_paths(metadata, packages, CTX.bin_dir, CTX.man_dir) | {
-        CTX.bin_dir / name
-        for package in packages
-        for path in package.app_paths_to_expose
-        for name in exposed_app_names(path.name, package.exposure.suffix)
-    }
+    claims: Final[set[Path]] = _expected_resource_paths(metadata, packages, CTX.bin_dir, CTX.man_dir)
+    for package in packages:
+        for path in package.app_paths_to_expose:
+            claims.update(CTX.bin_dir / name for name in exposed_app_names(path.name, package.exposure.suffix))
+    return claims
 
 
 def remove_stale_venv_resources(
@@ -946,12 +945,11 @@ def group_app_paths(packages: Iterable[PackageInfo]) -> dict[str, list[Path]]:
     :param packages: the packages whose apps pipx exposes.
     :returns: the paths of each exposed name.
     """
-    return group_resource_paths(
-        (name, path)
-        for package in packages
-        for path in package.app_paths_to_expose
-        for name in exposed_app_names(path.name, package.exposure.suffix)
-    )
+    named: Final[list[tuple[str, Path]]] = []
+    for package in packages:
+        for path in package.app_paths_to_expose:
+            named.extend((name, path) for name in exposed_app_names(path.name, package.exposure.suffix))
+    return group_resource_paths(named)
 
 
 def get_exposed_man_paths_for_package(
