@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import MappingProxyType
+
 __lazy_modules__ = [
     "pipx.backends.uv",
     "pipx.paths",
@@ -31,10 +33,10 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-_UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
+_UV_FORMAT_CONTROL_FLAG_MAP: Final[MappingProxyType[str, tuple[str, str]]] = MappingProxyType({
     "--no-binary": ("--no-binary", "--no-binary-package"),
     "--only-binary": ("--no-build", "--no-build-package"),
-}
+})
 
 
 def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> NoReturn:

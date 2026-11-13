@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import sys
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -15,11 +16,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-_SECTIONS: Final[dict[str, str]] = {
+_SECTIONS: Final[MappingProxyType[str, str]] = MappingProxyType({
     "bash-completion/completions": "local-completion",
     "zsh/site-functions": "_local-completion",
     "fish/vendor_completions.d": "local-completion.fish",
-}
+})
 
 
 @pytest.mark.parametrize(

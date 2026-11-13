@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import MappingProxyType
+
 __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
@@ -213,14 +215,14 @@ _PIP_SOURCE_PATH_OPTIONS: Final[frozenset[str]] = frozenset({
     "--project",
 })
 # value-taking options a recorded snapshot may carry, as their (uv, pip) spellings
-_VALUE_OPTION_SPELLINGS: Final[dict[str, tuple[str, str]]] = {
+_VALUE_OPTION_SPELLINGS: Final[MappingProxyType[str, tuple[str, str]]] = MappingProxyType({
     **dict.fromkeys(("--default-index", "--index-url", "-i"), ("--default-index", "--index-url")),
     **dict.fromkeys(("--index", "--extra-index-url"), ("--index", "--extra-index-url")),
     **dict.fromkeys(("--find-links", "-f"), ("--find-links", "--find-links")),
     **dict.fromkeys(("--constraints", "--constraint", "-c"), ("--constraints", "--constraint")),
     **dict.fromkeys(("--allow-insecure-host", "--trusted-host"), ("--allow-insecure-host", "--trusted-host")),
     **{option: (option, option) for option in ("--keyring-provider", "--index-strategy", "--prerelease")},
-}
+})
 
 
 def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:

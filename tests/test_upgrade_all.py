@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -501,6 +502,7 @@ def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -
 def _interrupting(call: Callable[_P, _R], presses: int, caplog: pytest.LogCaptureFixture) -> Callable[_P, _R]:
     pending: Final[list[int]] = [presses]
 
+    @functools.wraps(call)
     def interrupting(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         if pending[0] and "--upgrade" in (command := str(args[0])) and f"{os.sep}black" in command:
             for press in range(pending.pop()):

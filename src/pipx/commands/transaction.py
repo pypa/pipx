@@ -14,7 +14,7 @@ __lazy_modules__ = [
 import sys
 from contextlib import contextmanager, suppress
 from pathlib import Path
-from shutil import Error, copytree
+from shutil import copytree
 from tempfile import mkdtemp
 from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final
@@ -83,7 +83,7 @@ class VenvBackup:
         backup_dir: Final[Path] = self._new_backup_dir()
         try:
             copytree(self._venv_dir, backup_dir, symlinks=True)
-        except (Error, OSError) as error:
+        except OSError as error:
             rmdir(backup_dir)
             msg: Final[str] = f"pipx could not back up environment {self._venv_dir.name}: {error}"
             raise PipxError(msg) from error
