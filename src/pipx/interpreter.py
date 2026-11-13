@@ -21,7 +21,7 @@ from configparser import Error as ConfigParserError
 from functools import cache
 from importlib.util import find_spec
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Self
 
 from packaging import version
 
@@ -167,9 +167,13 @@ class InterpreterResolutionError(PipxError):
 
     :param source: where the search looked.
     :param version: the Python version that was searched for.
+    :ivar source: where the search looked.
+    :ivar version: the Python version that was searched for.
     """
 
     def __init__(self, source: str, version: str) -> None:
+        self.source: Final[str] = source
+        self.version: Final[str] = version
         message = (
             f"No executable for the provided Python version '{version}' found in {source}."
             " Check that the provided version is "
@@ -195,6 +199,10 @@ class InterpreterResolutionError(PipxError):
                     "or a full path (e.g. /usr/bin/python3.10)."
                 )
         super().__init__(message)
+
+    # the message is built from the arguments, so pickle and copy rebuild the error from them rather than from it
+    def __reduce__(self) -> tuple[type[Self], tuple[str, str]]:
+        return type(self), (self.source, self.version)
 
 
 def get_default_python_spec() -> str:

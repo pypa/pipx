@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import os
 import shutil
@@ -547,3 +548,12 @@ def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, e
     (python := bin_dir / "python3").touch()
 
     assert recordable_interpreter(python) == {name: base_dir / name for name in ("python3", "python3.14")}.get(expected)
+
+
+# the message is built from the arguments, so a copy that rebuilt the error from the message alone would fail
+def test_interpreter_resolution_error_copies_from_its_arguments() -> None:
+    error: Final[InterpreterResolutionError] = InterpreterResolutionError(source="PATH", version="3.99")
+
+    copied: Final[InterpreterResolutionError] = copy.deepcopy(error)
+
+    assert (copied.source, copied.version, str(copied)) == ("PATH", "3.99", str(error))
