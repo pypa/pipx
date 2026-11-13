@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import MappingProxyType
-
 __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
@@ -23,6 +21,7 @@ import tomllib
 import urllib.parse
 from dataclasses import dataclass, replace
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, TypeAlias
 
 from packaging.specifiers import SpecifierSet

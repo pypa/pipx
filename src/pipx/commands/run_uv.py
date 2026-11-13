@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import MappingProxyType
-
 __lazy_modules__ = [
     "pipx.backends.uv",
     "pipx.paths",
@@ -15,6 +13,7 @@ __lazy_modules__ = [
 import logging
 import os
 from shutil import which
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
