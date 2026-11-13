@@ -64,6 +64,10 @@ def test_has_package(venv_with_site_packages: _SitePackagesVenv) -> None:
     assert (venv.has_package("demo"), venv.has_package("demo2")) == (True, True)
 
 
+def test_get_venv_paths_returns_tuple(tmp_path: Path) -> None:
+    assert type(get_venv_paths(tmp_path)) is tuple
+
+
 def test_has_app_caches_site_packages(venv_with_site_packages: _SitePackagesVenv) -> None:
     venv, (purelib_demo, _), run_subprocess = venv_with_site_packages
     (purelib_demo / "entry_points.txt").write_text("[pipx.run]\ndemo = demo:main\n", encoding="utf-8")

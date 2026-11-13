@@ -130,7 +130,7 @@ def inspect_venv(
     )
 
 
-def fetch_info_in_venv(venv_python_path: Path) -> VenvInspection:
+def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str], str]:
     """Run the interpreter of an environment to read its search path, environment and Python version.
 
     :param venv_python_path: the interpreter of the environment.
@@ -199,20 +199,11 @@ def fetch_info_in_venv(venv_python_path: Path) -> VenvInspection:
     except json.JSONDecodeError as error:
         msg = f"{venv_python_path} printed output pipx cannot parse while inspecting its environment."
         raise PipxError(msg, wrap_message=False) from error
-    return VenvInspection(venv_info["sys_path"], venv_info["environment"], venv_info["python_version"])
-
-
-class VenvInspection(NamedTuple):
-    """What pipx reads from the interpreter of an environment.
-
-    :param sys_path: the search path of the interpreter.
-    :param env: the environment variables of the interpreter.
-    :param python_version: the Python version of the interpreter.
-    """
-
-    sys_path: list[str]
-    env: dict[str, str]
-    python_version: str
+    return (  # simplint: ignore[long-tuple-return]  # preserve the tuple return contract
+        venv_info["sys_path"],
+        venv_info["environment"],
+        venv_info["python_version"],
+    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -641,7 +632,6 @@ def get_required_dependency_names(dist: metadata.Distribution, env: dict[str, st
 
 
 __all__ = [
-    "VenvInspection",
     "VenvMetadata",
     "fetch_info_in_venv",
     "get_distributions_by_name",
