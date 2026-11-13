@@ -102,13 +102,13 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
     # uv cannot discover inferred app names or pipx.run entry points before installing the package
     use_uvx: Final[bool] = (
         resolved_backend == UV
-        and not options.pypackages
-        and not options.python_args
+        and not options.lookup.pypackages
+        and not options.interpreter.python_args
         and not infer_app_name
         and _can_use_uvx_for_spec(app, spec)
     )
 
-    if spec is None and (content := maybe_script_content(app, is_path=options.is_path)) is not None:
+    if spec is None and (content := maybe_script_content(app, is_path=options.lookup.is_path)) is not None:
         _run_script(
             content,
             options,
@@ -216,18 +216,18 @@ def _run_script(
     # uv treats the --python pipx hands it as an explicit request and runs a script on it even when requires-python
     # rules it out, so pipx settles the interpreter for both backends
     python: Final[str] = (
-        options.python
+        options.interpreter.python
         if metadata is None or metadata.requires_python is None
         else _interpreter_for_script(
             metadata.requires_python,
-            options.python,
-            options.fetch_python,
-            python_flag_passed=options.python_flag_passed,
+            options.interpreter.python,
+            options.interpreter.fetch_python,
+            python_flag_passed=options.interpreter.python_flag_passed,
         )
     )
     cooldown_days: Final[int | None] = options.cooldown.days
 
-    if resolved_backend == UV and requirements is not None and not options.python_args:
+    if resolved_backend == UV and requirements is not None and not options.interpreter.python_args:
         if script_source is not None:
             # uv keys its own script environment on the path alone and reuses it while it satisfies the script, so a
             # changed index or cooldown, or --refresh, would keep running what an earlier request installed
@@ -242,7 +242,11 @@ def _run_script(
             with _running_uv_script_venv(
                 Venv(script_venv_dir, backend=options.backend), use_cache=options.use_cache, refresh=options.refresh
             ) as run_venv_dir:
-                run_script_via_uv_run(script_source, run_venv_dir, replace(options, python=python))
+                run_script_via_uv_run(
+                    script_source,
+                    run_venv_dir,
+                    replace(options, interpreter=replace(options.interpreter, python=python)),
+                )
         # URL and named-pipe content has no path on disk to hand to ``uv run --script``
         _LOGGER.warning(
             pipx_wrap(
@@ -257,7 +261,7 @@ def _run_script(
         )
 
     if not requirements:
-        _exec_script(Path(python), content, options.app_args, options.python_args)
+        _exec_script(Path(python), content, options.app_args, options.interpreter.python_args)
 
     # keyed on the requirements rather than the script name, so scripts that need the same packages share one
     # environment; read_script_metadata normalizes them so spacing differences do not split the cache
@@ -285,7 +289,7 @@ def _run_script(
                 # expire the cache so the next run reinstalls the requirements instead of reusing a broken venv
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
                 raise
-        _exec_script(venv.python_path, content, options.app_args, options.python_args)
+        _exec_script(venv.python_path, content, options.app_args, options.interpreter.python_args)
 
 
 def _interpreter_for_script(
@@ -570,7 +574,7 @@ def run_package(
     :param resolved_backend: the backend that installs the package.
     :raises PipxError: when the app cannot run, such as with ``--pypackages`` and no local bin directory.
     """
-    if not options.no_path_check and (app_path := which(app)):
+    if not options.lookup.no_path_check and (app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -585,12 +589,12 @@ def run_package(
 
     pypackage_bin_path: Final[Path] = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        if options.python_args:
+        if options.interpreter.python_args:
             msg = "--python-args cannot run applications from __pypackages__."
             raise PipxError(msg)
         _LOGGER.info("Using app in local __pypackages__ directory at '%s'", pypackage_bin_path)
         run_pypackage_bin(pypackage_bin_path, options.app_args)
-    if options.pypackages:
+    if options.lookup.pypackages:
         msg = f"""
             '--pypackages' flag was passed, but '{pypackage_bin_path}' was
             not found. See https://github.com/cs01/pythonloc to learn how to
@@ -606,7 +610,7 @@ def run_package(
             str(script) if (script := local_script(spec)) is not None else resolve_local_path(spec)
             for spec in (package_or_url, *options.dependencies)
         ],
-        options.python,
+        options.interpreter.python,
         absolute_path_pip_args(options.pip_args, Path.cwd()),
         options.venv_args,
         resolved_backend,
@@ -617,7 +621,9 @@ def run_package(
         venv = Venv(venv_dir, backend=options.backend)
         if infer_app_name and (cached := venv.pipx_metadata.main_package).package is not None:
             # repeat ``_prepare_venv``'s sole-script fallback, else the cache check below misses and rebuilds the venv
-            app, app_filename = _app_names(cached.apps[0] if len(cached.apps) == 1 else cached.package)
+            app, app_filename = _app_names(
+                cached.resources.apps[0] if len(cached.resources.apps) == 1 else cached.package
+            )
         _prepare_venv_cache(venv, venv.bin_path / app_filename, use_cache=options.use_cache, refresh=options.refresh)
 
         if venv.has_app(app, app_filename):
@@ -627,7 +633,7 @@ def run_package(
             venv, app, app_filename = _prepare_venv(
                 venv_dir, package_or_url, (app, app_filename), options, infer_app_name=infer_app_name
             )
-        venv.run_app(app, app_filename, options.app_args, python_args=options.python_args)
+        venv.run_app(app, app_filename, options.app_args, python_args=options.interpreter.python_args)
 
 
 def _app_names(app: str) -> tuple[str, str]:
@@ -649,7 +655,9 @@ def _prepare_venv(
 ) -> _PreparedVenv:
     app, app_filename = app_names
     pip_args: Final[list[str]] = options.pip_args
-    venv: Final[Venv] = Venv(venv_dir, python=options.python, verbose=options.verbose, backend=options.backend)
+    venv: Final[Venv] = Venv(
+        venv_dir, python=options.interpreter.python, verbose=options.verbose, backend=options.backend
+    )
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=options.verbose)
 
     if venv.pipx_metadata.main_package.package is not None:
@@ -658,7 +666,7 @@ def _prepare_venv(
         # a spec without a distribution name costs a throwaway venv here, so resolve it on the requested backend
         package_name = package_name_from_spec(
             package_or_url,
-            options.python,
+            options.interpreter.python,
             pip_args=pip_args,
             verbose=options.verbose,
             backend=options.backend,
@@ -688,7 +696,7 @@ def _prepare_venv(
         raise
 
     if not venv.has_app(app, app_filename):
-        apps: Final[list[str]] = venv.pipx_metadata.main_package.apps
+        apps: Final[list[str]] = venv.pipx_metadata.main_package.resources.apps
         if app == package_name and len(apps) == 1:
             app, app_filename = _app_names(apps[0])
             print(f"NOTE: running app {app!r} from {package_name!r}")  # ruff:ignore[print]  # user-facing CLI output

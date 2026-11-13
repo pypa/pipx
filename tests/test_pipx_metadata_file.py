@@ -5,7 +5,7 @@ import operator
 import os
 import stat
 import sys
-from dataclasses import asdict, replace
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, cast
 
@@ -23,8 +23,15 @@ from package_info import PKG
 from pipx import pipx_metadata_file
 from pipx.backends import UV
 from pipx.constants import PIPX_SHARED_PTH
+from pipx.options import ExposureOptions
 from pipx.paths import CTX
-from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import (
+    PIPX_INFO_FILENAME,
+    JsonEncoderHandlesPath,
+    PackageInfo,
+    PackageResources,
+    PipxMetadata,
+)
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -40,15 +47,16 @@ _MAIN_PACKAGE: Final[PackageInfo] = PackageInfo(
     package="test_package",
     package_or_url="test_package_url",
     pip_args=[],
-    include_apps=True,
-    include_dependencies=False,
-    apps=["testapp"],
-    app_paths=[Path("/usr/bin")],
-    apps_of_dependencies=["dep1"],
-    app_paths_of_dependencies={"dep1": [Path("bin")]},
-    man_pages=[str(Path("man1/testapp.1"))],
-    man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
-    man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
+    exposure=ExposureOptions(),
+    resources=PackageResources(
+        apps=["testapp"],
+        app_paths=[Path("/usr/bin")],
+        apps_of_dependencies=["dep1"],
+        app_paths_of_dependencies={"dep1": [Path("bin")]},
+        man_pages=[str(Path("man1/testapp.1"))],
+        man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
+        man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
+    ),
     package_version="0.1.2",
     expected_apps=["testapp"],
 )
@@ -56,15 +64,16 @@ _INJECTED_PACKAGE: Final[PackageInfo] = PackageInfo(
     package="inj_package",
     package_or_url="inj_package_url",
     pip_args=["-e"],
-    include_apps=True,
-    include_dependencies=False,
-    apps=["injapp"],
-    app_paths=[Path("/usr/bin")],
-    apps_of_dependencies=["dep2"],
-    app_paths_of_dependencies={"dep2": [Path("bin")]},
-    man_pages=[str(Path("man1/injapp.1"))],
-    man_pages_of_dependencies=[str(Path("man1/dep2.1"))],
-    man_paths_of_dependencies={"dep2": [Path("man1/dep2.1")]},
+    exposure=ExposureOptions(),
+    resources=PackageResources(
+        apps=["injapp"],
+        app_paths=[Path("/usr/bin")],
+        apps_of_dependencies=["dep2"],
+        app_paths_of_dependencies={"dep2": [Path("bin")]},
+        man_pages=[str(Path("man1/injapp.1"))],
+        man_pages_of_dependencies=[str(Path("man1/dep2.1"))],
+        man_paths_of_dependencies={"dep2": [Path("man1/dep2.1")]},
+    ),
     package_version="6.7.8",
 )
 
@@ -165,7 +174,7 @@ def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(
     payload["pipx_metadata_version"] = "0.9"
     _main_package(payload).pop("include_resources_from")
 
-    assert read_payload(payload).main_package.include_resources_from == []
+    assert read_payload(payload).main_package.exposure.include_resources_from == []
 
 
 def test_pipx_metadata_file_migrates_include_apps_from(
@@ -174,14 +183,16 @@ def test_pipx_metadata_file_migrates_include_apps_from(
     _main_package(payload).pop("include_resources_from")
     _main_package(payload)["include_apps_from"] = ["numpy"]
 
-    assert read_payload(payload).main_package.include_resources_from == ["numpy"]
+    assert read_payload(payload).main_package.exposure.include_resources_from == ["numpy"]
 
 
 def test_pipx_metadata_file_keys_injected_package_by_name(
     payload: dict[str, JsonValue], read_payload: Callable[[dict[str, JsonValue]], PipxMetadata]
 ) -> None:
     _main_package(payload)["suffix"] = "@1"
-    payload["injected_packages"] = {"inj_package@1": asdict(replace(_INJECTED_PACKAGE, suffix="@1"))}
+    payload["injected_packages"] = {
+        "inj_package@1": replace(_INJECTED_PACKAGE, exposure=ExposureOptions(suffix="@1")).to_dict()
+    }
 
     assert list(read_payload(payload).injected_packages) == ["inj_package"]
 
@@ -235,12 +246,10 @@ def test_metadata_round_trip_includes_backend(tmp_path: Path) -> None:
         package="demo",
         package_or_url="demo",
         pip_args=[],
-        include_dependencies=False,
-        include_apps=True,
-        apps=["demo"],
-        app_paths=[Path("demo")],
-        apps_of_dependencies=[],
-        app_paths_of_dependencies={},
+        exposure=ExposureOptions(),
+        resources=PackageResources(
+            apps=["demo"], app_paths=[Path("demo")], apps_of_dependencies=[], app_paths_of_dependencies={}
+        ),
         package_version="1.0",
     )
     metadata.python_version = "3.12"
@@ -283,7 +292,7 @@ def test_legacy_metadata_defaults_to_pip(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "test_package",
     [
-        pytest.param(replace(_MAIN_PACKAGE, include_apps=False), id="without-apps"),
+        pytest.param(replace(_MAIN_PACKAGE, exposure=ExposureOptions(include_apps=False)), id="without-apps"),
         pytest.param(replace(_MAIN_PACKAGE, package=None), id="without-package"),
         pytest.param(replace(_MAIN_PACKAGE, package_or_url=None), id="without-package-or-url"),
     ],

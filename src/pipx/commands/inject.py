@@ -165,6 +165,18 @@ def _finish_inject(
     return result
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InjectionData(OperationData):
+    """Result data of the inject and uninject commands.
+
+    :ivar packages: the injected, updated or removed packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
+
+    packages: tuple[InjectionPackage, ...]
+    skipped: tuple[_InjectionSkip, ...]
+
+
 def inject_dep(
     venv_dir: Path,
     package_name: str | None,
@@ -280,6 +292,13 @@ def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
     return add_extras(recorded, venv.main_package_name, extras)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InjectionSkip:
+    environment: str
+    package: str
+    reason: str
+
+
 def _install_into(
     venv: Venv,
     package_name: str,
@@ -296,13 +315,13 @@ def _install_into(
         else options.pip_args
     )
     exposure: Final[ExposureOptions] = (
-        ExposureOptions.recorded(main_package)
+        main_package.exposure
         if is_main_package
         else ExposureOptions(
             include_apps=options.include_apps,
             include_dependencies=options.include_dependencies,
             include_resources_from=options.include_resources_from,
-            suffix=venv.package_metadata[venv.main_package_name].suffix if options.with_suffix else "",
+            suffix=venv.package_metadata[venv.main_package_name].exposure.suffix if options.with_suffix else "",
         )
     )
     # pip's --force-reinstall covers the whole resolution, so it also refetches the main package by name from this
@@ -364,7 +383,7 @@ def _install_into(
                 packages=(
                     InjectionPackage(
                         environment=venv.name,
-                        package=f"{package.package}{package.suffix}",
+                        package=f"{package.package}{package.exposure.suffix}",
                         version=package.package_version,
                         status=InjectionStatus.UPDATED if is_main_package else InjectionStatus.INJECTED,
                         location=str(venv.root),
@@ -376,22 +395,6 @@ def _install_into(
         ),
         emit_output=options.emit_output,
     )
-
-
-_REQUIREMENT_COMMENT: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
-
-
-class InjectionStatus(StrEnum):
-    """Outcome of injecting a package.
-
-    :cvar INJECTED: the package was injected.
-    :cvar UNINJECTED: the package was removed.
-    :cvar UPDATED: the package was already injected and was updated.
-    """
-
-    INJECTED = "injected"
-    UNINJECTED = "uninjected"
-    UPDATED = "updated"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -412,23 +415,20 @@ class InjectionPackage:
     location: str
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InjectionSkip:
-    environment: str
-    package: str
-    reason: str
+class InjectionStatus(StrEnum):
+    """Outcome of injecting a package.
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class InjectionData(OperationData):
-    """Result data of the inject and uninject commands.
-
-    :ivar packages: the injected, updated or removed packages.
-    :ivar skipped: the packages that were skipped, with the reason.
+    :cvar INJECTED: the package was injected.
+    :cvar UNINJECTED: the package was removed.
+    :cvar UPDATED: the package was already injected and was updated.
     """
 
-    packages: tuple[InjectionPackage, ...]
-    skipped: tuple[_InjectionSkip, ...]
+    INJECTED = "injected"
+    UNINJECTED = "uninjected"
+    UPDATED = "updated"
+
+
+_REQUIREMENT_COMMENT: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
 __all__ = [

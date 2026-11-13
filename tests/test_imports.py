@@ -78,6 +78,18 @@ def test_cli_startup_loads_module(root: Path, source_env: dict[str, str], module
     assert (module in _startup_imports(root, [], source_env)) is loaded
 
 
+def _startup_imports(root: Path, options: list[str], env: dict[str, str]) -> set[str]:
+    result: Final = subprocess.run(
+        [sys.executable, *options, "-X", "importtime", "-m", "pipx", "--version"],
+        check=True,
+        capture_output=True,
+        cwd=root,
+        env=env,
+        text=True,
+    )
+    return {line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")}
+
+
 @_LAZY_MODULES_HONORED
 @pytest.mark.parametrize(
     ("options", "environment"),
@@ -90,15 +102,3 @@ def test_cli_startup_keeps_lazy_imports_mode_set_by_user(
     root: Path, source_env: dict[str, str], options: list[str], environment: dict[str, str]
 ) -> None:
     assert "argcomplete.shell_integration" in _startup_imports(root, options, source_env | environment)
-
-
-def _startup_imports(root: Path, options: list[str], env: dict[str, str]) -> set[str]:
-    result: Final = subprocess.run(
-        [sys.executable, *options, "-X", "importtime", "-m", "pipx", "--version"],
-        check=True,
-        capture_output=True,
-        cwd=root,
-        env=env,
-        text=True,
-    )
-    return {line.rsplit("|", 1)[-1].strip() for line in result.stderr.splitlines() if line.startswith("import time:")}

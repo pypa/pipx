@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import hashlib
 import importlib
 import io
@@ -20,7 +21,7 @@ from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, ParamSpec, TypeVar
-from urllib.error import HTTPError, URLError
+from urllib.error import URLError
 from urllib.request import urlopen
 from venv import EnvBuilder
 
@@ -96,6 +97,7 @@ def before_venv_subprocess(mocker: MockerFixture) -> Callable[[Path, Callable[[]
 
 
 def _dispatching(call: Callable[_P, _R], actions: dict[str, Callable[[], None]]) -> Callable[_P, _R]:
+    @functools.wraps(call)
     def dispatching(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         for marker, action in actions.items():
             if marker in str(args[0]):
@@ -445,13 +447,14 @@ def standalone_python_index(
     digest: Final[str] = f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"
 
     def build(full_version: str) -> dict[str, float | list[tuple[str, str]]]:
-        suffixes: Final[list[str]] = [
-            suffix
-            for machines in standalone_python.MACHINE_SUFFIX.values()
-            for entry in machines.values()
-            for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
-            for suffix in suffix_list
-        ]
+        suffixes: Final[list[str]] = []
+        for machines in standalone_python.MACHINE_SUFFIX.values():
+            for entry in machines.values():
+                suffixes.extend(
+                    suffix
+                    for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
+                    for suffix in suffix_list
+                )
         return {
             "fetched": time.time(),
             "releases": [(f"https://example.invalid/cpython-{full_version}-{suffix}", digest) for suffix in suffixes],
@@ -532,7 +535,7 @@ def pipx_local_pypiserver(
                 with urlopen(url) as response:
                     if response.code == HTTPStatus.OK:
                         break
-            except (URLError, HTTPError):
+            except URLError:
                 continue
         yield url
     finally:

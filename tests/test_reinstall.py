@@ -38,6 +38,8 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture, MockType
 
+    from pipx.pipx_metadata_file import PackageResources
+
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall() -> None:
@@ -448,7 +450,7 @@ def test_reinstall_preserves_included_dependency(local_extras_wheel: Path) -> No
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
@@ -466,10 +468,14 @@ def test_reinstall_removes_stale_apps_after_success(capsys: pytest.CaptureFixtur
     stale_app_path.chmod(0o755)
     (stale_exposed_path := CTX.bin_dir / stale_app_name).symlink_to(stale_app_path)
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    resources: Final[PackageResources] = metadata.main_package.resources
     metadata.main_package = replace(
         metadata.main_package,
-        apps=[*metadata.main_package.apps, stale_app_name],
-        app_paths=[*metadata.main_package.app_paths, stale_app_path],
+        resources=replace(
+            resources,
+            apps=[*resources.apps, stale_app_name],
+            app_paths=[*resources.app_paths, stale_app_path],
+        ),
     )
     metadata.write()
 

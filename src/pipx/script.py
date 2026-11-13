@@ -250,6 +250,18 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ScriptMetadata:
+    """Inline metadata of a script: its dependencies and the Python it requires.
+
+    :param dependencies: the requirements the script declares.
+    :param requires_python: the Python version the script requires, or None.
+    """
+
+    dependencies: tuple[str, ...]
+    requires_python: str | None
+
+
 def _normalize_requires_python(value: JsonValue) -> str | None:
     if value is None:
         return None
@@ -261,6 +273,13 @@ def _normalize_requires_python(value: JsonValue) -> str | None:
     except InvalidSpecifier as error:
         msg = f"Invalid `requires-python` value {value}: {error}"
         raise PipxError(msg) from error
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Script:
+    app: str
+    content: str
+    metadata: ScriptMetadata
 
 
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
@@ -333,25 +352,6 @@ def _digest(data: bytes) -> str:
 # a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
 # cannot hang pipx or exhaust memory
 _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ScriptMetadata:
-    """Inline metadata of a script: its dependencies and the Python it requires.
-
-    :param dependencies: the requirements the script declares.
-    :param requires_python: the Python version the script requires, or None.
-    """
-
-    dependencies: tuple[str, ...]
-    requires_python: str | None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Script:
-    app: str
-    content: str
-    metadata: ScriptMetadata
 
 
 __all__ = [

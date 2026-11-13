@@ -271,11 +271,12 @@ def test_expose_keeps_link_to_resource_its_venv_still_records(
 def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "holder", read=False)
     main_package: Final = replace(metadata.main_package, package="holder", package_or_url="holder")
+    resources: Final = replace(main_package.resources, **recorded)
     if injected:
         metadata.main_package = main_package
-        metadata.injected_packages = {"extra": replace(main_package, package="extra", **recorded)}
+        metadata.injected_packages = {"extra": replace(main_package, package="extra", resources=resources)}
     else:
-        metadata.main_package = replace(main_package, **recorded)
+        metadata.main_package = replace(main_package, resources=resources)
     metadata.write()
 
 
@@ -346,7 +347,7 @@ def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytes
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     capsys.readouterr()
     venv: Final[Venv] = Venv(CTX.venvs / "pycowsay")
-    (owned := CTX.bin_dir / "stale-owned").symlink_to(venv.pipx_metadata.main_package.app_paths[0])
+    (owned := CTX.bin_dir / "stale-owned").symlink_to(venv.pipx_metadata.main_package.resources.app_paths[0])
     (replaced := CTX.bin_dir / "stale-replaced").write_text("belongs to the user")
 
     remove_stale_venv_resources({owned, replaced}, venv, CTX.bin_dir, CTX.man_dir)

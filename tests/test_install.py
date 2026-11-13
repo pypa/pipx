@@ -533,7 +533,7 @@ def test_install_source_from_pylock(
     assert not run_pipx_cli(["install", *editable_args, "--lock", str(lock_file), str(project)])
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
-    assert (metadata.package_version, metadata.lock_file, metadata.apps, metadata.pip_args) == (
+    assert (metadata.package_version, metadata.lock_file, metadata.resources.apps, metadata.pip_args) == (
         "0.1.0",
         lock_file.resolve(),
         [app_name("empty-project")],
@@ -907,7 +907,7 @@ def test_install_missing_recorded_app_restores_existing_environment(
         "Package empty-project does not provide expected app empty-project. Available apps: none." in error,
         metadata.package_version,
         metadata.expected_apps,
-        metadata.apps,
+        metadata.resources.apps,
         (CTX.bin_dir / app_name("empty-project")).exists(),
     ) == (True, "0.1.0", ["empty-project"], [app_name("empty-project")], True)
 
@@ -1067,7 +1067,7 @@ def test_install_include_resources_from_dependency(
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.bin_dir / app_name("black")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
@@ -1087,7 +1087,7 @@ def test_install_force_replaces_included_dependency_resources(local_extras_wheel
 
     metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "repeatme").main_package
     assert (
-        metadata.include_resources_from,
+        metadata.exposure.include_resources_from,
         (CTX.bin_dir / app_name("pycowsay")).exists(),
         (CTX.man_dir / "man6" / "pycowsay.6").exists(),
         (CTX.bin_dir / app_name("black")).exists(),

@@ -8,6 +8,7 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, Protocol
 from venv import EnvBuilder
 
@@ -29,7 +30,10 @@ _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.w
 _COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
-_STREAM_ENCODING: Final[dict[str, str]] = {"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"}
+_STREAM_ENCODING: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "PYTHONIOENCODING": "cp850",
+    "PYTHONLEGACYWINDOWSSTDIO": "cp850",
+})
 
 
 def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:

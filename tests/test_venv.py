@@ -29,12 +29,6 @@ if TYPE_CHECKING:
     from pipx.constants import ExitCode
 
 
-class _SitePackagesVenv(NamedTuple):
-    venv: Venv
-    site_packages: tuple[Path, Path]
-    run_subprocess: MockType
-
-
 @pytest.fixture
 def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePackagesVenv:
     venv: Final[Venv] = Venv(tmp_path / "demo")
@@ -57,6 +51,12 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePacka
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
     )
     return _SitePackagesVenv(venv, (purelib_demo, platlib_demo), run_subprocess)
+
+
+class _SitePackagesVenv(NamedTuple):
+    venv: Venv
+    site_packages: tuple[Path, Path]
+    run_subprocess: MockType
 
 
 def test_has_package(venv_with_site_packages: _SitePackagesVenv) -> None:
@@ -232,7 +232,7 @@ def test_package_name_determination_preserves_install_error(mocker: MockerFixtur
         stdout="",
         stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
     )
-    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
     mocker.patch.object(venv, "list_installed_packages", return_value=set(), autospec=True)
     mocker.patch("pipx.venv.get_site_packages", return_value=[], autospec=True)
 
@@ -274,7 +274,7 @@ def _probe_venv(mocker: MockerFixture, site_packages: Path, listed_name: str, di
     backend: Final[MockType] = mocker.create_autospec(Backend, instance=True, **{"cooldown_args.return_value": []})
     # Python 3.11's create_autospec drops a side_effect passed as a keyword for a child method
     backend.install.side_effect = install
-    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch("pipx.venv.get_backend", autospec=True, return_value=backend)
     mocker.patch.object(venv, "list_installed_packages", side_effect=[{"pip"}, {"pip", listed_name}], autospec=True)
     mocker.patch("pipx.venv.get_site_packages", return_value=[site_packages], autospec=True)
     return venv
