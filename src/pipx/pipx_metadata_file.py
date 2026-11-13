@@ -110,7 +110,6 @@ class PipxMetadata:
     :ivar python_version: the Python version of the environment, or None.
     :ivar source_interpreter: the interpreter the environment was created from, or None.
     :ivar venv_args: extra arguments passed when creating the environment.
-
     :ivar injected_packages: the metadata of the injected packages, keyed by package name.
     :ivar backend: the name of the backend that installs packages.
     :ivar exposure_enabled: whether the apps are exposed.

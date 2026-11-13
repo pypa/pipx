@@ -449,13 +449,11 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         :param exposure: the apps and resources to expose.
         :param is_main_package: whether it is the environment's main package.
         :param install_only_pip_args: extra arguments for this install only.
-
         :param expected_apps: the apps the package must provide, or None to check nothing.
         :param lock_file: the lock file the package is installed from.
         :param pinned: whether to pin the package, or None to keep its state.
         :param cooldown_days: skip releases uploaded within this many days.
         :param extra_requirements: requirements to install with the package.
-
         :returns: the metadata of the environment after the installation.
         :raises PipxError: when the installation fails or the package does not provide the expected apps.
         :raises IncompatiblePythonError: when the package needs another Python than the environment's.
@@ -639,7 +637,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         :param expected_apps: the apps the package must provide, or None to check nothing.
         :param lock_file: the lock file it was installed from.
         :param cooldown_days: the cooldown it was installed with.
-
         :returns: the metadata of the package.
         :raises PipxError: when a dependency whose resources are requested is not installed.
         """

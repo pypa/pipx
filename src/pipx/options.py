@@ -170,7 +170,6 @@ class InjectOptions:
     :param force: whether to inject even when the package is already present.
     :param force_reinstall: whether an injected package is reinstalled.
     :param with_suffix: whether the exposed app names carry the environment suffix.
-
     :param backend: the backend that installs the package.
     :param cooldown_days: the cooldown in days applied to the new releases, or None.
     :param pinned: whether the environment is pinned, or None to keep the recorded state.
@@ -217,7 +216,6 @@ class UpgradeOptions:
     :param include_injected: whether the injected packages are upgraded too.
     :param force: whether to upgrade even when the package is up to date.
     :param python_flag_passed: whether ``--python`` was given on the command line.
-
     :param backend: the backend that upgrades the package.
     :param cooldown: the cooldown applied to the new releases.
     :param install: whether to install the package when it is missing.
