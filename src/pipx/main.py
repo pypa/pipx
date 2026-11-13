@@ -1831,6 +1831,15 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
             followed by internal pipx variables which are derived from the environment
             variables and platform specific default values.
 
+            --value reports the computed value when the variable appears under
+            "Derived values" in the full output. Other settable variables report
+            their raw environment value, or an empty line when unset.
+            An empty value does not mean pipx has no default.
+
+            To inspect effective global paths, use --global with the corresponding
+            path name without GLOBAL_, for example:
+              pipx environment --global --value PIPX_BIN_DIR
+
             Available variables:
             """
         )
@@ -1842,7 +1851,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         "-V",
         choices=ENVIRONMENT_VALUE_CHOICES,
         metavar="VARIABLE",
-        help="Print the value of the variable.",
+        help="Print the computed value if available, otherwise the raw environment value (empty when unset).",
     )
     parser.set_defaults(func=_cmd_environment)
 
