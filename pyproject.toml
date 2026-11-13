@@ -193,6 +193,7 @@ lint.ignore = [
   "single-line-implicit-string-concatenation", # conflicts with formatter
   "subprocess-without-shell-equals-true",      # using subprocess is alright
   "suspicious-subprocess-import",              # using subprocess is alright
+  "unnecessary-regular-expression-compile",    # conflicts with simplint inline-regex
 ]
 lint.per-file-ignores."src/pipx/main.py" = [
   "import-outside-top-level", # each command loads its module on dispatch to keep CLI startup fast

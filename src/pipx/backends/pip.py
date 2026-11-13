@@ -9,7 +9,6 @@ __lazy_modules__ = [
     "pipx.subprocess_runner",
     "pipx.trash",
     "pipx.util",
-    "re",
 ]
 
 import json
@@ -36,12 +35,32 @@ from ._base import outdated_packages_from_process
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
-    from re import Pattern
     from subprocess import CompletedProcess
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 # Windows appends by seeking to the end and then writing, so fan-out tasks appending at once overwrite each other
 _ERROR_LOG_LOCK: Final[Lock] = Lock()
+_FAILED_BUILD_STDOUT: Final[re.Pattern[str]] = re.compile(r"Failed to build\s+(\S.+)$")
+_COLLECTING: Final[re.Pattern[str]] = re.compile(r"^\s*Collecting\s+(\S+)")
+_FAILED_BUILD_STDERR: Final[re.Pattern[str]] = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
+_RELEVANT_SEARCHES: Final[dict[str, re.Pattern[str]]] = {
+    "not_found": re.compile(r"not (?:be )?found", re.IGNORECASE),
+    "no_such": re.compile(r"no such", re.IGNORECASE),
+    "exception_error": re.compile(r"(Exception|Error):\s*\S+"),
+    "fatal_error": re.compile(r"fatal error", re.IGNORECASE),
+    "conflict_": re.compile(r"conflict", re.IGNORECASE),
+    "error_": re.compile(
+        r"""
+        error:                                        # the error marker
+        (?!.+Command\ errored\ out)                   # a build that failed in a subprocess
+        (?!.+failed\ building\ wheel\ for)           # a wheel that failed to build
+        (?!.+could\ not\ build\ wheels?\ for)       # a wheel that could not be built
+        (?!.+failed\ to\ build\ one\ or\ more\ wheels)  # several wheels that failed to build
+        .+[^:]$                                       # a message that does not end with a colon
+        """,
+        re.IGNORECASE | re.VERBOSE,
+    ),
+}
 
 
 class PipBackend(Backend):
@@ -395,44 +414,18 @@ def _analyze_pip_output(pip_stdout: str, pip_stderr: str, *, streamed: bool) -> 
     last_collecting_dep: str | None = None
     # stdout carries these lines only when pip runs without -q
     for line in pip_stdout.split("\n"):
-        if failed_match := re.search(r"Failed to build\s+(\S.+)$", line):
+        if failed_match := _FAILED_BUILD_STDOUT.search(line):
             failed_build_stdout = failed_match.group(1).strip().split()
-        if collecting_match := re.search(r"^\s*Collecting\s+(\S+)", line):
+        if collecting_match := _COLLECTING.search(line):
             last_collecting_dep = collecting_match.group(1)
-
-    # most useful first, each beside a pip line it catches
-    relevant_searches: Final[dict[str, Pattern[str]]] = {
-        # Package cairo was not found in the pkg-config search path.
-        "not_found": re.compile(r"not (?:be )?found", re.IGNORECASE),
-        # unable to execute 'gcc': No such file or directory
-        "no_such": re.compile(r"no such", re.IGNORECASE),
-        # Exception: Unable to find OpenSSL >= 1.0 headers. (Looked here: ...
-        "exception_error": re.compile(r"(Exception|Error):\s*\S+"),
-        # LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
-        "fatal_error": re.compile(r"fatal error", re.IGNORECASE),
-        # ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/...
-        "conflict_": re.compile(r"conflict", re.IGNORECASE),
-        # error: can't copy 'lib\ansible\module_utils\ansible_release.py': doesn't exist ...
-        "error_": re.compile(
-            r"""
-            error:                                        # the error marker
-            (?!.+Command\ errored\ out)                   # a build that failed in a subprocess
-            (?!.+failed\ building\ wheel\ for)           # a wheel that failed to build
-            (?!.+could\ not\ build\ wheels?\ for)       # a wheel that could not be built
-            (?!.+failed\ to\ build\ one\ or\ more\ wheels)  # several wheels that failed to build
-            .+[^:]$                                       # a message that does not end with a colon
-            """,
-            re.IGNORECASE | re.VERBOSE,
-        ),
-    }
 
     relevants_saved: Final[dict[str, str]] = {}
     failed_build_stderr: Final[set[str]] = set()
     for line in pip_stderr.split("\n"):
-        if failed_build_match := re.search(r"Failed to build\s+(?!one or more packages)(\S+)", line):
+        if failed_build_match := _FAILED_BUILD_STDERR.search(line):
             failed_build_stderr.add(failed_build_match.group(1))
 
-        for category, pattern in relevant_searches.items():
+        for category, pattern in _RELEVANT_SEARCHES.items():
             if pattern.search(line):
                 relevants_saved.setdefault(line.strip(), category)
                 break
@@ -442,7 +435,7 @@ def _analyze_pip_output(pip_stdout: str, pip_stderr: str, *, streamed: bool) -> 
     if relevants_saved and not streamed:
         print("\nErrors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
-        print_categories: Final[list[str]] = list(relevant_searches)
+        print_categories: Final[list[str]] = list(_RELEVANT_SEARCHES)
         relevants_saved_filtered = list(relevants_saved)
         max_relevant_errors: Final[int] = 10
         while len(print_categories) > 1 and len(relevants_saved_filtered) > max_relevant_errors:

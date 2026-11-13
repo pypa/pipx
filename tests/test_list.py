@@ -192,6 +192,9 @@ def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_ve
     assert f"shell completions are exposed at {CTX.completion_dir}" in captured.out
 
 
+_TEST_LIST_JSON_PATTERN: Final[re.Pattern[str]] = re.compile(r"\S")
+
+
 @pytest.mark.parametrize(
     "venv_bin_dir",
     [
@@ -213,7 +216,7 @@ def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_
     assert not run_pipx_cli(["list", "--output", "json"])
     captured: Final = capsys.readouterr()
 
-    assert not re.search(r"\S", captured.err)
+    assert not _TEST_LIST_JSON_PATTERN.search(captured.err)
     (listed := tmp_path / "list.json").write_text(captured.out, encoding="utf-8")
     json_parsed: Final = load_spec_file(listed)
 

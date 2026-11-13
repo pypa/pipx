@@ -29,7 +29,6 @@ __lazy_modules__ = [
     "pipx.version",
     "pipx.wrap",
     "platformdirs",
-    "re",
     "shlex",
     "textwrap",
     "urllib.parse",
@@ -137,6 +136,16 @@ if TYPE_CHECKING:
     from pipx.commands.upgrade import SharedData, UpgradeData
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_LOG_NAME: Final[re.Pattern[str]] = re.compile(
+    r"""
+    cmd_
+    (?P<started>\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)  # start time of the run
+    (?:_(?P<counter>\d+))?                              # counter for runs that start in the same second
+    (?P<error_kind>_[a-z]+_errors)?                      # kind of an error log, such as _pip_errors
+    \.log
+    """,
+    re.VERBOSE,
+)
 
 _VenvCompleter = Callable[[str], list[str]]
 
@@ -2075,20 +2084,10 @@ def _rotate_logs(current: Path, max_logs: int) -> None:
     # the current log counts toward the limit and must outlive its run, since a failure points the user at its
     # error log, so 0 keeps that one log
     keep_old: Final[int] = max(max_logs - 1, 0)
-    name_pattern: Final[re.Pattern[str]] = re.compile(
-        r"""
-        cmd_
-        (?P<started>\d{4}-\d\d-\d\d_\d\d\.\d\d\.\d\d)  # start time of the run
-        (?:_(?P<counter>\d+))?                              # counter for runs that start in the same second
-        (?P<error_kind>_[a-z]+_errors)?                      # kind of an error log, such as _pip_errors
-        \.log
-        """,
-        re.VERBOSE,
-    )
     command_logs: dict[tuple[str, int], Path] = {}
     error_logs: list[tuple[tuple[str, int], Path]] = []
     for path in current.parent.glob("cmd_*.log"):
-        if path != current and (match := name_pattern.fullmatch(path.name)):
+        if path != current and (match := _LOG_NAME.fullmatch(path.name)):
             run = (match["started"], int(match["counter"] or 0))
             if match["error_kind"]:
                 error_logs.append((run, path))

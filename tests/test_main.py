@@ -170,6 +170,9 @@ def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys
     assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
+_TEST_RUN_HELP_PRINTS_USAGE_PREFIX_ONCE_IN_COLOR_PATTERN: Final[re.Pattern[str]] = re.compile(r"\x1b\[[0-9;]*m")
+
+
 @pytest.mark.usefixtures("exit_early")
 def test_run_help_prints_usage_prefix_once_in_color(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
@@ -181,7 +184,9 @@ def test_run_help_prints_usage_prefix_once_in_color(
     with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["run", "--help"])
 
-    assert re.sub(r"\x1b\[[0-9;]*m", "", capsys.readouterr().out).count("usage:") == 1
+    assert (
+        _TEST_RUN_HELP_PRINTS_USAGE_PREFIX_ONCE_IN_COLOR_PATTERN.sub("", capsys.readouterr().out).count("usage:") == 1
+    )
 
 
 @pytest.mark.parametrize("flag", [pytest.param("-qqq", id="quiet"), pytest.param("-vvvv", id="verbose")])
@@ -237,8 +242,11 @@ def test_manpage_matches_parser(tmp_path: Path) -> None:
     assert _MANPAGE_RST.read_bytes() == generated.read_bytes()
 
 
+_TEST_MANPAGE_SECTIONS_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\.SH (.+)$", re.MULTILINE)
+
+
 def test_manpage_sections(manpage_troff: bytes) -> None:
-    assert re.findall(r"^\.SH (.+)$", manpage_troff.decode(), re.MULTILINE) == [
+    assert _TEST_MANPAGE_SECTIONS_PATTERN.findall(manpage_troff.decode()) == [
         "Name",
         "SYNOPSIS",
         "DESCRIPTION",
@@ -250,8 +258,14 @@ def test_manpage_sections(manpage_troff: bytes) -> None:
     ]
 
 
+_TEST_MANPAGE_HEADER_PATTERN: Final[re.Pattern[str]] = re.compile(r'^\.TH "pipx" "1" .* "User Commands"$', re.MULTILINE)
+
+
 def test_manpage_header(manpage_troff: bytes) -> None:
-    assert re.search(r'^\.TH "pipx" "1" .* "User Commands"$', manpage_troff.decode(), re.MULTILINE)
+    assert _TEST_MANPAGE_HEADER_PATTERN.search(manpage_troff.decode())
+
+
+_RENDERED_PATTERN: Final[re.Pattern[str]] = re.compile(r".\x08")
 
 
 @pytest.mark.timeout(60)  # man printed nothing for 5 s on a busy Linux CI runner
@@ -266,7 +280,7 @@ def test_manpage_renders(man: str, manpage_troff: bytes, tmp_path: Path) -> None
         check=False,
         timeout=30,
     )
-    rendered: Final[str] = re.sub(r".\x08", "", result.stdout)
+    rendered: Final[str] = _RENDERED_PATTERN.sub("", result.stdout)
     assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
 
 

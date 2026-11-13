@@ -44,6 +44,25 @@ def _main(argv: list[str]) -> int:
     return create_test_packages_list(options.package_list_dir, options.primary_package_list)
 
 
+_WHEEL_FILENAME: Final[re.Pattern[str]] = re.compile(
+    r"""
+                (?P<name>[^-]+)-(?P<version>[^-]+)  # distribution name and version
+                -[^-]+-[^-]+-[^-]+                  # python tag, ABI tag and platform tag
+                (?:-[^-]+)?                         # optional build tag
+                \.whl$                              # wheel suffix
+                """,
+    re.VERBOSE,
+)
+
+_SOURCE_DISTRIBUTION_FILENAME: Final[re.Pattern[str]] = re.compile(
+    r"""
+                (?P<name>.+)-(?P<version>[^-]+)  # distribution name and version
+                \.(?:tar.gz|zip)$               # source distribution suffix
+                """,
+    re.VERBOSE,
+)
+
+
 def create_test_packages_list(package_list_dir_path: Path, primary_package_list_path: Path) -> int:
     package_list_dir_path.mkdir(exist_ok=True)
     if not (primary_test_packages := _parse_package_list(primary_package_list_path)):
@@ -65,30 +84,14 @@ def create_test_packages_list(package_list_dir_path: Path, primary_package_list_
     package_specs: Final[list[str]] = sorted(
         f"{match['name']}=={match['version']}"
         for downloaded_path in downloaded
-        if (
-            match := re.search(
-                r"""
-                (?P<name>[^-]+)-(?P<version>[^-]+)  # distribution name and version
-                -[^-]+-[^-]+-[^-]+                  # python tag, ABI tag and platform tag
-                (?:-[^-]+)?                         # optional build tag
-                \.whl$                              # wheel suffix
-                """,
-                downloaded_path,
-                re.VERBOSE,
-            )
-            or re.search(
-                r"""
-                (?P<name>.+)-(?P<version>[^-]+)  # distribution name and version
-                \.(?:tar.gz|zip)$               # source distribution suffix
-                """,
-                downloaded_path,
-                re.VERBOSE,
-            )
-        )
+        if (match := _WHEEL_FILENAME.search(downloaded_path) or _SOURCE_DISTRIBUTION_FILENAME.search(downloaded_path))
     )
     with get_platform_list_path(package_list_dir_path).open("w") as package_list_fh:
         package_list_fh.writelines(f"{package_spec}\n" for package_spec in package_specs)
     return exit_code
+
+
+_PARSE_PACKAGE_LIST_PATTERN: Final[re.Pattern[str]] = re.compile(r"#.+$")
 
 
 def _parse_package_list(package_list_file: Path) -> list[_TestPackage]:
@@ -99,7 +102,7 @@ def _parse_package_list(package_list_file: Path) -> list[_TestPackage]:
         return []
     test_packages: Final[list[_TestPackage]] = []
     for line in lines:
-        match re.sub(r"#.+$", "", line).split():
+        match _PARSE_PACKAGE_LIST_PATTERN.sub("", line).split():
             case []:
                 continue
             case [spec]:

@@ -46,6 +46,8 @@ _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
+_SCRIPT_APP: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
+_DISTRIBUTION_SEPARATOR: Final[re.Pattern[str]] = re.compile(r"[-_.]+")
 
 
 @contextmanager
@@ -86,7 +88,7 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
         msg = "A script can provide one --app name."
         raise PipxError(msg)
     app: Final[str] = _script_app(package_spec, expected_apps)
-    if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]*", app) is None:
+    if _SCRIPT_APP.fullmatch(app) is None:
         msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
         raise PipxError(msg)
     return canonicalize_name(app)
@@ -267,7 +269,7 @@ def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
 
     digest: Final[str] = hashlib.sha256(script.content.encode()).hexdigest()[:12]
     version: Final[str] = f"0+{digest}"
-    distribution: Final[str] = re.sub(r"[-_.]+", "_", package_name)
+    distribution: Final[str] = _DISTRIBUTION_SEPARATOR.sub("_", package_name)
     module: Final[str] = f"_pipx_script_{distribution}"
     stem: Final[str] = f"{distribution}-{version}"
     dist_info: Final[str] = f"{stem}.dist-info"

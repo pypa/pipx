@@ -113,9 +113,12 @@ def pipx_subprocess_env() -> dict[str, str]:
     }
 
 
+_UNWRAP_LOG_TEXT_PATTERN: Final[re.Pattern[str]] = re.compile(r"\n\s+")
+
+
 def unwrap_log_text(log_text: str) -> str:
     # a captured log line starts with its severity, so a line opening with spaces continues a wrapped pipx message
-    return re.sub(r"\n\s+", " ", log_text)
+    return _UNWRAP_LOG_TEXT_PATTERN.sub(" ", log_text)
 
 
 def current_log_file() -> Path:

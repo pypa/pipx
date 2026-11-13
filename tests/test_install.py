@@ -1389,6 +1389,11 @@ def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], lo
     assert not exposed_man_page.exists()
 
 
+_TEST_INSTALL_UV_FAILURE_SHOWS_UV_ERROR_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"Errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx"
+)
+
+
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_uv_failure_shows_uv_error(
@@ -1398,10 +1403,7 @@ def test_install_uv_failure_shows_uv_error(
 
     assert run_pipx_cli(["install", "--backend", "uv", str(project)])
 
-    assert re.search(
-        r"Errors from uv install:\n\s+error: .*\n.*no-such-dependency-for-pipx",
-        capsys.readouterr().err,
-    )
+    assert _TEST_INSTALL_UV_FAILURE_SHOWS_UV_ERROR_PATTERN.search(capsys.readouterr().err)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1554,17 +1556,26 @@ def test_install_json_failure_keeps_what_the_terminal_showed(
     assert ("pipx-final-frame" in message, "pipx-redrawn-frame" in message) == (True, False)
 
 
+_PIP_LOG_FILE_MATCH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"Full pip output in file:\s+(?P<log>\S.+)$", re.MULTILINE
+)
+
+_TEST_INSTALL_PIP_FAILURE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"pip failed (to build|while processing) package"
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
 
     err: Final[str] = capsys.readouterr().err
-    pip_log_file_match: Final = re.search(r"Full pip output in file:\s+(?P<log>\S.+)$", err, re.MULTILINE)
+    pip_log_file_match: Final = _PIP_LOG_FILE_MATCH_PATTERN.search(err)
     assert pip_log_file_match
     assert (
         "Fatal error from pip" in err,
         Path(pip_log_file_match["log"]).exists(),
-        re.search(r"pip failed (to build|while processing) package", err) is not None,
+        _TEST_INSTALL_PIP_FAILURE_PATTERN.search(err) is not None,
     ) == (True, True, True)
 
 

@@ -539,6 +539,11 @@ def test_install_all_rejects_bad_spec_file(
     assert (result, expected in error) == (1, True)
 
 
+_TEST_INSTALL_ALL_PRINTS_PROGRESS_IN_SPEC_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^installing ([\w-]+)", re.MULTILINE
+)
+
+
 def test_install_all_prints_progress_in_spec_order(
     capsys: pytest.CaptureFixture[str],
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
@@ -549,7 +554,7 @@ def test_install_all_prints_progress_in_spec_order(
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
-    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+    assert _TEST_INSTALL_ALL_PRINTS_PROGRESS_IN_SPEC_ORDER_PATTERN.findall(capsys.readouterr().err) == venv_names
 
 
 @pytest.fixture

@@ -17,7 +17,6 @@ __lazy_modules__ = [
     "pipx.util",
     "pipx.venv",
     "pipx.wrap",
-    "re",
     "shlex",
     "shutil",
     "tempfile",
@@ -68,6 +67,7 @@ if TYPE_CHECKING:
     from pipx.venv_inspect import VenvMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_SAFE_SUFFIX: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9._@+-]*")
 _SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
 # shared links a fan-out task took over because they dangled, with the target they had and the one written
 _DANGLING_TAKEN: Final[ContextVar[dict[Path, tuple[Path, Path]]]] = ContextVar("dangling_taken")
@@ -1208,7 +1208,7 @@ def validate_suffix(suffix: str) -> str:
     """
     # pipx splices a suffix straight into an exposed file name, so anything but a portable character set could steer the
     # destination out of PIPX_BIN_DIR or PIPX_MAN_DIR
-    if re.fullmatch(r"[A-Za-z0-9._@+-]*", suffix) is None:
+    if _SAFE_SUFFIX.fullmatch(suffix) is None:
         msg: Final[str] = (
             f"Invalid suffix {suffix!r}. Use only letters, digits, and the characters . _ - + @ so exposed file "
             f"names stay inside pipx's directories."
