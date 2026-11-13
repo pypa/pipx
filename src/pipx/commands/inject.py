@@ -165,6 +165,18 @@ def _finish_inject(
     return result
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InjectionData(OperationData):
+    """Result data of the inject and uninject commands.
+
+    :ivar packages: the injected, updated or removed packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
+
+    packages: tuple[InjectionPackage, ...]
+    skipped: tuple[_InjectionSkip, ...]
+
+
 def inject_dep(
     venv_dir: Path,
     package_name: str | None,
@@ -280,6 +292,13 @@ def _main_spec_with_extras(venv: Venv, package_spec: str) -> str | None:
     return add_extras(recorded, venv.main_package_name, extras)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InjectionSkip:
+    environment: str
+    package: str
+    reason: str
+
+
 def _install_into(
     venv: Venv,
     package_name: str,
@@ -378,22 +397,6 @@ def _install_into(
     )
 
 
-_REQUIREMENT_COMMENT: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
-
-
-class InjectionStatus(StrEnum):
-    """Outcome of injecting a package.
-
-    :cvar INJECTED: the package was injected.
-    :cvar UNINJECTED: the package was removed.
-    :cvar UPDATED: the package was already injected and was updated.
-    """
-
-    INJECTED = "injected"
-    UNINJECTED = "uninjected"
-    UPDATED = "updated"
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InjectionPackage:
     """A package that was injected, updated or removed in an environment.
@@ -412,23 +415,20 @@ class InjectionPackage:
     location: str
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InjectionSkip:
-    environment: str
-    package: str
-    reason: str
+class InjectionStatus(StrEnum):
+    """Outcome of injecting a package.
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class InjectionData(OperationData):
-    """Result data of the inject and uninject commands.
-
-    :ivar packages: the injected, updated or removed packages.
-    :ivar skipped: the packages that were skipped, with the reason.
+    :cvar INJECTED: the package was injected.
+    :cvar UNINJECTED: the package was removed.
+    :cvar UPDATED: the package was already injected and was updated.
     """
 
-    packages: tuple[InjectionPackage, ...]
-    skipped: tuple[_InjectionSkip, ...]
+    INJECTED = "injected"
+    UNINJECTED = "uninjected"
+    UPDATED = "updated"
+
+
+_REQUIREMENT_COMMENT: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
 __all__ = [

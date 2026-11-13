@@ -315,65 +315,6 @@ class PipxMetadata:
             return None
 
 
-def _json_decoder_object_hook(json_dict: dict[str, JsonValue]) -> dict[str, JsonValue] | Path:
-    if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
-        return Path(cast("str", json_dict["__Path__"]))
-    return json_dict
-
-
-class JsonEncoderHandlesPath(json.JSONEncoder):
-    """JSON encoder that writes a path as an object tagged with its type."""
-
-    def default(
-        self,
-        o: object,  # simplint: ignore[single-letter-name, imprecise-annotation]  # JSONEncoder override
-    ) -> dict[str, str]:
-        """Return the JSON form of a path, as a dictionary tagged with its type.
-
-        :param o: the object to encode.
-        :returns: the tagged form of a path.
-        """
-        if isinstance(o, Path):
-            return {"__type__": "Path", "__Path__": str(o)}
-        return super().default(o)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class PackageResources:
-    """The apps, man pages and completion scripts of a package and of its dependencies.
-
-    :param apps: names of the apps of the package.
-    :param app_paths: paths of the apps of the package.
-    :param apps_of_dependencies: names of the apps of the dependencies.
-    :param app_paths_of_dependencies: paths of the apps of each dependency, keyed by package name.
-    :param man_pages: names of the man pages of the package.
-    :param man_paths: paths of the man pages of the package.
-    :param man_pages_of_dependencies: names of the man pages of the dependencies.
-    :param man_paths_of_dependencies: paths of the man pages of each dependency, keyed by package name.
-    :param completions: names of the completion scripts of the package.
-    :param completion_paths: paths of the completion scripts of the package.
-    :param completions_of_dependencies: names of the completion scripts of the dependencies.
-    :param completion_paths_of_dependencies: paths of the completion scripts of each dependency, by package name.
-    """
-
-    apps: list[str]
-    app_paths: list[Path]
-    apps_of_dependencies: list[str]
-    app_paths_of_dependencies: dict[str, list[Path]]
-    man_pages: list[str] = field(default_factory=list)
-    man_paths: list[Path] = field(default_factory=list)
-    man_pages_of_dependencies: list[str] = field(default_factory=list)
-    man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
-    completions: list[str] = field(default_factory=list)
-    completion_paths: list[Path] = field(default_factory=list)
-    completions_of_dependencies: list[str] = field(default_factory=list)
-    completion_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
-
-
-_EXPOSURE_KEYS: Final[frozenset[str]] = frozenset(item.name for item in fields(ExposureOptions))
-_RESOURCE_KEYS: Final[frozenset[str]] = frozenset(item.name for item in fields(PackageResources))
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PackageInfo:
     """Metadata of one package installed in an environment: its spec, its apps, its man pages and its completions.
@@ -511,6 +452,65 @@ class PackageInfo:
             **asdict(self.exposure),
             **asdict(self.resources),
         }
+
+
+def _json_decoder_object_hook(json_dict: dict[str, JsonValue]) -> dict[str, JsonValue] | Path:
+    if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
+        return Path(cast("str", json_dict["__Path__"]))
+    return json_dict
+
+
+class JsonEncoderHandlesPath(json.JSONEncoder):
+    """JSON encoder that writes a path as an object tagged with its type."""
+
+    def default(
+        self,
+        o: object,  # simplint: ignore[single-letter-name, imprecise-annotation]  # JSONEncoder override
+    ) -> dict[str, str]:
+        """Return the JSON form of a path, as a dictionary tagged with its type.
+
+        :param o: the object to encode.
+        :returns: the tagged form of a path.
+        """
+        if isinstance(o, Path):
+            return {"__type__": "Path", "__Path__": str(o)}
+        return super().default(o)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PackageResources:
+    """The apps, man pages and completion scripts of a package and of its dependencies.
+
+    :param apps: names of the apps of the package.
+    :param app_paths: paths of the apps of the package.
+    :param apps_of_dependencies: names of the apps of the dependencies.
+    :param app_paths_of_dependencies: paths of the apps of each dependency, keyed by package name.
+    :param man_pages: names of the man pages of the package.
+    :param man_paths: paths of the man pages of the package.
+    :param man_pages_of_dependencies: names of the man pages of the dependencies.
+    :param man_paths_of_dependencies: paths of the man pages of each dependency, keyed by package name.
+    :param completions: names of the completion scripts of the package.
+    :param completion_paths: paths of the completion scripts of the package.
+    :param completions_of_dependencies: names of the completion scripts of the dependencies.
+    :param completion_paths_of_dependencies: paths of the completion scripts of each dependency, by package name.
+    """
+
+    apps: list[str]
+    app_paths: list[Path]
+    apps_of_dependencies: list[str]
+    app_paths_of_dependencies: dict[str, list[Path]]
+    man_pages: list[str] = field(default_factory=list)
+    man_paths: list[Path] = field(default_factory=list)
+    man_pages_of_dependencies: list[str] = field(default_factory=list)
+    man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
+    completions: list[str] = field(default_factory=list)
+    completion_paths: list[Path] = field(default_factory=list)
+    completions_of_dependencies: list[str] = field(default_factory=list)
+    completion_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
+
+
+_EXPOSURE_KEYS: Final[frozenset[str]] = frozenset(item.name for item in fields(ExposureOptions))
+_RESOURCE_KEYS: Final[frozenset[str]] = frozenset(item.name for item in fields(PackageResources))
 
 
 def load_spec_file(path: Path) -> _RawSpecFile:

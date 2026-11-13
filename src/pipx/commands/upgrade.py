@@ -259,6 +259,27 @@ def _upgrade_venv_packages(
         return _upgrade_packages(venv, main_pip_args, options, packages_to_upgrade=packages_to_upgrade)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _PackageUpgradeResult:
+    environment: str
+    package: str
+    previous_version: str
+    version: str
+    status: _UpgradeStatus
+    injected: bool
+    location: str
+    interpreter: str | None
+    backend: str
+    source: str | None = None
+
+
+class _UpgradeStatus(StrEnum):
+    LOCKED = "locked"
+    PINNED = "pinned"
+    UNCHANGED = "unchanged"
+    UPGRADED = "upgraded"
+
+
 def _upgrade_packages(
     venv: Venv,
     main_pip_args: list[str],
@@ -389,6 +410,18 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
         backend=venv.pipx_metadata.backend,
         source=_local_source(package_metadata),
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class UpgradeData(OperationData):
+    """Result data of the upgrade commands.
+
+    :ivar packages: the upgrade results of the packages.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
+
+    packages: tuple[_PackageUpgradeResult, ...]
+    skipped: tuple[_SkippedUpgrade, ...]
 
 
 def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> tuple[OutputMessage, ...]:
@@ -590,10 +623,31 @@ def _upgrade_listed_venv(
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _VenvUpgrade:
+    messages: tuple[OutputMessage, ...] = ()
+    results: tuple[_PackageUpgradeResult, ...] = ()
+    skipped: tuple[_SkippedUpgrade, ...] = ()
+    failures: tuple[_FailedUpgrade, ...] = ()
+    interrupted: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedUpgrade:
+    environment: str
+    reason: str
+
+
 def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
     # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
     if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
         raise PipxError("\n".join(errors), wrap_message=False)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedUpgrade:
+    environment: str
+    error: str
 
 
 def _interrupted_upgrade(venv_dir: Path) -> _VenvUpgrade:
@@ -634,60 +688,6 @@ class SharedData(OperationData):
     """
 
     location: str
-
-
-class _UpgradeStatus(StrEnum):
-    LOCKED = "locked"
-    PINNED = "pinned"
-    UNCHANGED = "unchanged"
-    UPGRADED = "upgraded"
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _PackageUpgradeResult:
-    environment: str
-    package: str
-    previous_version: str
-    version: str
-    status: _UpgradeStatus
-    injected: bool
-    location: str
-    interpreter: str | None
-    backend: str
-    source: str | None = None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedUpgrade:
-    environment: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedUpgrade:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _VenvUpgrade:
-    messages: tuple[OutputMessage, ...] = ()
-    results: tuple[_PackageUpgradeResult, ...] = ()
-    skipped: tuple[_SkippedUpgrade, ...] = ()
-    failures: tuple[_FailedUpgrade, ...] = ()
-    interrupted: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class UpgradeData(OperationData):
-    """Result data of the upgrade commands.
-
-    :ivar packages: the upgrade results of the packages.
-    :ivar skipped: the packages that were skipped, with the reason.
-    """
-
-    packages: tuple[_PackageUpgradeResult, ...]
-    skipped: tuple[_SkippedUpgrade, ...]
 
 
 __all__ = [

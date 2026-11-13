@@ -102,55 +102,6 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _PYLOCK_NAME: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class InstallData(OperationData):
-    """Result data of the install command.
-
-    :ivar packages: the installed packages.
-    :ivar skipped: the install requests that were skipped, with the reason.
-    """
-
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _ExistingInstall:
-    continue_install: bool
-    packages: tuple[_InstalledPackage, ...]
-    skipped: tuple[_SkippedInstall, ...]
-    messages: tuple[OutputMessage, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InstalledPackage:
-    environment: str
-    package: str
-    version: str
-    location: str
-    interpreter: str | None
-    backend: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedInstall:
-    environment: str
-    package: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _InstallRun:
-    options: InstallOptions
-    lock_file: Path | None
-    venv_container: VenvContainer
-    venv_lock: BaseFileLock | None
-    messages: list[OutputMessage]
-    packages: list[_InstalledPackage]
-    skipped: list[_SkippedInstall]
-    failures: list[_FailedInstall]
-
-
 def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
     """Install every package listed in a metadata file, one environment per package.
 
@@ -609,9 +560,33 @@ def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) 
     return result
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class InstallData(OperationData):
+    """Result data of the install command.
+
+    :ivar packages: the installed packages.
+    :ivar skipped: the install requests that were skipped, with the reason.
+    """
+
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+
+
 def _error_report(error: PipxError) -> str:
     # a JSON consumer reads only the envelope, which needs the installer's reason the terminal showed beside it
     return f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstallRun:
+    options: InstallOptions
+    lock_file: Path | None
+    venv_container: VenvContainer
+    venv_lock: BaseFileLock | None
+    messages: list[OutputMessage]
+    packages: list[_InstalledPackage]
+    skipped: list[_SkippedInstall]
+    failures: list[_FailedInstall]
 
 
 def _install_into_venv(
@@ -799,6 +774,14 @@ def _handle_existing_install(
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ExistingInstall:
+    continue_install: bool
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+    messages: tuple[OutputMessage, ...]
+
+
 def _upgrade_existing_venv(
     venv: Venv, build: _EnvironmentBuild, options: InstallOptions
 ) -> tuple[str | None, tuple[OutputMessage, ...]]:
@@ -872,6 +855,13 @@ def _record_expected_apps(venv: Venv, expected_apps: Sequence[str]) -> None:
     venv.pipx_metadata.write()
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedInstall:
+    environment: str
+    package: str
+    reason: str
+
+
 def _record_install_failure(
     failures: list[_FailedInstall],
     messages: list[OutputMessage],
@@ -880,6 +870,12 @@ def _record_install_failure(
 ) -> None:
     failures.append(_FailedInstall(environment=environment, error=_error_report(error)))
     messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedInstall:
+    environment: str
+    error: str
 
 
 def _build_and_expose(
@@ -978,6 +974,16 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _InstalledPackage:
+    environment: str
+    package: str
+    version: str
+    location: str
+    interpreter: str | None
+    backend: str
+
+
 def _generate_package_spec(package_info: PackageInfo) -> str:
     if not package_info.package_or_url:
         msg = f"A package spec is not available for {package_info.package}"
@@ -990,12 +996,6 @@ def _generate_package_spec(package_info: PackageInfo) -> str:
 
 def _first_cooldown(*candidates: int | None) -> int | None:
     return next((candidate for candidate in candidates if candidate is not None), None)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedInstall:
-    environment: str
-    error: str
 
 
 __all__ = [

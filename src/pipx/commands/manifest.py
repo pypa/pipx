@@ -280,6 +280,19 @@ def _is_non_empty_strings(value: object) -> TypeIs[list[str]]:
     return isinstance(value, list) and all(isinstance(item, str) and item for item in value)
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ManifestTool:
+    environment: str
+    package: str
+    package_name: str
+    suffix: str
+    apps: tuple[str, ...]
+    include_dependencies: bool
+    include_resources_from: tuple[str, ...]
+    expose: bool
+    lock_file: Path | None
+
+
 def _parse_apps(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
     if not _is_non_empty_strings(apps := data.get("apps", [])):
         msg = f"Manifest tool {environment} apps must be non-empty strings."
@@ -316,6 +329,12 @@ def _parse_lock_file(
         msg = f"Lock file does not exist for manifest tool {environment}: {lock_file}"
         raise PipxError(msg)
     return lock_file
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Manifest:
+    path: Path
+    tools: tuple[_ManifestTool, ...]
 
 
 def _read_venv_state(venv_dir: Path) -> _VenvState:
@@ -416,25 +435,6 @@ class ManifestData(OperationData):
 
     environments: tuple[str, ...]
     locks: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _ManifestTool:
-    environment: str
-    package: str
-    package_name: str
-    suffix: str
-    apps: tuple[str, ...]
-    include_dependencies: bool
-    include_resources_from: tuple[str, ...]
-    expose: bool
-    lock_file: Path | None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Manifest:
-    path: Path
-    tools: tuple[_ManifestTool, ...]
 
 
 _TomlValue: TypeAlias = str | int | float | bool | datetime | date | time | list["_TomlValue"] | dict[str, "_TomlValue"]

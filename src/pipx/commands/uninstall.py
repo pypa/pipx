@@ -159,6 +159,14 @@ def _remove_resource(path: Path) -> None:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class _UninstalledPackage:
+    environment: str
+    package: str
+    version: str | None
+    location: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class UninstallData(OperationData):
     """Result data of the uninstall commands.
 
@@ -166,14 +174,6 @@ class UninstallData(OperationData):
     """
 
     packages: tuple[_UninstalledPackage, ...]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _UninstalledPackage:
-    environment: str
-    package: str
-    version: str | None
-    location: str
 
 
 __all__ = [

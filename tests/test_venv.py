@@ -29,12 +29,6 @@ if TYPE_CHECKING:
     from pipx.constants import ExitCode
 
 
-class _SitePackagesVenv(NamedTuple):
-    venv: Venv
-    site_packages: tuple[Path, Path]
-    run_subprocess: MockType
-
-
 @pytest.fixture
 def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePackagesVenv:
     venv: Final[Venv] = Venv(tmp_path / "demo")
@@ -57,6 +51,12 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> _SitePacka
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout=f"{purelib}\n{platlib}\n", stderr=""),
     )
     return _SitePackagesVenv(venv, (purelib_demo, platlib_demo), run_subprocess)
+
+
+class _SitePackagesVenv(NamedTuple):
+    venv: Venv
+    site_packages: tuple[Path, Path]
+    run_subprocess: MockType
 
 
 def test_has_package(venv_with_site_packages: _SitePackagesVenv) -> None:
