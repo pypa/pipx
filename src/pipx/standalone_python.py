@@ -41,7 +41,8 @@ from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from typing import TypeIs
+    from http.client import HTTPResponse
+    from typing import BinaryIO, TypeIs
 
     from filelock import BaseFileLock
 
@@ -334,16 +335,36 @@ def _download_resuming(url: str, archive: Path) -> None:
             request = Request(url, headers={"Range": f"bytes={written}-"} if written else {})  # ruff:ignore[suspicious-url-open-usage]
             try:
                 with urlopen(request, timeout=_URL_OPEN_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # the URL is from the pinned release index, not user input
-                    if written and response.status != HTTPStatus.PARTIAL_CONTENT:
-                        # the server ignored the range request and answered with the whole file
-                        file_handle.seek(0)
-                        file_handle.truncate()
-                    # 32KB chunks keep memory flat
-                    file_handle.writelines(iter(partial(response.read, 32768), b""))
+                    _write_body(response, file_handle, resumed=bool(written))
             except _TRANSIENT_NETWORK_ERRORS as error:
                 _backoff_or_raise(error, attempt, url)
             else:
                 return
+
+
+def _write_body(response: HTTPResponse, file_handle: BinaryIO, *, resumed: bool) -> None:
+    if resumed and response.status != HTTPStatus.PARTIAL_CONTENT:
+        # the server ignored the range request and answered with the whole file
+        file_handle.seek(0)
+        file_handle.truncate()
+    # 32KB chunks keep memory flat
+    file_handle.writelines(iter(partial(response.read, 32768), b""))
+    # read(amt) returns a body cut short of its Content-Length without raising (python/cpython#115997) and leaves the
+    # missing byte count in length, so raise a transient error to retry and resume from the bytes already on disk
+    if missing := getattr(response, "length", None):
+        raise _BodyCutShort(file_handle.tell(), missing)
+
+
+class _BodyCutShort(http.client.IncompleteRead):
+    # the bytes read so far are on disk, not in memory, so count them in the message in place of a partial body
+    def __init__(self, written: int, missing: int) -> None:
+        super().__init__(b"", missing)
+        self.written: Final[int] = written
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.written} bytes on disk, {self.expected} more expected)"
+
+    __str__ = __repr__
 
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
