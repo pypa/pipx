@@ -9,7 +9,8 @@ from argparse import (
     SUPPRESS,
     Action,
     ArgumentParser,
-    _SubParsersAction,  # ruff:ignore[import-private-name]  # argparse exposes no public subparser type
+    # argparse exposes no public subparser action type.
+    _SubParsersAction,  # ruff:ignore[import-private-name]  # simplint: ignore[private-import-path]
 )
 from pathlib import Path
 from typing import Final

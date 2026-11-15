@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from pipx import main
+from pipx._env_parsing import compute_cooldown, compute_fetch_python, compute_max_logs  # ruff:ignore[import-private-name]  # mirrors the private source path
 from pipx.constants import FetchPythonOptions
 
 
@@ -24,7 +24,7 @@ def test_compute_fetch_python(
     expected_option: FetchPythonOptions,
     expected_invalid: bool,
 ) -> None:
-    option, invalid = main._compute_fetch_python(missing_raw, python_raw)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it
+    option, invalid = compute_fetch_python(missing_raw, python_raw)
     assert option is expected_option
     assert invalid is expected_invalid
 
@@ -42,7 +42,7 @@ def test_compute_fetch_python(
     ],
 )
 def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_invalid: bool) -> None:
-    assert main._compute_cooldown(raw) == (expected_days, expected_invalid)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it
+    assert compute_cooldown(raw) == (expected_days, expected_invalid)
 
 
 @pytest.mark.parametrize(
@@ -59,4 +59,4 @@ def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_i
     ],
 )
 def test_compute_max_logs(raw: str | None, expected_logs: int, expected_invalid: bool) -> None:
-    assert main._compute_max_logs(raw) == (expected_logs, expected_invalid)  # ruff:ignore[private-member-access]  # parsed once at import, so per-test env changes cannot reach it
+    assert compute_max_logs(raw) == (expected_logs, expected_invalid)

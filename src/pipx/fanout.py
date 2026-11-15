@@ -179,6 +179,126 @@ class _Turn(Condition):
     __exit__ = property(lambda self: self._lock.__exit__)
 
 
+@dataclass(slots=True, kw_only=True)
+class _Children:
+    lock: Condition
+    submitted: Event
+    finishes: bool
+    running: dict[_Child, _Slot] = field(default_factory=dict)
+    finishing: set[_Slot] = field(default_factory=set)
+    stopping: bool = False
+    interrupted: bool = False
+    # the writer that left each stream's last line open
+    open_lines: dict[TextIO, _Slot | _Stopped | None] = field(default_factory=dict)
+
+    def stop(self) -> int:
+        # the first interrupt stops the children of the tasks not finishing their work, the second stops every child
+        with self.lock:
+            if self.stopping or not self.finishing:
+                self.interrupted = True
+                # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
+                self.open_lines = dict.fromkeys(self.open_lines, _Stopped.STOPPED)
+            self.stopping = True
+            for process, slot in self.running.items():
+                if self.stops(slot):
+                    stop_process_group(process)
+            return 0 if self.interrupted else len(self.finishing)
+
+    def stops(self, slot: _Slot) -> bool:
+        return self.interrupted or (self.stopping and slot not in self.finishing)
+
+    def write(self, target: TextIO, text: str, writer: _Slot | None) -> int:
+        with self.lock:
+            # once interrupted, tasks write out of turn and must not run on into a line another one left unfinished
+            if self.interrupted and self.open_lines.get(target, writer) is not writer and text[:1] not in {"\n", "\r"}:
+                target.write("\n")
+            if text.endswith("\n"):
+                self.open_lines.pop(target, None)
+            elif text:
+                self.open_lines[target] = writer
+            return target.write(text)
+
+
+class _Stopped(enum.Enum):
+    STOPPED = enum.auto()
+
+
+@dataclass(eq=False, slots=True, kw_only=True)
+class _Slot:
+    turn: Condition
+    children: _Children
+    live: bool
+    after: _Slot | None
+    locked: bool = False
+    chunks: list[tuple[TextIO, str]] = field(default_factory=list)
+
+    def pass_lock(self) -> None:
+        with self.turn:
+            self.locked = True
+            self.turn.notify_all()
+
+    def go_live(self) -> None:
+        with self.turn:
+            # a reader that went away must keep neither the task from its turn nor the fan-out from waiting for its
+            # tasks; what the task writes next fails in the task, which rolls back as it does running alone
+            with suppress(OSError, ValueError):
+                for stream, text in self.chunks:
+                    self.children.write(stream, text, self)
+                    stream.flush()
+            self.chunks.clear()
+            self.live = True
+            self.turn.notify_all()
+
+
+@contextmanager
+def _routed_output(children: _Children) -> Generator[None, None, None]:
+    stdout, stderr = sys.stdout, sys.stderr
+    # the stream handler bound sys.stderr when logging was set up, so it does not see the replacement below
+    handlers: Final[list[tuple[logging.StreamHandler[TextIO], TextIO]]] = [
+        (handler, handler.stream)
+        for handler in logging.getLogger("pipx").handlers
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler)
+    ]
+    # Python sets a stream closed at startup to None, which print skips, so a held task must not buffer output for it
+    sys.stdout, sys.stderr = (None if stream is None else _routed(stream, children) for stream in (stdout, stderr))
+    for handler, stream in handlers:
+        handler.setStream(_routed(stream, children))
+    try:
+        yield
+    finally:
+        sys.stdout, sys.stderr = stdout, stderr
+        for handler, stream in handlers:
+            handler.setStream(stream)
+
+
+def _routed(target: TextIO, children: _Children) -> TextIO:
+    # a duck-typed stand-in rather than an io.TextIOBase subclass, whose finalizer would flush a target closed by then
+    return cast("TextIO", _RoutedStream(target, children))
+
+
+class _RoutedStream:
+    def __init__(self, target: TextIO, children: _Children) -> None:
+        self._target: Final[TextIO] = target
+        self._children: Final[_Children] = children
+
+    def __getattr__(
+        self, name: str
+    ) -> object:  # simplint: ignore[imprecise-annotation]  # TextIO attributes have unrelated types
+        return getattr(self._target, name)
+
+    def write(self, text: str) -> int:
+        slot: Final[_Slot | None] = _SLOT.get()
+        with self._children.lock:
+            if slot is None or slot.live:
+                return self._children.write(self._target, text, slot)
+            slot.chunks.append((self._target, text))
+        return len(text)
+
+    def flush(self) -> None:
+        if (slot := _SLOT.get()) is None or slot.live:
+            self._target.flush()
+
+
 def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT]:
     # executor threads do not inherit the submitter's context, which carries pipx's switches as well as the slot
     context: Final[Context] = copy_context()
@@ -243,124 +363,6 @@ def _settle(futures: list[Future[_ResultT]], slots: list[_Slot], children: _Chil
             _interrupt(futures, children)
         else:
             return
-
-
-class _Stopped(enum.Enum):
-    STOPPED = enum.auto()
-
-
-@dataclass(slots=True, kw_only=True)
-class _Children:
-    lock: Condition
-    submitted: Event
-    finishes: bool
-    running: dict[_Child, _Slot] = field(default_factory=dict)
-    finishing: set[_Slot] = field(default_factory=set)
-    stopping: bool = False
-    interrupted: bool = False
-    # the writer that left each stream's last line open
-    open_lines: dict[TextIO, _Slot | _Stopped | None] = field(default_factory=dict)
-
-    def stop(self) -> int:
-        # the first interrupt stops the children of the tasks not finishing their work, the second stops every child
-        with self.lock:
-            if self.stopping or not self.finishing:
-                self.interrupted = True
-                # a line a stopped child left open stays unfinished, so whatever comes next starts a line of its own
-                self.open_lines = dict.fromkeys(self.open_lines, _Stopped.STOPPED)
-            self.stopping = True
-            for process, slot in self.running.items():
-                if self.stops(slot):
-                    stop_process_group(process)
-            return 0 if self.interrupted else len(self.finishing)
-
-    def stops(self, slot: _Slot) -> bool:
-        return self.interrupted or (self.stopping and slot not in self.finishing)
-
-    def write(self, target: TextIO, text: str, writer: _Slot | None) -> int:
-        with self.lock:
-            # once interrupted, tasks write out of turn and must not run on into a line another one left unfinished
-            if self.interrupted and self.open_lines.get(target, writer) is not writer and text[:1] not in {"\n", "\r"}:
-                target.write("\n")
-            if text.endswith("\n"):
-                self.open_lines.pop(target, None)
-            elif text:
-                self.open_lines[target] = writer
-            return target.write(text)
-
-
-@dataclass(eq=False, slots=True, kw_only=True)
-class _Slot:
-    turn: Condition
-    children: _Children
-    live: bool
-    after: _Slot | None
-    locked: bool = False
-    chunks: list[tuple[TextIO, str]] = field(default_factory=list)
-
-    def pass_lock(self) -> None:
-        with self.turn:
-            self.locked = True
-            self.turn.notify_all()
-
-    def go_live(self) -> None:
-        with self.turn:
-            # a reader that went away must keep neither the task from its turn nor the fan-out from waiting for its
-            # tasks; what the task writes next fails in the task, which rolls back as it does running alone
-            with suppress(OSError, ValueError):
-                for stream, text in self.chunks:
-                    self.children.write(stream, text, self)
-                    stream.flush()
-            self.chunks.clear()
-            self.live = True
-            self.turn.notify_all()
-
-
-@contextmanager
-def _routed_output(children: _Children) -> Generator[None, None, None]:
-    stdout, stderr = sys.stdout, sys.stderr
-    # the stream handler bound sys.stderr when logging was set up, so it does not see the replacement below
-    handlers: Final[list[tuple[logging.StreamHandler[TextIO], TextIO]]] = [
-        (handler, handler.stream)
-        for handler in logging.getLogger("pipx").handlers
-        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler)
-    ]
-    # Python sets a stream closed at startup to None, which print skips, so a held task must not buffer output for it
-    sys.stdout, sys.stderr = (None if stream is None else _routed(stream, children) for stream in (stdout, stderr))
-    for handler, stream in handlers:
-        handler.setStream(_routed(stream, children))
-    try:
-        yield
-    finally:
-        sys.stdout, sys.stderr = stdout, stderr
-        for handler, stream in handlers:
-            handler.setStream(stream)
-
-
-def _routed(target: TextIO, children: _Children) -> TextIO:
-    # a duck-typed stand-in rather than an io.TextIOBase subclass, whose finalizer would flush a target closed by then
-    return cast("TextIO", _RoutedStream(target, children))
-
-
-class _RoutedStream:
-    def __init__(self, target: TextIO, children: _Children) -> None:
-        self._target: Final[TextIO] = target
-        self._children: Final[_Children] = children
-
-    def __getattr__(self, name: str) -> object:  # simplint: ignore[SMP602]  # TextIO attributes have unrelated types
-        return getattr(self._target, name)
-
-    def write(self, text: str) -> int:
-        slot: Final[_Slot | None] = _SLOT.get()
-        with self._children.lock:
-            if slot is None or slot.live:
-                return self._children.write(self._target, text, slot)
-            slot.chunks.append((self._target, text))
-        return len(text)
-
-    def flush(self) -> None:
-        if (slot := _SLOT.get()) is None or slot.live:
-            self._target.flush()
 
 
 def output_is_held() -> bool:

@@ -161,6 +161,14 @@ def _list_environment_outdated(
         )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _EnvironmentOutdated:
+    packages_checked: int = 0
+    packages: tuple[_OutdatedPackage, ...] = ()
+    skipped: tuple[_SkippedPackage, ...] = ()
+    failures: tuple[_FailedEnvironment, ...] = ()
+
+
 def _list_venv_outdated(
     venv: Venv,
     *,
@@ -185,7 +193,7 @@ def _list_venv_outdated(
     for package_name, package_info in venv.package_metadata.items():
         if package_name != venv.main_package_name and not include_injected:
             continue
-        display_name: Final[str] = f"{package_name}{package_info.suffix}"
+        display_name: Final[str] = f"{package_name}{package_info.exposure.suffix}"
         if package_info.package_or_url is None:
             failures.append(
                 _FailedEnvironment(environment=venv.name, error=f"Package {display_name} has corrupt pipx metadata.")
@@ -221,6 +229,19 @@ def _list_venv_outdated(
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedEnvironment:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedPackage:
+    environment: str
+    package: str
+    reason: str
+
+
 def _collect_outdated(
     venv: Venv,
     index_args: tuple[str, ...],
@@ -233,7 +254,7 @@ def _collect_outdated(
     return [
         _OutdatedPackage(
             environment=venv.name,
-            package=f"{managed_package.package}{managed_package.suffix}",
+            package=f"{managed_package.package}{managed_package.exposure.suffix}",
             version=package.version,
             latest_version=package.latest_version,
             injected=managed_package.package != venv.main_package_name,
@@ -244,15 +265,6 @@ def _collect_outdated(
     ], []
 
 
-def _package_message(package: _OutdatedPackage) -> OutputMessage:
-    subject: Final[str] = (
-        f"{package.package} (injected in {package.environment})" if package.injected else package.package
-    )
-    return OutputMessage(
-        text=f"{subject}{' [pinned]' if package.pinned else ''}: {package.version} -> {package.latest_version}"
-    )
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _OutdatedPackage:
     environment: str
@@ -261,27 +273,6 @@ class _OutdatedPackage:
     latest_version: str
     injected: bool
     pinned: bool
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedPackage:
-    environment: str
-    package: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedEnvironment:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _EnvironmentOutdated:
-    packages_checked: int = 0
-    packages: tuple[_OutdatedPackage, ...] = ()
-    skipped: tuple[_SkippedPackage, ...] = ()
-    failures: tuple[_FailedEnvironment, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -309,6 +300,15 @@ class OutdatedData(OperationData):
         data: Final[dict[str, JsonValue]] = OperationData.to_dict(self)
         del data["failures"]
         return data
+
+
+def _package_message(package: _OutdatedPackage) -> OutputMessage:
+    subject: Final[str] = (
+        f"{package.package} (injected in {package.environment})" if package.injected else package.package
+    )
+    return OutputMessage(
+        text=f"{subject}{' [pinned]' if package.pinned else ''}: {package.version} -> {package.latest_version}"
+    )
 
 
 __all__ = [

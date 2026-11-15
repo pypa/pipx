@@ -14,8 +14,6 @@ from pipx.pipx_metadata_file import PipxMetadata
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
-
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_pin(caplog: pytest.LogCaptureFixture) -> None:
@@ -43,7 +41,7 @@ def test_pin_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["pin", "pycowsay", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["pin"],
@@ -73,7 +71,7 @@ def test_pin_json(capsys: pytest.CaptureFixture[str]) -> None:
 def test_pin_json_reports_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["pin", "missing", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["pin"],
@@ -108,7 +106,7 @@ def test_pin_output(capsys: pytest.CaptureFixture[str], options: tuple[str, ...]
 
     assert not run_pipx_cli(["pin", "pycowsay", *options])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == (expected_output, "")
 
 
@@ -120,7 +118,7 @@ def test_pin_injected_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only", "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 

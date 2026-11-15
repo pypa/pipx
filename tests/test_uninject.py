@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 
@@ -30,7 +29,7 @@ def test_uninject_json(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["uninject", "--output", "json", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninject"],
@@ -59,7 +58,7 @@ def test_uninject_json(capsys: pytest.CaptureFixture[str]) -> None:
 def test_uninject_json_reports_unknown_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "missing"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninject"],
@@ -84,7 +83,7 @@ def test_uninject_json_reports_unknown_package(capsys: pytest.CaptureFixture[str
 def test_uninject_json_reports_missing_environment(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "missing", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninject"],
@@ -111,7 +110,7 @@ def test_uninject_json_reports_missing_metadata(capsys: pytest.CaptureFixture[st
 
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "black"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninject"],
@@ -143,7 +142,7 @@ def test_uninject_json_reports_missing_metadata(capsys: pytest.CaptureFixture[st
 def test_uninject_json_reports_main_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "pycowsay"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninject"],

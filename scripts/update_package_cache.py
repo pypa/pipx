@@ -46,6 +46,9 @@ def main(argv: list[str]) -> int:
     )
 
 
+_UPDATE_TEST_PACKAGES_CACHE_PATTERN: Final[re.Pattern[str]] = re.compile(r"^(?P<name>.+)==(?P<version>.+)$")
+
+
 def _update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_path: Path, *, check_only: bool) -> int:
     packages_dir_path: Final[Path] = get_platform_packages_dir_path(pipx_package_cache_path)
     packages_dir_path.mkdir(exist_ok=True, parents=True)
@@ -65,7 +68,7 @@ def _update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_
     packages_dir_missing: Final[list[str]] = []
     with platform_package_list_fh:
         for line in platform_package_list_fh:
-            if not (package_spec_match := re.search(r"^(?P<name>.+)==(?P<version>.+)$", package_spec := line.strip())):
+            if not (package_spec_match := _UPDATE_TEST_PACKAGES_CACHE_PATTERN.search(package_spec := line.strip())):
                 exit_code = 1
                 continue
             package_name, package_version = package_spec_match["name"], package_spec_match["version"]

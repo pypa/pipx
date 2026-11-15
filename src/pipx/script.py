@@ -46,6 +46,8 @@ _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
+_SCRIPT_APP: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
+_DISTRIBUTION_SEPARATOR: Final[re.Pattern[str]] = re.compile(r"[-_.]+")
 
 
 @contextmanager
@@ -86,7 +88,7 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
         msg = "A script can provide one --app name."
         raise PipxError(msg)
     app: Final[str] = _script_app(package_spec, expected_apps)
-    if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]*", app) is None:
+    if _SCRIPT_APP.fullmatch(app) is None:
         msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
         raise PipxError(msg)
     return canonicalize_name(app)
@@ -183,9 +185,7 @@ def download_script(url: str) -> str:
         raise PipxError(msg) from error
 
 
-def _reject_incomplete_script(  # simplint: ignore[SMP505]  # inlined, the try clause breaks ruff's statement limit
-    url: str, response: HTTPResponse | addinfourl, data: bytes
-) -> None:
+def _reject_incomplete_script(url: str, response: HTTPResponse | addinfourl, data: bytes) -> None:
     if len(data) > _MAX_SCRIPT_BYTES:
         msg = f"Script {redact_url_credentials(url)} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
         raise PipxError(msg)
@@ -250,6 +250,18 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ScriptMetadata:
+    """Inline metadata of a script: its dependencies and the Python it requires.
+
+    :param dependencies: the requirements the script declares.
+    :param requires_python: the Python version the script requires, or None.
+    """
+
+    dependencies: tuple[str, ...]
+    requires_python: str | None
+
+
 def _normalize_requires_python(value: JsonValue) -> str | None:
     if value is None:
         return None
@@ -263,13 +275,20 @@ def _normalize_requires_python(value: JsonValue) -> str | None:
         raise PipxError(msg) from error
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _Script:
+    app: str
+    content: str
+    metadata: ScriptMetadata
+
+
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
     import hashlib  # ruff:ignore[import-outside-top-level]  # loads OpenSSL, slows startup
     from zipfile import ZIP_DEFLATED, ZipFile  # ruff:ignore[import-outside-top-level]  # slows startup
 
     digest: Final[str] = hashlib.sha256(script.content.encode()).hexdigest()[:12]
     version: Final[str] = f"0+{digest}"
-    distribution: Final[str] = re.sub(r"[-_.]+", "_", package_name)
+    distribution: Final[str] = _DISTRIBUTION_SEPARATOR.sub("_", package_name)
     module: Final[str] = f"_pipx_script_{distribution}"
     stem: Final[str] = f"{distribution}-{version}"
     dist_info: Final[str] = f"{stem}.dist-info"
@@ -333,25 +352,6 @@ def _digest(data: bytes) -> str:
 # a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
 # cannot hang pipx or exhaust memory
 _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class ScriptMetadata:
-    """Inline metadata of a script: its dependencies and the Python it requires.
-
-    :param dependencies: the requirements the script declares.
-    :param requires_python: the Python version the script requires, or None.
-    """
-
-    dependencies: tuple[str, ...]
-    requires_python: str | None
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _Script:
-    app: str
-    content: str
-    metadata: ScriptMetadata
 
 
 __all__ = [

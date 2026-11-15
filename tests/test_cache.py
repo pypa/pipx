@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Final
 
 import pytest
 
 from harness import run_pipx_cli
 from pipx.paths import CTX
-
-if TYPE_CHECKING:
-    from _pytest.capture import CaptureResult
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -71,5 +67,5 @@ def test_cache_quiet_says_nothing(
 ) -> None:
     assert not run_pipx_cli(["cache", subcommand, "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")

@@ -14,7 +14,7 @@ __lazy_modules__ = [
 import sys
 from contextlib import contextmanager, suppress
 from pathlib import Path
-from shutil import Error, copytree
+from shutil import copytree
 from tempfile import mkdtemp
 from time import sleep as _sleep
 from typing import TYPE_CHECKING, Final
@@ -83,7 +83,7 @@ class VenvBackup:
         backup_dir: Final[Path] = self._new_backup_dir()
         try:
             copytree(self._venv_dir, backup_dir, symlinks=True)
-        except (Error, OSError) as error:
+        except OSError as error:
             rmdir(backup_dir)
             msg: Final[str] = f"pipx could not back up environment {self._venv_dir.name}: {error}"
             raise PipxError(msg) from error
@@ -128,15 +128,6 @@ class VenvBackup:
             rmdir(self._backup_dir)
 
 
-def runs_from_venv(venv_dir: Path) -> bool:
-    """Return whether pipx runs from the given environment.
-
-    :param venv_dir: the directory of the environment.
-    :returns: whether the running interpreter belongs to the environment.
-    """
-    return Path(sys.prefix).resolve() == venv_dir.resolve()
-
-
 def import_from_copy(copy_dir: Path) -> bool:
     """Make the running pipx import from a copy of its environment.
 
@@ -152,6 +143,36 @@ def import_from_copy(copy_dir: Path) -> bool:
     (lock := FileLock(copy_dir / _IN_USE_LOCK)).acquire()
     _HELD_COPIES[copy_dir] = lock
     return True
+
+
+def rename_once_released(source: Path, target: Path) -> None:
+    """Rename a directory, retrying while Windows keeps it busy.
+
+    :param source: the directory to rename.
+    :param target: the new path of the directory.
+    :raises OSError: when the rename keeps failing after the retries.
+    """
+    # Windows refuses to rename a directory while a handle inside it is open, and a concurrent rebuild of another venv
+    # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
+    for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
+        try:
+            source.rename(target)
+        except PermissionError:
+            _sleep(delay)
+        else:
+            return
+    source.rename(target)
+
+
+def release_copy(copy_dir: Path) -> None:
+    """Release the lock that keeps a copy in use.
+
+    :param copy_dir: the copy of the environment.
+    """
+    # the copy goes back in place of the venv, which must not carry the lock file
+    if (lock := _HELD_COPIES.pop(copy_dir, None)) is not None:
+        lock.release()
+        (copy_dir / _IN_USE_LOCK).unlink(missing_ok=True)
 
 
 def repoint_imports(source: Path, target: Path) -> bool:
@@ -177,34 +198,13 @@ def _moved(entry: str, source: Path, target: Path) -> str:
     return str(target / path.relative_to(source)) if (path := Path(entry)).is_relative_to(source) else entry
 
 
-def release_copy(copy_dir: Path) -> None:
-    """Release the lock that keeps a copy in use.
+def runs_from_venv(venv_dir: Path) -> bool:
+    """Return whether pipx runs from the given environment.
 
-    :param copy_dir: the copy of the environment.
+    :param venv_dir: the directory of the environment.
+    :returns: whether the running interpreter belongs to the environment.
     """
-    # the copy goes back in place of the venv, which must not carry the lock file
-    if (lock := _HELD_COPIES.pop(copy_dir, None)) is not None:
-        lock.release()
-        (copy_dir / _IN_USE_LOCK).unlink(missing_ok=True)
-
-
-def rename_once_released(source: Path, target: Path) -> None:
-    """Rename a directory, retrying while Windows keeps it busy.
-
-    :param source: the directory to rename.
-    :param target: the new path of the directory.
-    :raises OSError: when the rename keeps failing after the retries.
-    """
-    # Windows refuses to rename a directory while a handle inside it is open, and a concurrent rebuild of another venv
-    # briefly opens this one's scripts directory while it matches the launcher copies in the bin directory to venvs
-    for delay in (0.05, 0.1, 0.2, 0.4, 0.8):
-        try:
-            source.rename(target)
-        except PermissionError:
-            _sleep(delay)
-        else:
-            return
-    source.rename(target)
+    return Path(sys.prefix).resolve() == venv_dir.resolve()
 
 
 @contextmanager

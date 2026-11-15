@@ -13,7 +13,6 @@ from pipx.paths import CTX
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 
@@ -215,7 +214,7 @@ def test_reset_confirmed_json_keeps_prompt_off_stdout(
 
     assert run_pipx_cli(["reset", "--output", "json"]) == 0
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         json.loads(captured.out)["status"],
         "Remove every pipx-installed package" in captured.err,

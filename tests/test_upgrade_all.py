@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -29,7 +30,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -179,7 +179,7 @@ def test_upgrade_all_reports_outdated_check_failure(
 
     assert run_pipx_cli(["upgrade-all"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (check.call_count, "Package backend exited with code 1" in captured.err) == (1, True)
 
 
@@ -211,7 +211,7 @@ def test_upgrade_all_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["upgrade-all", "--quiet"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 
@@ -223,7 +223,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["upgrade-all"],
@@ -298,7 +298,7 @@ def test_upgrade_all_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["upgrade-all"],
@@ -389,6 +389,11 @@ def test_upgrade_all_legacy_venv(metadata_version: str) -> None:
     assert not run_pipx_cli(["upgrade-all"])
 
 
+_TEST_UPGRADE_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^upgrading ([\w-]+)", re.MULTILINE
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture, outdated_venv_names: list[str]
@@ -408,7 +413,9 @@ def test_upgrade_all_prints_progress_in_venv_order(
 
     assert not run_pipx_cli(["upgrade-all"])
 
-    assert re.findall(r"^upgrading ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == outdated_venv_names
+    assert (
+        _TEST_UPGRADE_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN.findall(capsys.readouterr().err) == outdated_venv_names
+    )
 
 
 @pytest.fixture
@@ -443,7 +450,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
 
     exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         exit_code,
         f"upgraded package {outdated_venv_names[1]} from " in captured.out,
@@ -495,6 +502,7 @@ def interrupt_upgrade(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -
 def _interrupting(call: Callable[_P, _R], presses: int, caplog: pytest.LogCaptureFixture) -> Callable[_P, _R]:
     pending: Final[list[int]] = [presses]
 
+    @functools.wraps(call)
     def interrupting(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         if pending[0] and "--upgrade" in (command := str(args[0])) and f"{os.sep}black" in command:
             for press in range(pending.pop()):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "pipx.subprocess_runner", "re"]
+__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "pipx.subprocess_runner"]
 
 import logging
 import re
@@ -17,6 +17,19 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_REJECTED_CONSTRAINT: Final[re.Pattern[str]] = re.compile(
+    r"""
+    # a requirement the interpreter does not meet, worded as pip words it
+    requires\ a\ different\ Python:\s*\S+\s*not\ in\ '(?P<pip>[^']*)'
+    # a single range the interpreter does not meet, worded as uv words it
+    | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+Python(?P<uv>\S+?),?(?=\s|$)
+    # a list of ranges the interpreter does not meet, one range per line, worded as uv words it
+    | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+all\s+of:\n
+      (?P<uv_union>(?:[ \t]*Python\S+[ \t]*\n?)+)
+    """,
+    re.VERBOSE,
+)
+_UV_CONSTRAINT: Final[re.Pattern[str]] = re.compile(r"Python(\S+)")
 
 # the newest release pipx looks for when a package rules out the default interpreter
 _NEWEST_PYTHON_MINOR: Final[int] = 15
@@ -40,19 +53,7 @@ def rejected_constraint(backend_output: str) -> SpecifierSet | None:
     :returns: the rejected requirement, or None when the output names none.
     """
     # pip and uv print these and install nothing; uv only checks lower bounds, so the metadata check covers the rest
-    match: Final[re.Match[str] | None] = re.search(
-        r"""
-        # a requirement the interpreter does not meet, worded as pip words it
-        requires\ a\ different\ Python:\s*\S+\s*not\ in\ '(?P<pip>[^']*)'
-        # a single range the interpreter does not meet, worded as uv words it
-        | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+Python(?P<uv>\S+?),?(?=\s|$)
-        # a list of ranges the interpreter does not meet, one range per line, worded as uv words it
-        | current\s+Python\s+version\s+\(\S+\)\s+does\s+not\s+satisfy\s+all\s+of:\n
-          (?P<uv_union>(?:[ \t]*Python\S+[ \t]*\n?)+)
-        """,
-        backend_output,
-        re.VERBOSE,
-    )
+    match: Final[re.Match[str] | None] = _REJECTED_CONSTRAINT.search(backend_output)
     if match is None:
         return None
     if match["uv_union"] is None:
@@ -60,7 +61,7 @@ def rejected_constraint(backend_output: str) -> SpecifierSet | None:
     # uv splits a constraint with an exclusion, such as >=3.12,!=3.15.*, into ranges any of which will do; a set of
     # specifiers cannot express that union, so pipx takes the range that holds the newest Python it would pick anyway
     ranges: Final[list[SpecifierSet]] = [
-        constraint for text in re.findall(r"Python(\S+)", match["uv_union"]) if (constraint := _parse(text)) is not None
+        constraint for text in _UV_CONSTRAINT.findall(match["uv_union"]) if (constraint := _parse(text)) is not None
     ]
     return next(
         (constraint for minor in _candidate_versions() for constraint in ranges if _minor_overlaps(constraint, minor)),

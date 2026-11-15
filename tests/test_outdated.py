@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from pathlib import Path
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
     from pipx.venv import VenvContainer
@@ -47,7 +46,7 @@ def test_list_outdated_backend(
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
@@ -67,7 +66,7 @@ def test_list_outdated_selected_package(
 
     assert not run_pipx_cli(["list", "pycowsay", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, list_outdated.call_count) == ("pipx found no available upgrades.\n", "", 1)
 
 
@@ -89,7 +88,7 @@ def test_list_outdated_skips_removed_environment(
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, lock.call_count) == ("pipx found no index packages to check.\n", "", 1)
 
 
@@ -112,7 +111,7 @@ def test_list_outdated_text(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (expected, "", 1)
 
 
@@ -133,7 +132,7 @@ def outdated_environment(
 def test_list_outdated_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list", "--outdated", "--output", "json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(
             packages_checked=1,
@@ -191,7 +190,7 @@ def test_list_outdated_reports_pinned(
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "pycowsay [pinned]: 0.0.0.2 -> 1.0\n",
         "",
@@ -236,7 +235,7 @@ def test_list_outdated_filters_injected(
 
     assert not run_pipx_cli(["list", "--outdated", *options])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == (expected, "")
 
 
@@ -285,7 +284,7 @@ def test_list_outdated_uv_skips_invalid_distribution_names(capsys: pytest.Captur
 
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
@@ -322,7 +321,7 @@ def test_list_outdated_json_reports_backend_failure(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, outdated_environment.call_count) == (
         _outdated_result(
             packages_checked=1,
@@ -350,7 +349,7 @@ def test_list_outdated_reports_backend_failure(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "",
         "pycowsay: Package backend exited with code 1.\nstderr: index unavailable\n",
@@ -364,7 +363,7 @@ def test_list_outdated_json_reports_non_index_skip(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, non_index_environment.call_count) == (
         _outdated_result(skipped=({"environment": "pycowsay", "package": "pycowsay", "reason": "non-index"},)),
         "",
@@ -392,7 +391,7 @@ def test_list_outdated_reports_no_index_packages(
 ) -> None:
     assert not run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, non_index_environment.call_count) == (
         "pipx found no index packages to check.\n",
         "",
@@ -410,7 +409,7 @@ def test_list_outdated_json_reports_editable_skip(
 
     assert not run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(skipped=({"environment": "empty-project", "package": "empty-project", "reason": "editable"},)),
         "",
@@ -423,7 +422,7 @@ def test_list_outdated_json_reports_corrupt_package(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err, corrupt_environment.call_count) == (
         _outdated_result(
             failures=({"environment": "pycowsay", "error": "Package pycowsay has corrupt pipx metadata."},),
@@ -449,7 +448,7 @@ def test_list_outdated_reports_corrupt_package(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, corrupt_environment.call_count) == (
         "",
         "pycowsay: Package pycowsay has corrupt pipx metadata.\n",
@@ -463,7 +462,7 @@ def test_list_outdated_json_reports_missing_metadata(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         _outdated_result(
             failures=({"environment": "pycowsay", "error": "Missing internal pipx metadata."},),
@@ -489,7 +488,7 @@ def test_list_outdated_reports_missing_metadata(
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "pycowsay: Missing internal pipx metadata.\n")
 
 
@@ -501,7 +500,7 @@ def test_list_outdated_reports_missing_interpreter(capsys: pytest.CaptureFixture
 
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == (
         "",
         (
@@ -540,7 +539,7 @@ def test_list_outdated_refuses_find_links_others_can_change(
 
     assert run_pipx_cli(["list", "--outdated"])
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, outdated_environment.call_count) == (
         "",
         (

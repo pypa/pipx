@@ -101,18 +101,18 @@ def _check_health(venv_dir: Path) -> _EnvironmentHealth:
     )
 
 
-class _HealthStatus(StrEnum):
-    HEALTHY = "healthy"
-    BROKEN = "broken"
-    MISSING = "missing"
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class _EnvironmentHealth:
     environment: str
     interpreter: str
     status: _HealthStatus
     error: str | None
+
+
+class _HealthStatus(StrEnum):
+    HEALTHY = "healthy"
+    BROKEN = "broken"
+    MISSING = "missing"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -190,12 +190,6 @@ def _lost_record(venv_dir: Path) -> bool:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class _FailedRepair:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class _SkippedRepair:
     environment: str
     reason: str
@@ -205,6 +199,12 @@ class _SkippedRepair:
 class _RepairedEnvironment:
     environment: str
     interpreter: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FailedRepair:
+    environment: str
+    error: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -9,7 +9,6 @@ __lazy_modules__ = [
     "pipx.redact",
     "pipx.util",
     "pty",
-    "re",
     "select",
     "shutil",
     "struct",
@@ -58,6 +57,16 @@ if not WINDOWS:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to_stderr", default=False)
+_TERMINAL_ESCAPE: Final[re.Pattern[str]] = re.compile(
+    r"""
+    \x1b(?:
+        \[[0-?]*[\ -/]*[@-~]         # control sequence: parameters, intermediates, final byte
+      | \][^\x07\x1b]*(?:\x07|\x1b\\)  # operating system command: text ended by BEL or ST
+      | [@-Z\\-_]                     # two-byte escape
+    )
+    """,
+    re.VERBOSE,
+)
 
 
 def run_pypackage_bin(bin_path: Path, args: list[str]) -> NoReturn:
@@ -334,7 +343,7 @@ def _open_stream_channel(destination: TextIO) -> _StreamChannel:
     return _StreamChannel(reader=reader, child=child, terminal=False)
 
 
-@dataclass(slots=True, kw_only=True)  # simplint: ignore[SMP701]  # close() must record which descriptors are closed
+@dataclass(slots=True, kw_only=True)  # simplint: ignore[dataclass-frozen]  # close() marks descriptors closed
 class _StreamChannel:
     reader: int
     child: int
@@ -398,18 +407,7 @@ def _without_terminal_escapes(output: str | None) -> str | None:
     # reads out of the captured copy
     if output is None:
         return None
-    return re.sub(
-        r"""
-        \x1b(?:
-            \[[0-?]*[\ -/]*[@-~]         # control sequence: parameters, intermediates, final byte
-          | \][^\x07\x1b]*(?:\x07|\x1b\\)  # operating system command: text ended by BEL or ST
-          | [@-Z\\-_]                     # two-byte escape
-        )
-        """,
-        "",
-        output,
-        flags=re.VERBOSE,
-    )
+    return _TERMINAL_ESCAPE.sub("", output)
 
 
 def _run_captured(

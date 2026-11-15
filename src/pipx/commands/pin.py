@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["packaging.utils", "pipx.options", "pipx.venv"]
+__lazy_modules__ = ["packaging.utils", "pipx.venv"]
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -11,7 +11,6 @@ from packaging.utils import canonicalize_name
 from pipx.colors import BOLD
 from pipx.constants import ExitCode
 from pipx.emojis import SLEEP
-from pipx.options import ExposureOptions
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 
@@ -73,7 +72,7 @@ def _pin_requested(venv: Venv, skip: Sequence[str]) -> _PinChanges:
             continue
         if (
             canonicalize_name(package_name) in skip_names
-            or canonicalize_name(f"{package_name}{package.suffix}") in skip_names
+            or canonicalize_name(f"{package_name}{package.exposure.suffix}") in skip_names
         ):
             changes.skipped.append(_SkippedPackage(environment=venv.name, package=package_name, reason="requested"))
             continue
@@ -94,13 +93,20 @@ class _PinChanges(NamedTuple):
     messages: list[OutputMessage]
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _SkippedPackage:
+    environment: str
+    package: str
+    reason: str
+
+
 def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pinned: bool) -> None:
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     venv.update_package_metadata(
         package_name=str(package.package),
         package_or_url=str(package.package_or_url),
         pip_args=package.pip_args,
-        exposure=ExposureOptions.recorded(package),
+        exposure=package.exposure,
         is_main_package=is_main_package,
         pinned=pinned,
     )
@@ -110,12 +116,22 @@ def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _Chan
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _ChangedPackage(
         environment=venv.name,
-        package=f"{package.package}{package.suffix}",
+        package=f"{package.package}{package.exposure.suffix}",
         version=package.package_version,
         status=status,
         injected=package_name != venv.main_package_name,
         location=str(venv.root),
     )
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ChangedPackage:
+    environment: str
+    package: str
+    version: str
+    status: _PinStatus
+    injected: bool
+    location: str
 
 
 def _pin_all(venv: Venv, main_package: PackageInfo) -> _PinChanges:
@@ -143,6 +159,23 @@ def _pin_all(venv: Venv, main_package: PackageInfo) -> _PinChanges:
 def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> OutputMessage:
     package_label: Final[str] = "package" if package_count == 1 else "packages"
     return OutputMessage(text=BOLD(f"pipx {status.value} {package_count} {package_label} in venv {venv.name}"))
+
+
+class _PinStatus(StrEnum):
+    PINNED = "pinned"
+    UNPINNED = "unpinned"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PinData(OperationData):
+    """Result data of the pin and unpin commands.
+
+    :ivar packages: the packages whose pin changed.
+    :ivar skipped: the packages that were skipped, with the reason.
+    """
+
+    packages: tuple[_ChangedPackage, ...]
+    skipped: tuple[_SkippedPackage, ...]
 
 
 def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
@@ -182,40 +215,6 @@ def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
             else (OutputMessage(text=f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG),)
         ),
     )
-
-
-class _PinStatus(StrEnum):
-    PINNED = "pinned"
-    UNPINNED = "unpinned"
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _ChangedPackage:
-    environment: str
-    package: str
-    version: str
-    status: _PinStatus
-    injected: bool
-    location: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class _SkippedPackage:
-    environment: str
-    package: str
-    reason: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class PinData(OperationData):
-    """Result data of the pin and unpin commands.
-
-    :ivar packages: the packages whose pin changed.
-    :ivar skipped: the packages that were skipped, with the reason.
-    """
-
-    packages: tuple[_ChangedPackage, ...]
-    skipped: tuple[_SkippedPackage, ...]
 
 
 __all__ = [

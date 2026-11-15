@@ -185,7 +185,8 @@ def test_global_install_creates_shared_libs_in_global_home(monkeypatch: pytest.M
 
 
 @pytest.fixture
-def shared_pip_layout(pipx_ultra_temp_env: None) -> dict[str, Path]:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
+# The dependency creates a fresh shared-library environment first.
+def shared_pip_layout(pipx_ultra_temp_env: None) -> dict[str, Path]:  # ruff:ignore[unused-function-argument]
     # empty files stand in for pip, sparing a pip install per test
     subprocess.run([sys.executable, "-m", "venv", "--without-pip", shared_libs.SHARED_LIBS.root], check=True)
     shared_libs.SHARED_LIBS.pip_path.touch()
@@ -368,7 +369,8 @@ def test_shared_libs_upgrade_enforces_pip_floor(upgrade_subprocess: MockType) ->
 
 
 @pytest.fixture
-def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> MockType:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
+# The dependency creates a fresh shared-library environment first.
+def upgrade_subprocess(pipx_ultra_temp_env: None, mocker: MockerFixture) -> MockType:  # ruff:ignore[unused-function-argument]
     shared_libs.SHARED_LIBS.create(verbose=True, pip_args=[])
     shared_libs.SHARED_LIBS.has_been_updated_this_run = False
     return mocker.patch(

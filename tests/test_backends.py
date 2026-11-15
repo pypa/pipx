@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from harness import write_dist_info
-from pipx.backends import registry
-from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, OutdatedPackage  # ruff:ignore[import-private-name]  # no public home
+from pipx.backends import KNOWN_BACKENDS, PIP, UV, OutdatedPackage, registry
 from pipx.backends.pip import PipBackend
 from pipx.backends.registry import assert_not_pip_under_uv, env_default_backend, resolve_backend_name
 from pipx.backends.uv import UvBackend, find_uv_binary, resolve_uv_binary

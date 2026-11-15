@@ -121,6 +121,11 @@ def _success(
     )
 
 
+class _ExposureStatus(StrEnum):
+    EXPOSED = "exposed"
+    UNEXPOSED = "unexposed"
+
+
 def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     package_infos: Final[tuple[PackageInfo, ...]] = tuple(venv.package_metadata.values())
     resource_paths = get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
@@ -155,11 +160,6 @@ class ExposureData(OperationData):
 class _EnvironmentExposure:
     environment: str
     status: _ExposureStatus
-
-
-class _ExposureStatus(StrEnum):
-    EXPOSED = "exposed"
-    UNEXPOSED = "unexposed"
 
 
 def unexpose(

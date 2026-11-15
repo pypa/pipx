@@ -129,7 +129,7 @@ def test_install_all_selects_interpreter(
     install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
     assert not run_pipx_cli(["install-all", str(spec_file), *python_arg])
     expected: Final[dict[str, Path]] = {"recorded": recorded, "explicit": Path(sys.executable).resolve()}
-    assert Path(install.call_args.args[3].python).resolve() == expected[source]
+    assert Path(install.call_args.args[3].environment.python).resolve() == expected[source]
 
 
 @pytest.fixture
@@ -210,7 +210,7 @@ def test_install_all_replaces_distrusted_recorded_interpreter_with_default(
     assert not run_pipx_cli(["install-all", str(record_interpreter(place(tmp_path)))])
 
     assert (
-        Path(install.call_args.args[3].python).resolve(),
+        Path(install.call_args.args[3].environment.python).resolve(),
         f"is ignored as {reason}" in " ".join(capsys.readouterr().out.split()),
     ) == (Path(sys.executable).resolve(), True)
 
@@ -539,6 +539,11 @@ def test_install_all_rejects_bad_spec_file(
     assert (result, expected in error) == (1, True)
 
 
+_TEST_INSTALL_ALL_PRINTS_PROGRESS_IN_SPEC_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^installing ([\w-]+)", re.MULTILINE
+)
+
+
 def test_install_all_prints_progress_in_spec_order(
     capsys: pytest.CaptureFixture[str],
     before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
@@ -549,7 +554,7 @@ def test_install_all_prints_progress_in_spec_order(
 
     assert not run_pipx_cli(["install-all", str(spec_file)])
 
-    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+    assert _TEST_INSTALL_ALL_PRINTS_PROGRESS_IN_SPEC_ORDER_PATTERN.findall(capsys.readouterr().err) == venv_names
 
 
 @pytest.fixture

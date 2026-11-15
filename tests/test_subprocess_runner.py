@@ -8,6 +8,7 @@ import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, Protocol
 from venv import EnvBuilder
 
@@ -22,7 +23,6 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture, MockType
 
 
@@ -30,7 +30,10 @@ _UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.w
 _COLOURED_OUTPUT: Final[str] = "satisfy\n\x1b[31m      \x1b[0mPython>=3.12 \x1b]8;;https://x\x07link\x1b]8;;\x1b\\\n"
 
 
-_STREAM_ENCODING: Final[dict[str, str]] = {"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"}
+_STREAM_ENCODING: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "PYTHONIOENCODING": "cp850",
+    "PYTHONLEGACYWINDOWSSTDIO": "cp850",
+})
 
 
 def test_exec_app_preserves_stream_encoding_on_posix(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -181,7 +184,7 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         stream_output=True,
     )
 
-    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err, result.stdout, result.stderr) == (
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",

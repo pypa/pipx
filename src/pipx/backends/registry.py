@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["pipx.backends._base", "pipx.backends.pip", "pipx.backends.uv", "pipx.util"]
+__lazy_modules__ = ["pipx.backends", "pipx.backends.pip", "pipx.backends.uv", "pipx.util"]
 
 import os
 from functools import cache
 
-from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend
+from pipx.backends import KNOWN_BACKENDS, PIP, UV, Backend
 from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, find_uv_binary, uv_meets_minimum_version
 from pipx.util import PipxError

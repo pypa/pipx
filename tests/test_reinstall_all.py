@@ -133,6 +133,11 @@ def test_reinstall_all_restores_package_after_keyboard_interrupt(
     ) == (True, metadata_before, False, False)
 
 
+_TEST_REINSTALL_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^installing ([\w-]+)", re.MULTILINE
+)
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_prints_progress_in_venv_order(
     capsys: pytest.CaptureFixture[str],
@@ -143,7 +148,7 @@ def test_reinstall_all_prints_progress_in_venv_order(
 
     assert not run_pipx_cli(["reinstall-all"])
 
-    assert re.findall(r"^installing ([\w-]+)", capsys.readouterr().err, re.MULTILINE) == venv_names
+    assert _TEST_REINSTALL_ALL_PRINTS_PROGRESS_IN_VENV_ORDER_PATTERN.findall(capsys.readouterr().err) == venv_names
 
 
 @pytest.fixture
@@ -237,7 +242,8 @@ def test_reinstall_all_keeps_shared_man_page_with_its_owner(
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
 
     def slow_owner() -> None:
-        time.sleep(0.5)  # simplint: ignore[SMP808]  # slows the owner's pip call so the suffixed venv goes first
+        # Let the suffixed environment finish before the owner.
+        time.sleep(0.5)  # simplint: ignore[sleep-in-test]  # race ordering
 
     before_venv_subprocess(owner := CTX.venvs / "pycowsay", slow_owner)
 
@@ -361,7 +367,7 @@ def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
         # keep its new venv
         deadline: Final[float] = time.monotonic() + 5
         while not (venv_dirs[0] / "marker").exists() and time.monotonic() < deadline:
-            time.sleep(0.01)  # simplint: ignore[SMP808]  # pipx restores the first venv; no event marks that
+            time.sleep(0.01)  # simplint: ignore[sleep-in-test]  # marker poll
 
     before_venv_subprocess(venv_dirs[0], interrupt)
     for venv_dir in venv_dirs[1:]:

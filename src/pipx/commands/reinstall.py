@@ -62,7 +62,15 @@ from pipx.constants import (
 )
 from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
-from pipx.options import CooldownOptions, ExposureOptions, InjectOptions, InstallOptions
+from pipx.options import (
+    CooldownOptions,
+    EnvironmentOptions,
+    ExistingOptions,
+    ExposureOptions,
+    InjectOptions,
+    InstallOptions,
+    RecordOptions,
+)
 from pipx.package_specifier import trusted_recorded_pip_args
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
@@ -212,28 +220,31 @@ def reinstall(
                 InstallOptions(
                     local_bin_dir=options.local_bin_dir,
                     local_man_dir=options.local_man_dir,
-                    python=options.python,
-                    pip_args=main_pip_args,
-                    venv_args=venv.pipx_metadata.venv_args,
-                    verbose=options.verbose,
-                    force=True,
-                    reinstall=True,
-                    exposure=ExposureOptions(
-                        include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-                        include_resources_from=venv.pipx_metadata.main_package.include_resources_from,
-                        suffix=venv.pipx_metadata.main_package.suffix,
+                    environment=EnvironmentOptions(
+                        python=options.python,
+                        venv_args=venv.pipx_metadata.venv_args,
+                        python_flag_passed=options.python_flag_passed,
+                        preinstall_packages=[],
                     ),
-                    preinstall_packages=[],
-                    expected_apps=venv.pipx_metadata.main_package.expected_apps,
-                    lock_file=venv.pipx_metadata.main_package.lock_file,
+                    existing=ExistingOptions(force=True, reinstall=True),
+                    pip_args=main_pip_args,
+                    verbose=options.verbose,
+                    exposure=ExposureOptions(
+                        include_dependencies=venv.pipx_metadata.main_package.exposure.include_dependencies,
+                        include_resources_from=venv.pipx_metadata.main_package.exposure.include_resources_from,
+                        suffix=venv.pipx_metadata.main_package.exposure.suffix,
+                    ),
+                    record=RecordOptions(
+                        expected_apps=venv.pipx_metadata.main_package.expected_apps,
+                        lock_file=venv.pipx_metadata.main_package.lock_file,
+                        exposure_enabled=venv.pipx_metadata.exposure_enabled,
+                    ),
                     cooldown=CooldownOptions(cli_days=venv.pipx_metadata.main_package.cooldown_days),
-                    python_flag_passed=options.python_flag_passed,
                     backend=(
                         recorded_backend := replace(
                             options.backend, cli=options.backend.cli or venv.pipx_metadata.backend
                         )
                     ),
-                    exposure_enabled=venv.pipx_metadata.exposure_enabled,
                     emit_output=False,
                 ),
                 venv_lock=venv_lock,
@@ -365,14 +376,14 @@ def _reinject_packages(
             InjectOptions(
                 pip_args=injected_pip_args[injected_name],
                 verbose=options.verbose,
-                include_apps=injected_package.include_apps,
-                include_dependencies=injected_package.include_dependencies,
-                include_resources_from=injected_package.include_resources_from,
+                include_apps=injected_package.exposure.include_apps,
+                include_dependencies=injected_package.exposure.include_dependencies,
+                include_resources_from=injected_package.exposure.include_resources_from,
                 force=True,
                 # the venv was just rebuilt, and --force-reinstall would also refetch the main package by name
                 # from the injected package's index when the injected package depends on it
                 force_reinstall=False,
-                with_suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
+                with_suffix=injected_package.exposure.suffix == venv.pipx_metadata.main_package.exposure.suffix,
                 backend=backend,
                 cooldown_days=injected_package.cooldown_days,
                 pinned=injected_package.pinned,
@@ -399,7 +410,7 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
     resource_paths: Final[set[Path]] = set()
     for package_info in venv.package_metadata.values():
         resource_paths.update(
-            local_bin_dir / add_suffix(app_path.name, package_info.suffix)
+            local_bin_dir / add_suffix(app_path.name, package_info.exposure.suffix)
             for app_path in package_info.app_paths_to_expose
         )
         resource_paths.update(
