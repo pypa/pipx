@@ -15,6 +15,7 @@ from pipx.script import (
     ScriptMetadata,
     download_script,
     installable_script,
+    is_script_spec,
     local_script,
     read_script_metadata,
     script_name_from_spec,
@@ -25,6 +26,20 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest_mock import MockerFixture, MockType
+
+
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        pytest.param("https://[::1/script.py", id="unclosed-ipv6-bracket"),
+        pytest.param("https://[invalid]/package.whl", id="invalid-ipv6-host"),
+        pytest.param("https://example\uff0f.com/script.py", id="nfkc-breaks-host"),
+    ],
+)
+def test_malformed_url_is_not_a_script(package_spec: str) -> None:
+    assert local_script(package_spec) is None
+    assert is_script_spec(package_spec) is False
+    assert script_name_from_spec(package_spec, ()) is None
 
 
 def test_read_script_metadata() -> None:

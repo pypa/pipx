@@ -2207,7 +2207,12 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
 
 
 def _package_is_url(package: str, *, raise_error: bool = True) -> bool:
-    if (parsed_url := urllib.parse.urlparse(package)).scheme and parsed_url.netloc:
+    try:
+        parsed_url: Final[urllib.parse.ParseResult] = urllib.parse.urlparse(package)
+    except ValueError:
+        msg = f"Unable to parse package spec: {redact_url_credentials(package)}"
+        raise PipxError(msg) from None
+    if parsed_url.scheme and parsed_url.netloc:
         if not raise_error:
             return True
         msg = "Package cannot be a URL. A valid package name should be passed instead."

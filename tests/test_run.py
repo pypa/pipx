@@ -1849,3 +1849,17 @@ def test_run_cache_without_usable_secret_logs_fallback(
     cache_lock_path(["black"], [], [])
 
     assert "run cache names are not keyed with a secret" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        pytest.param("https://alice:secret@[::1/tool.py", id="unclosed-ipv6-host"),
+        pytest.param("https://alice:secret@example\uff0f.com/tool.py", id="invalid-netloc-normalization"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_rejects_malformed_url(app: str, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["run", app]) == 1
+
+    assert capsys.readouterr().err == f"Unable to parse package spec: {app.replace('alice:secret', '****:****')}\n"
