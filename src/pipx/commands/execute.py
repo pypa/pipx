@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-__lazy_modules__ = ["itertools", "pipx.subprocess_runner", "pipx.util", "pipx.venv"]
+__lazy_modules__ = [
+    "itertools",
+    "pathlib",
+    "pipx.commands.common",
+    "pipx.subprocess_runner",
+    "pipx.util",
+    "pipx.venv",
+    "typing",
+]
 
 import os
 from itertools import chain
-from typing import TYPE_CHECKING, Final, NoReturn
+from pathlib import Path
+from typing import Final, NoReturn
 
+from pipx.commands.common import exposed_app_names
 from pipx.constants import WINDOWS
 from pipx.subprocess_runner import exec_app
 from pipx.util import PipxError
 from pipx.venv import Venv
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def execute(package: str, venv_dir: Path, app: str, app_args: list[str]) -> NoReturn:
@@ -35,10 +42,9 @@ def execute(package: str, venv_dir: Path, app: str, app_args: list[str]) -> NoRe
             managed_package.resources.app_paths,
             *managed_package.resources.app_paths_of_dependencies.values(),
         ):
-            name: Final[str] = path.stem if WINDOWS and path.suffix.lower() == ".exe" else path.name
-            app_paths[name] = path
-            if managed_package.exposure.suffix:
-                app_paths[f"{name}{managed_package.exposure.suffix}"] = path
+            # an app installed with a suffix is on PATH under the suffixed name, which is the one users type
+            for name in {path.name, *exposed_app_names(path.name, managed_package.exposure.suffix)}:
+                app_paths[Path(name).stem if WINDOWS and Path(name).suffix.lower() == ".exe" else name] = path
     if (app_path := app_paths.get(app)) is None:
         available: Final[str] = ", ".join(sorted(app_paths)) or "none"
         msg = f"Application {app!r} was not found in environment {package!r}.\nAvailable applications: {available}"

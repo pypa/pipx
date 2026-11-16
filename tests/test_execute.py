@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import importlib
 import os
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from harness import app_name, run_pipx_cli
+from harness import app_name, run_pipx_cli, write_wheel
+from package_info import PKG
 from pipx.paths import CTX
 from pipx.util import get_venv_paths
 
@@ -98,11 +100,19 @@ def test_execute_rejects_missing_recorded_app(
     )
 
 
+@pytest.mark.parametrize(
+    ("inject_flags", "app", "expected"),
+    [
+        pytest.param((), "pycowsay@1", "pycowsay", id="installed-with-suffix"),
+        pytest.param(("--with-suffix",), "black@1", "black", id="injected-with-suffix"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_execute_runs_suffixed_app(
-    mocker: MockerFixture,
+    mocker: MockerFixture, inject_flags: tuple[str, ...], app: str, expected: str
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay", "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "pycowsay@1", PKG["black"]["spec"], "--include-apps", *inject_flags])
     boundary: Final[MockType] = mocker.patch.object(
         importlib.import_module("pipx.commands.execute"),
         "exec_app",
@@ -111,9 +121,37 @@ def test_execute_runs_suffixed_app(
     )
 
     with pytest.raises(RuntimeError, match="exec"):
-        run_pipx_cli(["exec", "pycowsay@1", "pycowsay@1", "--version"])
+        run_pipx_cli(["exec", "pycowsay@1", app, "--version"])
 
     command: Final[list[str | Path]] = boundary.call_args.args[0]
-    venv_dir: Final[Path] = CTX.venvs / "pycowsay@1"
-    bin_dir: Final[Path] = get_venv_paths(venv_dir)[0]
-    assert Path(command[0]) == bin_dir / app_name("pycowsay")
+    assert Path(command[0]) == get_venv_paths(CTX.venvs / "pycowsay@1")[0] / app_name(expected)
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        pytest.param("tool3.12@1", id="current-name"),
+        # pipx 1.17.14 and earlier put the suffix before the last dot, and the app keeps that name until exposed again;
+        # on Windows that dot was the one before exe, so the legacy and current names match there
+        pytest.param(
+            "tool3@1.12",
+            id="legacy-name",
+            marks=pytest.mark.skipif(sys.platform == "win32", reason="legacy name equals the current one"),
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_execute_runs_dotted_suffixed_app(tmp_path: Path, mocker: MockerFixture, app: str) -> None:
+    assert not run_pipx_cli(["install", str(write_wheel(tmp_path, "tool3.12", "1.0")), "--suffix=@1"])
+    boundary: Final[MockType] = mocker.patch.object(
+        importlib.import_module("pipx.commands.execute"),
+        "exec_app",
+        autospec=True,
+        side_effect=RuntimeError("exec"),
+    )
+
+    with pytest.raises(RuntimeError, match="exec"):
+        run_pipx_cli(["exec", "tool3.12@1", app])
+
+    command: Final[list[str | Path]] = boundary.call_args.args[0]
+    assert Path(command[0]) == get_venv_paths(CTX.venvs / "tool3-12@1")[0] / app_name("tool3.12")
