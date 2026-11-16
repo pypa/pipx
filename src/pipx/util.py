@@ -126,19 +126,20 @@ def read_pth_file(path: Path) -> str:
 
 
 def write_pth_file(path: Path, content: str) -> None:
-    """Write a ``.pth`` file in an encoding the ``site`` module reads on every supported Python version.
+    """Write a ``.pth`` file in an encoding compatible with the locale whenever possible.
 
     :param path: the file to write.
     :param content: the content to write.
     """
     # Python 3.11 reads a .pth file only in the locale encoding, and one it cannot decode stops the interpreter from
     # starting at all, while write_text() would use UTF-8 in UTF-8 mode, which PEP 686 makes the default in 3.15
-    encoded: bytes
+    encoding = locale.getencoding()
     try:
-        encoded = content.encode(locale.getencoding())
+        content.encode(encoding)
     except UnicodeEncodeError:
-        encoded = content.encode("utf-8")  # only 3.12+ can read this back, 3.11 cannot read the path regardless
-    path.write_bytes(encoded)
+        # Python 3.11 cannot load this path in the current locale; 3.12+ can read UTF-8
+        encoding = "utf-8"
+    path.write_text(content, encoding=encoding)
 
 
 def full_package_description(package_name: str, package_spec: str) -> str:

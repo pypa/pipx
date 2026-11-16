@@ -50,14 +50,15 @@ def test_pth_file_round_trip_in_utf8_mode(
     path: Final[Path] = tmp_path / "pipx_shared.pth"
     content: Final[str] = f"{tmp_path / non_ascii_dir / 'site-packages'}\n"
     code: Final[str] = (
-        "import locale, sys\n"
+        "import locale, os, sys\n"
         "from pathlib import Path\n"
         "from pipx.util import read_pth_file, write_pth_file\n"
         "path = Path(sys.argv[1])\n"
         "write_pth_file(path, sys.argv[2])\n"
         # Python 3.11 reads a .pth file only in the locale encoding, while 3.12+ falls back to it, so the bytes must
         # stay in it however the running interpreter handles UTF-8 mode
-        "print(path.read_bytes() == sys.argv[2].encode(locale.getencoding()), read_pth_file(path) == sys.argv[2])\n"
+        "print(path.read_bytes() == sys.argv[2].replace('\\n', os.linesep).encode(locale.getencoding()),"
+        " read_pth_file(path) == sys.argv[2])\n"
     )
 
     # PEP 686 makes UTF-8 mode the default in Python 3.15, which changes what write_text() and read_text() use
@@ -74,23 +75,27 @@ def test_pth_file_round_trip_in_utf8_mode(
     assert (result.returncode, result.stdout) == (0, "True True\n"), result.stderr
 
 
-@pytest.mark.parametrize(
-    ("locale_encoding", "directory", "file_encoding"),
-    [
-        pytest.param("cp1252", "àéîöü", "cp1252", id="locale"),
-        pytest.param("ascii", "用户", "utf-8", id="unencodable-fallback"),
-    ],
-)
-def test_write_pth_file_uses_an_encoding_site_reads(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, locale_encoding: str, directory: str, file_encoding: str
-) -> None:
-    monkeypatch.setattr(locale, "getencoding", lambda: locale_encoding)
+def test_write_pth_file_uses_an_encoding_site_reads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp1252")
     path: Final[Path] = tmp_path / "pipx_shared.pth"
-    content: Final[str] = f"{tmp_path / directory / 'site-packages'}\n"
+    content: Final[str] = f"{tmp_path / 'àéîöü' / 'site-packages'}\n"
 
     write_pth_file(path, content)
 
-    assert path.read_bytes() == content.encode(file_encoding)
+    assert path.read_bytes() == content.replace("\n", os.linesep).encode("cp1252")
+
+
+def test_write_pth_file_falls_back_when_the_locale_cannot_encode_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+    path: Final[Path] = tmp_path / "pipx_shared.pth"
+    content: Final[str] = f"{tmp_path / '😀' / 'site-packages'}\n"
+
+    write_pth_file(path, content)
+
+    assert path.read_bytes() == content.replace("\n", os.linesep).encode("utf-8")
+    assert read_pth_file(path) == content
 
 
 def test_read_pth_file_falls_back_to_the_locale_encoding(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
