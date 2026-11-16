@@ -796,12 +796,18 @@ def add_extras(package_or_url: str, package_name: str, extras: set[str]) -> str:
     """
     parsed_package: Final[_ParsedPackage] = _parse_specifier(package_or_url)
     if isinstance(parsed_package, _Pep508):
-        parsed_package.requirement.extras |= extras
+        parsed_package.requirement.extras = _merge_extras(parsed_package.requirement.extras, extras)
         return str(parsed_package.requirement)
-    merged: Final[str] = ",".join(sorted(get_extras(package_or_url) | extras))
+    merged: Final[str] = ",".join(sorted(_merge_extras(get_extras(package_or_url), extras)))
     if isinstance(parsed_package, _Url):
         return f"{package_name}[{merged}] @ {parsed_package.url}"
     return f"{_split_path_extras(parsed_package.path)[0]}[{merged}]"
+
+
+def _merge_extras(current: set[str], added: set[str]) -> set[str]:
+    # extras names compare case-insensitively and treat - _ . alike (PEP 685), so Jupyter_Extra and jupyter-extra match
+    known: Final[set[str]] = {canonicalize_name(extra) for extra in current}
+    return current | {extra for extra in added if canonicalize_name(extra) not in known}
 
 
 def get_extras(package_spec: str) -> set[str]:
@@ -962,7 +968,9 @@ def package_spec_satisfied(package_spec: str, package_name: str, installed_versi
     return (
         requirement.url is None
         and canonicalize_name(requirement.name) == canonicalize_name(package_name)
-        and requirement.extras.issubset(installed_requirement.extras)
+        and {canonicalize_name(extra) for extra in requirement.extras}.issubset(
+            canonicalize_name(extra) for extra in installed_requirement.extras
+        )
         and requirement.specifier.contains(installed_version)
     )
 
