@@ -1,7 +1,8 @@
 from __future__ import annotations  # simplint: ignore[catch-all-module]  # shared helpers have callers across pipx
 
-__lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
+__lazy_modules__ = ["locale", "pathlib", "pipx.redact", "pipx.wrap"]
 
+import locale
 import logging
 import os
 import sys
@@ -43,6 +44,28 @@ class InstalledNameMismatchError(PipxError):
     def __init__(self, installed_name: str) -> None:
         self.installed_name: Final[str] = installed_name
         super().__init__(f"The package spec installed {installed_name!r}, a different name than expected.")
+
+
+def read_pth_file(path: Path) -> str:
+    """Read a .pth file as UTF-8, falling back to the locale as Python's site module does.
+
+    :param path: the .pth file to read.
+    :returns: its contents.
+    """
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        return path.read_text(encoding=locale.getencoding())
+
+
+def write_pth_file(path: Path, contents: str) -> None:
+    """Write a .pth file using the locale encoding, even in UTF-8 mode.
+
+    :param path: the .pth file to write.
+    :param contents: the paths to include, separated by newlines.
+    """
+    # Python 3.11 reads .pth files with the locale encoding; newer versions fall back to it.
+    path.write_text(contents, encoding=locale.getencoding())
 
 
 def mkdir(path: Path) -> None:
