@@ -47,11 +47,12 @@ class InstalledNameMismatchError(PipxError):
 
 
 def read_pth_file(path: Path) -> str:
-    """Read a .pth file as UTF-8, falling back to the locale as Python's site module does.
+    """Read a .pth file as UTF-8, falling back to the locale encoding for older files.
 
     :param path: the .pth file to read.
     :returns: its contents.
     """
+    # Python 3.12+ tries UTF-8 first, then the locale encoding for legacy .pth files.
     try:
         return path.read_text(encoding="utf-8-sig")
     except UnicodeDecodeError:
@@ -59,13 +60,19 @@ def read_pth_file(path: Path) -> str:
 
 
 def write_pth_file(path: Path, contents: str) -> None:
-    """Write a .pth file using the locale encoding, even in UTF-8 mode.
+    """Write a .pth file in an encoding compatible with the locale whenever possible.
 
     :param path: the .pth file to write.
     :param contents: the paths to include, separated by newlines.
     """
     # Python 3.11 reads .pth files with the locale encoding; newer versions fall back to it.
-    path.write_text(contents, encoding=locale.getencoding())
+    encoding = locale.getencoding()
+    try:
+        contents.encode(encoding)
+    except UnicodeEncodeError:
+        # Python 3.11 cannot load this path in the current locale; 3.12+ can read UTF-8.
+        encoding = "utf-8"
+    path.write_text(contents, encoding=encoding)
 
 
 def mkdir(path: Path) -> None:
@@ -183,5 +190,7 @@ __all__ = [
     "is_file_name",
     "mkdir",
     "open_owner_only",
+    "read_pth_file",
     "reject_empty_index",
+    "write_pth_file",
 ]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import locale
+import os
 import site
 import sys
 from typing import TYPE_CHECKING, Final
@@ -11,6 +12,7 @@ import pytest
 from harness import WIN
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.shared_libs import SHARED_LIBS
+from pipx.util import read_pth_file, write_pth_file
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -54,23 +56,35 @@ def test_create_venv_pth_uses_locale_encoding(tmp_path: Path, shared_paths: list
     venv.create_venv([], [])
     pth: Final[Path] = venv.site_packages[0] / PIPX_SHARED_PTH
 
-    assert pth.read_bytes() == "".join(f"{path}\n" for path in shared_paths).replace(
-        "\n", "\r\n" if WIN else "\n"
-    ).encode("cp936")
+    assert pth.read_bytes() == "".join(f"{path}\n" for path in shared_paths).replace("\n", os.linesep).encode("cp936")
 
 
-@pytest.mark.parametrize("encoding", ["cp936", "utf-8"])
-@pytest.mark.parametrize("consumer", ["installer", "distributions"])
-def test_existing_pth_encoding(tmp_path: Path, shared_paths: list[Path], encoding: str, consumer: str) -> None:
+@pytest.fixture(params=["cp936", "utf-8"])
+def existing_pth_venv(tmp_path: Path, shared_paths: list[Path], request: pytest.FixtureRequest) -> Venv:
     venv: Final[Venv] = Venv(tmp_path / "venv", python=sys.executable)
     EnvBuilder(with_pip=False).create(venv.root)
     pth: Final[Path] = venv.site_packages[0] / PIPX_SHARED_PTH
-    pth.write_text("".join(f"{path}\n" for path in shared_paths), encoding=encoding)
+    pth.write_text("".join(f"{path}\n" for path in shared_paths), encoding=request.param)
+    return venv
 
-    if consumer == "installer":
-        assert venv._installer_python == venv.python_path  # ruff:ignore[private-member-access]  # exercise pth repair
-    else:
-        assert venv._installed_distribution_names() == {"demo"}  # ruff:ignore[private-member-access]  # pth consumer
+
+def test_existing_pth_encoding_for_installer(existing_pth_venv: Venv) -> None:
+    assert existing_pth_venv._installer_python == existing_pth_venv.python_path  # ruff:ignore[private-member-access]  # exercise pth repair
+
+
+def test_existing_pth_encoding_for_distributions(existing_pth_venv: Venv) -> None:
+    assert existing_pth_venv._installed_distribution_names() == {"demo"}  # ruff:ignore[private-member-access]  # pth consumer
+
+
+def test_write_pth_falls_back_when_locale_cannot_encode(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp936")
+    pth: Final[Path] = tmp_path / "pipx_shared.pth"
+    contents: Final[str] = "C:/Users/😀/pipx/shared\n"
+
+    write_pth_file(pth, contents)
+
+    assert pth.read_bytes() == contents.replace("\n", os.linesep).encode("utf-8")
+    assert read_pth_file(pth) == contents
 
 
 def test_repair_pth_uses_locale_encoding(tmp_path: Path, shared_paths: list[Path]) -> None:
