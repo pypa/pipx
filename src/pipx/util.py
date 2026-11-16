@@ -46,26 +46,16 @@ class InstalledNameMismatchError(PipxError):
         super().__init__(f"The package spec installed {installed_name!r}, a different name than expected.")
 
 
+# Python 3.12+ tries UTF-8 first, then the locale encoding for legacy .pth files.
 def read_pth_file(path: Path) -> str:
-    """Read a .pth file as UTF-8, falling back to the locale encoding for older files.
-
-    :param path: the .pth file to read.
-    :returns: its contents.
-    """
-    # Python 3.12+ tries UTF-8 first, then the locale encoding for legacy .pth files.
     try:
         return path.read_text(encoding="utf-8-sig")
     except UnicodeDecodeError:
         return path.read_text(encoding=locale.getencoding())
 
 
+# Python 3.11 reads .pth files with the locale encoding; newer versions fall back to it.
 def write_pth_file(path: Path, contents: str) -> None:
-    """Write a .pth file in an encoding compatible with the locale whenever possible.
-
-    :param path: the .pth file to write.
-    :param contents: the paths to include, separated by newlines.
-    """
-    # Python 3.11 reads .pth files with the locale encoding; newer versions fall back to it.
     encoding = locale.getencoding()
     try:
         contents.encode(encoding)
