@@ -96,3 +96,24 @@ def test_execute_rejects_missing_recorded_app(
         f"Application 'pycowsay' is missing from environment 'pycowsay' at {app_path}. "
         "Reinstall it with `pipx reinstall pycowsay`."
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_execute_runs_suffixed_app(
+    mocker: MockerFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=@1"])
+    boundary: Final[MockType] = mocker.patch.object(
+        importlib.import_module("pipx.commands.execute"),
+        "exec_app",
+        autospec=True,
+        side_effect=RuntimeError("exec"),
+    )
+
+    with pytest.raises(RuntimeError, match="exec"):
+        run_pipx_cli(["exec", "pycowsay@1", "pycowsay@1", "--version"])
+
+    command: Final[list[str | Path]] = boundary.call_args.args[0]
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay@1"
+    bin_dir: Final[Path] = get_venv_paths(venv_dir)[0]
+    assert Path(command[0]) == bin_dir / app_name("pycowsay")
