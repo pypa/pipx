@@ -102,7 +102,10 @@ def is_script_spec(package_spec: str) -> bool:
     """
     if local_script(package_spec) is not None:
         return True
-    parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    try:
+        parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    except ValueError:
+        return False
     return parsed.scheme in {"http", "https"} and parsed.path.lower().endswith(".py")
 
 
@@ -113,7 +116,11 @@ def local_script(package_spec: str) -> Path | None:
     :returns: the resolved path of the script, or None when the spec names no local file.
     """
     # a single-letter scheme is a Windows drive; any longer one is a URL, whose path must not resolve below the cwd
-    if len(urllib.parse.urlsplit(package_spec).scheme) > 1:
+    try:
+        scheme = urllib.parse.urlsplit(package_spec).scheme
+    except ValueError:
+        return None
+    if len(scheme) > 1:
         return None
     path: Final[Path] = Path(package_spec).expanduser()
     if not path.is_file():

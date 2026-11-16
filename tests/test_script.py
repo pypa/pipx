@@ -15,6 +15,7 @@ from pipx.script import (
     ScriptMetadata,
     download_script,
     installable_script,
+    is_script_spec,
     local_script,
     read_script_metadata,
     script_name_from_spec,
@@ -316,3 +317,17 @@ def test_run_ftp_script_url_passes_credentials_to_urllib(mocker: MockerFixture) 
     assert run_pipx_cli(["run", "ftp://alice:s3cr3t@localhost/tool.py"]) == 1
 
     assert urlopen.call_args.args[0] == "ftp://alice:s3cr3t@localhost/tool.py"
+
+
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        "https://[::1/script.py",
+        "https://user:password@[::1/script.py",
+        "https://[invalid]/package.whl",
+        "https://example\uff0f.com/script.py",
+    ],
+)
+def test_malformed_url_is_not_a_script(package_spec: str) -> None:
+    assert local_script(package_spec) is None
+    assert is_script_spec(package_spec) is False

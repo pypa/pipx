@@ -560,6 +560,19 @@ def test_parse_specifier_for_install_rejects_hostless_relative_url(package_spec:
 
 
 @pytest.mark.parametrize(
+    ("package_spec", "expected_masked"),
+    [
+        pytest.param("https://[::1/package.whl", "https://[::1/package.whl", id="unclosed-ipv6"),
+        pytest.param("https://user:password@[::1/package.whl", "https://****:****@[::1/package.whl", id="credentials"),
+        pytest.param("https://[invalid]/package.whl", "https://[invalid]/package.whl", id="invalid-bracketed"),
+    ],
+)
+def test_parse_specifier_for_install_rejects_malformed_url(package_spec: str, expected_masked: str) -> None:
+    with pytest.raises(PipxError, match=rf"^Unable to parse package spec: {re.escape(expected_masked)}$"):
+        parse_specifier_for_install(package_spec, [])
+
+
+@pytest.mark.parametrize(
     ("pip_args_in", "pip_args_expected"),
     [
         pytest.param(

@@ -266,7 +266,12 @@ def _parse_specifier(package_spec: str) -> _ParsedPackage:
         # keep the extras as typed so the bare and ./ spellings store the same spec
         return _LocalPath(path=f"{package_path.resolve()}{_split_path_extras(package_spec.strip())[1]}")
 
-    parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    try:
+        parsed_url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    except ValueError:
+        msg = f"Unable to parse package spec: {redact_url_credentials(package_spec)}"
+        raise PipxError(msg) from None
+
     if parsed_url.scheme and (
         parsed_url.netloc or (parsed_url.scheme in {"file", "git+file", "hg+file"} and parsed_url.path.startswith("/"))
     ):
@@ -382,7 +387,11 @@ def _absolute_paths(arguments: list[_PipArgument], base: Path) -> list[_PipArgum
 
 def _absolute_path_value(value: str, base: Path) -> str:
     # pip writes --report - to stdout
-    if value == "-" or urllib.parse.urlsplit(value).scheme:
+    try:
+        scheme = urllib.parse.urlsplit(value).scheme
+    except ValueError:
+        scheme = ""
+    if value == "-" or scheme:
         return value
     return str((base / Path(value).expanduser()).resolve())
 
@@ -644,7 +653,10 @@ def _changeable_source(argument: _PipArgument, base: Path) -> Path | None:
 
 
 def _changeable_by_others(value: str, base: Path) -> Path | None:
-    url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(value)
+    try:
+        url: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(value)
+    except ValueError:
+        return None
     if url.scheme not in {"", "file"}:
         return None
     # the installer runs in the venv root, where a relative index directory resolves
