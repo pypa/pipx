@@ -230,7 +230,10 @@ def test_repair_respects_pin(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert run_pipx_cli(["repair", "pycowsay"]) == 1
 
-    assert "is pinned. Run `pipx unpin pycowsay` to unpin it first." in capsys.readouterr().err.replace("\n", " ")
+    assert (
+        "Package pycowsay is pinned. Run `pipx unpin pycowsay` to unpin it first."
+        in capsys.readouterr().err.replace("\n", " ")
+    )
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
