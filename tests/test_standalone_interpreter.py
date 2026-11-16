@@ -887,3 +887,29 @@ def test_upgrade_standalone_interpreter_skips_corrupt(
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
     download.assert_called_once_with("3.12", override=True)
+
+
+@pytest.mark.parametrize("prerelease", ["3.16.0a1", "3.16.0b2", "3.16.0rc1"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_pythons_skips_prerelease_builds(mocker: MockerFixture, prerelease: str) -> None:
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin", autospec=True)
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64", autospec=True)
+    digest: Final[str] = f"sha256:{'0' * 64}"
+    final_link: Final[str] = (
+        "https://example.invalid/cpython-3.15.2%2B20261026-aarch64-apple-darwin-install_only.tar.gz"
+    )
+    (cache_dir := standalone_python.CTX.standalone_python_cachedir).mkdir(parents=True, exist_ok=True)
+    (cache_dir / "index.json").write_text(
+        json.dumps({
+            "fetched": dt.datetime.now(tz=dt.UTC).timestamp(),
+            "releases": [
+                [
+                    f"https://example.invalid/cpython-{prerelease}%2B20261026-aarch64-apple-darwin-install_only.tar.gz",
+                    digest,
+                ],
+                [final_link, digest],
+            ],
+        })
+    )
+
+    assert standalone_python.list_pythons() == {"3.15.2": (final_link, digest)}

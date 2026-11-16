@@ -4,7 +4,9 @@
 
 Install an app under a Python interpreter downloaded from `python-build-standalone
 <https://github.com/astral-sh/python-build-standalone>`_ instead of the system one. Reach for this when the system
-Python lacks the version you need, or when a distro patched its Python in ways that break the app.
+Python lacks the version you need, or when a distro patched its Python in ways that break the app. pipx only downloads
+final releases: it skips alpha, beta and release candidate builds, so a version with no final release yet, such as
+3.16 during its alphas, cannot be fetched.
 
 *****************
  How pipx decides

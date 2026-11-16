@@ -54,7 +54,14 @@ _STANDALONE_VERSION: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE,
 )
-_DOWNLOAD_VERSION: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
+_DOWNLOAD_VERSION: Final[re.Pattern[str]] = re.compile(
+    r"""
+    cpython-
+    (?P<version>\d+\.\d+\.\d+)
+    (?P<prerelease>(?:a|b|rc)\d+)?  # alpha, beta or release candidate, as in cpython-3.16.0a1
+    """,
+    re.VERBOSE,
+)
 
 # much of this module comes from https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
@@ -210,7 +217,9 @@ def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
             if (match := _DOWNLOAD_VERSION.search(link)) is None:
                 msg = f"Could not parse a Python version from {link!r}."
                 raise PipxError(msg)
-            python_versions.setdefault(match[1], (link, digest))
+            # a prerelease (cpython-3.16.0a1) would otherwise stand in for the final release of the same version
+            if match["prerelease"] is None:
+                python_versions.setdefault(match["version"], (link, digest))
 
     return {
         version: python_versions[version]
