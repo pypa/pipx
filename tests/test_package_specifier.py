@@ -124,6 +124,7 @@ def test_source_without_extras_local_path(tmp_path: Path) -> None:
     [
         pytest.param("black[jupyter]==22.8.0", "black[d,jupyter]==22.8.0", id="requirement"),
         pytest.param("https://files.example/black.whl", "black[d] @ https://files.example/black.whl", id="url"),
+        pytest.param("black[D]==22.8.0", "black[D]==22.8.0", id="extra-spelling"),
     ],
 )
 def test_add_extras(package_or_url: str, expected: str) -> None:
@@ -208,6 +209,7 @@ def test_parse_specifier_for_install_missing_bare_archive(tmp_path: Path, monkey
         pytest.param("Black", "black==22.8.0", True, id="name-case"),
         pytest.param("black[colorama]", "black==22.8.0", False, id="extra-missing"),
         pytest.param("black[colorama]", "black[colorama]==22.8.0", True, id="extra-installed"),
+        pytest.param("black[Jupyter_Extra]", "black[jupyter-extra]==22.8.0", True, id="extra-spelling"),
         pytest.param("black @ https://example.com/black.whl", "black==22.8.0", False, id="pep508-url"),
         pytest.param("https://example.com/black.whl", "black==22.8.0", False, id="url"),
     ],
