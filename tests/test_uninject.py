@@ -406,6 +406,58 @@ def test_uninject_removes_all_orphaned_dependencies(backend: str) -> None:
     assert {path.name for path in venv_dir.rglob("*.dist-info")} == installed_before
 
 
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param(
+            "uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("injected", "installed_by_hand", "left_over"),
+    [
+        pytest.param(("plugin",), "spare", {"spare"}, id="nothing-else-needs-them"),
+        pytest.param(("plugin", "sibling"), "spare", {"leaf", "sibling", "spare"}, id="leaf-still-needed"),
+        pytest.param(("cyclic",), "spare", {"spare"}, id="dependency-cycle"),
+        pytest.param(("plugin",), "gamma", {"gamma", "delta"}, id="unrelated-cycle-stays"),
+        pytest.param(("plugin",), "epsilon", {"epsilon", "zeta", "leaf"}, id="leaf-needed-by-hand-installed-cycle"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_removes_dependencies_of_dependencies(
+    tmp_path: Path, backend: str, injected: tuple[str, ...], installed_by_hand: str, left_over: set[str]
+) -> None:
+    index: Final[Path] = tmp_path / "index"
+    for name, requires in [
+        ("plugin", ("middle",)),
+        ("cyclic", ("alpha",)),
+        ("middle", ("leaf",)),
+        ("leaf", ()),
+        ("sibling", ("leaf",)),
+        ("alpha", ("beta",)),
+        ("beta", ("alpha",)),
+        ("gamma", ("delta",)),
+        ("delta", ("gamma",)),
+        ("spare", ()),
+        ("epsilon", ("zeta", "leaf")),
+        ("zeta", ("epsilon",)),
+    ]:
+        write_wheel(index, name, "1.0", requires=requires)
+    assert not run_pipx_cli(["install", "--backend", backend, str(write_wheel(tmp_path / "local", "tool", "1.0"))])
+    venv_dir: Final[Path] = CTX.venvs / "tool"
+    installed_before: Final[set[str]] = {path.name for path in venv_dir.rglob("*.dist-info")}
+    assert not run_pipx_cli(["runpip", "tool", "install", "--no-index", f"--find-links={index}", installed_by_hand])
+    assert not run_pipx_cli(["inject", "tool", *injected, f"--pip-args=--no-index --find-links={index}"])
+
+    assert not run_pipx_cli(["uninject", "tool", injected[0]])
+
+    assert {path.name for path in venv_dir.rglob("*.dist-info")} - installed_before == {
+        f"{name}-1.0.dist-info" for name in left_over
+    }
+
+
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_uninject_reports_failed_dependency_uninstall(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0"])

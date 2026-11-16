@@ -50,13 +50,10 @@ from pipx.venv_inspect import (
     fetch_info_in_venv,
     get_distributions_by_name,
     get_required_dependency_names,
-    not_required_packages,
 )
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from importlib import metadata
-
     from pipx.options import UninjectOptions
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -147,7 +144,17 @@ def _uninject_dep(
     local_man_dir: Path,
     leave_deps: bool,
 ) -> OperationResult[InjectionData]:
-    package_name = _injected_metadata_name(venv, canonicalize_name(package_name))
+    requested: Final[str] = canonicalize_name(package_name)
+    # metadata keys an injected package by the name the installer reported, which pip leaves as declared (Mixed_Case),
+    # and `inject --with-suffix` adds the environment suffix, so users spell it black@1 too
+    package_name = next(
+        (
+            name
+            for name, injected_package in venv.pipx_metadata.injected_packages.items()
+            if requested in {canonicalize_name(name), canonicalize_name(f"{name}{injected_package.exposure.suffix}")}
+        ),
+        requested,
+    )
 
     if canonicalize_name(package_name) == canonicalize_name(venv.main_package_name):
         return _uninject_failure(
@@ -175,22 +182,19 @@ def _uninject_dep(
     )
 
     if not leave_deps:
-        orig_not_required_packages: Final[set[str]] = venv.list_installed_packages(not_required=True)
-        _LOGGER.info("Original not required packages: %s", orig_not_required_packages)
+        # once the package is gone, nothing records what it pulled in
+        requirements_before: Final[dict[str, set[str]]] = _requirements_by_name(venv.python_path)
 
     venv.uninstall_packages(package_name, was_injected=True)
 
-    if not leave_deps:
-        # inspect again: the uninstall can drop search path entries, such as an editable install's .pth
-        venv_sys_path, venv_env, _ = fetch_info_in_venv(venv.python_path)
-        new_not_required_packages: Final[set[str]] = not_required_packages(venv_sys_path, venv_env)
-        _LOGGER.info("New not required packages: %s", new_not_required_packages)
-
-        if deps_of_uninstalled := new_not_required_packages - orig_not_required_packages:
-            deps_of_uninstalled -= _get_remaining_dependencies(venv, package_name, venv_sys_path, venv_env)
-            _LOGGER.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
-            if deps_of_uninstalled:
-                venv.uninstall_packages(*sorted(deps_of_uninstalled))
+    # inspect again: the uninstall can drop search path entries, such as an editable install's .pth
+    if not leave_deps and (
+        deps_of_uninstalled := _get_orphaned_dependencies(
+            venv, canonicalize_name(package_name), requirements_before, _requirements_by_name(venv.python_path)
+        )
+    ):
+        _LOGGER.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
+        venv.uninstall_packages(*sorted(deps_of_uninstalled))
 
     if package.exposure.include_apps:
         # the uninstall dropped this package's record, so what the venv still expects belongs to its other packages
@@ -226,15 +230,6 @@ def _uninject_dep(
     )
 
 
-def _injected_metadata_name(venv: Venv, package_name: str) -> str:
-    # metadata keys an injected package by the name the installer reported, which pip leaves as declared (Mixed_Case),
-    # and `inject --with-suffix` adds the environment suffix, so users spell it black@1 too
-    for name, injected_package in venv.pipx_metadata.injected_packages.items():
-        if package_name in {canonicalize_name(name), canonicalize_name(f"{name}{injected_package.exposure.suffix}")}:
-            return name
-    return package_name
-
-
 def _get_include_resource_paths(
     package: PackageInfo, venv: Venv, local_bin_dir: Path, local_man_dir: Path
 ) -> set[Path]:
@@ -262,32 +257,39 @@ def _get_include_resource_paths(
     )
 
 
-def _get_remaining_dependencies(
-    venv: Venv, excluded_package: str, venv_sys_path: list[str], venv_env: dict[str, str]
-) -> set[str]:
-    distributions: Final[dict[str, metadata.Distribution]] = get_distributions_by_name(venv_sys_path)
-    remaining_deps: Final[set[str]] = set()
-    for name in (venv.pipx_metadata.main_package.package, *venv.pipx_metadata.injected_packages):
-        if name is not None and name != excluded_package:
-            remaining_deps.update(_collect_transitive_deps(name, distributions, venv_env))
-    return remaining_deps
+def _requirements_by_name(venv_python: Path) -> dict[str, set[str]]:
+    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
+    return {
+        name: get_required_dependency_names(distribution, venv_env)
+        for name, distribution in get_distributions_by_name(venv_sys_path).items()
+    }
 
 
-def _collect_transitive_deps(
-    package_name: str,
-    distributions: dict[str, metadata.Distribution],
-    env: dict[str, str],
-    visited: set[str] | None = None,
+def _get_orphaned_dependencies(
+    venv: Venv, excluded_package: str, requirements_before: dict[str, set[str]], requirements_after: dict[str, set[str]]
 ) -> set[str]:
-    if visited is None:
-        visited = set()
-    if (canonical := canonicalize_name(package_name)) in visited:
-        return visited
-    visited.add(canonical)
-    if distribution := distributions.get(canonical):
-        for dependency_name in get_required_dependency_names(distribution, env):
-            _collect_transitive_deps(dependency_name, distributions, env, visited)
-    return visited
+    pulled_in: Final[set[str]] = set()
+    _collect_transitive_deps(excluded_package, requirements_before, pulled_in)
+    # everything the package did not pull in stays, along with what it needs; the environment's own packages stay even
+    # when the removed package was the one requiring them
+    roots: Final[set[str]] = (requirements_after.keys() - pulled_in) | {
+        canonicalize_name(name)
+        for name in (venv.pipx_metadata.main_package.package, *venv.pipx_metadata.injected_packages)
+        if name is not None
+    }
+    kept: Final[set[str]] = set()
+    for root in roots:
+        _collect_transitive_deps(root, requirements_after, kept)
+    # walking reachability rather than counting dependents also frees dependencies that require each other
+    return (pulled_in & requirements_after.keys()) - kept
+
+
+def _collect_transitive_deps(package_name: str, requirements: dict[str, set[str]], visited: set[str]) -> None:
+    if package_name in visited:
+        return
+    visited.add(package_name)
+    for dependency_name in requirements.get(package_name, set()):
+        _collect_transitive_deps(dependency_name, requirements, visited)
 
 
 __all__ = [
