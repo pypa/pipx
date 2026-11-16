@@ -196,7 +196,9 @@ def reinstall(
     )
 
     if venv.pipx_metadata.main_package.pinned:
-        msg: Final[str] = f"{ERROR} Package {venv_dir.name} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first."
+        msg: Final[str] = (
+            f"{ERROR} Package {venv_dir.name} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first."
+        )
         raise PipxError(msg)
 
     old_resource_paths: Final[set[Path]] = _get_reinstall_resource_paths(
