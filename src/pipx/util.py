@@ -1,7 +1,8 @@
 from __future__ import annotations  # simplint: ignore[catch-all-module]  # shared helpers have callers across pipx
 
-__lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
+__lazy_modules__ = ["locale", "pathlib", "pipx.redact", "pipx.wrap"]
 
+import locale
 import logging
 import os
 import sys
@@ -110,6 +111,36 @@ def open_owner_only(path: str | os.PathLike[str], flags: int) -> int:
     return os.open(path, flags, 0o600)
 
 
+def read_pth_file(path: Path) -> str:
+    """Read a ``.pth`` file with the encoding precedence of the ``site`` module.
+
+    :param path: the file to read.
+    :returns: the content of the file.
+    """
+    # Python 3.12+ decodes a .pth file as UTF-8 first and falls back to the locale encoding, so this reads both the
+    # files written before the locale encoding below was used and those written with it
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        return path.read_text(encoding=locale.getencoding())
+
+
+def write_pth_file(path: Path, content: str) -> None:
+    """Write a ``.pth`` file in an encoding the ``site`` module reads on every supported Python version.
+
+    :param path: the file to write.
+    :param content: the content to write.
+    """
+    # Python 3.11 reads a .pth file only in the locale encoding, and one it cannot decode stops the interpreter from
+    # starting at all, while write_text() would use UTF-8 in UTF-8 mode, which PEP 686 makes the default in 3.15
+    encoded: bytes
+    try:
+        encoded = content.encode(locale.getencoding())
+    except UnicodeEncodeError:
+        encoded = content.encode("utf-8")  # only 3.12+ can read this back, 3.11 cannot read the path regardless
+    path.write_bytes(encoded)
+
+
 def full_package_description(package_name: str, package_spec: str) -> str:
     """Describe a package for the user, with the credentials in its spec redacted.
 
@@ -160,5 +191,7 @@ __all__ = [
     "is_file_name",
     "mkdir",
     "open_owner_only",
+    "read_pth_file",
     "reject_empty_index",
+    "write_pth_file",
 ]

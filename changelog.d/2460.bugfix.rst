@@ -1,0 +1,2 @@
+Fix environments created with Python 3.11 failing to start, and pipx commands failing with ``UnicodeDecodeError``,
+when pipx runs in UTF-8 mode and ``PIPX_HOME`` contains non-ASCII characters.

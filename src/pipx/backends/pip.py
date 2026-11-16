@@ -28,7 +28,7 @@ from pipx.redact import redact_command_line
 from pipx.shared_libs import SHARED_LIBS
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
 from pipx.trash import safe_unlink
-from pipx.util import PipxError, get_venv_paths, open_owner_only
+from pipx.util import PipxError, get_venv_paths, open_owner_only, write_pth_file
 
 from ._base import outdated_packages_from_process
 
@@ -134,7 +134,7 @@ class PipBackend(Backend):
             _, python_path, _ = get_venv_paths(root)
             purelib: Final = get_site_packages(python_path)[0]
             purelib.mkdir(parents=True, exist_ok=True)
-            (purelib / PIPX_SHARED_PTH).write_text("".join(f"{path}\n" for path in SHARED_LIBS.site_packages))
+            write_pth_file(purelib / PIPX_SHARED_PTH, "".join(f"{path}\n" for path in SHARED_LIBS.site_packages))
 
     def install(  # ruff:ignore[too-many-arguments]  # Backend interface method mapping flags to pip options
         self,
