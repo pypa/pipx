@@ -29,11 +29,16 @@ def execute(package: str, venv_dir: Path, app: str, app_args: list[str]) -> NoRe
         raise PipxError(msg)
 
     venv: Final[Venv] = Venv(venv_dir)
-    app_paths: Final[dict[str, Path]] = {
-        path.stem if WINDOWS and path.suffix.lower() == ".exe" else path.name: path
-        for package in (venv.pipx_metadata.main_package, *venv.pipx_metadata.injected_packages.values())
-        for path in chain(package.resources.app_paths, *package.resources.app_paths_of_dependencies.values())
-    }
+    app_paths: Final[dict[str, Path]] = {}
+    for managed_package in (venv.pipx_metadata.main_package, *venv.pipx_metadata.injected_packages.values()):
+        for path in chain(
+            managed_package.resources.app_paths,
+            *managed_package.resources.app_paths_of_dependencies.values(),
+        ):
+            name: Final[str] = path.stem if WINDOWS and path.suffix.lower() == ".exe" else path.name
+            app_paths[name] = path
+            if managed_package.exposure.suffix:
+                app_paths[f"{name}{managed_package.exposure.suffix}"] = path
     if (app_path := app_paths.get(app)) is None:
         available: Final[str] = ", ".join(sorted(app_paths)) or "none"
         msg = f"Application {app!r} was not found in environment {package!r}.\nAvailable applications: {available}"
