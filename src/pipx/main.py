@@ -1831,6 +1831,14 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
             followed by internal pipx variables which are derived from the environment
             variables and platform specific default values.
 
+            --value prints the computed value of a variable the full output lists
+            under "Derived values", such as PIPX_HOME. For any other variable it
+            prints the raw environment value, or an empty line when unset, even if
+            pipx applies a default. Query PIPX_RESOLVED_BACKEND for the backend new
+            environments get; outside Windows, query a global path with --global and
+            the name without GLOBAL_, for example:
+              pipx environment --global --value PIPX_BIN_DIR
+
             Available variables:
             """
         )
@@ -1842,7 +1850,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         "-V",
         choices=ENVIRONMENT_VALUE_CHOICES,
         metavar="VARIABLE",
-        help="Print the value of the variable.",
+        help="Print the value listed under Derived values, or else the raw value (empty when unset).",
     )
     parser.set_defaults(func=_cmd_environment)
 

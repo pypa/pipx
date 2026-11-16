@@ -5,6 +5,16 @@
 pipx has no user configuration file. Every setting is an environment variable, all of them optional. Run ``pipx
 environment`` to print each variable as set in your environment, followed by the values pipx derives from them.
 
+With ``pipx environment --value VARIABLE`` (or ``-V``), pipx prints the value it computes for a variable that the full
+output lists under ``Derived values``: the read-only values below, and the settable paths and flags pipx resolves, such
+as ``PIPX_HOME`` and ``PIPX_BIN_DIR``. For any other variable it prints the raw environment value, or an empty line when
+the variable is unset, even if pipx applies a default; the tables below list each default. To read what pipx applies
+instead:
+
+- for ``PIPX_DEFAULT_BACKEND``, query ``PIPX_RESOLVED_BACKEND``, the backend new environments get;
+- for a ``PIPX_GLOBAL_*`` path outside Windows, add ``--global`` and query the name without ``GLOBAL_``, for example
+  ``pipx environment --global --value PIPX_BIN_DIR`` (``--global`` does not exist on Windows).
+
 *******************
  Settable variables
 *******************
