@@ -501,7 +501,9 @@ def test_reinstall_pinned_package_fails(capsys: pytest.CaptureFixture[str]) -> N
 
     assert run_pipx_cli(["reinstall", "black"])
 
-    assert "Package black is pinned. Run `pipx unpin black` to unpin it first." in capsys.readouterr().err
+    assert "Package black is pinned. Run `pipx unpin black` to unpin it first." in capsys.readouterr().err.replace(
+        "\n", " "
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
