@@ -7,7 +7,7 @@ workflows:
     '.github/workflows/news.yaml':
         - 'actions/checkout@v7.0.1'
         - 'astral-sh/setup-uv@v10.3.3'
-        - 'tox-dev/github-workflows@6.8.0'
+        - 'tox-dev/github-workflows@6.8.3'
     '.github/workflows/pre-release.yml': []
     '.github/workflows/release.yml':
         - 'actions/checkout@v7.0.1'
@@ -15,7 +15,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'astral-sh/setup-uv@v10.3.3'
         - 'pypa/gh-action-pypi-publish@v1.14.3'
-        - 'tox-dev/github-workflows@6.8.0'
+        - 'tox-dev/github-workflows@6.8.3'
     '.github/workflows/scorecard.yaml': []
     '.github/workflows/tests.yml':
         - 'actions/cache@v6.1.0'
@@ -23,7 +23,7 @@ workflows:
         - 'actions/download-artifact@v8.0.2'
         - 'actions/upload-artifact@v7.0.2'
         - 'astral-sh/setup-uv@v10.3.3'
-        - 'tox-dev/github-workflows@6.8.0'
+        - 'tox-dev/github-workflows@6.8.3'
     '.github/workflows/upgrade-release-tools.yaml': []
     '.github/workflows/zizmor.yml':
         - 'actions/checkout@v7.0.1'
@@ -71,9 +71,9 @@ dependencies:
         repo_id: 178055147
         uses:
             - 'actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405'
-    'tox-dev/github-workflows@6.8.0':
-        ref: '6.8.0'
-        commit: 'sha1-bf1c3ab0aa137d307a07aad844d507af73039387'
+    'tox-dev/github-workflows@6.8.3':
+        ref: '6.8.3'
+        commit: 'sha1-ef0cd88bef592260a48345753b8b509b209ab189'
         owner_id: 20345659
         repo_id: 1426182029
     'zizmorcore/zizmor-action@v0.8.1':
