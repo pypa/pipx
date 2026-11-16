@@ -452,6 +452,16 @@ def test_parse_specifier_for_install_rejects_malformed_url(package_spec: str, ex
 
 
 @pytest.mark.parametrize(
+    "option", [pytest.param("--find-links", id="find-links"), pytest.param("--report", id="report")]
+)
+def test_parse_specifier_for_install_rejects_malformed_pip_arg_url(option: str) -> None:
+    with pytest.raises(PipxError) as exc:
+        parse_specifier_for_install("black", [option, "https://alice:secret@[::1/simple"])
+
+    assert str(exc.value) == "Unable to parse pip argument: https://****:****@[::1/simple"
+
+
+@pytest.mark.parametrize(
     ("package_spec", "pip_args", "expected", "warning"),
     [
         pytest.param(

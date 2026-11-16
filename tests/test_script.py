@@ -31,9 +31,9 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize(
     "package_spec",
     [
-        "https://[::1/script.py",
-        "https://[invalid]/package.whl",
-        "https://example\uff0f.com/script.py",
+        pytest.param("https://[::1/script.py", id="unclosed-ipv6-bracket"),
+        pytest.param("https://[invalid]/package.whl", id="invalid-ipv6-host"),
+        pytest.param("https://example\uff0f.com/script.py", id="nfkc-breaks-host"),
     ],
 )
 def test_malformed_url_is_not_a_script(package_spec: str) -> None:

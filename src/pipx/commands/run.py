@@ -128,7 +128,11 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
 
 
 def _is_vcs_url(value: str) -> bool:
-    vcs, separator, _ = urllib.parse.urlparse(value).scheme.partition("+")
+    try:
+        scheme: Final[str] = urllib.parse.urlparse(value).scheme
+    except ValueError:
+        return False
+    vcs, separator, _ = scheme.partition("+")
     return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
 
 
@@ -158,7 +162,11 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
         except InvalidRequirement:
             pass
 
-    parsed: Final = urllib.parse.urlparse(app)
+    try:
+        parsed: Final[urllib.parse.ParseResult] = urllib.parse.urlparse(app)
+    except ValueError:
+        msg = f"Unable to parse package spec: {redact_url_credentials(app)}"
+        raise PipxError(msg) from None
     local_path: Final[bool] = is_path or not (parsed.scheme and "://" in app)
     if local_path and app_path.is_file():
         return app_path

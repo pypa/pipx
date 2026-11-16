@@ -727,3 +727,11 @@ def test_option_shaped_package_is_refused(capsys: pytest.CaptureFixture[str], ar
         run_pipx_cli(argv)
 
     assert "is an installer option; pass it with --pip-args" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("command", ["uninstall", "upgrade"])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_command_rejects_malformed_url(command: str, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli([command, "https://alice:secret@[::1/package.whl"]) == 1
+
+    assert capsys.readouterr().err == "Unable to parse package spec: https://****:****@[::1/package.whl\n"

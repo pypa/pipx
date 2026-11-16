@@ -385,8 +385,13 @@ def _absolute_paths(arguments: list[_PipArgument], base: Path) -> list[_PipArgum
 
 
 def _absolute_path_value(value: str, base: Path) -> str:
+    try:
+        scheme: Final[str] = urllib.parse.urlsplit(value).scheme
+    except ValueError:
+        msg = f"Unable to parse pip argument: {redact_url_credentials(value)}"
+        raise PipxError(msg) from None
     # pip writes --report - to stdout
-    if value == "-" or urllib.parse.urlsplit(value).scheme:
+    if value == "-" or scheme:
         return value
     return str((base / Path(value).expanduser()).resolve())
 
