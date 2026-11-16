@@ -25,7 +25,7 @@ __lazy_modules__ = [
 import subprocess
 import tomllib
 from collections import Counter
-from contextlib import ExitStack, suppress
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -477,10 +477,7 @@ def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
 
 
 def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
-    with (
-        TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir,
-        ExitStack() as stack,
-    ):
+    with TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir:
         generated: Final[list[tuple[Path, Path]]] = []
         for tool in manifest.tools:
             if tool.lock_file is None:
@@ -516,33 +513,38 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
 
         backups_dir: Final[Path] = Path(temporary_dir) / ".previous"
         backups_dir.mkdir()
-        locked: Final[list[str]] = []
-        # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
-        # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
-        applied: Final[list[tuple[Path, Path | None]]] = []
-        # A handled signal must not strand backups that temporary-directory cleanup would remove.
-        stack.enter_context(uninterrupted())
-        try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler rolls back every applied lock
-            for index, (generated_lock, lock_file) in enumerate(generated):
-                lock_file.parent.mkdir(parents=True, exist_ok=True)
-                backup: Path | None = None
-                if lock_file.is_file():
-                    backup = backups_dir / f"{index}-{lock_file.name}"
-                    lock_file.replace(backup)
-                # record before the swap-in so a failure mid-replacement still rolls this target back
-                applied.append((lock_file, backup))
-                generated_lock.replace(lock_file)
-                locked.append(str(lock_file))
-        except OSError:
-            for lock_file, backup in reversed(applied):
-                # what broke a swap-in (a directory at the lock path) can break its undo too, and the backups go away
-                # with the temporary directory, so one failed undo must not keep the earlier locks from being restored
-                with suppress(OSError):
-                    if backup is not None:
-                        backup.replace(lock_file)
-                    else:
-                        lock_file.unlink(missing_ok=True)
-            raise
+        # an interrupt between a backup and its swap-in would leave the lock missing once the temporary directory goes
+        # away, so finish the swap or its rollback first
+        with uninterrupted():
+            return _publish_locks(generated, backups_dir)
+
+
+def _publish_locks(generated: list[tuple[Path, Path]], backups_dir: Path) -> list[str]:
+    locked: Final[list[str]] = []
+    # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
+    # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
+    applied: Final[list[tuple[Path, Path | None]]] = []
+    try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler rolls back every applied lock
+        for index, (generated_lock, lock_file) in enumerate(generated):
+            lock_file.parent.mkdir(parents=True, exist_ok=True)
+            backup: Path | None = None
+            if lock_file.is_file():
+                backup = backups_dir / f"{index}-{lock_file.name}"
+                lock_file.replace(backup)
+            # record before the swap-in so a failure mid-replacement still rolls this target back
+            applied.append((lock_file, backup))
+            generated_lock.replace(lock_file)
+            locked.append(str(lock_file))
+    except OSError:
+        for lock_file, backup in reversed(applied):
+            # what broke a swap-in (a directory at the lock path) can break its undo too, and the backups go away
+            # with the temporary directory, so one failed undo must not keep the earlier locks from being restored
+            with suppress(OSError):
+                if backup is not None:
+                    backup.replace(lock_file)
+                else:
+                    lock_file.unlink(missing_ok=True)
+        raise
     return locked
 
 
