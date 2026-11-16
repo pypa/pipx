@@ -22,7 +22,7 @@ index = "https://pypi.org/simple/"
 
 [packages.sdist]
 name = "argcomplete-3.7.2.tar.gz"
-upload-time = 2026-08-06 04:53:21.662042+00:00
+upload-time = 2026-08-06T04:53:21.662042+00:00
 url = "https://files.pythonhosted.org/packages/87/6f/5a73f04007ca950701765949209f068da628bd11f9c2da287278ce91e0ee/argcomplete-3.7.2.tar.gz"
 size = 74473
 
@@ -31,7 +31,7 @@ sha256 = "aad8b69a0b9969edb62db0d1752354c0d50717b10e0cbb00e2a958381b9fc6b9"
 
 [[packages.wheels]]
 name = "argcomplete-3.7.2-py3-none-any.whl"
-upload-time = 2026-08-06 04:53:20.246664+00:00
+upload-time = 2026-08-06T04:53:20.246664+00:00
 url = "https://files.pythonhosted.org/packages/46/bd/551ee6af426af84ca33e02622be722925c196608e9127d731ef17c47f06e/argcomplete-3.7.2-py3-none-any.whl"
 size = 43294
 
@@ -40,28 +40,28 @@ sha256 = "6029205678bdd9c1c728a155f5f9ecf5812393f969eef58807641a2bc2aa5b19"
 
 [[packages]]
 name = "click"
-version = "8.5.0"
+version = "8.5.1"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.10"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "click-8.5.0.tar.gz"
-upload-time = 2026-08-26 13:33:14.560531+00:00
-url = "https://files.pythonhosted.org/packages/c7/0e/7fa0ef50764b67090eca4114772a2abf8b6148198475e54c660b97caeee6/click-8.5.0.tar.gz"
-size = 382235
+name = "click-8.5.1.tar.gz"
+upload-time = 2026-11-06T17:37:01.021167+00:00
+url = "https://files.pythonhosted.org/packages/45/37/edbf1b0707709013c0cf2e8317e03d97ed29bf4cac709fe328904ae92a38/click-8.5.1.tar.gz"
+size = 399151
 
 [packages.sdist.hashes]
-sha256 = "ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34"
+sha256 = "9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4"
 
 [[packages.wheels]]
-name = "click-8.5.0-py3-none-any.whl"
-upload-time = 2026-08-26 13:33:12.928043+00:00
-url = "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl"
-size = 125251
+name = "click-8.5.1-py3-none-any.whl"
+upload-time = 2026-11-06T17:36:59.287013+00:00
+url = "https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl"
+size = 126163
 
 [packages.wheels.hashes]
-sha256 = "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"
+sha256 = "8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37"
 
 [[packages]]
 name = "colorama"
@@ -72,7 +72,7 @@ index = "https://pypi.org/simple/"
 
 [packages.sdist]
 name = "colorama-0.4.6.tar.gz"
-upload-time = 2022-10-25 02:36:22.414799+00:00
+upload-time = 2022-10-25T02:36:22.414799+00:00
 url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz"
 size = 27697
 
@@ -81,7 +81,7 @@ sha256 = "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"
 
 [[packages.wheels]]
 name = "colorama-0.4.6-py2.py3-none-any.whl"
-upload-time = 2022-10-25 02:36:20.889702+00:00
+upload-time = 2022-10-25T02:36:20.889702+00:00
 url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl"
 size = 25335
 
@@ -90,28 +90,28 @@ sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
 
 [[packages]]
 name = "filelock"
-version = "4.2.4"
+version = "4.2.9"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.11"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "filelock-4.2.4.tar.gz"
-upload-time = 2026-10-19 01:57:51.001795+00:00
-url = "https://files.pythonhosted.org/packages/d8/28/3893324bcadf8f89b1616637468d766af3f625008c0735bf704fdfa86617/filelock-4.2.4.tar.gz"
-size = 652444
+name = "filelock-4.2.9.tar.gz"
+upload-time = 2026-11-04T18:37:10.014554+00:00
+url = "https://files.pythonhosted.org/packages/a3/1d/d730c664fcb4f1d264a722722a3134cf0881854f73c1fd58abf87572f232/filelock-4.2.9.tar.gz"
+size = 663116
 
 [packages.sdist.hashes]
-sha256 = "c6d8663535e1650ee430507b4ffbac7b464dd64b7647ea0112a9f406499d163d"
+sha256 = "96530b7c538d4ea08493ab067247aab7948c54d8cd622cce711c97cccc5d9896"
 
 [[packages.wheels]]
-name = "filelock-4.2.4-py3-none-any.whl"
-upload-time = 2026-10-19 01:57:49.419460+00:00
-url = "https://files.pythonhosted.org/packages/e0/1b/5e74289a1878e666bb4b65fe5805a04cafcac2aa5f519ef1ead67ef91c56/filelock-4.2.4-py3-none-any.whl"
-size = 162475
+name = "filelock-4.2.9-py3-none-any.whl"
+upload-time = 2026-11-04T18:37:08.273170+00:00
+url = "https://files.pythonhosted.org/packages/00/05/76184fe08339723d643ab47887a8e4de8f2921ca4e008617ab7490af7857/filelock-4.2.9-py3-none-any.whl"
+size = 164734
 
 [packages.wheels.hashes]
-sha256 = "301241438c57936ef93f4243a94f2559022268bfcf9b375a9a72eb0f8db8358e"
+sha256 = "a379c50a729e5b68c8519a4d26489f755d9769960a236ecd838190e2a78db2e9"
 
 [[packages]]
 name = "packaging"
@@ -122,7 +122,7 @@ index = "https://pypi.org/simple/"
 
 [packages.sdist]
 name = "packaging-26.3.tar.gz"
-upload-time = 2026-08-04 18:15:28.737071+00:00
+upload-time = 2026-08-04T18:15:28.737071+00:00
 url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz"
 size = 313412
 
@@ -131,7 +131,7 @@ sha256 = "94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79"
 
 [[packages.wheels]]
 name = "packaging-26.3-py3-none-any.whl"
-upload-time = 2026-08-04 18:15:27.159957+00:00
+upload-time = 2026-08-04T18:15:27.159957+00:00
 url = "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl"
 size = 129956
 
@@ -140,28 +140,28 @@ sha256 = "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
 
 [[packages]]
 name = "platformdirs"
-version = "4.13.6"
+version = "4.14.5"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.11"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "platformdirs-4.13.6.tar.gz"
-upload-time = 2026-10-27 08:19:11.538584+00:00
-url = "https://files.pythonhosted.org/packages/1a/43/8c4b5fe23f0e119cf4e1b16c2d16240ab9057cdbb138568c91d5a48abf81/platformdirs-4.13.6.tar.gz"
-size = 62750
+name = "platformdirs-4.14.5.tar.gz"
+upload-time = 2026-11-04T16:54:50.358732+00:00
+url = "https://files.pythonhosted.org/packages/d7/9a/8475be631fb33ca1466915e70fd594c42a4e84b512db650eaa14f90fe75d/platformdirs-4.14.5.tar.gz"
+size = 71464
 
 [packages.sdist.hashes]
-sha256 = "211d176e24674b5895dedf9021c262bcf9fad008a70610bfb147d4a8d6d8fe1b"
+sha256 = "32e9921db7385aa8169bee4fe9501923e5715ba9fb7ea3b9c69b0d8e0639f7a1"
 
 [[packages.wheels]]
-name = "platformdirs-4.13.6-py3-none-any.whl"
-upload-time = 2026-10-27 08:19:10.405474+00:00
-url = "https://files.pythonhosted.org/packages/a8/24/b312a9466839b1f708eed42790b47e927dc7f774a528bb49b1cdf8b734b9/platformdirs-4.13.6-py3-none-any.whl"
-size = 32767
+name = "platformdirs-4.14.5-py3-none-any.whl"
+upload-time = 2026-11-04T16:54:48.875457+00:00
+url = "https://files.pythonhosted.org/packages/7c/ae/ecbbbfd0e4343a6a521d49b3c8656fb4643dee2a4f6eaf941cf3280391a8/platformdirs-4.14.5-py3-none-any.whl"
+size = 35402
 
 [packages.wheels.hashes]
-sha256 = "21fc198fb09f3e78cadcdfd8a6ae4fd65cadc64a3cba78b694321c2996114a3e"
+sha256 = "8e778c6fa421516f4d3369449f8df3b0e1b72c0e0005fe88e3ec772d0a14e750"
 
 [[packages]]
 name = "userpath"
@@ -175,7 +175,7 @@ index = "https://pypi.org/simple/"
 
 [packages.sdist]
 name = "userpath-1.9.2.tar.gz"
-upload-time = 2024-02-29 21:39:08.742371+00:00
+upload-time = 2024-02-29T21:39:08.742371+00:00
 url = "https://files.pythonhosted.org/packages/d5/b7/30753098208505d7ff9be5b3a32112fb8a4cb3ddfccbbb7ba9973f2e29ff/userpath-1.9.2.tar.gz"
 size = 11140
 
@@ -184,7 +184,7 @@ sha256 = "6c52288dab069257cc831846d15d48133522455d4677ee69a9781f11dbefd815"
 
 [[packages.wheels]]
 name = "userpath-1.9.2-py3-none-any.whl"
-upload-time = 2024-02-29 21:39:07.551460+00:00
+upload-time = 2024-02-29T21:39:07.551460+00:00
 url = "https://files.pythonhosted.org/packages/43/99/3ec6335ded5b88c2f7ed25c56ffd952546f7ed007ffb1e1539dc3b57015a/userpath-1.9.2-py3-none-any.whl"
 size = 9065
 
@@ -192,8 +192,8 @@ size = 9065
 sha256 = "2cbf01a23d655a1ff8fc166dfb78da1b641d1ceabf0fe5f970767d380b14e89d"
 
 [tool.nab]
-nab-version = "0.0.23"
-created-at = 2026-11-03 21:20:33.376182+00:00
+nab-version = "0.0.27"
+created-at = 2026-11-16T08:07:41.649597+00:00
 command-line = [
     "nab",
     "lock",
@@ -224,3 +224,9 @@ cli-project-overrides = [
     "--project-matrix-platforms=linux_x86_64 windows_amd64 macos_arm64",
     "--project-matrix-implementations=cpython",
 ]
+
+[tool.nab.validation]
+version = 1
+all-inputs-sha256 = "bd6c294e109a5d6ba265b92e9639184dbc9f9f688ffd727ae9708f13a564431d"
+selection-inputs-sha256 = "0b97d1007b82628ec897d36a1c77bc09ccc5e7b4afff034ea4c71c69f8c8d7ee"
+contents-sha256 = "02f7aed1e9f1c28f8f64e552a5f273cf8d73d4d404b8f90ba226049ecc56de70"
