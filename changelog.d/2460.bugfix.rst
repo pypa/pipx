@@ -1,2 +1,4 @@
 Fix environments created with Python 3.11 failing to start, and pipx commands failing with ``UnicodeDecodeError``,
-when pipx runs in UTF-8 mode and ``PIPX_HOME`` contains non-ASCII characters.
+when pipx runs in UTF-8 mode and ``PIPX_HOME`` contains non-ASCII characters. pipx writes ``pipx_shared.pth`` in the
+encoding the environment's Python reads it with, and rewrites an existing one the next time it installs into that
+environment.

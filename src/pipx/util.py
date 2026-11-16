@@ -125,23 +125,6 @@ def read_pth_file(path: Path) -> str:
         return path.read_text(encoding=locale.getencoding())
 
 
-def write_pth_file(path: Path, content: str) -> None:
-    """Write a ``.pth`` file in an encoding compatible with the locale whenever possible.
-
-    :param path: the file to write.
-    :param content: the content to write.
-    """
-    # Python 3.11 reads a .pth file only in the locale encoding, and one it cannot decode stops the interpreter from
-    # starting at all, while write_text() would use UTF-8 in UTF-8 mode, which PEP 686 makes the default in 3.15
-    encoding = locale.getencoding()
-    try:
-        content.encode(encoding)
-    except UnicodeEncodeError:
-        # Python 3.11 cannot load this path in the current locale; 3.12+ can read UTF-8
-        encoding = "utf-8"
-    path.write_text(content, encoding=encoding)
-
-
 def full_package_description(package_name: str, package_spec: str) -> str:
     """Describe a package for the user, with the credentials in its spec redacted.
 
@@ -194,5 +177,4 @@ __all__ = [
     "open_owner_only",
     "read_pth_file",
     "reject_empty_index",
-    "write_pth_file",
 ]

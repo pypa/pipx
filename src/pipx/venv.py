@@ -71,6 +71,7 @@ from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     SHARED_LIBS,
     shared_libs_auto_upgrade_disabled,
+    write_shared_pth,
 )
 from pipx.subprocess_runner import exec_app, get_site_packages, subprocess_post_check
 from pipx.trash import rmdir
@@ -80,7 +81,6 @@ from pipx.util import (
     full_package_description,
     get_venv_paths,
     read_pth_file,
-    write_pth_file,
 )
 from pipx.wrap import pipx_wrap
 
@@ -388,12 +388,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 f"To fix, execute: pipx reinstall {self.root.name}"
             )
             raise PipxError(msg, wrap_message=False)
-        if self.uses_shared_libs and SHARED_LIBS.is_valid:
-            shared_pth: Final[Path] = self.site_packages[0] / PIPX_SHARED_PTH
-            shared_paths: Final[str] = "".join(f"{path}\n" for path in SHARED_LIBS.site_packages)
-            # Rebuilding shared pip with another Python minor moves its site-packages on POSIX.
-            if shared_pth.is_file() and read_pth_file(shared_pth) != shared_paths:
-                write_pth_file(shared_pth, shared_paths)
+        # rebuilding shared pip with another Python minor moves its site-packages on POSIX
+        if self.uses_shared_libs and SHARED_LIBS.is_valid and (self.site_packages[0] / PIPX_SHARED_PTH).is_file():
+            write_shared_pth(self.root, self.site_packages[0])
         return self.python_path
 
     @property
