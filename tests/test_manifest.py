@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Protocol
@@ -623,6 +624,94 @@ def test_lock_manifest_rolls_back_every_lock_when_one_replacement_fails(
         (tmp_path / "pylock.black.toml").read_text(encoding="utf-8"),
         (tmp_path / "pylock.pycowsay.toml").read_text(encoding="utf-8"),
     ) == (True, "old-black\n", "old-pycowsay\n")
+
+
+@pytest.mark.parametrize(
+    "interrupt_after",
+    [
+        pytest.param(0, id="uninterrupted"),
+        pytest.param(1, id="first-backup"),
+        pytest.param(2, id="first-replacement"),
+        pytest.param(3, id="second-backup"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "nab_writes_new_lock", "signal_handlers")
+def test_lock_manifest_keeps_all_locks_when_interrupted(
+    write_manifest: Callable[[str], Path],
+    tmp_path: Path,
+    mocker: MockerFixture,
+    interrupt_after: int,
+) -> None:
+    manifest: Final[Path] = write_manifest(_TWO_LOCKS_MANIFEST)
+    locks: Final[list[Path]] = [tmp_path / "pylock.black.toml", tmp_path / "pylock.pycowsay.toml"]
+    for lock in locks:
+        lock.write_text("old\n", encoding="utf-8")
+
+    real_replace: Final = Path.replace
+    replacements: Final[list[Path]] = []
+
+    def replace(self: Path, target: Path) -> Path:
+        result: Final[Path] = real_replace(self, target)
+        if target.parent.name == ".previous" or target in locks:
+            replacements.append(target)
+            if len(replacements) == interrupt_after:
+                signal.raise_signal(signal.SIGINT)
+        return result
+
+    mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
+
+    assert run_pipx_cli(["manifest", "lock", str(manifest)]) == bool(interrupt_after)
+    assert [lock.read_text(encoding="utf-8") for lock in locks] == ["new\n", "new\n"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "nab_writes_new_lock", "signal_handlers")
+def test_lock_manifest_finishes_rollback_through_interrupt(
+    write_manifest: Callable[[str], Path], tmp_path: Path, mocker: MockerFixture
+) -> None:
+    manifest: Final[Path] = write_manifest(_TWO_LOCKS_MANIFEST)
+    locks: Final[list[Path]] = [tmp_path / "pylock.black.toml", tmp_path / "pylock.pycowsay.toml"]
+    for lock in locks:
+        lock.write_text("old\n", encoding="utf-8")
+    real_replace: Final = Path.replace
+
+    def replace(self: Path, target: Path) -> Path:
+        if target == locks[1] and self.parent.name != ".previous":
+            msg = "replace failed"
+            raise OSError(msg)
+        result: Final[Path] = real_replace(self, target)
+        if target == locks[1] and self.parent.name == ".previous":
+            signal.raise_signal(signal.SIGINT)
+        return result
+
+    mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
+
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
+    assert [lock.read_text(encoding="utf-8") for lock in locks] == ["old\n", "old\n"]
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "signal_handlers")
+def test_lock_manifest_interrupts_generation_before_replacing_locks(
+    write_manifest: Callable[[str], Path], tmp_path: Path, mocker: MockerFixture
+) -> None:
+    manifest: Final[Path] = write_manifest(_TWO_LOCKS_MANIFEST)
+    locks: Final[list[Path]] = [tmp_path / "pylock.black.toml", tmp_path / "pylock.pycowsay.toml"]
+    for lock in locks:
+        lock.write_text("old\n", encoding="utf-8")
+    generated: Final[list[Path]] = []
+
+    def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
+        del check, cwd
+        generated.append(Path(command[command.index("--output") + 1]))
+        signal.raise_signal(signal.SIGINT)
+        generated[-1].write_text("new\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0)
+
+    mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
+    mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
+
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
+    assert len(generated) == 1
+    assert [lock.read_text(encoding="utf-8") for lock in locks] == ["old\n", "old\n"]
 
 
 @pytest.fixture
