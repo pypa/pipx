@@ -41,12 +41,12 @@ repos:
           - mdformat-front-matters==2.0.0
         exclude: ^(docs/changelog\.md|testdata)
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 50e0f3aee9dc5747a5f173f79a7417403c18dda6 # frozen: v2.30.3
+    rev: 3c6e76e10abcae02303212289efed3413350769c # frozen: v2.30.6
     hooks:
       - id: pyproject-fmt
         priority: 3
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c # frozen: v0.17.3
+    rev: c0f278f1254ccc8fb09676bcdb8d847e7db493e5 # frozen: v0.17.4
     hooks:
       - id: ruff-check
         priority: 5
@@ -57,12 +57,12 @@ repos:
       - id: simplint
         priority: 6
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c # frozen: v0.17.3
+    rev: c0f278f1254ccc8fb09676bcdb8d847e7db493e5 # frozen: v0.17.4
     hooks:
       - id: ruff-format
         priority: 7
   - repo: https://github.com/henryiii/flake8-lazy
-    rev: 2db69f40494cc912ede966160695ede82eb6ebac # frozen: v0.10.1
+    rev: 7f268b3b3aaf7feca756ca610e37971382976365 # frozen: v0.11.0
     hooks:
       - id: flake8-lazy
         priority: 4
