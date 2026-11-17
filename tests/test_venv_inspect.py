@@ -362,22 +362,30 @@ def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Pat
     )
 
 
-@pytest.mark.parametrize("extras", [set(), {"feature"}])
-def test_dependency_markers_always_include_base_environment(tmp_path: Path, extras: set[str]) -> None:
+@pytest.mark.parametrize(
+    ("extras", "expected"),
+    [
+        pytest.param(set(), {"base-dependency"}, id="base"),
+        pytest.param({"feature"}, {"base-dependency", "feature-dependency"}, id="feature"),
+    ],
+)
+def test_dependency_markers_always_include_base_environment(
+    tmp_path: Path, extras: set[str], expected: set[str]
+) -> None:
     write_dist_info(
         tmp_path,
         "example",
         ['base-dependency; extra != "feature"', 'feature-dependency; extra == "feature"'],
         provides_extra=["feature"],
     )
-    dist = next(metadata.distributions(path=[str(tmp_path)]))
+    dist = next(iter(metadata.distributions(path=[str(tmp_path)])))
     before = extras.copy()
-    actual = {req.name for req in venv_inspect._get_package_dependencies(dist, extras, {})}  # ruff:ignore[private-member-access]
-    assert actual == ({"base-dependency", "feature-dependency"} if before else {"base-dependency"})
+    actual = {req.name for req in venv_inspect._get_package_dependencies(dist, extras, {})}  # ruff:ignore[private-member-access]  # exercise marker evaluation for selected extras
+    assert actual == expected
     assert extras == before
 
 
 def test_required_dependencies_include_base_with_declared_extras(tmp_path: Path) -> None:
     write_dist_info(tmp_path, "example", ['shared; extra != "feature"'], provides_extra=["feature"])
-    dist = next(metadata.distributions(path=[str(tmp_path)]))
+    dist = next(iter(metadata.distributions(path=[str(tmp_path)])))
     assert venv_inspect.get_required_dependency_names(dist, {}) == {"shared"}
