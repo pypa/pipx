@@ -564,3 +564,26 @@ def test_uninject_injected_package_any_spelling(
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--short", "--include-injected"])
     assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_preserves_main_dependency_with_extra_marker(tmp_path: Path) -> None:
+    index = tmp_path / "index"
+    write_wheel(index, "shared_pkg", "1.0")
+    write_wheel(index, "plugin", "1.0", requires=("shared-pkg",))
+    main = write_wheel(
+        index,
+        "main_app",
+        "1.0",
+        requires=('shared-pkg; extra != "feature"',),
+        provides_extra=("feature",),
+    )
+    pip_args = f"--pip-args=--no-index --find-links={index}"
+    assert not run_pipx_cli(["install", str(main), "--skip-maintenance", pip_args])
+    assert not run_pipx_cli(["inject", "main-app", "plugin", "--skip-maintenance", pip_args])
+    python = CTX.venvs / "main-app" / ("Scripts/python.exe" if WINDOWS else "bin/python")
+    assert subprocess.run([str(python), "-c", "import shared_pkg"], check=False).returncode == 0
+
+    assert not run_pipx_cli(["uninject", "main-app", "plugin"])
+
+    assert subprocess.run([str(python), "-c", "import shared_pkg"], check=False).returncode == 0
