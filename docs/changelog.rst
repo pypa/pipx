@@ -14,6 +14,20 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-19:
+
+`1.18.19 <https://github.com/pypa/pipx/tree/1.18.19>`_ - 2026-11-17
+===================================================================
+
+.. _release-1-18-19-fixed:
+
+Fixed
+-----
+
+- ``pipx uninject`` no longer removes a dependency the main package always needs, such as one marked ``extra != "cli"``,
+  when that package declares extras, and ``pipx install --include-deps`` with an extra now exposes the apps of such a
+  dependency (:pr:`2476`) by :user:`hemtilva` and :user:`gaborbernat`.
+
 .. _release-1-18-18:
 
 `1.18.18 <https://github.com/pypa/pipx/tree/1.18.18>`_ - 2026-11-17
