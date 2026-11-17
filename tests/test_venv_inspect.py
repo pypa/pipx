@@ -82,10 +82,19 @@ def test_not_required_packages_skips_invalid_distribution_names(tmp_path: Path, 
     assert venv_inspect.not_required_packages([str(tmp_path)], {}) == {"top-package"}
 
 
-def test_list_not_required_packages_treats_extra_dependencies_as_required(site_packages: Path, tmp_path: Path) -> None:
-    # child-package is required only through top-package's `extra == "cli"` dependency, so it stays required while
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        pytest.param('child-package>=1; extra == "cli"', id="only-the-extra"),
+        pytest.param('child-package>=1; extra != "cli"', id="all-but-the-extra"),
+    ],
+)
+def test_list_not_required_packages_treats_extra_dependencies_as_required(
+    site_packages: Path, tmp_path: Path, requirement: str
+) -> None:
+    # child-package is required through a marker on top-package's declared extra, so it stays required while
     # top-package is installed
-    write_dist_info(site_packages, "top-package", ['child-package>=1; extra == "cli"'], provides_extra=["cli"])
+    write_dist_info(site_packages, "top-package", [requirement], provides_extra=["cli"])
     write_dist_info(site_packages, "child-package")
 
     assert list_not_required_packages(tmp_path / "bin" / "python") == {"top-package"}
@@ -209,6 +218,7 @@ def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, ta
             ["first-app", "second-app", "third-app"],
             id="cycle-enables-root-extra",
         ),
+        pytest.param(("left",), ('third-app; extra != "first"',), ["first-app", "third-app"], id="base-beside-extra"),
     ],
 )
 def test_inspect_venv_follows_extras_of_revisited_dependency(

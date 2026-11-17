@@ -244,7 +244,13 @@ SKIP_IF_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(WIN, reason="T
 
 
 def write_wheel(
-    directory: Path, name: str, version: str, requires: tuple[str, ...] = (), *, module_code: str = ""
+    directory: Path,
+    name: str,
+    version: str,
+    requires: tuple[str, ...] = (),
+    *,
+    module_code: str = "",
+    provides_extra: tuple[str, ...] = (),
 ) -> Path:
     dist_info: Final[str] = f"{name}-{version}.dist-info"
     members: Final[dict[str, str]] = {
@@ -252,6 +258,7 @@ def write_wheel(
         f"{dist_info}/METADATA": "".join([
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n",
             *(f"Requires-Dist: {requirement}\n" for requirement in requires),
+            *(f"Provides-Extra: {extra}\n" for extra in provides_extra),
         ]),
         f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
         f"{dist_info}/entry_points.txt": f"[console_scripts]\n{name} = {name}:VERSION\n",
