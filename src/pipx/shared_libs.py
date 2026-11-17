@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "locale",
     "packaging.version",
     "pathlib",
     "pipx.fanout",
@@ -14,6 +15,7 @@ __lazy_modules__ = [
 ]
 
 import datetime as dt
+import locale
 import logging
 import os
 from contextlib import contextmanager
@@ -26,7 +28,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.version import InvalidVersion, Version
 
 from pipx.animate import animate
-from pipx.constants import WINDOWS
+from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.emojis import strtobool
 from pipx.fanout import in_turn
 from pipx.interpreter import get_default_python, read_pyvenv_cfg
@@ -364,6 +366,32 @@ class _SharedLibs:
 SHARED_LIBS: Final[_SharedLibs] = _SharedLibs()
 
 
+def write_shared_pth(venv_root: Path, purelib: Path) -> None:
+    """Point an environment at the shared libraries, in the encoding its Python reads ``.pth`` files with.
+
+    :param venv_root: the environment to point at the shared libraries.
+    :param purelib: the environment's site-packages directory.
+    """
+    data: Final[bytes] = "".join(f"{path}\n" for path in SHARED_LIBS.site_packages).encode(_pth_encoding(venv_root))
+    pth: Final[Path] = purelib / PIPX_SHARED_PTH
+    # an older pipx may have written the right paths in an encoding the environment's Python cannot read
+    if not pth.is_file() or pth.read_bytes() != data:
+        pth.write_bytes(data)
+
+
+def _pth_encoding(venv_root: Path) -> str:
+    config: Final[dict[str, str]] = read_pyvenv_cfg(venv_root / "pyvenv.cfg")
+    try:
+        release: Final[tuple[int, ...]] = Version(config.get("version") or config.get("version_info", "")).release
+    except InvalidVersion:
+        return "utf-8"
+    # site decodes .pth files as UTF-8 first since 3.12.4 and only in the locale encoding before; on 3.10 that encoding
+    # follows UTF-8 mode, which an app gets from the PYTHONUTF8 it inherits, not from the mode pipx runs in
+    if release >= (3, 12, 4) or (release < (3, 11) and os.environ.get("PYTHONUTF8") == "1"):
+        return "utf-8"
+    return locale.getencoding()
+
+
 def shared_libs_auto_upgrade_disabled() -> bool:
     """Return whether the automatic upgrade of the shared libraries is turned off.
 
@@ -379,4 +407,5 @@ __all__ = [
     "shared_libs_auto_upgrade_disabled",
     "shared_pip_cooldown",
     "skip_shared_libs_maintenance",
+    "write_shared_pth",
 ]

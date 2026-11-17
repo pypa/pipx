@@ -1,7 +1,8 @@
 from __future__ import annotations  # simplint: ignore[catch-all-module]  # shared helpers have callers across pipx
 
-__lazy_modules__ = ["pathlib", "pipx.redact", "pipx.wrap"]
+__lazy_modules__ = ["locale", "pathlib", "pipx.redact", "pipx.wrap"]
 
+import locale
 import logging
 import os
 import sys
@@ -110,6 +111,20 @@ def open_owner_only(path: str | os.PathLike[str], flags: int) -> int:
     return os.open(path, flags, 0o600)
 
 
+def read_pth_file(path: Path) -> str:
+    """Read a ``.pth`` file with the encoding precedence of the ``site`` module.
+
+    :param path: the file to read.
+    :returns: the content of the file.
+    """
+    # Python 3.12+ decodes a .pth file as UTF-8 first and falls back to the locale encoding, so this reads both the
+    # files written before the locale encoding below was used and those written with it
+    try:
+        return path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        return path.read_text(encoding=locale.getencoding())
+
+
 def full_package_description(package_name: str, package_spec: str) -> str:
     """Describe a package for the user, with the credentials in its spec redacted.
 
@@ -160,5 +175,6 @@ __all__ = [
     "is_file_name",
     "mkdir",
     "open_owner_only",
+    "read_pth_file",
     "reject_empty_index",
 ]

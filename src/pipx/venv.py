@@ -71,10 +71,17 @@ from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     SHARED_LIBS,
     shared_libs_auto_upgrade_disabled,
+    write_shared_pth,
 )
 from pipx.subprocess_runner import exec_app, get_site_packages, subprocess_post_check
 from pipx.trash import rmdir
-from pipx.util import InstalledNameMismatchError, PipxError, full_package_description, get_venv_paths
+from pipx.util import (
+    InstalledNameMismatchError,
+    PipxError,
+    full_package_description,
+    get_venv_paths,
+    read_pth_file,
+)
 from pipx.wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -381,12 +388,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 f"To fix, execute: pipx reinstall {self.root.name}"
             )
             raise PipxError(msg, wrap_message=False)
-        if self.uses_shared_libs and SHARED_LIBS.is_valid:
-            shared_pth: Final[Path] = self.site_packages[0] / PIPX_SHARED_PTH
-            shared_paths: Final[str] = "".join(f"{path}\n" for path in SHARED_LIBS.site_packages)
-            # Rebuilding shared pip with another Python minor moves its site-packages on POSIX.
-            if shared_pth.is_file() and shared_pth.read_text() != shared_paths:
-                shared_pth.write_text(shared_paths)
+        # rebuilding shared pip with another Python minor moves its site-packages on POSIX
+        if self.uses_shared_libs and SHARED_LIBS.is_valid and (self.site_packages[0] / PIPX_SHARED_PTH).is_file():
+            write_shared_pth(self.root, self.site_packages[0])
         return self.python_path
 
     @property
@@ -849,7 +853,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # the directory name carries the distribution name, so a broken METADATA file cannot fail the listing
         site_packages: Final[list[Path]] = list(self.site_packages)
         if (shared_pth := site_packages[0] / PIPX_SHARED_PTH).is_file():
-            site_packages.extend(Path(line) for line in shared_pth.read_text().splitlines())
+            site_packages.extend(Path(line) for line in read_pth_file(shared_pth).splitlines())
         names: Final[set[str]] = set()
         for directory in site_packages:
             for pattern in ("*.dist-info", "*.egg-info"):
