@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -83,10 +82,19 @@ def test_not_required_packages_skips_invalid_distribution_names(tmp_path: Path, 
     assert venv_inspect.not_required_packages([str(tmp_path)], {}) == {"top-package"}
 
 
-def test_list_not_required_packages_treats_extra_dependencies_as_required(site_packages: Path, tmp_path: Path) -> None:
-    # child-package is required only through top-package's `extra == "cli"` dependency, so it stays required while
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        pytest.param('child-package>=1; extra == "cli"', id="only-the-extra"),
+        pytest.param('child-package>=1; extra != "cli"', id="all-but-the-extra"),
+    ],
+)
+def test_list_not_required_packages_treats_extra_dependencies_as_required(
+    site_packages: Path, tmp_path: Path, requirement: str
+) -> None:
+    # child-package is required through a marker on top-package's declared extra, so it stays required while
     # top-package is installed
-    write_dist_info(site_packages, "top-package", ['child-package>=1; extra == "cli"'], provides_extra=["cli"])
+    write_dist_info(site_packages, "top-package", [requirement], provides_extra=["cli"])
     write_dist_info(site_packages, "child-package")
 
     assert list_not_required_packages(tmp_path / "bin" / "python") == {"top-package"}
@@ -210,6 +218,7 @@ def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, ta
             ["first-app", "second-app", "third-app"],
             id="cycle-enables-root-extra",
         ),
+        pytest.param(("left",), ('third-app; extra != "first"',), ["first-app", "third-app"], id="base-beside-extra"),
     ],
 )
 def test_inspect_venv_follows_extras_of_revisited_dependency(
@@ -360,32 +369,3 @@ def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Pat
         [Path("man1/app")],
         [Path("bash-completion/completions/app")],
     )
-
-
-@pytest.mark.parametrize(
-    ("extras", "expected"),
-    [
-        pytest.param(set(), {"base-dependency"}, id="base"),
-        pytest.param({"feature"}, {"base-dependency", "feature-dependency"}, id="feature"),
-    ],
-)
-def test_dependency_markers_always_include_base_environment(
-    tmp_path: Path, extras: set[str], expected: set[str]
-) -> None:
-    write_dist_info(
-        tmp_path,
-        "example",
-        ['base-dependency; extra != "feature"', 'feature-dependency; extra == "feature"'],
-        provides_extra=["feature"],
-    )
-    dist = next(iter(metadata.distributions(path=[str(tmp_path)])))
-    before = extras.copy()
-    actual = {req.name for req in venv_inspect._get_package_dependencies(dist, extras, {})}  # ruff:ignore[private-member-access]  # exercise marker evaluation for selected extras
-    assert actual == expected
-    assert extras == before
-
-
-def test_required_dependencies_include_base_with_declared_extras(tmp_path: Path) -> None:
-    write_dist_info(tmp_path, "example", ['shared; extra != "feature"'], provides_extra=["feature"])
-    dist = next(iter(metadata.distributions(path=[str(tmp_path)])))
-    assert venv_inspect.get_required_dependency_names(dist, {}) == {"shared"}

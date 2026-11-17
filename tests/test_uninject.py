@@ -13,6 +13,7 @@ from pipx.commands import common
 from pipx.constants import WINDOWS
 from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
+from pipx.venv import Venv
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
@@ -568,22 +569,18 @@ def test_uninject_injected_package_any_spelling(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_preserves_main_dependency_with_extra_marker(tmp_path: Path) -> None:
-    index = tmp_path / "index"
+    index: Final[Path] = tmp_path / "index"
     write_wheel(index, "shared_pkg", "1.0")
     write_wheel(index, "plugin", "1.0", requires=("shared-pkg",))
-    main = write_wheel(
-        index,
-        "main_app",
-        "1.0",
-        requires=('shared-pkg; extra != "feature"',),
-        provides_extra=("feature",),
+    main: Final[Path] = write_wheel(
+        index, "main_app", "1.0", requires=('shared-pkg; extra != "feature"',), provides_extra=("feature",)
     )
-    pip_args = f"--pip-args=--no-index --find-links={index}"
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={index}"
     assert not run_pipx_cli(["install", str(main), "--skip-maintenance", pip_args])
     assert not run_pipx_cli(["inject", "main-app", "plugin", "--skip-maintenance", pip_args])
-    python = CTX.venvs / "main-app" / ("Scripts/python.exe" if WINDOWS else "bin/python")
-    assert subprocess.run([str(python), "-c", "import shared_pkg"], check=False).returncode == 0
 
     assert not run_pipx_cli(["uninject", "main-app", "plugin"])
 
-    assert subprocess.run([str(python), "-c", "import shared_pkg"], check=False).returncode == 0
+    assert not subprocess.run(
+        [Venv(CTX.venvs / "main-app").python_path, "-c", "import shared_pkg"], check=False
+    ).returncode

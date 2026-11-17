@@ -281,7 +281,7 @@ def _dfs_package_resources(
 
 def _get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
     eval_env: Final[dict[str, str]] = env.copy()
-    # Base dependencies apply in addition to dependencies for any requested extras.
+    # an empty extra selects the base dependencies, which pip installs beside those of every requested extra
     marker_extras: Final[set[str]] = extras | {""}
     dependencies: Final[list[Requirement]] = []
     for req in map(Requirement, dist.requires or []):
