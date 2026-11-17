@@ -14,6 +14,19 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-18:
+
+`1.18.18 <https://github.com/pypa/pipx/tree/1.18.18>`_ - 2026-11-17
+===================================================================
+
+.. _release-1-18-18-fixed:
+
+Fixed
+-----
+
+- Pressing Ctrl-C during a command that works on several environments at once, such as ``pipx upgrade-all``, could hang
+  pipx forever; it now stops (:pr:`2473`) by :user:`gaborbernat`.
+
 .. _release-1-18-17:
 
 `1.18.17 <https://github.com/pypa/pipx/tree/1.18.17>`_ - 2026-11-17
