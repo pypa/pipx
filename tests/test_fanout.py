@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import weakref
+from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from typing import TYPE_CHECKING, Final
 
@@ -15,6 +16,7 @@ import pytest
 from filelock import FileLock, Timeout
 
 from harness import SKIP_IF_WINDOWS, wait_for_log
+from pipx import fanout
 from pipx.fanout import (
     fan_out,
     finished_on_interrupt,
@@ -26,6 +28,8 @@ from pipx.fanout import (
 from pipx.subprocess_runner import run_subprocess
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Sequence
+    from concurrent.futures import DoneAndNotDoneFutures, Future
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -212,6 +216,121 @@ def test_fan_out_waits_for_rollback_through_second_interrupt() -> None:
     assert rolled_back == ["first"]
 
 
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_interrupt_does_not_strand_a_lock_the_wait_holds(monkeypatch: pytest.MonkeyPatch) -> None:
+    held: Final[threading.Lock] = threading.Lock()
+    signalled: Final[list[bool]] = []
+
+    def wait_signalled_under_lock(futures: Iterable[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
+        # stands in for concurrent.futures.wait, which takes and releases its locks in Python frames: an interrupt
+        # raised between the two leaves the lock held
+        if not signalled:
+            signalled.append(True)
+            held.acquire()
+            signal.raise_signal(signal.SIGINT)
+            held.release()
+        return wait(futures, timeout=timeout)
+
+    monkeypatch.setattr(fanout, "wait", wait_signalled_under_lock)
+
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        fan_out([int, int], sequential=False)
+
+    assert not held.locked()
+
+
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_interrupt_in_the_last_slice_gives_interrupted_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    signalled: Final[list[bool]] = []
+
+    def wait_signalled_once_done(futures: Iterable[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
+        result: Final[DoneAndNotDoneFutures[int]] = wait(futures, timeout=timeout)
+        if not result.not_done and not signalled:
+            signalled.append(True)
+            signal.raise_signal(signal.SIGINT)
+        return result
+
+    monkeypatch.setattr(fanout, "wait", wait_signalled_once_done)
+
+    with stopping_children_on_signals():
+        results: Final[list[int]] = fan_out([int, int], sequential=False, interrupted=lambda _: -1)
+
+    assert results == [0, 0]
+
+
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_after_a_delivered_interrupt_runs_its_tasks() -> None:
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        signal.raise_signal(signal.SIGINT)
+
+    assert fan_out([int, int], sequential=False) == [0, 0]
+
+
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_interrupt_while_settling_still_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    finished: Final[list[bool]] = []
+
+    def wait_signalled_while_settling(futures: Sequence[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
+        result: Final[DoneAndNotDoneFutures[int]] = wait(futures, timeout=timeout)
+        # the wait in task order ends at the first wait seeing every task done, so the next such wait is the cleanup's
+        if len(futures) == 2 and not result.not_done:
+            finished.append(True)
+            if len(finished) == 2:
+                signal.raise_signal(signal.SIGINT)
+        return result
+
+    monkeypatch.setattr(fanout, "wait", wait_signalled_while_settling)
+
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        fan_out([int, int], sequential=False)
+
+
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_interrupt_while_submitting_starts_no_task(monkeypatch: pytest.MonkeyPatch) -> None:
+    started: Final[list[int]] = []
+
+    class SignalledOnSubmit(ThreadPoolExecutor):
+        def submit(self, fn: Callable[..., int], /, *args: object, **kwargs: object) -> Future[int]:
+            if not started and not self._work_queue.qsize():
+                signal.raise_signal(signal.SIGINT)
+            return super().submit(fn, *args, **kwargs)
+
+    monkeypatch.setattr(fanout, "ThreadPoolExecutor", SignalledOnSubmit)
+
+    with pytest.raises(KeyboardInterrupt), stopping_children_on_signals():
+        fan_out([partial(started.append, 1), partial(started.append, 2)], sequential=False)
+
+    assert started == []
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("signal_handlers")
+def test_fan_out_counts_two_quick_interrupts_as_two(monkeypatch: pytest.MonkeyPatch) -> None:
+    finishing: Final[threading.Event] = threading.Event()
+    signalled: Final[list[bool]] = []
+
+    def finishing_child() -> str:
+        with finished_on_interrupt():
+            finishing.set()
+            run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
+        return "finished"
+
+    def wait_signalled_twice(futures: Iterable[Future[str]], timeout: float) -> DoneAndNotDoneFutures[str]:
+        # the second interrupt lands before the fan-out handles the first, and must still stop the finishing child
+        if finishing.is_set() and not signalled:
+            signalled.append(True)
+            signal.raise_signal(signal.SIGINT)
+            signal.raise_signal(signal.SIGINT)
+        return wait(futures, timeout=timeout)
+
+    monkeypatch.setattr(fanout, "wait", wait_signalled_twice)
+
+    with stopping_children_on_signals():
+        results: Final[list[str]] = fan_out([finishing_child, str], sequential=False, interrupted=lambda _: "stopped")
+
+    assert results == ["stopped", ""]
+
+
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_interrupted_by_signal_another_thread_handles() -> None:
@@ -340,7 +459,7 @@ def test_signals_keep_their_handlers_off_the_main_thread() -> None:
 
     def run() -> None:
         with stopping_children_on_signals() as event:
-            signalled.append(event.is_set())
+            signalled.append(bool(event))
 
     thread: Final[threading.Thread] = threading.Thread(target=run)
     thread.start()

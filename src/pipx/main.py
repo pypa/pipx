@@ -173,7 +173,7 @@ def cli() -> ExitCode:
         with stopping_children_on_signals() as signalled:
             hide_cursor()
             # a command that finished its work after an interrupt still reports being interrupted
-            return ExitCode(_dispatch(sys.argv[1:]) or int(signalled.is_set()))
+            return ExitCode(_dispatch(sys.argv[1:]) or int(bool(signalled)))
     except PipxError as error:
         print(str(error), file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         _LOGGER.debug("PipxError: %s", error, exc_info=True)
