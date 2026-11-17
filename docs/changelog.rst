@@ -14,6 +14,58 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-18-17:
+
+`1.18.17 <https://github.com/pypa/pipx/tree/1.18.17>`_ - 2026-11-17
+===================================================================
+
+.. _release-1-18-17-fixed:
+
+Fixed
+-----
+
+- Fix environments created with Python 3.11 failing to start, and pipx commands failing with ``UnicodeDecodeError``,
+  when pipx runs in UTF-8 mode and ``PIPX_HOME`` contains non-ASCII characters. pipx writes ``pipx_shared.pth`` in the
+  encoding the environment's Python reads it with, and rewrites an existing one the next time it installs into that
+  environment (:pr:`2462`) by :user:`8hjkkwikl8` and :user:`gaborbernat`. (:issue:`2460`)
+- Finish updating or rolling back manifest lock files before handling an interrupt, preserving a consistent set of locks
+  (:pr:`2448`) by :user:`anticipate218` and :user:`gaborbernat`.
+- Report malformed URLs in package specs and ``--pip-args`` as input errors instead of tracebacks, keeping URL
+  credentials out of the error message (:pr:`2439`) by :user:`subotac` and :user:`gaborbernat`.
+- Treat extras that differ only in case or in ``-``/``_`` as the same extra when deciding whether an installed package
+  already satisfies a spec, and when adding extras to a spec (:pr:`2463`) by :user:`hemtilva`.
+- ``--fetch-python`` now resumes a standalone Python download when the connection drops before its ``Content-Length``.
+  Before, pipx stopped at the partial archive and failed with a checksum mismatch instead of resuming (:pr:`2453`) by
+  :user:`HarshJamgaonkar05` and :user:`gaborbernat`.
+- ``pipx execute`` accepts an app by the suffixed name it has on ``PATH`` when its environment was installed with
+  ``--suffix`` or its package was injected with ``--with-suffix``, including names that pipx 1.17.14 and earlier exposed
+  with the suffix before the last dot, such as ``pip3@1.12`` (:pr:`2468`) by :user:`kowellaloo9698-afk`.
+- ``pipx reinstall`` names pinned packages by environment name rather than path in its error message (:pr:`2466`) by
+  :user:`kowellaloo9698-afk`.
+- ``pipx uninject`` also removes the dependencies of the dependencies it removes, including ones that require each
+  other, so uninjecting a package that needs ``scipy`` no longer leaves ``numpy`` behind (:pr:`2442`) by
+  :user:`Kernel-Hunter` and :user:`gaborbernat`.
+- pipx no longer installs a python-build-standalone prerelease (such as ``3.16.0a1``) under the version number of the
+  final release; fetching a Python that only has prerelease builds fails instead (:pr:`2446`) by :user:`AP24110011695`
+  and :user:`gaborbernat`.
+
+.. _release-1-18-17-documentation:
+
+Documentation
+-------------
+
+- Document that ``pipx environment --value`` prints an empty line for an unset variable that pipx does not derive, and
+  how to read the effective global paths with ``--global`` (:pr:`2450`) by :user:`xixi-box` and :user:`gaborbernat`.
+
+.. _release-1-18-17-packaging:
+
+Packaging
+---------
+
+- Every wheel now carries a `PEP 770 <https://peps.python.org/pep-0770/>`_ CycloneDX SBOM in its ``.dist-info/sboms``
+  directory, written at build time by `python-sbom <https://github.com/tox-dev/python-sbom>`_ (:pr:`2441`) by
+  :user:`gaborbernat`.
+
 .. _release-1-18-16:
 
 `1.18.16 <https://github.com/pypa/pipx/tree/1.18.16>`_ - 2026-11-07
