@@ -29,7 +29,7 @@ from pipx.subprocess_runner import run_subprocess
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
-    from concurrent.futures import DoneAndNotDoneFutures, Future
+    from concurrent.futures import Future
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -221,7 +221,9 @@ def test_fan_out_interrupt_does_not_strand_a_lock_the_wait_holds(monkeypatch: py
     held: Final[threading.Lock] = threading.Lock()
     signalled: Final[list[bool]] = []
 
-    def wait_signalled_under_lock(futures: Iterable[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
+    def wait_signalled_under_lock(
+        futures: Iterable[Future[int]], timeout: float
+    ) -> tuple[set[Future[int]], set[Future[int]]]:
         # stands in for concurrent.futures.wait, which takes and releases its locks in Python frames: an interrupt
         # raised between the two leaves the lock held
         if not signalled:
@@ -243,9 +245,12 @@ def test_fan_out_interrupt_does_not_strand_a_lock_the_wait_holds(monkeypatch: py
 def test_fan_out_interrupt_in_the_last_slice_gives_interrupted_results(monkeypatch: pytest.MonkeyPatch) -> None:
     signalled: Final[list[bool]] = []
 
-    def wait_signalled_once_done(futures: Iterable[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
-        result: Final[DoneAndNotDoneFutures[int]] = wait(futures, timeout=timeout)
-        if not result.not_done and not signalled:
+    def wait_signalled_once_done(
+        futures: Sequence[Future[int]], timeout: float
+    ) -> tuple[set[Future[int]], set[Future[int]]]:
+        result: Final = wait(futures, timeout=timeout)
+        # the wait in task order first waits on the first task alone, which leaves the second one cancellable
+        if len(futures) == 2 and not result.not_done and not signalled:
             signalled.append(True)
             signal.raise_signal(signal.SIGINT)
         return result
@@ -270,8 +275,10 @@ def test_fan_out_after_a_delivered_interrupt_runs_its_tasks() -> None:
 def test_fan_out_interrupt_while_settling_still_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     finished: Final[list[bool]] = []
 
-    def wait_signalled_while_settling(futures: Sequence[Future[int]], timeout: float) -> DoneAndNotDoneFutures[int]:
-        result: Final[DoneAndNotDoneFutures[int]] = wait(futures, timeout=timeout)
+    def wait_signalled_while_settling(
+        futures: Sequence[Future[int]], timeout: float
+    ) -> tuple[set[Future[int]], set[Future[int]]]:
+        result: Final = wait(futures, timeout=timeout)
         # the wait in task order ends at the first wait seeing every task done, so the next such wait is the cleanup's
         if len(futures) == 2 and not result.not_done:
             finished.append(True)
@@ -307,6 +314,7 @@ def test_fan_out_interrupt_while_submitting_starts_no_task(monkeypatch: pytest.M
 @pytest.mark.usefixtures("signal_handlers")
 def test_fan_out_counts_two_quick_interrupts_as_two(monkeypatch: pytest.MonkeyPatch) -> None:
     finishing: Final[threading.Event] = threading.Event()
+    other_done: Final[threading.Event] = threading.Event()
     signalled: Final[list[bool]] = []
 
     def finishing_child() -> str:
@@ -315,9 +323,15 @@ def test_fan_out_counts_two_quick_interrupts_as_two(monkeypatch: pytest.MonkeyPa
             run_subprocess([sys.executable, "-c", "import time; time.sleep(30)"])
         return "finished"
 
-    def wait_signalled_twice(futures: Iterable[Future[str]], timeout: float) -> DoneAndNotDoneFutures[str]:
+    def other() -> str:
+        other_done.set()
+        return ""
+
+    def wait_signalled_twice(
+        futures: Iterable[Future[str]], timeout: float
+    ) -> tuple[set[Future[str]], set[Future[str]]]:
         # the second interrupt lands before the fan-out handles the first, and must still stop the finishing child
-        if finishing.is_set() and not signalled:
+        if finishing.is_set() and other_done.is_set() and not signalled:
             signalled.append(True)
             signal.raise_signal(signal.SIGINT)
             signal.raise_signal(signal.SIGINT)
@@ -326,7 +340,7 @@ def test_fan_out_counts_two_quick_interrupts_as_two(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(fanout, "wait", wait_signalled_twice)
 
     with stopping_children_on_signals():
-        results: Final[list[str]] = fan_out([finishing_child, str], sequential=False, interrupted=lambda _: "stopped")
+        results: Final[list[str]] = fan_out([finishing_child, other], sequential=False, interrupted=lambda _: "stopped")
 
     assert results == ["stopped", ""]
 
