@@ -7,13 +7,14 @@ __lazy_modules__ = [
     "pipx.options",
     "pipx.paths",
     "pipx.trash",
+    "pipx.util",
     "pipx.venv",
     "subprocess",
 ]
 
 import logging
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final
 
 from packaging import version
@@ -21,10 +22,12 @@ from packaging import version
 from pipx import constants
 from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
+from pipx.constants import ExitCode
 from pipx.options import ReinstallOptions
 from pipx.paths import CTX
-from pipx.result import OperationData, OperationResult, OutputMessage
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import rmdir
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
@@ -152,7 +155,7 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
         parsed for raw_version in latest_pythons if (parsed := _parse_python_version(raw_version)) is not None
     ]
 
-    upgraded: Final[list[tuple[str, str, version.Version]]] = []
+    state: Final = _UpgradeState()
     venvs: list[Venv] | None = None
 
     for interpreter_dir in _installed_standalone_interpreters():
@@ -172,44 +175,44 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
             continue
         latest_micro_version = _latest_micro_version(parsed_interpreter_full_version, parsed_latest_python_versions)
         if latest_micro_version > parsed_interpreter_full_version:
-            # the new build lands in py/X.Y, so venvs on a patch-pinned py/X.Y.Z build must move to it
-            upgraded_python = standalone_python.download_python_build_standalone(
-                f"{latest_micro_version.major}.{latest_micro_version.minor}",
-                override=True,
-            )
+            try:
+                # the new build lands in py/X.Y, so venvs on a patch-pinned py/X.Y.Z build must move to it
+                upgraded_python = standalone_python.download_python_build_standalone(
+                    f"{latest_micro_version.major}.{latest_micro_version.minor}",
+                    override=True,
+                )
+            except PipxError as error:
+                _record_pipx_error(error, environment=None, state=state)
+                continue
 
             if venvs is None:
                 venvs = _venvs_using_standalone_interpreter(venv_container)
+            options = ReinstallOptions(
+                local_bin_dir=CTX.bin_dir,
+                local_man_dir=CTX.man_dir,
+                python=upgraded_python,
+                verbose=verbose,
+                # the new build is what this rebuild is for, so a package whose Requires-Python rules it out fails (and
+                # keeps its environment) instead of moving to another Python from PATH
+                python_flag_passed=True,
+            )
             for venv in _interpreter_users(interpreter_dir, venvs):
-                with venv_container.venv_lock(venv.root) as venv_lock:
-                    _LOGGER.info(
-                        "Upgrade the interpreter of %s from %s to %s",
-                        venv.name,
-                        interpreter_full_version,
-                        latest_micro_version,
-                    )
-                    reinstall(
-                        venv.root,
-                        ReinstallOptions(
-                            local_bin_dir=CTX.bin_dir,
-                            local_man_dir=CTX.man_dir,
-                            python=upgraded_python,
-                            verbose=verbose,
-                            # the new build is what this rebuild is for, so a package whose Requires-Python rules it
-                            # out fails (and keeps its environment) instead of moving to another Python from PATH
-                            python_flag_passed=True,
-                        ),
-                        venv_lock=venv_lock,
-                    )
-                    upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
+                _upgrade_venv_interpreter(
+                    venv_container,
+                    venv,
+                    options,
+                    version_change=(interpreter_full_version, latest_micro_version),
+                    state=state,
+                )
 
-    if upgraded:
+    if state.upgraded:
         report = "\n".join([
             "Successfully upgraded the interpreter(s):",
-            *(f" - {name}: {old} -> {new}" for name, old, new in upgraded),
+            *(f" - {name}: {old} -> {new}" for name, old, new in state.upgraded),
         ])
-    else:
-        report = "Nothing to upgrade"
+        state.messages.append(OutputMessage(text=report))
+    elif not state.errors:
+        state.messages.append(OutputMessage(text="Nothing to upgrade"))
     return OperationResult(
         command=("interpreter", "upgrade"),
         data=InterpreterData(
@@ -217,10 +220,13 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
             removed=(),
             upgraded=tuple(
                 _UpgradedInterpreter(environment=name, old_version=old, new_version=str(new))
-                for name, old, new in upgraded
+                for name, old, new in state.upgraded
             ),
         ),
-        messages=(OutputMessage(text=report),),
+        messages=tuple(state.messages),
+        exit_code=ExitCode(1 if state.errors else 0),
+        errors=tuple(state.errors),
+        succeeded=bool(state.upgraded),
     )
 
 
@@ -230,6 +236,13 @@ def _parse_python_version(raw_version: str) -> version.Version | None:
     except version.InvalidVersion:
         _LOGGER.info("Invalid version found in latest pythons: %s. Skipping.", raw_version)
         return None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _UpgradeState:
+    upgraded: list[tuple[str, str, version.Version]] = field(default_factory=list)
+    errors: list[OperationError] = field(default_factory=list)
+    messages: list[OutputMessage] = field(default_factory=list)
 
 
 def _latest_micro_version(
@@ -242,6 +255,42 @@ def _latest_micro_version(
         ):
             return latest_python_version
     return current_version
+
+
+def _record_pipx_error(
+    error: PipxError,
+    *,
+    environment: str | None,
+    state: _UpgradeState,
+) -> None:
+    error_message: Final[str] = f"{error}\n{error.backend_output}" if error.backend_output else str(error)
+    state.errors.append(
+        OperationError(code="interpreter_upgrade_failed", message=error_message, environment=environment)
+    )
+    state.messages.append(OutputMessage(text=str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+def _upgrade_venv_interpreter(
+    venv_container: VenvContainer,
+    venv: Venv,
+    options: ReinstallOptions,
+    *,
+    version_change: tuple[str, version.Version],
+    state: _UpgradeState,
+) -> None:
+    old_version, new_version = version_change
+    with venv_container.venv_lock(venv.root) as venv_lock:
+        _LOGGER.info("Upgrade the interpreter of %s from %s to %s", venv.name, old_version, new_version)
+        try:
+            outcome: Final = reinstall(venv.root, options, venv_lock=venv_lock)
+        except PipxError as error:
+            _record_pipx_error(error, environment=venv.name, state=state)
+        else:
+            if isinstance(outcome, OperationResult) and outcome.errors:
+                state.errors.extend(outcome.errors)
+                state.messages.extend(outcome.messages)
+            else:
+                state.upgraded.append((venv.name, old_version, new_version))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
