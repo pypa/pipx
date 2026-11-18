@@ -41,6 +41,19 @@ _UV_FORMAT_CONTROL_FLAG_MAP: Final[MappingProxyType[str, tuple[str, str]]] = Map
 })
 
 
+_UV_BOOL_FLAG_MAP: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "--pre": "--prerelease=allow",
+    "--no-cache-dir": "--no-cache",
+    "--upgrade": "--upgrade",
+    "-U": "--upgrade",
+})
+_UV_VALUE_FLAG_MAP: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "--extra-index-url": "--extra-index-url",
+    "--find-links": "--find-links",
+    "-f": "-f",
+    "--trusted-host": "--allow-insecure-host",
+})
+
 def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> NoReturn:
     """Run an app through ``uv tool run``, replacing the current process.
 
@@ -98,23 +111,11 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
     :returns: the uv arguments.
     :raises PipxError: when an argument has no uv equivalent, such as ``--editable``.
     """
-    translated_bool_flags: Final[dict[str, str]] = {
-        "--pre": "--prerelease=allow",
-        "--no-cache-dir": "--no-cache",
-        "--upgrade": "--upgrade",
-        "-U": "--upgrade",
-    }
-    value_flags: Final[dict[str, str]] = {
-        "--extra-index-url": "--extra-index-url",
-        "--find-links": "--find-links",
-        "-f": "-f",
-        "--trusted-host": "--allow-insecure-host",
-    }
     format_control: Final[dict[str, set[str]]] = {flag: set() for flag in _UV_FORMAT_CONTROL_FLAG_MAP}
     translated: Final[list[str]] = []
     iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
-        _translate_one_pip_arg(arg, iterator, translated, format_control, translated_bool_flags, value_flags)
+        _translate_one_pip_arg(arg, iterator, translated, format_control)
     for flag, packages in format_control.items():
         all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
         if ":all:" in packages:
@@ -129,8 +130,6 @@ def _translate_one_pip_arg(
     iterator: Iterator[str],
     translated: list[str],
     format_control: dict[str, set[str]],
-    translated_bool_flags: dict[str, str],
-    value_flags: dict[str, str],
 ) -> None:
     if arg in {"-q", "-qq", "--quiet"}:
         return
@@ -140,7 +139,7 @@ def _translate_one_pip_arg(
             "Use `pipx run --backend pip` for editable installs."
         )
         raise PipxError(msg)
-    if (translated_bool := translated_bool_flags.get(arg)) is not None:
+    if (translated_bool := _UV_BOOL_FLAG_MAP.get(arg)) is not None:
         translated.append(translated_bool)
         return
     flag, separator, attached_value = arg.partition("=")
@@ -149,7 +148,7 @@ def _translate_one_pip_arg(
         other_flag = "--only-binary" if flag == "--no-binary" else "--no-binary"
         _update_format_control(flag, value, format_control[flag], format_control[other_flag])
         return
-    if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
+    if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or _UV_VALUE_FLAG_MAP.get(flag)) is not None:
         if separator:
             translated.append(f"{translated_flag}={attached_value}")
         else:
