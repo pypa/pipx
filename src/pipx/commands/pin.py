@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = ["packaging.utils", "pipx.venv"]
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final, NamedTuple
 
@@ -43,6 +43,7 @@ def pin(
     changes: Final[_PinChanges] = _pin_requested(venv, skip) if injected_only or skip else _pin_all(venv, main_package)
     messages: Final[list[OutputMessage]] = changes.messages
     if changes.packages:
+        venv.pipx_metadata.write()
         messages.append(_summary_message(venv, _PinStatus.PINNED, len(changes.packages)))
         messages.extend(OutputMessage(text=f"  - {package.package} {package.version}") for package in changes.packages)
 
@@ -101,15 +102,11 @@ class _SkippedPackage:
 
 
 def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pinned: bool) -> None:
-    package: Final[PackageInfo] = venv.package_metadata[package_name]
-    venv.update_package_metadata(
-        package_name=str(package.package),
-        package_or_url=str(package.package_or_url),
-        pip_args=package.pip_args,
-        exposure=package.exposure,
-        is_main_package=is_main_package,
-        pinned=pinned,
-    )
+    updated: Final[PackageInfo] = replace(venv.package_metadata[package_name], pinned=pinned)
+    if is_main_package:
+        venv.pipx_metadata.main_package = updated
+    else:
+        venv.pipx_metadata.injected_packages[package_name] = updated
 
 
 def _changed_package(venv: Venv, package_name: str, status: _PinStatus) -> _ChangedPackage:
@@ -202,6 +199,9 @@ def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
             pinned=False,
         )
         packages.append(_changed_package(venv, package_name, _PinStatus.UNPINNED))
+
+    if packages:
+        venv.pipx_metadata.write()
 
     return OperationResult(
         command=("unpin",),

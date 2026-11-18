@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from packaging.utils import canonicalize_name
 
-from harness import run_pipx_cli, write_wheel
+from harness import remove_venv_interpreter, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
@@ -380,3 +380,24 @@ def test_pin_skip_non_canonical_injected_package_with_suffix(
         ["black"],
         [{"environment": "pycowsay@1", "package": "Mixed_Case", "reason": "requested"}],
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_deleted_local_wheel(tmp_path: Path) -> None:
+    wheel: Final[Path] = write_wheel(tmp_path, "demo", "1")
+    assert not run_pipx_cli(["install", str(wheel)])
+    wheel.unlink()
+
+    assert run_pipx_cli(["pin", "demo"]) == 0
+
+    assert PipxMetadata(CTX.venvs / "demo").main_package.pinned
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_broken_interpreter() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    remove_venv_interpreter("pycowsay")
+
+    assert run_pipx_cli(["pin", "pycowsay"]) == 0
+
+    assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pinned
