@@ -151,6 +151,14 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
     return translated
 
 
+def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
+    try:
+        return next(iterator)
+    except StopIteration as exc:
+        msg = f"Missing value for {flag!r} in --pip-args."
+        raise PipxError(msg) from exc
+
+
 def _update_format_control(flag: str, value: str, target: set[str], other: set[str]) -> None:
     if not all(packages := value.split(",")):
         msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
@@ -171,14 +179,6 @@ def _update_format_control(flag: str, value: str, target: set[str], other: set[s
             name = canonicalize_name(package)
             other.discard(name)
             target.add(name)
-
-
-def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
-    try:
-        return next(iterator)
-    except StopIteration as exc:
-        msg = f"Missing value for {flag!r} in --pip-args."
-        raise PipxError(msg) from exc
 
 
 def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions) -> NoReturn:
