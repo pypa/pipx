@@ -54,6 +54,7 @@ _UV_VALUE_FLAG_MAP: Final[MappingProxyType[str, str]] = MappingProxyType({
     "--trusted-host": "--allow-insecure-host",
 })
 
+
 def run_via_uv_tool_run(app: str, package_or_url: str, options: RunOptions) -> NoReturn:
     """Run an app through ``uv tool run``, replacing the current process.
 
