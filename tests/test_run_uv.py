@@ -313,15 +313,20 @@ def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
     assert str(error.value).startswith(f"--pip-args contains {redact_url_credentials(proxy)!r}, which has no")
 
 
-@pytest.mark.parametrize("route", ["tool", "script"])
+@pytest.mark.parametrize(
+    ("route", "uv_subcommand"),
+    [pytest.param("tool", "tool", id="tool"), pytest.param("script", "run", id="script")],
+)
 @pytest.mark.usefixtures("fake_uv")
-def test_run_cli_format_control_reset(exec_mock: MockType, tmp_path: Path, route: str) -> None:
-    if route == "script":
-        script = tmp_path / "demo.py"
-        script.write_text("# /// script\n# dependencies = []\n# ///\nprint('hi')\n", encoding="utf-8")
-        app_args = [str(script)]
-    else:
-        app_args = ["--spec", "demo @ file:///tmp/demo-1.0.tar.gz", "demo"]
+def test_run_cli_format_control_reset(
+    exec_mock: MockType, tmp_path: Path, route: str, uv_subcommand: str
+) -> None:
+    script = tmp_path / "demo.py"
+    script.write_text("# /// script\n# dependencies = []\n# ///\nprint('hi')\n", encoding="utf-8")
+    app_args = {
+        "script": [str(script)],
+        "tool": ["--spec", "demo @ file:///tmp/demo-1.0.tar.gz", "demo"],
+    }[route]
     with pytest.raises(RuntimeError, match="exec"):
         run_pipx_cli([
             "run",
@@ -332,7 +337,7 @@ def test_run_cli_format_control_reset(exec_mock: MockType, tmp_path: Path, route
         ])
 
     command = exec_mock.call_args.args[0]
-    assert command[1] == ("tool" if route == "tool" else "run")
+    assert command[1] == uv_subcommand
     assert "--no-build" not in command
 
 
