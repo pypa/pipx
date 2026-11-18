@@ -114,34 +114,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
     translated: Final[list[str]] = []
     iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
-        if arg in {"-q", "-qq", "--quiet"}:
-            continue
-        if arg in {"--editable", "-e"}:
-            msg = (
-                "`--editable` is not supported by `pipx run --backend uv`.\n"
-                "Use `pipx run --backend pip` for editable installs."
-            )
-            raise PipxError(msg)
-        if (translated_bool := translated_bool_flags.get(arg)) is not None:
-            translated.append(translated_bool)
-            continue
-        flag, separator, attached_value = arg.partition("=")
-        if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
-            value = attached_value if separator else _next_pip_arg(flag, iterator)
-            other_flag = "--only-binary" if flag == "--no-binary" else "--no-binary"
-            _update_format_control(flag, value, format_control[flag], format_control[other_flag])
-            continue
-        if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
-            if separator:
-                translated.append(f"{translated_flag}={attached_value}")
-            else:
-                translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
-            continue
-        msg = (
-            f"--pip-args contains {redact_url_credentials(arg)!r}, which has no `uv tool run` equivalent.\n"
-            "Use `--backend pip` if you need pip-only flags."
-        )
-        raise PipxError(msg)
+        _translate_one_pip_arg(arg, iterator, translated, format_control, translated_bool_flags, value_flags)
     for flag, packages in format_control.items():
         all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
         if ":all:" in packages:
@@ -149,6 +122,44 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         else:
             translated.extend(item for package in sorted(packages) for item in (package_flag, package))
     return translated
+
+
+def _translate_one_pip_arg(
+    arg: str,
+    iterator: Iterator[str],
+    translated: list[str],
+    format_control: dict[str, set[str]],
+    translated_bool_flags: dict[str, str],
+    value_flags: dict[str, str],
+) -> None:
+    if arg in {"-q", "-qq", "--quiet"}:
+        return
+    if arg in {"--editable", "-e"}:
+        msg = (
+            "`--editable` is not supported by `pipx run --backend uv`.\n"
+            "Use `pipx run --backend pip` for editable installs."
+        )
+        raise PipxError(msg)
+    if (translated_bool := translated_bool_flags.get(arg)) is not None:
+        translated.append(translated_bool)
+        return
+    flag, separator, attached_value = arg.partition("=")
+    if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
+        value = attached_value if separator else _next_pip_arg(flag, iterator)
+        other_flag = "--only-binary" if flag == "--no-binary" else "--no-binary"
+        _update_format_control(flag, value, format_control[flag], format_control[other_flag])
+        return
+    if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
+        if separator:
+            translated.append(f"{translated_flag}={attached_value}")
+        else:
+            translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
+        return
+    msg = (
+        f"--pip-args contains {redact_url_credentials(arg)!r}, which has no `uv tool run` equivalent.\n"
+        "Use `--backend pip` if you need pip-only flags."
+    )
+    raise PipxError(msg)
 
 
 def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
