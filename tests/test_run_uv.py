@@ -318,9 +318,7 @@ def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
     [pytest.param("tool", "tool", id="tool"), pytest.param("script", "run", id="script")],
 )
 @pytest.mark.usefixtures("fake_uv")
-def test_run_cli_format_control_reset(
-    exec_mock: MockType, tmp_path: Path, route: str, uv_subcommand: str
-) -> None:
+def test_run_cli_format_control_reset(exec_mock: MockType, tmp_path: Path, route: str, uv_subcommand: str) -> None:
     script = tmp_path / "demo.py"
     script.write_text("# /// script\n# dependencies = []\n# ///\nprint('hi')\n", encoding="utf-8")
     app_args = {
