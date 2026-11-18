@@ -1924,6 +1924,15 @@ def test_install_fetch_missing_python_invalid(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_fetch_python_always_without_python_uses_default(mocker: MockerFixture) -> None:
+    fetch: Final[MockType] = mocker.patch("pipx.interpreter._fetch_standalone_interpreter", autospec=True)
+
+    assert not run_pipx_cli(["install", "--fetch-python=always", PKG["pycowsay"]["spec"]])
+
+    fetch.assert_not_called()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_run_in_separate_directory(
     caplog: pytest.LogCaptureFixture,
     capsys: pytest.CaptureFixture[str],

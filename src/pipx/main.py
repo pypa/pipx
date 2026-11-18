@@ -2173,9 +2173,9 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
 
     output: Final[OutputFormat] = _output_format(args)
     python = get_default_python()
-    if "python" in args:
+    if getattr(args, "python", None):
         try:
-            python = find_python_interpreter(args.python or python, fetch_python=args.fetch_python)
+            python = find_python_interpreter(args.python, fetch_python=args.fetch_python)
         except InterpreterResolutionError as error:
             _LOGGER.debug("Failed to resolve interpreter:", exc_info=True)
             if output is OutputFormat.JSON:
