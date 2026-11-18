@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Final, NoReturn
 
 import pytest
 
+from harness import run_pipx_cli
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run, translate_pip_args_for_uv
 from pipx.constants import FetchPythonOptions
 from pipx.options import (
@@ -310,3 +311,87 @@ def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
         translate_pip_args_for_uv([proxy])
 
     assert str(error.value).startswith(f"--pip-args contains {redact_url_credentials(proxy)!r}, which has no")
+
+
+@pytest.mark.parametrize("route", ["tool", "script"])
+@pytest.mark.usefixtures("fake_uv")
+def test_run_cli_format_control_reset(exec_mock: MockType, tmp_path: Path, route: str) -> None:
+    if route == "script":
+        script = tmp_path / "demo.py"
+        script.write_text("# /// script\n# dependencies = []\n# ///\nprint('hi')\n", encoding="utf-8")
+        app_args = [str(script)]
+    else:
+        app_args = ["--spec", "demo @ file:///tmp/demo-1.0.tar.gz", "demo"]
+    with pytest.raises(RuntimeError, match="exec"):
+        run_pipx_cli([
+            "run",
+            "--backend",
+            "uv",
+            "--pip-args=--only-binary=:all: --only-binary=:none:",
+            *app_args,
+        ])
+
+    command = exec_mock.call_args.args[0]
+    assert command[1] == ("tool" if route == "tool" else "run")
+    assert "--no-build" not in command
+
+
+@pytest.mark.parametrize(("flag", "uv_flag"), [("--only-binary", "--no-build"), ("--no-binary", "--no-binary")])
+@pytest.mark.parametrize(
+    ("values", "packages"),
+    [
+        pytest.param([":all:", ":none:"], [], id="reset-all"),
+        pytest.param(["one,two", ":none:"], [], id="reset-packages"),
+        pytest.param(["one", ":none:", "two"], ["two"], id="restrict-after-reset"),
+        pytest.param(["one", "two"], ["one", "two"], id="accumulate"),
+        pytest.param(["one", "one"], ["one"], id="deduplicate"),
+        pytest.param(["one,:none:,two"], ["two"], id="reset-in-list"),
+        pytest.param([":all:,:none:,two"], ["two"], id="all-reset-in-list"),
+    ],
+)
+def test_translate_format_control_state(flag: str, uv_flag: str, values: list[str], packages: list[str]) -> None:
+    pip_args = [f"{flag}={value}" for value in values]
+    expected = [item for package in packages for item in (f"{uv_flag}-package", package)]
+    assert translate_pip_args_for_uv(pip_args) == expected
+    # Translation must not mutate the caller's list or retain state between calls.
+    assert pip_args == [f"{flag}={value}" for value in values]
+    assert translate_pip_args_for_uv(pip_args) == expected
+
+
+@pytest.mark.parametrize(
+    ("pip_args", "expected"),
+    [
+        pytest.param(
+            ["--no-binary", ":all:", "--only-binary", ":all:"],
+            ["--no-build"],
+            id="opposite-all-wins",
+        ),
+        pytest.param(
+            ["--only-binary=:all:", "--no-binary=:all:", "--no-binary=:none:"],
+            [],
+            id="opposite-all-clears-earlier",
+        ),
+        pytest.param(
+            ["--only-binary=Foo_Bar", "--no-binary=foo.bar"],
+            ["--no-binary-package", "foo-bar"],
+            id="opposite-package-wins",
+        ),
+        pytest.param(
+            ["--no-binary=one", "--only-binary=two", "--only-binary=:none:"],
+            ["--no-binary-package", "one"],
+            id="reset-preserves-opposite",
+        ),
+        pytest.param(
+            ["--only-binary", ":all:", "--pre", "--find-links", "some path", "--only-binary", ":none:"],
+            ["--prerelease=allow", "--find-links", "some path"],
+            id="split-reset-preserves-other-options",
+        ),
+        pytest.param(
+            ["--only-binary=one,:all:,two"],
+            ["--no-build"],
+            id="all-in-list",
+        ),
+    ],
+)
+def test_translate_format_control_interactions(pip_args: list[str], expected: list[str]) -> None:
+    assert translate_pip_args_for_uv(pip_args) == expected

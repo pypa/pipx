@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "packaging.utils",
     "pipx.backends.uv",
     "pipx.paths",
     "pipx.redact",
@@ -15,6 +16,8 @@ import os
 from shutil import which
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, NoReturn
+
+from packaging.utils import canonicalize_name
 
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
 from pipx.emojis import HAZARD
@@ -107,6 +110,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         "-f": "-f",
         "--trusted-host": "--allow-insecure-host",
     }
+    format_control: Final[dict[str, set[str]]] = {flag: set() for flag in _UV_FORMAT_CONTROL_FLAG_MAP}
     translated: Final[list[str]] = []
     iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
@@ -123,9 +127,9 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             continue
         flag, separator, attached_value = arg.partition("=")
         if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
-            translated.extend(
-                _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
-            )
+            value = attached_value if separator else _next_pip_arg(flag, iterator)
+            other_flag = "--only-binary" if flag == "--no-binary" else "--no-binary"
+            _update_format_control(flag, value, format_control[flag], format_control[other_flag])
             continue
         if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
             if separator:
@@ -138,19 +142,35 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             "Use `--backend pip` if you need pip-only flags."
         )
         raise PipxError(msg)
+    for flag, packages in format_control.items():
+        all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
+        if ":all:" in packages:
+            translated.append(all_flag)
+        else:
+            translated.extend(item for package in sorted(packages) for item in (package_flag, package))
     return translated
 
 
-def _translate_format_control(flag: str, value: str) -> list[str]:
-    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
-    if value == ":all:":
-        return [all_flag]
-    if value == ":none:":
-        return []
+def _update_format_control(flag: str, value: str, target: set[str], other: set[str]) -> None:
     if not all(packages := value.split(",")):
         msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
         raise PipxError(msg)
-    return [item for package in packages for item in (package_flag, package)]
+    # Match pip's format-control state before emitting uv flags: :none: resets this
+    # restriction, while :all: also clears the opposite restriction.
+    while ":all:" in packages:
+        target.clear()
+        other.clear()
+        target.add(":all:")
+        del packages[: packages.index(":all:") + 1]
+        if ":none:" not in packages:
+            return
+    for package in packages:
+        if package == ":none:":
+            target.clear()
+        else:
+            name = canonicalize_name(package)
+            other.discard(name)
+            target.add(name)
 
 
 def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
