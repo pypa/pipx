@@ -1,5 +1,9 @@
 from __future__ import annotations  # simplint: ignore[catch-all-module]  # established public import path
 
+from pipx.colors import BOLD, RED
+from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
+from pipx.emojis import HAZARD, STARS
+
 __lazy_modules__ = [
     "collections",
     "filecmp",
@@ -48,9 +52,6 @@ from packaging.utils import canonicalize_name
 
 from pipx.backends import PIP
 from pipx.backends.registry import env_default_backend, resolve_backend_name
-from pipx.colors import BOLD, RED
-from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
-from pipx.emojis import HAZARD, STARS
 from pipx.fanout import in_turn
 from pipx.options import ExposureOptions
 from pipx.package_specifier import local_project_name, parse_specifier_for_install, valid_pypi_name
@@ -64,6 +65,7 @@ from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Generator, Iterable, Mapping, Sequence
+    from contextvars import Token
 
     from pipx.options import BackendOptions
     from pipx.venv_inspect import VenvMetadata
@@ -90,7 +92,7 @@ def force_replaces_only(resource_paths: Iterable[Path]) -> Generator[None]:
     :yields: nothing, while the enclosed block runs.
     """
     # a rebuild forces only to refresh its own exposed files, not to take names install left with their owner
-    token: Final = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
+    token: Final[Token[frozenset[Path] | None]] = _REPLACEABLE_RESOURCES.set(frozenset(resource_paths))
     try:
         yield
     finally:
@@ -113,8 +115,10 @@ def expose_shared_resources_in_order(
     counts: Final[Counter[Path]] = Counter(
         path for metadata in venvs_metadata for path in _shareable_paths(metadata, local_bin_dir, local_man_dir)
     )
-    token: Final = _SHARED_RESOURCES.set(frozenset(path for path, count in counts.items() if count > 1))
-    taken_token: Final = _DANGLING_TAKEN.set({})
+    token: Final[Token[frozenset[Path]]] = _SHARED_RESOURCES.set(
+        frozenset(path for path, count in counts.items() if count > 1)
+    )
+    taken_token: Final[Token[dict[Path, tuple[Path, Path]]]] = _DANGLING_TAKEN.set({})
     try:
         yield
     finally:
@@ -177,8 +181,8 @@ def reuse_resource_dir_scans() -> Generator[None]:
     """
     # list and uninstall-all ask every venv which exposed resources it owns, so scanning each shared directory once per
     # command instead of once per venv keeps them linear in the number of venvs
-    token: Final = _RESOURCE_DIR_SCANS.set({})
-    claims_token: Final = _VENV_CLAIMS.set({})
+    token: Final[Token[dict[Path, _ResourceDirScan] | None]] = _RESOURCE_DIR_SCANS.set({})
+    claims_token: Final[Token[dict[Path, set[Path]] | None]] = _VENV_CLAIMS.set({})
     try:
         yield
     finally:
@@ -897,7 +901,9 @@ def _scan_resource_dir(local_resource_dir: Path) -> _ResourceDirScan:
 
 
 def _build_resource_dir_scan(local_resource_dir: Path) -> _ResourceDirScan:
-    owner_ids: Final = _symlink_owner_ids if can_symlink(local_resource_dir) else _launcher_owner_ids
+    owner_ids: Final[Callable[[Path], list[tuple[int, int]]]] = (
+        _symlink_owner_ids if can_symlink(local_resource_dir) else _launcher_owner_ids
+    )
     by_owner: Final[dict[tuple[int, int], set[Path]]] = {}
     by_name: Final[dict[str, list[Path]]] = {}
     for resource_path in local_resource_dir.iterdir():

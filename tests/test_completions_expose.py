@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
+    from pipx.pipx_metadata_file import PackageInfo
+
 _SECTIONS: Final[MappingProxyType[str, str]] = MappingProxyType({
     "bash-completion/completions": "local-completion",
     "zsh/site-functions": "_local-completion",
@@ -56,7 +58,7 @@ def test_install_selects_completion_only_dependency(
         "Local_Completion",
     ])
 
-    metadata: Final = PipxMetadata(CTX.venvs / "empty-project").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (
         metadata.exposure.include_resources_from,
         bool(metadata.resources.app_paths_of_dependencies),

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from http import HTTPStatus
+
+from pipx.animate import animate
+
 __lazy_modules__ = [
     "datetime",
     "functools",
@@ -28,21 +32,19 @@ import tarfile
 import urllib.error
 from contextlib import contextmanager
 from functools import partial
-from http import HTTPStatus
 from pathlib import Path, PurePosixPath
-from time import sleep as _sleep
+from time import sleep
 from typing import TYPE_CHECKING, Final, TypedDict, cast
 from urllib.request import Request, urlopen
 
 from pipx import constants
-from pipx.animate import animate
 from pipx.paths import CTX
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Generator
     from http.client import HTTPResponse
-    from typing import BinaryIO, TypeIs
+    from typing import IO, BinaryIO, TypeIs
 
     from filelock import BaseFileLock
 
@@ -312,7 +314,7 @@ def _backoff_or_raise(error: Exception, attempt: int, url: str) -> None:
     if not retryable or attempt >= fetch_attempts:
         raise error
     _LOGGER.debug("fetch attempt %d/%d for %s failed (%s); retrying", attempt, fetch_attempts, url, error)
-    _sleep(0.5 * 2 ** (attempt - 1))
+    sleep(0.5 * 2 ** (attempt - 1))
 
 
 @contextmanager
@@ -366,7 +368,7 @@ def _write_body(response: HTTPResponse, file_handle: BinaryIO, *, resumed: bool)
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
     with animate(f"Unpacking python {full_version} build", do_animation=True):
-        sha256_hash: Final = hashlib.sha256()
+        sha256_hash = hashlib.sha256()
         with Path(archive).open("rb") as python_zip:
             for chunk in iter(lambda: python_zip.read(32768), b""):
                 sha256_hash.update(chunk)
@@ -441,7 +443,7 @@ def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -
     elif member.islnk():
         os.link(dest / member.linkname, target)
     else:
-        source: Final = tar.extractfile(member)
+        source: Final[IO[bytes] | None] = tar.extractfile(member)
         with target.open("wb") as handle:
             if source is not None:
                 shutil.copyfileobj(source, handle)

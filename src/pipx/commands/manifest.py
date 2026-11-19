@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import EXIT_CODE_OK, ExitCode
+
 __lazy_modules__ = [
     "collections",
     "contextlib",
@@ -40,7 +42,6 @@ from pipx.commands.common import force_replaces_only
 from pipx.commands.expose import expose, unexpose
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
-from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.fanout import uninterrupted
 from pipx.options import EnvironmentOptions, ExistingOptions, ExposureOptions, InstallOptions, RecordOptions
 from pipx.package_specifier import trusted_recorded_pip_args
@@ -61,6 +62,7 @@ if TYPE_CHECKING:
 
     from filelock import BaseFileLock
 
+    from pipx.commands.install import InstallData
     from pipx.options import SyncOptions
     from pipx.venv import VenvContainer
 
@@ -364,7 +366,7 @@ def _install_tool(
             unexpose(venv_dir, options.local_bin_dir, options.local_man_dir, verbose=options.verbose)
         # unexpose already removed what the environment held, so nothing else is the rebuild's to replace
         with force_replaces_only(()):
-            outcome: Final = install(
+            outcome: Final[OperationResult[InstallData]] = install(
                 venv_dir,
                 [tool.package_name],
                 [tool.package],

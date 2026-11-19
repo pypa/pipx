@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
+
 __lazy_modules__ = ["packaging.specifiers", "pipx.interpreter", "pipx.subprocess_runner"]
 
 import logging
@@ -8,13 +10,13 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
-from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
 from pipx.subprocess_runner import run_subprocess
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from subprocess import CompletedProcess
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _REJECTED_CONSTRAINT: Final[re.Pattern[str]] = re.compile(
@@ -30,9 +32,6 @@ _REJECTED_CONSTRAINT: Final[re.Pattern[str]] = re.compile(
     re.VERBOSE,
 )
 _UV_CONSTRAINT: Final[re.Pattern[str]] = re.compile(r"Python(\S+)")
-
-# the newest release pipx looks for when a package rules out the default interpreter
-_NEWEST_PYTHON_MINOR: Final[int] = 15
 
 
 class IncompatiblePythonError(PipxError):
@@ -78,7 +77,9 @@ def _parse(requires_python: str) -> SpecifierSet | None:
 
 
 def _candidate_versions() -> Iterator[str]:
-    return (f"3.{minor}" for minor in range(_NEWEST_PYTHON_MINOR, int(MINIMUM_PYTHON_VERSION.split(".")[1]) - 1, -1))
+    # the newest release pipx looks for when a package rules out the default interpreter
+    newest_python_minor: int = 15
+    return (f"3.{minor}" for minor in range(newest_python_minor, int(MINIMUM_PYTHON_VERSION.split(".")[1]) - 1, -1))
 
 
 def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
@@ -100,7 +101,7 @@ def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) ->
 
 
 def _interpreter_version(interpreter: str) -> str | None:
-    process: Final = run_subprocess(
+    process: Final[CompletedProcess[str]] = run_subprocess(
         [interpreter, "-c", "import sys; print('.'.join(str(part) for part in sys.version_info[:3]))"],
         capture_stderr=False,
         log_stdout=False,

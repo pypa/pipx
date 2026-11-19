@@ -33,7 +33,7 @@ def _emit_llms_txt(app: Sphinx, exception: Exception | None) -> None:
     # list, so both come from the built tree, grouped by Diátaxis section in nav order
     if exception is not None or app.builder.name != "html":
         return
-    env: Final = app.env
+    env: Final[BuildEnvironment] = app.env
     root: Final[str] = env.config.root_doc
     base: Final[str] = app.config.html_baseurl.rstrip("/")
     order: Final[list[str]] = _ordered_docnames(env, root)

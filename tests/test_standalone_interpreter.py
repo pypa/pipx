@@ -31,6 +31,7 @@ from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
+    from urllib.request import Request
 
     from pytest_mock import MockerFixture, MockType
 
@@ -311,7 +312,7 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
     published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
-    real_rename: Final = os.rename
+    real_rename = os.rename
 
     def rename_within_cache_dir(source: str | Path, target: str | Path) -> None:
         if not Path(source).is_relative_to(cache_dir):
@@ -409,7 +410,7 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
     (install_dir := cache_dir / "3.99").joinpath("bin").mkdir(parents=True)
     (install_dir / "keepme").write_text("v1", encoding="utf-8")
     publish(_python_archive_bytes())
-    real_replace: Final = Path.replace
+    real_replace = Path.replace
     failed: Final[list[bool]] = []
 
     def replace(self: Path, target: Path) -> Path:
@@ -433,7 +434,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
     mocker: MockerFixture,
 ) -> None:
     published_darwin_release[1](_python_archive_bytes())
-    real_replace: Final = os.replace
+    real_replace = os.replace
     concurrent: Final[list[Future[str]]] = []
 
     def swap_into_place(source: str | Path, destination: str | Path) -> None:
@@ -444,7 +445,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
                 concurrent[0].result(timeout=0.2)
         real_replace(source, destination)
 
-    swaps: Final = mocker.patch.object(os, "replace", side_effect=swap_into_place, autospec=True)
+    swaps: Final[MockType] = mocker.patch.object(os, "replace", side_effect=swap_into_place, autospec=True)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
@@ -461,7 +462,7 @@ def test_standalone_python_download_retries_transient_http_error(
     archive_bytes: Final[bytes] = _python_archive_bytes()
     urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
     urlopen.side_effect = [http_error(503), io.BytesIO(archive_bytes)]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -500,7 +501,7 @@ def test_standalone_python_download_fails_on_http_error(  # pytest injects fixtu
 ) -> None:
     urlopen: Final[MockType] = published_darwin_release[1](_python_archive_bytes())
     urlopen.side_effect = http_error(code)
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to download"):
         standalone_python.download_python_build_standalone("3.99")
@@ -519,7 +520,7 @@ def test_standalone_python_download_resumes_after_disconnect(
         _interrupted_response(mocker, archive_bytes[:10]),
         _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -562,11 +563,11 @@ def test_standalone_python_download_resumes_after_body_cut_short(
         }),
         _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
-    second_request: Final = urlopen.call_args_list[1].args[0]
+    second_request: Final[Request] = urlopen.call_args_list[1].args[0]
     assert (Path(python_path).is_file(), sleep.call_count, second_request.get_header("Range")) == (True, 1, "bytes=10-")
 
 
@@ -581,7 +582,7 @@ def test_standalone_python_download_restarts_when_range_ignored(
         _interrupted_response(mocker, archive_bytes[:10]),
         _range_response(mocker, HTTPStatus.OK, archive_bytes),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -601,7 +602,7 @@ def test_get_latest_python_releases_retries_transient_http_error(
         side_effect=[http_error(503), io.StringIO(json.dumps({"assets": [release]}))],
         autospec=True,
     )
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     releases: Final[list[tuple[str, str]]] = standalone_python.get_latest_python_releases()
 
@@ -619,7 +620,7 @@ def test_get_latest_python_releases_fails_on_http_error(
     mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError], code: int, sleeps: int
 ) -> None:
     mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(code), autospec=True)
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to fetch"):
         standalone_python.get_latest_python_releases()
@@ -706,7 +707,7 @@ def pycowsay_on_fetched_python(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    which: Final = shutil.which
+    which = shutil.which
     monkeypatch.setattr(shutil, "which", lambda name: None if name == _TARGET_PYTHON_VERSION else which(name))
     assert not run_pipx_cli([
         "install",

@@ -41,7 +41,7 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
     from pytest_subprocess import FakeProcess
 
 
@@ -81,7 +81,7 @@ def test_list_reports_unreadable_metadata_per_environment(
 def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
     (venv_dir := tmp_path / "venvs" / "example").mkdir(parents=True)
     venv_container: Final[venv.VenvContainer] = venv.VenvContainer(venv_dir.parent)
-    lock: Final = mocker.create_autospec(BaseFileLock, instance=True)
+    lock: Final[MockType] = mocker.create_autospec(BaseFileLock, instance=True)
     # Python before 3.14 ignores a keyword argument naming a method of an autospec
     lock.acquire.side_effect = PermissionError("read-only lock file")
     mocker.patch.object(venv_container, "venv_lock", return_value=lock, autospec=True)
@@ -187,7 +187,7 @@ def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_ve
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
     assert not run_pipx_cli(["list"])
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
     assert f"shell completions are exposed at {CTX.completion_dir}" in captured.out
 
@@ -214,11 +214,11 @@ def test_list_json(capsys: pytest.CaptureFixture[str], tmp_path: Path, venv_bin_
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--output", "json"])
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
 
     assert not _TEST_LIST_JSON_PATTERN.search(captured.err)
     (listed := tmp_path / "list.json").write_text(captured.out, encoding="utf-8")
-    json_parsed: Final = load_spec_file(listed)
+    json_parsed = load_spec_file(listed)
 
     assert sorted(json_parsed["venvs"].keys()) == ["pycowsay", "pylint"]
 
@@ -308,7 +308,7 @@ def test_list_short(capsys: pytest.CaptureFixture[str]) -> None:
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--short"])
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
     assert "isort 5.6.4" in captured.out
@@ -340,7 +340,7 @@ def test_list_json_rejects_human_filter(
 ) -> None:
     assert run_pipx_cli(["list", "--output", "json", option]) == 1
 
-    document: Final = json.loads(capsys.readouterr().out)
+    document = json.loads(capsys.readouterr().out)
     assert document["status"] == "error"
     assert "--output json cannot be combined with --short or --pinned" in document["errors"][0]["message"]
 
@@ -353,7 +353,7 @@ def test_list_selected_package_text(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert not run_pipx_cli(["list", "pycowsay"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert ("package pycowsay 0.0.0.2," in captured.out, "package isort" in captured.out) == (True, False)
 
 
@@ -588,7 +588,7 @@ def test_list_pinned_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["pin", "black"])
     assert not run_pipx_cli(["list", "--pinned"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert "black 22.8.0" in captured.out
     assert "pycowsay 0.0.0.2" not in captured.out
 
@@ -604,7 +604,7 @@ def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str
 
     assert not run_pipx_cli(["list", "--pinned", "--include-injected"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
 
     assert "nox 2023.4.22" in captured.out
     assert "isort 5.6.4" in captured.out

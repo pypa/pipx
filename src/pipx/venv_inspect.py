@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+
 __lazy_modules__ = [
     "ast",
     "configparser",
@@ -35,7 +37,6 @@ from urllib.parse import urlparse
 from packaging.requirements import Requirement
 from packaging.utils import InvalidName, canonicalize_name
 
-from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.pipx_metadata_file import PackageResources
 from pipx.requires_python import unsatisfied_constraint
 from pipx.subprocess_runner import run_subprocess
@@ -434,7 +435,7 @@ def _get_editable_project_root(dist: metadata.Distribution) -> Path | None:
     if not (direct_url := dist.read_text("direct_url.json")):
         return None
     try:
-        data: Final = json.loads(direct_url)
+        data: Final[dict[str, JsonValue]] = json.loads(direct_url)
     except json.JSONDecodeError:
         return None
 
@@ -460,7 +461,7 @@ def _iter_editable_project_data_files(project_root: Path) -> Iterator[tuple[str,
 def _iter_pyproject_data_files(project_root: Path) -> Iterator[tuple[str, list[str]]]:
     try:
         with (project_root / "pyproject.toml").open("rb") as file:
-            pyproject_data: Final = tomllib.load(file)
+            pyproject_data = tomllib.load(file)
     except (OSError, tomllib.TOMLDecodeError):
         return
 
@@ -514,7 +515,7 @@ def _iter_setup_py_data_files(project_root: Path) -> Iterator[tuple[str, list[st
             if keyword.arg != "data_files":
                 continue
             try:
-                data_files: Final = ast.literal_eval(keyword.value)
+                data_files = ast.literal_eval(keyword.value)
             except (ValueError, SyntaxError):
                 return
             yield from _iter_normalized_data_files(data_files)

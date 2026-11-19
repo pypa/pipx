@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.animate import animate
+
 __lazy_modules__ = [
     "packaging",
     "pipx",
@@ -19,7 +21,6 @@ from typing import TYPE_CHECKING, Final
 from packaging import version
 
 from pipx import constants
-from pipx.animate import animate
 from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
 from pipx.paths import CTX

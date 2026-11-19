@@ -765,7 +765,7 @@ def test_upgrade_install_json_stays_pure(capsys: pytest.CaptureFixture[str]) -> 
 
     captured = capsys.readouterr()
     # parsing fails if the internal install printed human text ahead of the document
-    document: Final = json.loads(captured.out)
+    document = json.loads(captured.out)
     assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")
 
 
@@ -806,7 +806,9 @@ def test_upgrade_local_source_hides_url_credentials(
 
 @pytest.fixture
 def credentialed_wheel_url(dotted_app_wheel: Path) -> Iterator[str]:
-    handler: Final = partial(SimpleHTTPRequestHandler, directory=str(dotted_app_wheel.parent))
+    handler: Final[partial[SimpleHTTPRequestHandler]] = partial(
+        SimpleHTTPRequestHandler, directory=str(dotted_app_wheel.parent)
+    )
     # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
     with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
         threading.Thread(target=server.serve_forever, daemon=True).start()

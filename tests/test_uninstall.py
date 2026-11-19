@@ -23,7 +23,7 @@ from pipx.paths import CTX
 from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType, SpyType
 
 _METADATA_VERSIONS: Final[list[pytest.ParameterSet]] = [
     pytest.param(None, id="no-metadata"),
@@ -60,7 +60,7 @@ def test_uninstall_json(
 
     assert not run_pipx_cli([command, *arguments, "--output", "json"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": [command],
@@ -91,7 +91,7 @@ def test_uninstall_quiet(
 
     assert not run_pipx_cli([command, *arguments, "--quiet"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 
@@ -124,7 +124,7 @@ def test_uninstall_json_reports_missing(
     )
     assert run_pipx_cli(["uninstall", "missing", "--output", "json"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
             "command": ["uninstall"],
@@ -152,7 +152,7 @@ def test_uninstall_ignores_disappearing_resources(
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
-    safe_unlink: Final = mocker.patch.object(
+    safe_unlink: Final[MockType] = mocker.patch.object(
         importlib.import_module("pipx.commands.uninstall"),
         "safe_unlink",
         autospec=True,
@@ -192,7 +192,7 @@ def test_uninstall_legacy_venv_inspects_once(mocker: MockerFixture) -> None:
     executable_path: Final[Path] = CTX.bin_dir / app_name("pycowsay")
     assert executable_path.exists()
     mock_legacy_venv("pycowsay")
-    run_subprocess: Final = mocker.spy(venv_inspect, "run_subprocess")
+    run_subprocess: Final[SpyType] = mocker.spy(venv_inspect, "run_subprocess")
 
     assert run_pipx_cli(["uninstall", "pycowsay"]) == 0
 

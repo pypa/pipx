@@ -169,7 +169,7 @@ def test_reinstall_all_reinstalls_the_rest_after_a_failure(
 
     exit_code: Final[int] = run_pipx_cli(["reinstall-all", "--output", "json"])
 
-    result: Final = json.loads(capsys.readouterr().out)
+    result = json.loads(capsys.readouterr().out)
     assert (
         exit_code,
         [environment["environment"] for environment in result["data"]["environments"]],
@@ -220,7 +220,7 @@ def test_reinstall_all_reports_interrupted_venv_without_traceback(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_retries_venv_briefly_held_open(mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    rename: Final = Path.rename
+    rename = Path.rename
     held: Final[list[Path]] = [CTX.venvs / "pycowsay"]
 
     def rename_once_released(source: Path, target: Path) -> Path:
@@ -290,8 +290,8 @@ def fail_owner_rebuild_after_takeover(
 ) -> Callable[[Callable[[], None], BaseException], None]:
     earlier, owner = shared_man_page_venvs
     man_page: Final[Path] = CTX.man_dir / "man6" / "pycowsay.6"
-    symlink_to: Final = Path.symlink_to
-    check_upgrade_shared_libs: Final = Venv.check_upgrade_shared_libs
+    symlink_to = Path.symlink_to
+    check_upgrade_shared_libs = Venv.check_upgrade_shared_libs
 
     def arm(meanwhile: Callable[[], None], failure: BaseException) -> None:
         taken_over: Final[threading.Event] = threading.Event()

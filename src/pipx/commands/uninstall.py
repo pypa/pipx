@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+from pipx.constants import (
+    COMPLETION_SECTIONS,
+    EXIT_CODE_OK,
+    EXIT_CODE_UNINSTALL_ERROR,
+    EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
+    MAN_SECTIONS,
+)
+from pipx.emojis import HAZARD, SLEEP, STARS
+
 __lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv", "shutil"]
 
 import logging
@@ -19,14 +28,6 @@ from pipx.commands.common import (
     get_venv_resource_paths,
     reuse_resource_dir_scans,
 )
-from pipx.constants import (
-    COMPLETION_SECTIONS,
-    EXIT_CODE_OK,
-    EXIT_CODE_UNINSTALL_ERROR,
-    EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
-    MAN_SECTIONS,
-)
-from pipx.emojis import HAZARD, SLEEP, STARS
 from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.trash import rmdir_via_trash, safe_unlink
@@ -56,7 +57,9 @@ def uninstall_all(
     with reuse_resource_dir_scans():
         for venv_dir in venv_container.iter_venv_dirs():
             with venv_container.venv_lock(venv_dir):
-                result: Final = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+                result: Final[OperationResult[UninstallData]] = uninstall(
+                    venv_dir, local_bin_dir, local_man_dir, verbose=verbose
+                )
             errors.extend(result.errors)
             messages.extend(result.messages)
             packages.extend(result.data.packages)

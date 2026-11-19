@@ -21,6 +21,7 @@ from filelock import AcquireReturnProxy, FileLock, Timeout
 from flit_core.wheel import make_wheel_in
 
 if TYPE_CHECKING:
+    from argparse import Namespace
     from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 
     from pytest_mock import MockerFixture, MockType
@@ -131,7 +132,7 @@ def test_run_uv_index_url_beats_uv_default_index(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_matching_name_uses_uv_tool_run(mocker: MockerFixture, spec_args: list[str]) -> None:
     # patch the handover rather than os.execvpe, which exec_app calls on POSIX only
-    exec_app: Final = mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=SystemExit(0))
+    exec_app: Final[MockType] = mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=SystemExit(0))
 
     run_pipx_cli_exit(["run", "--backend", "uv", *spec_args, "pycowsay", "cowsay", "hi"], assert_exit=0)
 
@@ -240,7 +241,7 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
     held.mkdir()
     (held / "pipx_expired_venv").touch()
 
-    real_acquire: Final = FileLock.acquire
+    real_acquire = FileLock.acquire
 
     def acquire(
         self: FileLock,
@@ -307,7 +308,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
 def test_run_script_searches_python_only_when_default_fails_requires_python(
     tmp_path: Path, mocker: MockerFixture, backend: str, requires_python: str, searched: set[str]
 ) -> None:
-    exec_mock: Final = mocker.create_autospec(exec_app, side_effect=SystemExit(0))
+    exec_mock: Final[MockType] = mocker.create_autospec(exec_app, side_effect=SystemExit(0))
     mocker.patch("pipx.commands.run.exec_app", new=exec_mock)
     mocker.patch("pipx.commands.run_uv.exec_app", new=exec_mock)
     script: Final[Path] = tmp_path / "script.py"
@@ -534,7 +535,7 @@ def test_appargs_doubledash(
 ) -> None:
     parser = pipx.main.get_command_parser()
     monkeypatch.setattr(sys, "argv", ["pipx", "run", *input_run_args])
-    parsed_pipx_args: Final = parser.parse_args()
+    parsed_pipx_args: Final[Namespace] = parser.parse_args()
     pipx.main.check_args(parsed_pipx_args)
     assert parsed_pipx_args.app_with_args == expected_app_with_args
 
@@ -1701,7 +1702,7 @@ def test_run_cache_key_ignores_unrelated_env(
 @pytest.fixture
 def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
     # stop at the filesystem boundary before installing conflicting argument sets
-    lock: Final = mocker.patch("filelock.FileLock", autospec=True)
+    lock: Final[MockType] = mocker.patch("filelock.FileLock", autospec=True)
     # Python before 3.14 does not configure a dunder of an autospec through keyword arguments
     lock.return_value.__enter__.side_effect = OSError("cache lock unavailable")
 
