@@ -20,7 +20,7 @@ class _Options(argparse.Namespace):
 
 
 def main(argv: list[str]) -> int:
-    parser: Final = argparse.ArgumentParser(
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
         description="Check and update as needed the pipx tests package cache "
         "for use with the pipx tests local pypiserver."
     )
@@ -40,7 +40,7 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="Only check to see if needed packages are in PACKAGES_DIR, do not download or delete files.",
     )
-    options: Final = parser.parse_args(argv[1:], namespace=_Options())
+    options: Final[_Options] = parser.parse_args(argv[1:], namespace=_Options())
     return _update_test_packages_cache(
         options.package_list_dir, options.pipx_package_cache_dir, check_only=options.check_only
     )
@@ -93,7 +93,7 @@ def _update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_
 
 
 def _download(package_spec: str, packages_dir_path: Path) -> int:
-    pip_download: Final = subprocess.run(
+    pip_download: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [sys.executable, "-m", "pip", "download", "--no-deps", package_spec, "-d", str(packages_dir_path)],
         capture_output=True,
         text=True,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.animate import show_cursor
+
 __lazy_modules__ = [
     "concurrent.futures",
     "fcntl",
@@ -38,7 +40,6 @@ from typing import (
     TextIO,
 )
 
-from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 from pipx.fanout import output_is_held, stop_process_group, stopped_on_interrupt
 from pipx.redact import redact_command_line, redact_url_credentials
@@ -47,6 +48,7 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
     from concurrent.futures import Future
+    from contextvars import Token
 
 if not WINDOWS:
     import fcntl
@@ -294,7 +296,10 @@ def _run_streaming_subprocess(
             for channel in channels.values():
                 if not channel.terminal:
                     channel.close_child()
-            sinks: Final = {"stdout": (stdout_destination, stdout_chunks), "stderr": (sys.stderr, stderr_chunks)}
+            sinks: Final[dict[str, tuple[TextIO, list[str]]]] = {
+                "stdout": (stdout_destination, stdout_chunks),
+                "stderr": (sys.stderr, stderr_chunks),
+            }
             try:
                 futures: Final[dict[str, Future[None]]] = {
                     # each reader needs the caller's context to buffer the output of a fan-out task waiting its turn
@@ -461,7 +466,7 @@ def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None
     :param enabled: whether to redirect the output.
     :yields: nothing, while the enclosed block runs.
     """
-    token: Final = _STREAM_STDOUT_TO_STDERR.set(enabled)
+    token: Final[Token[bool]] = _STREAM_STDOUT_TO_STDERR.set(enabled)
     try:
         yield
     finally:

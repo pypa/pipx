@@ -24,6 +24,7 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from concurrent.futures import Future
     from pathlib import Path
 
     from pytest_mock import MockerFixture, MockType
@@ -416,9 +417,13 @@ def test_shared_libs_upgrade_serializes_concurrent_calls(mocker: MockerFixture) 
 
     mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=run_upgrade)
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first_upgrade: Final = executor.submit(shared_libs.SHARED_LIBS.upgrade, pip_args=[], verbose=True, raises=True)
+        first_upgrade: Final[Future[None]] = executor.submit(
+            shared_libs.SHARED_LIBS.upgrade, pip_args=[], verbose=True, raises=True
+        )
         assert first_started.wait(5)
-        second_upgrade: Final = executor.submit(shared_libs.SHARED_LIBS.upgrade, pip_args=[], verbose=True, raises=True)
+        second_upgrade: Final[Future[None]] = executor.submit(
+            shared_libs.SHARED_LIBS.upgrade, pip_args=[], verbose=True, raises=True
+        )
         try:
             assert not second_started.wait(0.5)
         finally:
@@ -473,7 +478,7 @@ def test_runpip_skips_rebuild_when_another_process_repaired_shared_pip(
     pip_main: Final[Path] = shared_libs.SHARED_LIBS.site_packages[0] / "pip" / "_internal" / "cli" / "main.py"
     source: Final[str] = pip_main.read_text()
     pip_main.write_text("")
-    acquire: Final = FileLock.acquire
+    acquire = FileLock.acquire
 
     def repaired_while_waiting(lock: FileLock) -> AcquireReturnProxy:
         if lock.lock_file.endswith(f"{shared_libs.SHARED_LIBS.root.name}.lock"):

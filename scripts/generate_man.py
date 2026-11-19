@@ -17,7 +17,7 @@ from typing import Final
 
 
 def main() -> None:
-    documented_python: Final = os.environ.get("PIPX__DOC_DEFAULT_PYTHON")
+    documented_python: Final[str | None] = os.environ.get("PIPX__DOC_DEFAULT_PYTHON")
     os.environ["PIPX__DOC_DEFAULT_PYTHON"] = "python3"
     original_program: Final[str] = sys.argv[0]
     sys.argv[0] = "pipx"

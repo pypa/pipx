@@ -119,7 +119,7 @@ def linkcode_resolve(domain: str, info: dict[str, str]) -> str | None:
     for part in info["fullname"].split("."):
         target = getattr(target, part, None)
     try:
-        unwrapped: Final = inspect.unwrap(target)
+        unwrapped = inspect.unwrap(target)
         lines, start = inspect.getsourcelines(unwrapped)
         relative: Final[Path] = Path(inspect.getsourcefile(unwrapped)).resolve().relative_to(_REPO_ROOT)
     except (TypeError, OSError, ValueError):
@@ -146,7 +146,7 @@ def _add_page_description(
     for paragraph in doctree.findall(nodes.paragraph):
         if not (text := " ".join(paragraph.astext().split())):
             continue
-        limit: Final = 160
+        limit: Final[int] = 160
         summary: Final[str] = text if len(text) <= limit else f"{text[: limit - 1].rstrip()}…"
         tag: Final[str] = f'<meta name="description" content="{html_escape(summary, quote=True)}" />'
         context["metatags"] = f"{context.get('metatags', '')}\n    {tag}"

@@ -16,7 +16,7 @@ from pipx.redact import redact_url_credentials
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 _TWO_LOCKS_MANIFEST: Final[str] = """[project]
@@ -526,7 +526,7 @@ offline = false
         return subprocess.CompletedProcess(command, 0)
 
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
-    run: Final = mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
+    run: Final[MockType] = mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
 
     assert not run_pipx_cli(["manifest", "lock", str(manifest)])
 
@@ -603,7 +603,7 @@ def test_lock_manifest_rolls_back_every_lock_when_one_replacement_fails(
     (tmp_path / "pylock.black.toml").write_text("old-black\n", encoding="utf-8")
     (tmp_path / "pylock.pycowsay.toml").write_text("old-pycowsay\n", encoding="utf-8")
 
-    real_replace: Final = Path.replace
+    real_replace = Path.replace
     swap_ins: Final[list[Path]] = []
 
     def replace(self: Path, target: Path) -> Path:
@@ -647,7 +647,7 @@ def test_lock_manifest_keeps_all_locks_when_interrupted(
     for lock in locks:
         lock.write_text("old\n", encoding="utf-8")
 
-    real_replace: Final = Path.replace
+    real_replace = Path.replace
     replacements: Final[list[Path]] = []
 
     def replace(self: Path, target: Path) -> Path:
@@ -672,7 +672,7 @@ def test_lock_manifest_finishes_rollback_through_interrupt(
     locks: Final[list[Path]] = [tmp_path / "pylock.black.toml", tmp_path / "pylock.pycowsay.toml"]
     for lock in locks:
         lock.write_text("old\n", encoding="utf-8")
-    real_replace: Final = Path.replace
+    real_replace = Path.replace
 
     def replace(self: Path, target: Path) -> Path:
         if target == locks[1] and self.parent.name != ".previous":
@@ -768,7 +768,7 @@ def test_lock_manifest_refuses_lock_outside_manifest_directory(
         _manifest(tool=f'lock = "{lock.format(outside=outside.as_posix())}"\n'), encoding="utf-8"
     )
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
-    run: Final = mocker.patch.object(manifest_module.subprocess, "run", autospec=True)
+    run: Final[MockType] = mocker.patch.object(manifest_module.subprocess, "run", autospec=True)
 
     assert run_pipx_cli(["manifest", "lock", str(manifest)])
 

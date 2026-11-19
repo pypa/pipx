@@ -115,7 +115,7 @@ def test_pipx_metadata_file_create(venv_dir: Path) -> None:
     pipx_metadata.injected_packages = {"inj_package": _INJECTED_PACKAGE}
     pipx_metadata.exposure_enabled = False
     pipx_metadata.write()
-    recorded: Final = operator.attrgetter(
+    recorded = operator.attrgetter(
         "venv_dir",
         "environment",
         "main_package",
@@ -241,7 +241,7 @@ def test_pipx_metadata_file_reads_unknown_backend_as_pip(
 
 def test_metadata_round_trip_includes_backend(tmp_path: Path) -> None:
     (venv_dir := tmp_path / "venv").mkdir()
-    metadata: Final = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
+    metadata: Final[PipxMetadata] = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
     metadata.main_package = pipx_metadata_file.PackageInfo(
         package="demo",
         package_or_url="demo",
@@ -267,7 +267,7 @@ def test_metadata_version_order_for_shared_libs(tmp_path: Path) -> None:
     venv_dir: Final[Path] = tmp_path / "venv"
     (site_packages := venv_dir / "lib/python/site-packages").mkdir(parents=True)
     (site_packages / PIPX_SHARED_PTH).touch()
-    venv: Final = Venv(venv_dir)
+    venv: Final[Venv] = Venv(venv_dir)
     venv.pipx_metadata.read_metadata_version = "0.10"
     venv.pipx_metadata.backend = UV
 

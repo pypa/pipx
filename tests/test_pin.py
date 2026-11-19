@@ -340,7 +340,7 @@ def test_pin_skip_spelling(
     assert not run_pipx_cli(["pin", environment, "--skip", skip, "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / canonicalize_name(environment))
-    data: Final = json.loads(capsys.readouterr().out)["data"]
+    data = json.loads(capsys.readouterr().out)["data"]
     assert (
         metadata.main_package.pinned,
         {name: package.pinned for name, package in metadata.injected_packages.items()},
@@ -370,7 +370,7 @@ def test_pin_skip_non_canonical_injected_package_with_suffix(
     assert not run_pipx_cli(["pin", "pycowsay@1", "--skip", spelling, "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay@1")
-    data: Final = json.loads(capsys.readouterr().out)["data"]
+    data = json.loads(capsys.readouterr().out)["data"]
     assert (
         {name: package.pinned for name, package in metadata.injected_packages.items()},
         [package["package"] for package in data["packages"]],

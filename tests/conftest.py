@@ -33,8 +33,7 @@ from flit_core.wheel import make_wheel_in
 import pipx
 from harness import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli, write_import_probe
 from pipx import paths, shared_libs, standalone_python, venv
-from pipx.backends import pip as _pip_backend_module
-from pipx.backends import uv as _uv_backend_module
+from pipx.backends import pip, uv
 from pipx.backends.registry import get_backend
 from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
@@ -67,15 +66,15 @@ def signal_handlers(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     # a signal landing while the main thread runs a weakref callback or finalizer (garbage collection can run at any
     # allocation) raises KeyboardInterrupt there, which the interpreter reports as unraisable; pipx's handler leaves a
     # mark it acts on, so drop that report and keep failing on any other unraisable exception
-    report: Final = sys.unraisablehook
+    report = sys.unraisablehook
     monkeypatch.setattr(
         sys,
         "unraisablehook",
         lambda unraisable: None if issubclass(unraisable.exc_type, KeyboardInterrupt) else report(unraisable),
     )
     # an interrupted pipx ignores further signals, so each test starts from Python's default handlers
-    numbers: Final = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
-    previous: Final = {number: signal.getsignal(number) for number in numbers}
+    numbers = (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM))
+    previous = {number: signal.getsignal(number) for number in numbers}
     signal.signal(signal.SIGINT, signal.default_int_handler)
     yield
     for number, handler in previous.items():
@@ -337,7 +336,7 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     find_uv_binary.cache_clear()
     uv_meets_minimum_version.cache_clear()
     # The private probe also caches the patched uv executable.
-    _uv_backend_module._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # simplint: ignore[module-attribute-import]  # cache reset
+    uv._run_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # simplint: ignore[module-attribute-import]  # cache reset
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
@@ -349,7 +348,7 @@ def _block_external_network(request: pytest.FixtureRequest, monkeypatch: pytest.
     # --net-pypiserver wants the real index
     if request.config.option.net_pypiserver:
         return
-    connect: Final = socket.socket.connect
+    connect = socket.socket.connect
 
     def guarded_connect(self: socket.socket, address: tuple[str | int, ...] | str | bytes) -> None:
         if isinstance(address, tuple) and not _is_loopback(str(address[0])):
@@ -433,7 +432,7 @@ def standalone_python_build(tmp_path_factory: pytest.TempPathFactory) -> tuple[b
         (env_dir / "bin").mkdir(parents=True)
         (shim := env_dir / "bin" / "python3").write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
         shim.chmod(0o755)
-    buffer: Final = io.BytesIO()
+    buffer: Final[io.BytesIO] = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
         tar.add(env_dir, arcname="python")
     return buffer.getvalue(), ".".join(map(str, sys.version_info[:3]))
@@ -470,7 +469,7 @@ def mocked_github_api(
     standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
 ) -> None:
     archive_bytes, full_version = standalone_python_build
-    index: Final = standalone_python_index(full_version)
+    index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(full_version)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_kwargs: index)
     monkeypatch.setattr(standalone_python, "urlopen", lambda *_args, **_kwargs: io.BytesIO(archive_bytes))
 
@@ -504,7 +503,7 @@ def pipx_local_pypiserver(
         sock.bind(("", 0))
         port: Final[int] = sock.getsockname()[1]
     os.environ["NO_PROXY"] = "127.0.0.1"
-    pypiserver_process: Final = subprocess.Popen(
+    pypiserver_process: Final[subprocess.Popen[bytes]] = subprocess.Popen(
         [
             str(Path(sys.executable).parent / "pypi-server"),
             "run",
@@ -569,7 +568,7 @@ def utils_path_dirs(tmp_path_factory: pytest.TempPathFactory) -> list[Path]:
     link_dir: Final[Path] = tmp_path_factory.mktemp("session_utilstempdir")
     path_dirs: Final[list[Path]] = [link_dir]
 
-    git: Final = shutil.which("git")
+    git: Final[str | None] = shutil.which("git")
     assert git is not None, "git must be on PATH to run the test suite"
     git_path: Final[Path] = Path(git)
     try:
@@ -577,13 +576,13 @@ def utils_path_dirs(tmp_path_factory: pytest.TempPathFactory) -> list[Path]:
     except OSError:  # no symlink privilege, e.g. Windows raises WinError 1314
         path_dirs.append(git_path.parent)
 
-    if uv := shutil.which("uv"):  # exposed only when present so the uv-backend smoke test can find it
-        exposed: Final[Path] = link_dir / Path(uv).name
+    if uv_binary := shutil.which("uv"):  # exposed only when present so the uv-backend smoke test can find it
+        exposed: Final[Path] = link_dir / Path(uv_binary).name
         try:
-            exposed.symlink_to(uv)
+            exposed.symlink_to(uv_binary)
         except OSError:
             # uv is standalone, so a copy runs the same and keeps its directory, often ~/.local/bin, off PATH
-            shutil.copy2(uv, exposed)
+            shutil.copy2(uv_binary, exposed)
 
     return path_dirs
 
@@ -617,10 +616,10 @@ def _activate_temp_env(
     CTX.make_local()  # CTX reads the overrides only here
 
     # each importer binds SHARED_LIBS at import time, so each one gets the fresh instance
-    fresh_shared_libs: Final = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]  # no public factory
+    fresh_shared_libs = shared_libs._SharedLibs()  # ruff:ignore[private-member-access]  # no public factory
     # importers before the module: monkeypatch reads the old value, which on 3.15 resolves their lazy import, and
     # resolving it after the module is patched would make teardown restore the fresh instance, not the original
-    for module in (venv, _pip_backend_module, importlib.import_module("pipx.commands.upgrade"), shared_libs):
+    for module in (venv, pip, importlib.import_module("pipx.commands.upgrade"), shared_libs):
         monkeypatch.setattr(module, "SHARED_LIBS", fresh_shared_libs)
 
     if "PIPX_DEFAULT_PYTHON" in os.environ:
@@ -634,7 +633,7 @@ def _activate_temp_env(
     monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (CTX.bin_dir, *utils_path_dirs)))
     if WIN:
         # Windows tests take the copying path even when running elevated, where symlinks would work
-        symlink_cache: Final = common._CAN_SYMLINK_CACHE  # ruff:ignore[private-member-access]  # no public seeding API
+        symlink_cache: Final[dict[Path, bool]] = common._CAN_SYMLINK_CACHE  # ruff:ignore[private-member-access]  # no public seeding API
         monkeypatch.setitem(symlink_cache, CTX.bin_dir, False)
         monkeypatch.setitem(symlink_cache, CTX.man_dir, False)
     if not request.config.option.net_pypiserver:

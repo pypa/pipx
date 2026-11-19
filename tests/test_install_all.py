@@ -20,7 +20,7 @@ from pipx.wrap import pipx_wrap
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.mark.parametrize(
@@ -126,7 +126,7 @@ def test_install_all_selects_interpreter(
     source: str,
 ) -> None:
     spec_file, recorded = recorded_snapshot
-    install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
+    install: Final[MockType] = mocker.patch("pipx.commands.install.install", autospec=True)
     assert not run_pipx_cli(["install-all", str(spec_file), *python_arg])
     expected: Final[dict[str, Path]] = {"recorded": recorded, "explicit": Path(sys.executable).resolve()}
     assert Path(install.call_args.args[3].environment.python).resolve() == expected[source]
@@ -143,7 +143,7 @@ def record_interpreter(make_snapshot: Callable[[list[list[str]]], Path]) -> Call
     spec_file: Final[Path] = make_snapshot([["install", "pycowsay"]])
 
     def record(recorded: Path) -> Path:
-        snapshot: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+        snapshot = json.loads(spec_file.read_text(encoding="utf-8"))
         snapshot["venvs"]["pycowsay"]["metadata"]["source_interpreter"] = {
             "__type__": "Path",
             "__Path__": str(recorded),
@@ -205,7 +205,7 @@ def test_install_all_replaces_distrusted_recorded_interpreter_with_default(
     place: Callable[[Path], Path],
     reason: str,
 ) -> None:
-    install: Final = mocker.patch("pipx.commands.install.install", autospec=True)
+    install: Final[MockType] = mocker.patch("pipx.commands.install.install", autospec=True)
 
     assert not run_pipx_cli(["install-all", str(record_interpreter(place(tmp_path)))])
 
@@ -230,7 +230,7 @@ def test_install_all_force_ignores_explicit_python(tmp_path: Path, capsys: pytes
 def test_install_all_multiple_errors(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
     pipx_metadata_path: Final[Path] = root / "testdata" / "pipx_metadata_multiple_errors.json"
     assert run_pipx_cli(["install-all", str(pipx_metadata_path)])
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     log_file: Final[Path] = current_log_file()
     pip_errors: Final[str] = log_file.with_name(f"{log_file.stem}_pip_errors.log").read_text(encoding="utf-8")
     assert (
@@ -289,7 +289,7 @@ def test_install_all_leaves_directory_named_in_recorded_venv_args(
     tmp_path: Path, make_snapshot: Callable[[list[list[str]]], Path]
 ) -> None:
     spec_file: Final[Path] = make_snapshot([["install", "--backend", "pip", "pycowsay"]])
-    spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+    spec = json.loads(spec_file.read_text(encoding="utf-8"))
     (other_dir := tmp_path / "documents").mkdir()
     (other_dir / "notes.txt").write_text("keep", encoding="utf-8")
     spec["venvs"]["pycowsay"]["metadata"]["venv_args"] = ["--clear", str(other_dir)]
@@ -563,7 +563,7 @@ def spec_file(make_snapshot: Callable[[list[list[str]]], Path]) -> Path:
 
 
 def test_install_all_refuses_an_environment_name_outside_the_store(spec_file: Path, tmp_path: Path) -> None:
-    spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+    spec = json.loads(spec_file.read_text(encoding="utf-8"))
     spec["venvs"] = {"pycowsay": spec["venvs"]["pycowsay"]}
     spec["venvs"]["pycowsay"]["metadata"]["main_package"]["package"] = str(tmp_path / "outside")
     spec_file.write_text(json.dumps(spec), encoding="utf-8")
@@ -590,7 +590,7 @@ def test_install_all_leaves_injected_packages_of_a_skipped_environment(
 
 
 def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) -> None:
-    spec: Final = json.loads(spec_file.read_text(encoding="utf-8"))
+    spec = json.loads(spec_file.read_text(encoding="utf-8"))
     spec["venvs"] = {"pycowsay": spec["venvs"]["pycowsay"], "malformed": {}}
     spec_file.write_text(json.dumps(spec), encoding="utf-8")
 

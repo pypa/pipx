@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pipx.colors import BOLD
+from pipx.constants import ExitCode
+from pipx.emojis import SLEEP
+
 __lazy_modules__ = ["packaging.utils", "pipx.venv"]
 
 from dataclasses import dataclass
@@ -8,9 +12,6 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
-from pipx.colors import BOLD
-from pipx.constants import ExitCode
-from pipx.emojis import SLEEP
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 

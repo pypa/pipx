@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import EMOJI_SUPPORT
+
 __lazy_modules__ = ["logging", "pipx.fanout", "shutil", "threading"]
 
 import logging
@@ -11,7 +13,6 @@ from threading import Event, Thread
 from typing import TYPE_CHECKING, Final
 
 from pipx.constants import WINDOWS
-from pipx.emojis import EMOJI_SUPPORT
 from pipx.fanout import output_is_held
 
 if TYPE_CHECKING:
@@ -131,7 +132,7 @@ def _win_cursor(*, visible: bool) -> None:
     if sys.platform != "win32":  # narrows the platform so the type checker accepts ctypes.windll
         return
     cursor_info: Final[_CursorInfo] = _CursorInfo()
-    handle: Final = ctypes.windll.kernel32.GetStdHandle(-11)
+    handle: Final[int] = ctypes.windll.kernel32.GetStdHandle(-11)
     ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(cursor_info))
     cursor_info.visible = visible
     ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(cursor_info))

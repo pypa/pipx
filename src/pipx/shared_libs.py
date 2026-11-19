@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 from threading import RLock
-from time import time as _time
+from time import time
 from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
@@ -40,6 +40,7 @@ from pipx.util import PipxError, get_venv_paths
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
+    from contextvars import Token
     from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
@@ -62,7 +63,7 @@ def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None
     :param enabled: whether to skip the maintenance.
     :yields: nothing, while the enclosed block runs.
     """
-    token: Final = _SKIP_MAINTENANCE.set(enabled)
+    token: Final[Token[bool]] = _SKIP_MAINTENANCE.set(enabled)
     try:
         yield
     finally:
@@ -76,7 +77,7 @@ def shared_pip_cooldown(days: int | None) -> Generator[None]:
     :param days: the cooldown in days, or None to use none.
     :yields: nothing, while the enclosed block runs.
     """
-    token: Final = _COOLDOWN_DAYS.set(days)
+    token: Final[Token[int | None]] = _COOLDOWN_DAYS.set(days)
     try:
         yield
     finally:
@@ -101,7 +102,7 @@ class _SharedLibs:
         if not self.pip_path.is_file() or self._pip_below_floor():
             return True
 
-        time_since_last_update_sec: Final[float] = _time() - self.pip_path.stat().st_mtime
+        time_since_last_update_sec: Final[float] = time() - self.pip_path.stat().st_mtime
         if not self.has_been_logged_this_run:
             _LOGGER.info(
                 "Time since last upgrade of shared libs, in seconds: %.0f. "

@@ -16,7 +16,7 @@ from contextlib import contextmanager, suppress
 from pathlib import Path
 from shutil import copytree
 from tempfile import mkdtemp
-from time import sleep as _sleep
+from time import sleep
 from typing import TYPE_CHECKING, Final
 
 from pipx.fanout import finished_on_interrupt, uninterrupted
@@ -158,7 +158,7 @@ def rename_once_released(source: Path, target: Path) -> None:
         try:
             source.rename(target)
         except PermissionError:
-            _sleep(delay)
+            sleep(delay)
         else:
             return
     source.rename(target)

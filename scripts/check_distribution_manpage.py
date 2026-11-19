@@ -17,7 +17,7 @@ def main() -> None:
         list(distribution_dir.glob("pipx-*.tar.gz")), "source archive", distribution_dir
     )
     with tarfile.open(source_archive_path) as source_archive:
-        sources: Final = [
+        sources: Final[list[tarfile.TarInfo]] = [
             member for member in source_archive.getmembers() if member.name.endswith("/docs/man/pipx.1.rst")
         ]
         if len(sources) != 1:

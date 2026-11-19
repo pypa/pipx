@@ -436,7 +436,7 @@ def test_list_outdated_json_reports_corrupt_package(
 @pytest.fixture
 def corrupt_environment(outdated_environment: MockType) -> MockType:
     metadata_path: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
-    metadata: Final = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     metadata["main_package"]["package_or_url"] = None
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
     return outdated_environment

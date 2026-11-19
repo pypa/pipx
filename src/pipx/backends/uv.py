@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from pipx.animate import animate
+from pipx.constants import WINDOWS
+
+from ._base import outdated_packages_from_process
+
 __lazy_modules__ = [
     "contextlib",
     "importlib",
@@ -27,16 +32,12 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx.animate import animate
 from pipx.backends import UV, Backend, OutdatedPackage
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
-from pipx.constants import WINDOWS
 from pipx.paths import CTX
 from pipx.subprocess_runner import run_subprocess, subprocess_post_check
 from pipx.trash import running_launcher_moved_aside
 from pipx.util import PipxError, reject_empty_index
-
-from ._base import outdated_packages_from_process
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -129,7 +130,9 @@ class UvBackend(Backend):
             str(root),
         ]
         with animate("creating virtual environment", do_animation=not verbose):
-            process: Final = run_subprocess(cmd, run_dir=str(root), env_overrides=self._env_overrides())
+            process: Final[CompletedProcess[str]] = run_subprocess(
+                cmd, run_dir=str(root), env_overrides=self._env_overrides()
+            )
         subprocess_post_check(process)
 
     @staticmethod
@@ -175,7 +178,7 @@ class UvBackend(Backend):
         # unlike pip, which moves the files it replaces aside, uv deletes them in place, and Windows refuses that for
         # the running launcher of a pipx upgrading itself
         with running_launcher_moved_aside(venv_python.parent) if WINDOWS else nullcontext():
-            process: Final = run_subprocess(
+            process: Final[CompletedProcess[str]] = run_subprocess(
                 cmd,
                 run_dir=str(venv_root),
                 log_stdout=not log_pip_errors,
@@ -231,8 +234,10 @@ class UvBackend(Backend):
         :param verbose: show the output of uv.
         :returns: the completed uv process.
         """
-        cmd: Final = [*self._uv_pip_command("uninstall", venv_python, verbose=verbose), *packages]
-        process: Final = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=self._env_overrides())
+        cmd: Final[list[str | Path]] = [*self._uv_pip_command("uninstall", venv_python, verbose=verbose), *packages]
+        process: Final[CompletedProcess[str]] = run_subprocess(
+            cmd, run_dir=str(venv_root), env_overrides=self._env_overrides()
+        )
         subprocess_post_check(process)
         return process
 
@@ -256,8 +261,10 @@ class UvBackend(Backend):
 
             return list_not_required_packages(venv_python)
 
-        cmd: Final = [*self._uv_pip_command("list", venv_python, verbose=False), "--format", "json"]
-        process: Final = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=self._env_overrides())
+        cmd: Final[list[str | Path]] = [*self._uv_pip_command("list", venv_python, verbose=False), "--format", "json"]
+        process: Final[CompletedProcess[str]] = run_subprocess(
+            cmd, run_dir=str(venv_root), env_overrides=self._env_overrides()
+        )
         if process.returncode != 0:
             msg = (
                 f"Failed to execute {process.args}.\n"
@@ -284,14 +291,16 @@ class UvBackend(Backend):
         :returns: the outdated packages.
         """
         reject_empty_index(index_args)
-        cmd: Final = [
+        cmd: Final[list[str | Path]] = [
             *self._uv_pip_command("list", venv_python, verbose=False),
             "--outdated",
             "--format=json",
             *self._default_index_args(index_args),
             *(f"--exclude={name}" for name in exclude),
         ]
-        process: Final = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=self._env_overrides())
+        process: Final[CompletedProcess[str]] = run_subprocess(
+            cmd, run_dir=str(venv_root), env_overrides=self._env_overrides()
+        )
         return outdated_packages_from_process(process)
 
     def run_raw_pip(  # ruff:ignore[too-many-arguments]  # Backend interface method passing raw pip controls through
@@ -366,7 +375,7 @@ def find_uv_binary() -> tuple[Path | None, str]:
     """
     if _FIND_UV_BIN_FROM_EXTRA is not None:
         try:
-            bundled: Final = Path(_FIND_UV_BIN_FROM_EXTRA())
+            bundled: Final[Path] = Path(_FIND_UV_BIN_FROM_EXTRA())
         except FileNotFoundError:
             pass
         else:
@@ -383,7 +392,7 @@ def find_uv_binary() -> tuple[Path | None, str]:
 
 def _binary_runs(binary: Path) -> bool:
     try:
-        process: Final = _run_uv_version(binary)
+        process: Final[CompletedProcess[str]] = _run_uv_version(binary)
     except (OSError, subprocess.TimeoutExpired) as exc:
         _LOGGER.debug("uv launch probe failed for %s: %s", binary, exc)
         return False
@@ -417,7 +426,7 @@ def _check_uv_version(binary: Path) -> Version:
 
 def _uv_version(binary: Path) -> Version:
     try:
-        process: Final = _run_uv_version(binary)
+        process: Final[CompletedProcess[str]] = _run_uv_version(binary)
     except (OSError, subprocess.TimeoutExpired) as exc:
         msg = (
             f"Could not run {binary} --version ({exc}).\n"

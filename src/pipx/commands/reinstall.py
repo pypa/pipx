@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+from pipx.constants import (
+    COMPLETION_SECTIONS,
+    EXIT_CODE_OK,
+    EXIT_CODE_REINSTALL_INVALID_PYTHON,
+    EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
+    MAN_SECTIONS,
+    ExitCode,
+)
+from pipx.emojis import ERROR, SLEEP, STARS
+
 __lazy_modules__ = [
     "contextlib",
     "functools",
@@ -52,15 +62,6 @@ from pipx.commands.transaction import (
     repoint_imports,
     runs_from_venv,
 )
-from pipx.constants import (
-    COMPLETION_SECTIONS,
-    EXIT_CODE_OK,
-    EXIT_CODE_REINSTALL_INVALID_PYTHON,
-    EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
-    MAN_SECTIONS,
-    ExitCode,
-)
-from pipx.emojis import ERROR, SLEEP, STARS
 from pipx.fanout import fan_out, locked_in_order, uninterrupted
 from pipx.options import (
     CooldownOptions,
@@ -83,6 +84,8 @@ from pipx.venv import Venv, VenvContainer
 if TYPE_CHECKING:
     from filelock import BaseFileLock
 
+    from pipx.commands.inject import InjectionData
+    from pipx.commands.install import InstallData
     from pipx.options import BackendOptions, ReinstallOptions
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -215,7 +218,7 @@ def reinstall(
 
     try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
         with force_replaces_only(old_resource_paths):
-            installed: Final = install(
+            installed: Final[OperationResult[InstallData]] = install(
                 canonical_venv_dir,
                 [venv.main_package_name],
                 [package_or_url],
@@ -371,7 +374,7 @@ def _reinject_packages(
 ) -> list[OutputMessage]:
     messages: Final[list[OutputMessage]] = []
     for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-        injected: Final = inject_dep(
+        injected: Final[OperationResult[InjectionData]] = inject_dep(
             canonical_venv_dir,
             injected_name,
             _require_injected_url(injected_package, venv.name),

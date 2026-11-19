@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import WINDOWS, FetchPythonOptions
+
 __lazy_modules__ = [
     "configparser",
     "importlib.util",
@@ -25,7 +27,6 @@ from typing import TYPE_CHECKING, Final, Self
 
 from packaging import version
 
-from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.self_install import get_environment_value
 from pipx.util import PipxError
 
@@ -247,7 +248,9 @@ def _find_default_windows_python() -> str:
 
     # a Python under WindowsApps may be the Microsoft Store stub, which exits with 9009 or prints no version:
     # https://twitter.com/zooba/status/1212454929379581952
-    proc: Final = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    proc: Final[subprocess.CompletedProcess[bytes]] = subprocess.run(
+        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False
+    )
     if proc.returncode != 0 or not proc.stdout.strip():
         raise PipxError(msg)
     return python

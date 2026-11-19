@@ -123,7 +123,7 @@ def unwrap_log_text(log_text: str) -> str:
 
 
 def current_log_file() -> Path:
-    log_file: Final = CTX.log_file
+    log_file: Final[Path | None] = CTX.log_file
     assert log_file is not None
     return log_file
 
@@ -157,8 +157,8 @@ def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> Non
             else []
         ),
     ]
-    modern_metadata: Final = PipxMetadata(venv_dir).to_dict()
-    legacy_metadata: Final = {
+    modern_metadata = PipxMetadata(venv_dir).to_dict()
+    legacy_metadata = {
         **{key: modern_metadata.get(key) for key in metadata_keys},
         "injected_packages": {
             name: {key: package[key] for key in package_keys}
@@ -179,7 +179,7 @@ def create_package_info_ref(
     include_apps: bool = True,
     app_paths_of_dependencies: dict[str, list[Path]] | None = None,
 ) -> PackageInfo:
-    package: Final = PKG[package_name]
+    package = PKG[package_name]
     man_pages: Final[list[str]] = package.get("man_pages", [])
     return PackageInfo(
         package=package_name,

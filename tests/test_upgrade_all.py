@@ -434,7 +434,7 @@ def test_upgrade_all_upgrades_the_rest_after_a_failure(
 
     exit_code: Final[int] = run_pipx_cli(["upgrade-all", "--output", "json"])
 
-    result: Final = json.loads(capsys.readouterr().out)
+    result = json.loads(capsys.readouterr().out)
     assert (
         exit_code,
         [package["environment"] for package in result["data"]["packages"]],
@@ -464,7 +464,7 @@ def test_upgrade_all_upgrades_beside_corrupt_metadata(capsys: pytest.CaptureFixt
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
     metadata_file: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
-    metadata: Final = json.loads(metadata_file.read_text(encoding="utf-8"))
+    metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
     metadata["main_package"]["app_paths"] = None
     metadata_file.write_text(json.dumps(metadata), encoding="utf-8")
     capsys.readouterr()

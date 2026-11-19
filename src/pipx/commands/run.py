@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "dataclasses",
     "datetime",
@@ -53,8 +56,6 @@ from pipx.backends import UV
 from pipx.backends.registry import resolve_backend_name
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
-from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import absolute_path_pip_args, resolve_local_path
 from pipx.paths import CTX
@@ -373,7 +374,7 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     # pip and uv (or requests, keyring and platformdirs for them) also read these, and each can change which config file
     # loads, which server answers, which certificate they trust or which credentials they send. HOME and USERPROFILE
     # locate config files too, but another home means another user, whose default pipx home already differs.
-    tool_env: Final = {
+    tool_env: Final[set[str]] = {
         "ALL_PROXY",
         "APPDATA",
         "AWS_ACCESS_KEY_ID",
@@ -403,7 +404,7 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
         "XDG_CONFIG_DIRS",
         "XDG_CONFIG_HOME",
     }
-    installer_env: Final = sorted(
+    installer_env: Final[list[tuple[str, str]]] = sorted(
         (name, value)
         for name, value in os.environ.items()
         if ((normalized := name.upper().replace("-", "_")).startswith(prefix) and normalized not in unkeyed)
@@ -411,7 +412,15 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     )
     # Preserve list and field boundaries so different invocations cannot reuse the same digest input. Only the truncated
     # digest leaves this function, so proxy URLs and tokens in the environment never reach the cache path or the logs.
-    key: Final = json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days, installer_env]).encode()
+    key: Final[bytes] = json.dumps([
+        requirements,
+        python,
+        pip_args,
+        venv_args,
+        backend,
+        cooldown_days,
+        installer_env,
+    ]).encode()
     # other accounts can list the cache, so an unkeyed digest would let them test guesses at a token against a name
     secret_path: Final[Path] = Path(CTX.venv_cache) / _RUN_KEY_FILENAME
     try:
@@ -420,7 +429,7 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
         # a cache pipx cannot write to can still serve the entries already in it, so name them the way it always did
         _LOGGER.debug("Cannot use %s (%s), so run cache names are not keyed with a secret", secret_path, error)
         secret = None
-    digest: Final = hashlib.sha256(key) if secret is None else hmac.new(secret, key, hashlib.sha256)
+    digest = hashlib.sha256(key) if secret is None else hmac.new(secret, key, hashlib.sha256)
     return Path(CTX.venv_cache) / digest.hexdigest()[:15]
 
 

@@ -14,6 +14,8 @@ from pipx.venv import Venv
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pipx.pipx_metadata_file import PackageInfo
+
 
 @pytest.mark.parametrize(
     ("scope_args", "pip_command"),
@@ -51,7 +53,7 @@ def test_runpip_install_refreshes_main_package_metadata(
     assert not run_pipx_cli(["install", "--backend", backend, "--editable", str(empty_project)])
 
     metadata_path: Final[Path] = CTX.venvs / "empty-project" / "pipx_metadata.json"
-    before: Final = json.loads(metadata_path.read_text())["main_package"]
+    before = json.loads(metadata_path.read_text())["main_package"]
     assert (before["package_or_url"], before["pip_args"]) == (str(empty_project.resolve()), ["--editable"])
 
     assert not run_pipx_cli([
@@ -63,7 +65,7 @@ def test_runpip_install_refreshes_main_package_metadata(
         str(empty_project_wheel),
     ])
 
-    after: Final = json.loads(metadata_path.read_text())["main_package"]
+    after = json.loads(metadata_path.read_text())["main_package"]
     assert (after["package_or_url"], after["pip_args"]) == (str(empty_project_wheel.resolve()), [])
 
 
@@ -90,7 +92,7 @@ def test_runpip_install_records_editable_spelling(
         *(arg.format(project=empty_project) for arg in editable_args),
     ])
 
-    main_package: Final = PipxMetadata(CTX.venvs / "empty-project").main_package
+    main_package: Final[PackageInfo] = PipxMetadata(CTX.venvs / "empty-project").main_package
     assert (main_package.package_or_url, main_package.pip_args) == (str(empty_project.resolve()), ["--editable"])
 
 
