@@ -139,7 +139,7 @@ def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPro
             _LOGGER.warning(warning_message)
         else:
             print(  # ruff:ignore[print]  # user-facing CLI output
-                venv_metadata.main_package.package,
+                _environment_name(venv_metadata),
                 venv_metadata.main_package.package_version,
             )
             if include_injected:
@@ -152,6 +152,11 @@ def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPro
     return all_venv_problems
 
 
+def _environment_name(venv_metadata: PipxMetadata) -> str:
+    # the suffix tells apart environments of the same package, as the text listing and pipx pin show them
+    return f"{venv_metadata.main_package.package}{venv_metadata.main_package.exposure.suffix}"
+
+
 def _list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
@@ -161,7 +166,7 @@ def _list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPr
         else:
             if venv_metadata.main_package.pinned:
                 print(  # ruff:ignore[print]  # user-facing CLI output
-                    venv_metadata.main_package.package,
+                    _environment_name(venv_metadata),
                     venv_metadata.main_package.package_version,
                 )
             if include_injected:
