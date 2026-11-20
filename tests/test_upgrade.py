@@ -303,6 +303,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
                         "interpreter": metadata.python_version,
                         "backend": metadata.backend,
                         "source": None,
+                        "suffix": "",
                     }
                 ],
                 "skipped": [],
@@ -456,6 +457,22 @@ def test_upgrade_local_path_does_not_claim_latest(capsys: pytest.CaptureFixture[
         "no package index was checked" in upgrade_out,
         "pipx install --force empty-project" in upgrade_out,
     ) == (False, True, True, True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_path_with_suffix_keeps_suffix_option(
+    capsys: pytest.CaptureFixture[str], empty_project: Path
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project.resolve()), "--suffix=@dev"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "empty-project@dev"])
+
+    upgrade_out: Final[str] = " ".join(capsys.readouterr().out.split())  # pipx_wrap reflows messages across lines
+    assert (
+        "pipx install --force --suffix=@dev empty-project" in upgrade_out,
+        "pipx install --force empty-project@dev" in upgrade_out,
+    ) == (True, False)
 
 
 @pytest.mark.parametrize(
