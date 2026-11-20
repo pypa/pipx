@@ -268,6 +268,36 @@ def test_run_via_uv_tool_run_rejects_venv_args(tool_run: partial[NoReturn], venv
             id="only-binary-packages",
         ),
         pytest.param(
+            ["--only-binary=:all:", "--only-binary=:none:"],
+            [],
+            id="only-binary-all-then-none",
+        ),
+        pytest.param(
+            ["--no-binary=:all:", "--no-binary=:none:"],
+            [],
+            id="no-binary-all-then-none",
+        ),
+        pytest.param(
+            ["--only-binary=one", "--only-binary=:none:"],
+            [],
+            id="only-binary-package-then-none",
+        ),
+        pytest.param(
+            ["--only-binary=:none:", "--only-binary=one"],
+            ["--no-build-package", "one"],
+            id="only-binary-none-then-package",
+        ),
+        pytest.param(
+            ["--only-binary=one", "--no-binary=one"],
+            ["--no-binary-package", "one"],
+            id="only-binary-then-no-binary-same-package",
+        ),
+        pytest.param(
+            ["--no-binary=one", "--only-binary=one"],
+            ["--no-build-package", "one"],
+            id="no-binary-then-only-binary-same-package",
+        ),
+        pytest.param(
             ["--trusted-host", "packages.example"],
             ["--allow-insecure-host", "packages.example"],
             id="trusted-host",
