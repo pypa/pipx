@@ -303,6 +303,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
                         "interpreter": metadata.python_version,
                         "backend": metadata.backend,
                         "source": None,
+                        "suffix": "",
                     }
                 ],
                 "skipped": [],
