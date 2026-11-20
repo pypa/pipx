@@ -240,6 +240,7 @@ def _upgrade_venv_packages(
                 location=str(venv.root),
                 interpreter=venv.pipx_metadata.python_version,
                 backend=venv.pipx_metadata.backend,
+                suffix=main_package.exposure.suffix,
             ),
         )
 
@@ -273,6 +274,7 @@ class _PackageUpgradeResult:
     interpreter: str | None
     backend: str
     source: str | None = None
+    suffix: str = ""
 
 
 class _UpgradeStatus(StrEnum):
@@ -389,6 +391,7 @@ def _upgrade_package(
         interpreter=venv.pipx_metadata.python_version,
         backend=venv.pipx_metadata.backend,
         source=_local_source(upgraded_metadata),
+        suffix=upgraded_metadata.exposure.suffix,
     )
 
 
@@ -411,6 +414,7 @@ def _package_result(venv: Venv, package_name: str, status: _UpgradeStatus) -> _P
         interpreter=venv.pipx_metadata.python_version,
         backend=venv.pipx_metadata.backend,
         source=_local_source(package_metadata),
+        suffix=package_metadata.exposure.suffix,
     )
 
 
@@ -445,10 +449,16 @@ def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> 
         if upgrading_all:
             return ()
         if result.source is not None:
+            # the environment name carries the suffix, which pipx would read as a URL in an install spec
+            package_name: Final[str] = result.package.removesuffix(result.suffix)
+            suffix_option: Final[str] = f"--suffix={result.suffix} " if result.suffix else ""
             remedy: Final[str] = (
                 ""
                 if result.injected or is_script_spec(result.source)
-                else f" To track index releases, reinstall by package name: pipx install --force {result.environment}"
+                else (
+                    " To track index releases, reinstall by package name: "
+                    f"pipx install --force {suffix_option}{package_name}"
+                )
             )
             return (
                 OutputMessage(
