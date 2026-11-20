@@ -15,7 +15,7 @@ Install pipx with the ``uv`` extra so it ships the bundled binary:
 
 .. code-block:: console
 
-    $ pipx install pipx[uv]
+    $ pipx install "pipx[uv]"
 
 Or install uv 0.9.17 or newer however you like (``brew install uv``, ``cargo install uv``) and put it on ``PATH``;
 pipx picks it up. New venvs then default to uv. Existing venvs keep their recorded backend. When the uv

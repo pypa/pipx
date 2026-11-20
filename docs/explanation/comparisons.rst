@@ -27,7 +27,7 @@ environment and expose the tool's console scripts on ``PATH``. Both have a one-s
 run``); ``uvx`` is ``uv tool run``. They differ in where state lives, which extra commands they ship, and how they
 handle managed Python.
 
-pipx keeps the same CLI across pip and uv backends; ``pipx install pipx[uv]`` opts you into uv-speed venv creation
+pipx keeps the same CLI across pip and uv backends; ``pipx install "pipx[uv]"`` opts you into uv-speed venv creation
 without changing any commands. ``uv tool`` ships a smaller per-tool surface, then reuses the rest of ``uv`` for free:
 managed Python, content-addressed cache, lockfiles, :pep:`723` script handling.
 
