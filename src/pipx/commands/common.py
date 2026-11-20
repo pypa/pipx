@@ -1135,12 +1135,38 @@ def _get_list_output(venv: Venv, package_name: str, *, new_install: bool, includ
         output.extend(
             f"    - {RED(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_man_pages
         )
+        if not new_install:
+            output.extend(_list_completion_lines(venv))
     else:
         output.append("    apps and manual pages are not exposed")
     if include_injected and (injected_packages := venv.pipx_metadata.injected_packages):
         output.append("    Injected Packages:")
         output.extend(f"      - {name} {injected_packages[name].package_version}" for name in injected_packages)
     return "\n".join(output)
+
+
+def _list_completion_lines(venv: Venv) -> list[str]:
+    packages = venv.package_metadata.values()
+    expected = {name for package in packages for name in package.completions_to_expose}
+    if not expected:
+        return []
+
+    paths = [path for package in packages for path in package.completion_paths_to_expose]
+    exposed = {
+        path.relative_to(CTX.completion_dir).as_posix()
+        for section in COMPLETION_SECTIONS
+        for path in get_exposed_paths_for_package(
+            venv.man_path.parent / section,
+            CTX.completion_dir / section,
+            group_resource_paths((path.name, path) for path in paths if path.parent.parts[-2:] == section.parts),
+        )
+        if path.is_file()
+    }
+    return [
+        "    Shell completions:",
+        *(f"      - {name}" for name in sorted(expected & exposed)),
+        *(f"      - {RED(name)} (missing or pointing to unexpected location)" for name in sorted(expected - exposed)),
+    ]
 
 
 def _get_exposed_resource_names(

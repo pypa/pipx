@@ -85,6 +85,21 @@ def completion_wheel(local_completion_wheel: Path) -> str:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_list_shows_shell_completions(completion_wheel: str, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    section = "bash-completion/completions"
+    (CTX.completion_dir / section / _SECTIONS[section]).unlink()
+
+    assert not run_pipx_cli(["list"])
+    output = capsys.readouterr().out
+    assert "    Shell completions:\n" in output
+    assert f"      - {section}/local-completion (missing or pointing to unexpected location)\n" in output
+    assert "      - fish/vendor_completions.d/local-completion.fish\n" in output
+    assert "      - zsh/site-functions/_local-completion\n" in output
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uninstall_removes_the_completion_scripts(completion_wheel: str) -> None:
     assert not run_pipx_cli(["install", completion_wheel])
 
