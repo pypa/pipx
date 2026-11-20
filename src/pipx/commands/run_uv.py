@@ -109,6 +109,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         "--trusted-host": "--allow-insecure-host",
     }
     translated: Final[list[str]] = []
+    format_control: Final[_FormatControl] = _FormatControl()
     iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
         if arg in {"-q", "-qq", "--quiet"}:
@@ -124,9 +125,7 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             continue
         flag, separator, attached_value = arg.partition("=")
         if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
-            translated.extend(
-                _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
-            )
+            format_control.apply(flag, attached_value if separator else _next_pip_arg(flag, iterator))
             continue
         if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
             if separator:
@@ -139,19 +138,68 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             "Use `--backend pip` if you need pip-only flags."
         )
         raise PipxError(msg)
+    # Format control is resolved only after all `--pip-args` are seen, so a
+    # later `--only-binary=:none:` (or `--no-binary=:none:`) clears an
+    # earlier restriction, matching pip's `FormatControl` semantics.
+    translated.extend(format_control.to_uv_args())
     return translated
 
 
-def _translate_format_control(flag: str, value: str) -> list[str]:
-    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
-    if value == ":all:":
-        return [all_flag]
-    if value == ":none:":
-        return []
-    if not all(packages := value.split(",")):
-        msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
-        raise PipxError(msg)
-    return [item for package in packages for item in (package_flag, package)]
+class _FormatControl:
+    """Tracks pip's `--no-binary`/`--only-binary` state, mirroring pip's `FormatControl`.
+
+    Package names are kept in insertion order so the translated uv flags are
+    deterministic.
+    """
+
+    def __init__(self) -> None:
+        self.no_binary: dict[str, None] = {}
+        self.only_binary: dict[str, None] = {}
+
+    def apply(self, flag: str, value: str) -> None:
+        if not all(value.split(",")):
+            msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
+            raise PipxError(msg)
+        if flag == "--no-binary":
+            target, other = self.no_binary, self.only_binary
+        else:
+            target, other = self.only_binary, self.no_binary
+        _handle_mutual_excludes(value, target, other)
+
+    def to_uv_args(self) -> list[str]:
+        args: list[str] = []
+        only_all_flag, only_package_flag = _UV_FORMAT_CONTROL_FLAG_MAP["--only-binary"]
+        if ":all:" in self.only_binary:
+            args.append(only_all_flag)
+        else:
+            for package in self.only_binary:
+                args.extend([only_package_flag, package])
+        no_all_flag, no_package_flag = _UV_FORMAT_CONTROL_FLAG_MAP["--no-binary"]
+        if ":all:" in self.no_binary:
+            args.append(no_all_flag)
+        else:
+            for package in self.no_binary:
+                args.extend([no_package_flag, package])
+        return args
+
+
+def _handle_mutual_excludes(value: str, target: dict[str, None], other: dict[str, None]) -> None:
+    """Apply one `--no-binary`/`--only-binary` value, as pip's `FormatControl` does."""
+    new = value.split(",")
+    while ":all:" in new:
+        other.clear()
+        target.clear()
+        target[":all:"] = None
+        del new[: new.index(":all:") + 1]
+        # Without a none, we want to discard everything as :all: covers it
+        if ":none:" not in new:
+            return
+    for name in new:
+        if name == ":none:":
+            target.clear()
+            continue
+        other.pop(name, None)
+        target[name] = None
 
 
 def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:

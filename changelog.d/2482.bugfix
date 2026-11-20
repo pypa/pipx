@@ -1,0 +1,1 @@
+`pipx run --backend uv` now honors a later `--only-binary=:none:` (or `--no-binary=:none:`) in `--pip-args` that resets an earlier restriction, matching pip's `FormatControl` semantics. Previously the reset was dropped and the `uv tool run` invocation kept `--no-build`, so source distributions could not build.
