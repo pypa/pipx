@@ -8,6 +8,7 @@ import hashlib
 import http.client
 import io
 import json
+import operator
 import os
 import shutil
 import subprocess
@@ -23,11 +24,15 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from harness import SKIP_IF_WINDOWS, run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx import constants, standalone_python
+from pipx.commands.reinstall import ReinstallData
+from pipx.constants import ExitCode
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -36,6 +41,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture, MockType
 
 _TARGET_PYTHON_VERSION: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
+_STANDALONE_EXECUTABLE: Final[tuple[str, ...]] = ("python.exe",) if constants.WINDOWS else ("bin", "python3")
 _DARWIN_LINK: Final[str] = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
 
 
@@ -939,3 +945,171 @@ def test_list_pythons_skips_prerelease_builds(mocker: MockerFixture, prerelease:
     )
 
     assert standalone_python.list_pythons() == {"3.15.2": (final_link, digest)}
+
+
+@pytest.fixture
+def patch_pinned_standalone_envs(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> tuple[str, str]:
+    cur_version: Final[str] = "{}.{}.{}".format(*sys.version_info[:3])
+    for name in request.param:
+        wheel = write_wheel(tmp_path / "wheels", name, "1.0")
+        assert not run_pipx_cli(["install", "--fetch-python=always", "--python", cur_version, str(wheel)])
+    assert not run_pipx_cli(["pin", "beta"])
+    next_version: Final[str] = f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(next_version)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+    capsys.readouterr()
+    return cur_version, next_version
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+@pytest.mark.parametrize(
+    "patch_pinned_standalone_envs",
+    [pytest.param(("alpha", "beta", "gamma"), id="three-envs")],
+    indirect=True,
+)
+def test_upgrade_standalone_interpreter_continues_after_environment_failure(
+    patch_pinned_standalone_envs: tuple[str, str],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cur_version, next_version = patch_pinned_standalone_envs
+
+    exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
+
+    document: Final = json.loads(capsys.readouterr().out)
+    upgraded_python: Final[Path] = (CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION).joinpath(
+        *_STANDALONE_EXECUTABLE
+    )
+    old_python: Final[Path] = (CTX.standalone_python_cachedir / cur_version).joinpath(*_STANDALONE_EXECUTABLE)
+    upgraded: Final = sorted(document["data"]["upgraded"], key=operator.itemgetter("environment"))
+    assert (
+        exit_code,
+        document["command"],
+        document["status"],
+        document["exit_code"],
+        upgraded,
+        [(error["code"], error["environment"], error["package"]) for error in document["errors"]],
+        "is pinned" in document["errors"][0]["message"],
+        PipxMetadata(CTX.venvs / "alpha").source_interpreter,
+        PipxMetadata(CTX.venvs / "beta").source_interpreter,
+        PipxMetadata(CTX.venvs / "gamma").source_interpreter,
+    ) == (
+        1,
+        ["interpreter", "upgrade"],
+        "partial",
+        1,
+        [
+            {"environment": "alpha", "old_version": cur_version, "new_version": next_version},
+            {"environment": "gamma", "old_version": cur_version, "new_version": next_version},
+        ],
+        [("interpreter_upgrade_failed", "beta", None)],
+        True,
+        upgraded_python,
+        old_python,
+        upgraded_python,
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+@pytest.mark.parametrize(
+    ("patch_pinned_standalone_envs", "has_alpha"),
+    [
+        pytest.param(("beta",), False, id="all-failed"),
+        pytest.param(("alpha", "beta"), True, id="partial"),
+    ],
+    indirect=["patch_pinned_standalone_envs"],
+)
+def test_upgrade_standalone_interpreter_reports_failures_in_human_output(
+    patch_pinned_standalone_envs: tuple[str, str],
+    capsys: pytest.CaptureFixture[str],
+    *,
+    has_alpha: bool,
+) -> None:
+    del patch_pinned_standalone_envs
+
+    exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade"])
+
+    captured: Final = capsys.readouterr()
+    assert (
+        exit_code,
+        "Package beta is pinned" in " ".join(captured.err.split()),
+        "Nothing to upgrade" in captured.out,
+        "alpha:" in captured.out,
+        "beta:" in captured.out,
+    ) == (1, True, False, has_alpha, False)
+
+
+@pytest.fixture
+def three_standalone_envs(pipx_temp_env: None) -> None:  # ruff:ignore[unused-function-argument]  # isolates temp pipx home
+    for python_version in ("3.11", "3.12", "3.13"):
+        interpreter_python = (CTX.standalone_python_cachedir / python_version).joinpath(*_STANDALONE_EXECUTABLE)
+        interpreter_python.parent.mkdir(parents=True)
+        interpreter_python.touch()
+
+        venv_dir = CTX.venvs / f"demo-{python_version}"
+        venv_dir.mkdir(parents=True)
+        metadata = PipxMetadata(venv_dir, read=False)
+        metadata.main_package = replace(metadata.main_package, package=venv_dir.name, package_or_url=venv_dir.name)
+        metadata.source_interpreter = interpreter_python
+        metadata.write()
+
+
+@pytest.mark.usefixtures("three_standalone_envs")
+def test_upgrade_standalone_interpreter_propagates_returned_errors_and_continues_other_interpreters(
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        python_version = Path(command[0]).relative_to(CTX.standalone_python_cachedir).parts[0]
+        return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
+
+    def download_build(python_version: str, *, override: bool = False) -> str:
+        del override
+        if python_version == "3.11":
+            msg = "download blocked"
+            raise PipxError(msg)
+        return str((CTX.standalone_python_cachedir / python_version).joinpath(*_STANDALONE_EXECUTABLE))
+
+    def fake_reinstall(venv_dir: Path, *_args: object, **_kwargs: object) -> OperationResult[ReinstallData]:
+        if venv_dir.name == "demo-3.12":
+            error_msg = OutputMessage(text="reinstall refused", stream=OutputStream.STDERR, level=OutputLevel.ERROR)
+            reinstall_error = OperationError(
+                code="environment_reinstall_failed", message="reinstall refused", environment=venv_dir.name
+            )
+            return OperationResult(
+                command=("reinstall",),
+                data=ReinstallData(environments=()),
+                messages=(error_msg,),
+                exit_code=ExitCode(1),
+                errors=(reinstall_error,),
+            )
+        return OperationResult(command=("reinstall",), data=ReinstallData(environments=()), succeeded=True)
+
+    mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1", "3.13.1"], autospec=True)
+    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version, autospec=True)
+    mocker.patch.object(
+        standalone_python, "download_python_build_standalone", side_effect=download_build, autospec=True
+    )
+    mocker.patch("pipx.commands.interpreter.reinstall", side_effect=fake_reinstall, autospec=True)
+
+    exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
+
+    document: Final = json.loads(capsys.readouterr().out)
+    errors: Final = sorted(
+        [(error["code"], error["environment"], error["message"]) for error in document["errors"]],
+        key=operator.itemgetter(0),
+    )
+    assert (exit_code, document["status"], document["data"]["upgraded"], errors) == (
+        1,
+        "partial",
+        [{"environment": "demo-3.13", "old_version": "3.13.0", "new_version": "3.13.1"}],
+        [
+            ("environment_reinstall_failed", "demo-3.12", "reinstall refused"),
+            ("interpreter_upgrade_failed", None, "download blocked"),
+        ],
+    )
