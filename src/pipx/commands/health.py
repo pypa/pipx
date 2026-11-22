@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import ExitCode
+
 __lazy_modules__ = [
     "pipx.commands.reinstall",
     "pipx.commands.transaction",
@@ -14,7 +16,6 @@ from typing import TYPE_CHECKING, Final
 
 from pipx.commands.reinstall import reinstall
 from pipx.commands.transaction import is_unfinished
-from pipx.constants import ExitCode
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.subprocess_runner import run_subprocess
@@ -23,6 +24,7 @@ from pipx.util import PipxError, get_venv_paths
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
+    from subprocess import CompletedProcess
 
     from pipx.options import ReinstallOptions
     from pipx.venv import VenvContainer
@@ -81,7 +83,9 @@ def _check_health(venv_dir: Path) -> _EnvironmentHealth:
             error="interpreter is missing",
         )
     try:
-        process: Final = run_subprocess([interpreter, "--version"], log_stdout=False, log_stderr=False)
+        process: Final[CompletedProcess[str]] = run_subprocess(
+            [interpreter, "--version"], log_stdout=False, log_stderr=False
+        )
     except OSError as error:
         return _EnvironmentHealth(
             environment=venv_dir.name,

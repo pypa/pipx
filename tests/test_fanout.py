@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
     from pathlib import Path
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 
 @pytest.fixture
@@ -122,7 +122,9 @@ def test_fan_out_raises_first_failure_in_task_order(second_done: threading.Event
 def test_fan_out_waits_for_tasks_when_held_output_cannot_be_written(
     mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, second_done: threading.Event, error: Exception
 ) -> None:
-    unwritable: Final = mocker.create_autospec(io.TextIOWrapper, instance=True, **{"write.side_effect": error})
+    unwritable: Final[MockType] = mocker.create_autospec(
+        io.TextIOWrapper, instance=True, **{"write.side_effect": error}
+    )
     monkeypatch.setattr(sys, "stdout", unwritable)
 
     def second() -> str:
@@ -248,7 +250,7 @@ def test_fan_out_interrupt_in_the_last_slice_gives_interrupted_results(monkeypat
     def wait_signalled_once_done(
         futures: Sequence[Future[int]], timeout: float
     ) -> tuple[set[Future[int]], set[Future[int]]]:
-        result: Final = wait(futures, timeout=timeout)
+        result = wait(futures, timeout=timeout)
         # the wait in task order first waits on the first task alone, which leaves the second one cancellable
         if len(futures) == 2 and not result.not_done and not signalled:
             signalled.append(True)
@@ -278,7 +280,7 @@ def test_fan_out_interrupt_while_settling_still_raises(monkeypatch: pytest.Monke
     def wait_signalled_while_settling(
         futures: Sequence[Future[int]], timeout: float
     ) -> tuple[set[Future[int]], set[Future[int]]]:
-        result: Final = wait(futures, timeout=timeout)
+        result = wait(futures, timeout=timeout)
         # the wait in task order ends at the first wait seeing every task done, so the next such wait is the cleanup's
         if len(futures) == 2 and not result.not_done:
             finished.append(True)
@@ -364,7 +366,7 @@ def test_fan_out_interrupted_by_signal_whose_interrupt_the_interpreter_dropped(m
     monkeypatch.setattr(sys, "unraisablehook", lambda unraisable: dropped.append(unraisable.exc_type))
 
     with stopping_children_on_signals():
-        handler: Final = signal.getsignal(signal.SIGINT)
+        handler = signal.getsignal(signal.SIGINT)
         assert callable(handler)
         target = {0}
         # the interpreter reports an exception raised in a weakref callback as unraisable instead of propagating it
@@ -460,7 +462,7 @@ def _exits_within(pid: int, *, seconds: float) -> bool:
 
 @pytest.mark.usefixtures("signal_handlers")
 def test_signals_keep_their_handlers_after_an_unsignalled_block() -> None:
-    previous: Final = signal.getsignal(signal.SIGTERM)
+    previous = signal.getsignal(signal.SIGTERM)
 
     with stopping_children_on_signals():
         pass

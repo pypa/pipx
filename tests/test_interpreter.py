@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 def test_import_defers_default_python_resolution() -> None:
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [sys.executable, "-c", "import pipx.interpreter; print('imported')"],
         env={**os.environ, "PIPX_DEFAULT_PYTHON": "missing-pipx-python"},
         capture_output=True,
@@ -57,7 +57,7 @@ def test_get_default_python_resolves_configured_value(monkeypatch: pytest.Monkey
 
 
 def test_has_venv_leaves_venv_unimported() -> None:
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [
             sys.executable,
             "-c",
@@ -93,7 +93,7 @@ def test_windows_python_with_version(monkeypatch: pytest.MonkeyPatch, venv: bool
 
 @pytest.fixture
 def py_launcher_on_path(monkeypatch: pytest.MonkeyPatch) -> None:
-    which: Final = shutil.which
+    which = shutil.which
     monkeypatch.setattr(shutil, "which", lambda name: "py" if name == "py" else which(name))
 
 
@@ -259,7 +259,7 @@ def test_find_python_interpreter_by_path() -> None:
 def test_find_python_interpreter_by_version() -> None:
     major, minor = sys.version_info[:2]
     python_path: Final[str] = find_python_interpreter(f"python{major}.{minor}", FetchPythonOptions.NEVER)
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [python_path, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
         capture_output=True,
         text=True,
@@ -520,7 +520,7 @@ def test_interpreter_quiet_says_nothing(
 ) -> None:
     assert not run_pipx_cli(["interpreter", subcommand, "--quiet"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
 
 

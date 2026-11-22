@@ -5,6 +5,10 @@
 
 from __future__ import annotations
 
+from pipx.animate import hide_cursor, show_cursor
+from pipx.colors import BOLD, GREEN
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "argcomplete",
     "contextlib",
@@ -59,10 +63,8 @@ import platformdirs
 from packaging.utils import canonicalize_name
 
 from pipx import constants, paths
-from pipx.animate import hide_cursor, show_cursor
 from pipx.backends import KNOWN_BACKENDS, UV
 from pipx.backends.registry import env_default_backend, get_backend, resolve_backend_name
-from pipx.colors import BOLD, GREEN
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.commands.transaction import empty_trash
 from pipx.constants import (
@@ -74,7 +76,6 @@ from pipx.constants import (
     ExitCode,
     FetchPythonOptions,
 )
-from pipx.emojis import HAZARD
 from pipx.fanout import stopping_children_on_signals
 from pipx.interpreter import (
     InterpreterResolutionError,
@@ -125,6 +126,7 @@ if not WINDOWS:
 
 if TYPE_CHECKING:
     from io import TextIOWrapper
+    from typing import BinaryIO
 
     from pipx.commands.cache import CacheData
     from pipx.commands.expose import ExposureData
@@ -139,6 +141,7 @@ if TYPE_CHECKING:
     from pipx.commands.reset import ResetData
     from pipx.commands.uninstall import UninstallData
     from pipx.commands.upgrade import SharedData, UpgradeData
+    from pipx.result import OperationData
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _LOG_NAME: Final[re.Pattern[str]] = re.compile(
@@ -2118,7 +2121,7 @@ def _delete_unless_running(log: Path) -> None:
         _remove_log(log)
         return
     try:
-        stream: Final = log.open("rb")
+        stream: Final[BinaryIO] = log.open("rb")
     except OSError:
         # a log this user cannot read (another user's run, chmod 000, a symlink loop or to a directory) cannot be
         # checked for a running owner; it is old enough to rotate, so remove it
@@ -2208,7 +2211,7 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         # pip writes its progress to stdout, which under JSON belongs to the envelope alone
         stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
     ):
-        result: Final = args.func(args, ctx)
+        result: Final[ExitCode | OperationResult[OperationData]] = args.func(args, ctx)
     if isinstance(result, OperationResult):
         return render_result(result, output=output, quiet=getattr(args, "quiet", 0))
     return result

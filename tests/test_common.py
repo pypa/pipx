@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture, MockType
 
+    from pipx.pipx_metadata_file import PackageInfo, PackageResources
+
 
 @SKIP_IF_WINDOWS
 def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
@@ -57,7 +59,7 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
 
     expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
 
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [app_path],
         check=True,
         capture_output=True,
@@ -270,8 +272,8 @@ def test_expose_keeps_link_to_resource_its_venv_still_records(
 
 def _write_holder_metadata(recorded: dict[str, list[Path]], *, injected: bool = False) -> None:
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "holder", read=False)
-    main_package: Final = replace(metadata.main_package, package="holder", package_or_url="holder")
-    resources: Final = replace(main_package.resources, **recorded)
+    main_package: Final[PackageInfo] = replace(metadata.main_package, package="holder", package_or_url="holder")
+    resources: Final[PackageResources] = replace(main_package.resources, **recorded)
     if injected:
         metadata.main_package = main_package
         metadata.injected_packages = {"extra": replace(main_package, package="extra", resources=resources)}

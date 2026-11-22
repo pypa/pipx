@@ -243,7 +243,7 @@ def _served_archive_spec(project: Path) -> Generator[str, None, None]:
     archive: Final[Path] = Path(
         shutil.make_archive(str(project.parent / "empty-project-0.1.0"), "zip", project.parent, project.name)
     )
-    handler: Final = partial(SimpleHTTPRequestHandler, directory=str(project.parent))
+    handler: Final[partial[SimpleHTTPRequestHandler]] = partial(SimpleHTTPRequestHandler, directory=str(project.parent))
     # not http.server.HTTPServer: its bind resolves the host name, which stalls for 30 s on macOS CI runners
     with ThreadingTCPServer(("127.0.0.1", 0), handler) as server:
         threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -995,8 +995,8 @@ def test_install_reuses_empty_environment_dir() -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_upgrade_satisfied_spec_is_offline(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
-    check_shared: Final = mocker.patch.object(Venv, "check_upgrade_shared_libs", autospec=True)
-    upgrade_package: Final = mocker.patch.object(Venv, "upgrade_package", autospec=True)
+    check_shared: Final[MockType] = mocker.patch.object(Venv, "check_upgrade_shared_libs", autospec=True)
+    upgrade_package: Final[MockType] = mocker.patch.object(Venv, "upgrade_package", autospec=True)
 
     assert not run_pipx_cli(["install", "--upgrade", "black>=22,<23"])
 
@@ -1037,11 +1037,11 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.SHARED_LIBS, "has_been_updated_this_run", False)
     mocker.patch(
-        "pipx.shared_libs._time",
+        "pipx.shared_libs.time",
         return_value=shared_libs.SHARED_LIBS.pip_path.stat().st_mtime + SHARED_LIBS_MAX_AGE_SEC + 1,
         autospec=True,
     )
-    run_subprocess: Final = mocker.patch(
+    run_subprocess: Final[MockType] = mocker.patch(
         "pipx.shared_libs.run_subprocess",
         autospec=True,
         return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
@@ -1570,7 +1570,7 @@ def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
 
     err: Final[str] = capsys.readouterr().err
-    pip_log_file_match: Final = _PIP_LOG_FILE_MATCH_PATTERN.search(err)
+    pip_log_file_match: Final[re.Match[str] | None] = _PIP_LOG_FILE_MATCH_PATTERN.search(err)
     assert pip_log_file_match
     assert (
         "Fatal error from pip" in err,
@@ -2236,7 +2236,7 @@ def test_install_skip_maintenance_without_index(
     capsys: pytest.CaptureFixture[str], package_cache_dir: Path, tmp_path: Path
 ) -> None:
     (wheelhouse := tmp_path / "wheelhouse").mkdir()
-    wheel: Final = shutil.copy2(next(package_cache_dir.glob("pycowsay-*.whl")), wheelhouse)
+    wheel: Final[str | Path] = shutil.copy2(next(package_cache_dir.glob("pycowsay-*.whl")), wheelhouse)
 
     assert not run_pipx_cli([
         "install",

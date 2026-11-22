@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pipx.colors import BOLD
+from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
+from pipx.emojis import SLEEP
+
 __lazy_modules__ = [
     "json",
     "packaging.utils",
@@ -18,18 +22,15 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 
 from packaging.utils import canonicalize_name
 
-from pipx.colors import BOLD
 from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
 from pipx.commands.transaction import is_unfinished
-from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, WINDOWS, ExitCode
-from pipx.emojis import SLEEP
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.self_install import backs_self_managed_venv
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
-    from collections.abc import Collection, Iterable
+    from collections.abc import Collection, Generator, Iterable
     from pathlib import Path
 
     from pipx.options import ListOptions
@@ -50,7 +51,9 @@ def list_packages(venv_container: VenvContainer, venv_dirs: Collection[Path], op
             f"nothing has been installed with pipx {SLEEP}", file=sys.stderr
         )
 
-    locked_venv_dirs: Final = venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True)
+    locked_venv_dirs: Final[Generator[Path, None, None]] = venv_container.iter_locked_venv_dirs(
+        venv_dirs, allow_permission_error=True
+    )
     if options.json_format:
         all_venv_problems = _list_json(locked_venv_dirs)
     elif options.short_format:

@@ -14,6 +14,8 @@ from pipx.commands.environment import DERIVED_ENVIRONMENT_VARIABLES, ENVIRONMENT
 from pipx.paths import CTX, get_expanded_environ
 
 if TYPE_CHECKING:
+    from types import ModuleType
+
     from pytest_mock import MockerFixture, MockType
 
 _ENVIRONMENT_VARIABLES_DOC: Final[Path] = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
@@ -36,7 +38,7 @@ def test_cli_value_skips_unrelated_discovery(
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    environment_module: Final = importlib.import_module("pipx.commands.environment")
+    environment_module: Final[ModuleType] = importlib.import_module("pipx.commands.environment")
     resolve_backend_name: Final[MockType] = mocker.patch.object(
         environment_module,
         "resolve_backend_name",

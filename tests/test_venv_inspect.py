@@ -16,7 +16,7 @@ from pipx.venv_inspect import list_not_required_packages
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, SpyType
 
 
 def test_fetch_info_in_venv_returns_tuple() -> None:
@@ -32,9 +32,9 @@ def test_inspect_venv_indexes_distribution_names_once(
     (nameless_dist_info := site_packages / "nameless-1.0.dist-info").mkdir()
     (nameless_dist_info / "METADATA").write_text("Version: 1.0\n", encoding="utf-8")
     venv_sys_path.append(str(site_packages))
-    canonicalize: Final = mocker.spy(venv_inspect, "canonicalize_name")
+    canonicalize: Final[SpyType] = mocker.spy(venv_inspect, "canonicalize_name")
 
-    result: Final = venv_inspect.inspect_venv(
+    result: Final[venv_inspect.VenvMetadata] = venv_inspect.inspect_venv(
         "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man"
     )
 
@@ -133,7 +133,7 @@ def test_inspect_venv_reads_first_record_of_a_name_on_sys_path(tmp_path: Path, v
     (later / "METADATA").write_text("Name: root-package\nVersion: 99\n", encoding="utf-8")
     venv_sys_path.extend([str(site_packages), str(later.parent)])
 
-    result: Final = venv_inspect.inspect_venv(
+    result: Final[venv_inspect.VenvMetadata] = venv_inspect.inspect_venv(
         "root-package", set(), tmp_path / "bin", tmp_path / "python", tmp_path / "man"
     )
 
@@ -224,7 +224,7 @@ def test_inspect_venv_skips_editable_man_page_symlink(editable_project: Path, ta
 def test_inspect_venv_follows_extras_of_revisited_dependency(
     extras_venv: Path, root_requirements: tuple[str, ...], shared_requirements: tuple[str, ...], expected: list[str]
 ) -> None:
-    result: Final = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
+    result: Final[venv_inspect.VenvMetadata] = _inspect_extras_venv(extras_venv, root_requirements, shared_requirements)
 
     assert sorted(result.resources.apps_of_dependencies) == expected
 
@@ -273,7 +273,7 @@ def extras_venv(tmp_path: Path, venv_sys_path: list[str]) -> Path:
 
 
 def test_inspect_venv_exposes_resources_of_revisited_dependency_extra(extras_venv: Path) -> None:
-    result: Final = _inspect_extras_venv(extras_venv, ("left", "right"))
+    result: Final[venv_inspect.VenvMetadata] = _inspect_extras_venv(extras_venv, ("left", "right"))
 
     assert (result.resources.man_paths_of_dependencies, result.resources.completion_paths_of_dependencies) == (
         {"second-app": [extras_venv / "share" / "man" / "man1" / "second-app.1"]},
@@ -340,7 +340,7 @@ def test_inspect_venv_reads_entry_points_only_when_record_lists_them(
 
 
 def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Path) -> None:
-    sections: Final = ("bin", "share/man/man1", "share/bash-completion/completions")
+    sections: Final[tuple[str, str, str]] = ("bin", "share/man/man1", "share/bash-completion/completions")
     _write_root_metadata(
         root_package_venv,
         {
@@ -352,7 +352,7 @@ def test_inspect_venv_ignores_resources_that_name_no_file(root_package_venv: Pat
         (root_package_venv / section).mkdir(parents=True, exist_ok=True)
         (root_package_venv / section / "app").touch()
 
-    result: Final = venv_inspect.inspect_venv(
+    result: Final[venv_inspect.VenvMetadata] = venv_inspect.inspect_venv(
         "root-package",
         set(),
         root_package_venv / "bin",

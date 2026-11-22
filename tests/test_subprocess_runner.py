@@ -63,7 +63,11 @@ def test_exec_app_preserves_stream_encoding_on_windows(mocker: MockerFixture, mo
 def test_subprocess_keyring_provider_defaults_to_subprocess(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PIP_KEYRING_PROVIDER", raising=False)
 
-    result: Final = run_subprocess([sys.executable, "-c", "import os; print(os.environ['PIP_KEYRING_PROVIDER'])"])
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess([
+        sys.executable,
+        "-c",
+        "import os; print(os.environ['PIP_KEYRING_PROVIDER'])",
+    ])
 
     assert result.stdout.strip() == "subprocess"
 
@@ -81,7 +85,7 @@ def test_subprocess_env_seen_by_the_child(
 ) -> None:
     monkeypatch.setenv(variable, value)
 
-    result: Final = run_subprocess([
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess([
         sys.executable,
         "-c",
         f"import os; print(os.environ.get({variable!r}, 'unset'))",
@@ -91,7 +95,7 @@ def test_subprocess_env_seen_by_the_child(
 
 
 def test_subprocess_pythonsafepath_set_for_python_commands() -> None:
-    result: Final = run_subprocess([
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess([
         sys.executable,
         "-c",
         "import os, sys; sys.stdout.write(os.environ.get('PYTHONSAFEPATH', ''))",
@@ -355,7 +359,7 @@ class _Task(Protocol):
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c_while_readers_start(mocker: MockerFixture) -> None:
-    submit: Final = ThreadPoolExecutor.submit
+    submit = ThreadPoolExecutor.submit
 
     def interrupted_second_reader(executor: ThreadPoolExecutor, fn: _Task, /, *args: object) -> Future[None]:
         # Ctrl-C lands after the terminal's reader started but before the next one did, as seen on free-threaded CI
@@ -501,6 +505,10 @@ def test_subprocess_post_check_reports_failed_command_without_credentials(args: 
 def test_run_subprocess_masks_url_credentials_in_output(stream: str) -> None:
     url: Final[str] = "https://deploy:s3cr3ttok@host/team/tool"
 
-    process: Final = run_subprocess([sys.executable, "-c", f"import sys; print({url!r}, file=sys.{stream})"])
+    process: Final[subprocess.CompletedProcess[str]] = run_subprocess([
+        sys.executable,
+        "-c",
+        f"import sys; print({url!r}, file=sys.{stream})",
+    ])
 
     assert getattr(process, stream).strip() == redact_url_credentials(url)

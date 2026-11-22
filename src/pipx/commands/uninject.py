@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+from pipx.colors import BOLD
+from pipx.constants import (
+    COMPLETION_SECTIONS,
+    EXIT_CODE_OK,
+    EXIT_CODE_UNINJECT_ERROR,
+    MAN_SECTIONS,
+)
+from pipx.emojis import STARS
+
 __lazy_modules__ = [
     "packaging.utils",
     "pathlib",
@@ -19,7 +28,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx.colors import BOLD
 from pipx.commands.common import (
     drop_copies_claimed_elsewhere,
     drop_links_taken_over,
@@ -34,13 +42,6 @@ from pipx.commands.inject import (
     InjectionPackage,
     InjectionStatus,
 )
-from pipx.constants import (
-    COMPLETION_SECTIONS,
-    EXIT_CODE_OK,
-    EXIT_CODE_UNINJECT_ERROR,
-    MAN_SECTIONS,
-)
-from pipx.emojis import STARS
 from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream

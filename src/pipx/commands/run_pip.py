@@ -25,6 +25,7 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pipx.constants import ExitCode
+    from pipx.pipx_metadata_file import PackageInfo
 
 
 def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
@@ -51,7 +52,7 @@ def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool)
 
 
 def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[str]) -> None:
-    main_package: Final = venv.pipx_metadata.main_package
+    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
     if main_package.package is None:
         return
 

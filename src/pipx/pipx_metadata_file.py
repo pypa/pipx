@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "pathlib",
     "pipx.backends",
@@ -19,7 +21,6 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Final, Self, TypedDict, cast
 
 from pipx.backends import KNOWN_BACKENDS
-from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import replayable_pip_args
 from pipx.redact import redact_url_credentials

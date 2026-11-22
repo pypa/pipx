@@ -583,7 +583,7 @@ def test_reinstall_all_json_reports_returned_errors(
 
     assert run_pipx_cli(["reinstall-all", "--python", str(python), "--output", "json"]) == 1
 
-    result: Final = json.loads(capsys.readouterr().out)
+    result = json.loads(capsys.readouterr().out)
     assert (
         result["status"],
         result["data"]["environments"],

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
+
 __lazy_modules__ = ["pipx.commands.common", "pipx.paths", "pipx.trash", "pipx.venv"]
 
 from dataclasses import dataclass
@@ -7,7 +9,6 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx.commands.common import drop_copies_claimed_elsewhere, expose_package_resources, get_venv_resource_paths
-from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
 from pipx.paths import CTX
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import safe_unlink

@@ -172,7 +172,7 @@ def test_expose_reports_collisions_as_partial(capsys: pytest.CaptureFixture[str]
 
     assert run_pipx_cli(["expose", "pycowsay", "--output", "json"]) == 1
 
-    envelope: Final = json.loads(capsys.readouterr().out)
+    envelope = json.loads(capsys.readouterr().out)
     assert (
         envelope["status"],
         envelope["command"],

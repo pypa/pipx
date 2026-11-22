@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pipx.animate import animate
+from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "dataclasses",
     "packaging.utils",
@@ -41,7 +45,6 @@ if TYPE_CHECKING:
 from packaging.utils import InvalidName, canonicalize_name
 from packaging.version import Version
 
-from pipx.animate import animate
 from pipx.backends.pip import subprocess_post_check_handle_pip_error
 from pipx.backends.registry import (
     assert_not_pip_under_uv,
@@ -49,8 +52,6 @@ from pipx.backends.registry import (
     get_backend,
     resolve_backend_name,
 )
-from pipx.constants import PIPX_SHARED_PTH, ExitCode
-from pipx.emojis import HAZARD
 from pipx.interpreter import get_default_python, recordable_interpreter
 from pipx.options import DEFAULT_BACKEND_OPTIONS, BackendOptions, ExposureOptions
 from pipx.package_specifier import (
@@ -280,14 +281,14 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 SHARED_LIBS.create(verbose=verbose, pip_args=pip_args)
 
             if not SHARED_LIBS.is_valid:
-                message: Final = pipx_wrap(
+                message: Final[str] = pipx_wrap(
                     f"""
                     Error: pipx's shared venv {SHARED_LIBS.root} is invalid
                     and needs re-installation. To fix this, install or
                     reinstall a package. For example:
                     """
                 )
-                msg: Final = f"{message}\n  pipx install {self.root.name} --force"
+                msg: Final[str] = f"{message}\n  pipx install {self.root.name} --force"
                 raise PipxError(msg, wrap_message=False)
 
     @property

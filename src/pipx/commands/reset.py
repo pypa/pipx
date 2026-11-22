@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
+
 __lazy_modules__ = [
     "contextlib",
     "pipx.commands.common",
@@ -15,7 +17,6 @@ from typing import TYPE_CHECKING, Final
 
 from pipx.commands.common import get_venv_package_infos, get_venv_resource_paths
 from pipx.commands.uninstall import UninstallData, uninstall_all
-from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS
 from pipx.paths import CTX
 from pipx.result import OperationData, OperationResult, OutputMessage, OutputStream
 from pipx.trash import rmdir
