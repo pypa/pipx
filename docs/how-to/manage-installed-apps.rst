@@ -12,7 +12,8 @@ List, upgrade, and remove the apps pipx manages, then confirm each change.
 
     $ pipx list
 
-The output shows each package version, its apps, and the environment paths. Narrow or reshape it:
+The output shows each package version, its apps, manual pages, shell completions, and the environment paths.
+Narrow or reshape it:
 
 - ``pipx list --short`` prints package names and versions only.
 - ``pipx list --include-injected`` also lists packages injected into each environment.

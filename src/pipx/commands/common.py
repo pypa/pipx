@@ -1193,22 +1193,28 @@ def _list_completion_lines(venv: Venv) -> list[str]:
     if not expected:
         return []
 
-    paths = [path for package in packages for path in package.completion_paths_to_expose]
-    exposed = {
-        path.relative_to(CTX.completion_dir).as_posix()
-        for section in COMPLETION_SECTIONS
-        for path in get_exposed_paths_for_package(
-            venv.man_path.parent / section,
-            CTX.completion_dir / section,
-            group_resource_paths((path.name, path) for path in paths if path.parent.parts[-2:] == section.parts),
-        )
-        if path.is_file()
-    }
+    exposed: set[str] = set()
+    for package in packages:
+        for source in package.completion_paths_to_expose:
+            name = f"{source.parent.parent.name}/{source.parent.name}/{source.name}"
+            if name in expected and _completion_is_exposed(CTX.completion_dir / name, source):
+                exposed.add(name)
     return [
         "    Shell completions:",
-        *(f"      - {name}" for name in sorted(expected & exposed)),
+        *(f"      - {name}" for name in sorted(exposed)),
         *(f"      - {RED(name)} (missing or pointing to unexpected location)" for name in sorted(expected - exposed)),
     ]
+
+
+def _completion_is_exposed(destination: Path, source: Path) -> bool:
+    try:
+        if not destination.is_file():
+            return False
+        if destination.is_symlink():
+            return _link_target(destination) == source.parent.resolve() / source.name
+        return filecmp.cmp(destination, source, shallow=False)
+    except (OSError, RuntimeError):  # Path.resolve() raises RuntimeError on symlink loops before Python 3.13
+        return False
 
 
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:
