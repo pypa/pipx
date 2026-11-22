@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = [
     "json",
+    "packaging.utils",
     "pipx.commands.common",
     "pipx.commands.transaction",
     "pipx.paths",
@@ -14,6 +15,8 @@ import json
 import logging
 import sys
 from typing import TYPE_CHECKING, Final, NamedTuple
+
+from packaging.utils import canonicalize_name
 
 from pipx.colors import BOLD
 from pipx.commands.common import VenvProblems, get_venv_summary, reuse_resource_dir_scans, venv_health_check
@@ -152,9 +155,10 @@ def _list_short(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPro
     return all_venv_problems
 
 
-def _environment_name(venv_metadata: PipxMetadata) -> str:
-    # the suffix tells apart environments of the same package, as the text listing and pipx pin show them
-    return f"{venv_metadata.main_package.package}{venv_metadata.main_package.exposure.suffix}"
+def _environment_name(metadata: PipxMetadata) -> str:
+    package = metadata.main_package
+    name = f"{package.package}{package.exposure.suffix}"
+    return name if canonicalize_name(name) == metadata.venv_dir.name else metadata.venv_dir.name
 
 
 def _list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvProblems:

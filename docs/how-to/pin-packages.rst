@@ -42,4 +42,5 @@ Pass ``--output json`` to read the changed and skipped packages from a script, o
 
     $ pipx list --pinned
 
-Add ``--include-injected`` to also list pinned injected packages.
+If your listing includes ``black@22``, run ``pipx unpin black@22`` to unpin that environment. Add
+``--include-injected`` to list pinned injected packages too.
