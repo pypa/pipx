@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-__lazy_modules__ = ["typing"]
-
 import os
 import sys
 
@@ -26,7 +24,10 @@ if not sys.flags.safe_path and __spec__ and __spec__.parent:
             del sys.path[0]
 
 import pathlib
-from typing import Final
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Final
 
 if sys.version_info >= (3, 15):
     # defers every module-level import in the process, third-party ones included; these modules snapshot terminal state

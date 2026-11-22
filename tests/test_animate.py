@@ -21,7 +21,7 @@ from pipx.fanout import fan_out
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pytest_mock import MockerFixture
+    from pytest_mock import MockerFixture, MockType
 
 _TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 41, 2))
 
@@ -84,7 +84,7 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
         writes.append(text)
         return len(text)
 
-    stderr: Final = mocker.create_autospec(sys.stderr, instance=True)
+    stderr: Final[MockType] = mocker.create_autospec(sys.stderr, instance=True)
     stderr.write.side_effect = record_write
     mocker.patch.object(pipx.animate.sys, "stderr", stderr)
     monkeypatch.setattr(pipx.animate, "STDERR_IS_TTY", True)
@@ -142,7 +142,7 @@ class _NotifyingStringIO(io.StringIO):
         self._reached = reached
 
     def write(self, text: str, /) -> int:
-        written: Final = super().write(text)
+        written: Final[int] = super().write(text)
         if len(self.getvalue()) >= self._chars:
             self._reached.set()
         return written

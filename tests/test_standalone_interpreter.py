@@ -30,14 +30,16 @@ from pipx import constants, standalone_python
 from pipx.commands.reinstall import ReinstallData
 from pipx.constants import ExitCode
 from pipx.paths import CTX
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
+    from urllib.request import Request
 
     from pytest_mock import MockerFixture, MockType
+    from pytest_subprocess import FakeProcess
 
 _TARGET_PYTHON_VERSION: Final[str] = f"{sys.version_info.major}.{sys.version_info.minor}"
 _STANDALONE_EXECUTABLE: Final[tuple[str, ...]] = ("python.exe",) if constants.WINDOWS else ("bin", "python3")
@@ -317,7 +319,7 @@ def test_standalone_python_keeps_hard_links_with_temp_dir_on_another_filesystem(
     published_darwin_release: tuple[Path, Callable[[bytes], MockType]],
 ) -> None:
     cache_dir, publish = published_darwin_release
-    real_rename: Final = os.rename
+    real_rename = os.rename
 
     def rename_within_cache_dir(source: str | Path, target: str | Path) -> None:
         if not Path(source).is_relative_to(cache_dir):
@@ -415,7 +417,7 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
     (install_dir := cache_dir / "3.99").joinpath("bin").mkdir(parents=True)
     (install_dir / "keepme").write_text("v1", encoding="utf-8")
     publish(_python_archive_bytes())
-    real_replace: Final = Path.replace
+    real_replace = Path.replace
     failed: Final[list[bool]] = []
 
     def replace(self: Path, target: Path) -> Path:
@@ -439,7 +441,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
     mocker: MockerFixture,
 ) -> None:
     published_darwin_release[1](_python_archive_bytes())
-    real_replace: Final = os.replace
+    real_replace = os.replace
     concurrent: Final[list[Future[str]]] = []
 
     def swap_into_place(source: str | Path, destination: str | Path) -> None:
@@ -450,7 +452,7 @@ def test_standalone_python_concurrent_fetch_waits_and_reuses_build(
                 concurrent[0].result(timeout=0.2)
         real_replace(source, destination)
 
-    swaps: Final = mocker.patch.object(os, "replace", side_effect=swap_into_place, autospec=True)
+    swaps: Final[MockType] = mocker.patch.object(os, "replace", side_effect=swap_into_place, autospec=True)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
@@ -467,7 +469,7 @@ def test_standalone_python_download_retries_transient_http_error(
     archive_bytes: Final[bytes] = _python_archive_bytes()
     urlopen: Final[MockType] = published_darwin_release[1](archive_bytes)
     urlopen.side_effect = [http_error(503), io.BytesIO(archive_bytes)]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -506,7 +508,7 @@ def test_standalone_python_download_fails_on_http_error(  # pytest injects fixtu
 ) -> None:
     urlopen: Final[MockType] = published_darwin_release[1](_python_archive_bytes())
     urlopen.side_effect = http_error(code)
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to download"):
         standalone_python.download_python_build_standalone("3.99")
@@ -525,7 +527,7 @@ def test_standalone_python_download_resumes_after_disconnect(
         _interrupted_response(mocker, archive_bytes[:10]),
         _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -568,11 +570,11 @@ def test_standalone_python_download_resumes_after_body_cut_short(
         }),
         _range_response(mocker, HTTPStatus.PARTIAL_CONTENT, archive_bytes[10:]),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
-    second_request: Final = urlopen.call_args_list[1].args[0]
+    second_request: Final[Request] = urlopen.call_args_list[1].args[0]
     assert (Path(python_path).is_file(), sleep.call_count, second_request.get_header("Range")) == (True, 1, "bytes=10-")
 
 
@@ -587,7 +589,7 @@ def test_standalone_python_download_restarts_when_range_ignored(
         _interrupted_response(mocker, archive_bytes[:10]),
         _range_response(mocker, HTTPStatus.OK, archive_bytes),
     ]
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     python_path: Final[str] = standalone_python.download_python_build_standalone("3.99")
 
@@ -607,7 +609,7 @@ def test_get_latest_python_releases_retries_transient_http_error(
         side_effect=[http_error(503), io.StringIO(json.dumps({"assets": [release]}))],
         autospec=True,
     )
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     releases: Final[list[tuple[str, str]]] = standalone_python.get_latest_python_releases()
 
@@ -625,7 +627,7 @@ def test_get_latest_python_releases_fails_on_http_error(
     mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError], code: int, sleeps: int
 ) -> None:
     mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(code), autospec=True)
-    sleep: Final[MockType] = mocker.patch.object(standalone_python, "_sleep", autospec=True)
+    sleep: Final[MockType] = mocker.patch.object(standalone_python, "sleep", autospec=True)
 
     with pytest.raises(standalone_python.PipxError, match="Unable to fetch"):
         standalone_python.get_latest_python_releases()
@@ -712,7 +714,7 @@ def pycowsay_on_fetched_python(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    which: Final = shutil.which
+    which = shutil.which
     monkeypatch.setattr(shutil, "which", lambda name: None if name == _TARGET_PYTHON_VERSION else which(name))
     assert not run_pipx_cli([
         "install",
@@ -875,7 +877,11 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
     download: Final[MockType] = mocker.patch.object(
         standalone_python, "download_python_build_standalone", autospec=True
     )
-    reinstall: Final[MockType] = mocker.patch("pipx.commands.interpreter.reinstall", autospec=True)
+    reinstall: Final[MockType] = mocker.patch(
+        "pipx.commands.interpreter.reinstall",
+        autospec=True,
+        return_value=OperationResult(command=("reinstall",), data=ReinstallData(environments=())),
+    )
     metadata_read: Final[MockType] = mocker.spy(PipxMetadata, "read")
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
@@ -980,12 +986,12 @@ def test_upgrade_standalone_interpreter_continues_after_environment_failure(
 
     exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
 
-    document: Final = json.loads(capsys.readouterr().out)
+    document = json.loads(capsys.readouterr().out)
     upgraded_python: Final[Path] = (CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION).joinpath(
         *_STANDALONE_EXECUTABLE
     )
     old_python: Final[Path] = (CTX.standalone_python_cachedir / cur_version).joinpath(*_STANDALONE_EXECUTABLE)
-    upgraded: Final = sorted(document["data"]["upgraded"], key=operator.itemgetter("environment"))
+    upgraded = sorted(document["data"]["upgraded"], key=operator.itemgetter("environment"))
     assert (
         exit_code,
         document["command"],
@@ -1033,7 +1039,7 @@ def test_upgrade_standalone_interpreter_reports_failures_in_human_output(
 
     exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade"])
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         exit_code,
         "Package beta is pinned" in " ".join(captured.err.split()),
@@ -1058,20 +1064,27 @@ def three_standalone_envs(pipx_temp_env: None) -> None:  # ruff:ignore[unused-fu
         metadata.write()
 
 
+@pytest.mark.parametrize(
+    "download_error",
+    [
+        pytest.param(PipxError("download blocked"), id="download-error"),
+        pytest.param(PermissionError("download blocked"), id="filesystem-error"),
+    ],
+)
 @pytest.mark.usefixtures("three_standalone_envs")
 def test_upgrade_standalone_interpreter_propagates_returned_errors_and_continues_other_interpreters(
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
+    download_error: PipxError | OSError,
 ) -> None:
-    def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+    def read_version(command: list[str], **_kwargs: int) -> subprocess.CompletedProcess[str]:
         python_version = Path(command[0]).relative_to(CTX.standalone_python_cachedir).parts[0]
         return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
 
     def download_build(python_version: str, *, override: bool = False) -> str:
         del override
         if python_version == "3.11":
-            msg = "download blocked"
-            raise PipxError(msg)
+            raise download_error
         return str((CTX.standalone_python_cachedir / python_version).joinpath(*_STANDALONE_EXECUTABLE))
 
     def fake_reinstall(venv_dir: Path, *_args: object, **_kwargs: object) -> OperationResult[ReinstallData]:
@@ -1098,8 +1111,8 @@ def test_upgrade_standalone_interpreter_propagates_returned_errors_and_continues
 
     exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
 
-    document: Final = json.loads(capsys.readouterr().out)
-    errors: Final = sorted(
+    document = json.loads(capsys.readouterr().out)
+    errors = sorted(
         [(error["code"], error["environment"], error["message"]) for error in document["errors"]],
         key=operator.itemgetter(0),
     )
@@ -1109,6 +1122,142 @@ def test_upgrade_standalone_interpreter_propagates_returned_errors_and_continues
         [{"environment": "demo-3.13", "old_version": "3.13.0", "new_version": "3.13.1"}],
         [
             ("environment_reinstall_failed", "demo-3.12", "reinstall refused"),
-            ("interpreter_upgrade_failed", None, "download blocked"),
+            ("interpreter_upgrade_failed", None, "Could not upgrade Python 3.11.1. download blocked"),
         ],
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+@pytest.mark.parametrize(
+    "patch_pinned_standalone_envs",
+    [pytest.param(("alpha", "beta", "gamma"), id="three-envs")],
+    indirect=True,
+)
+def test_upgrade_standalone_interpreter_continues_after_lock_failure(
+    patch_pinned_standalone_envs: tuple[str, str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    old_version, new_version = patch_pinned_standalone_envs
+    assert not run_pipx_cli(["unpin", "beta"])
+    lock_path: Final[Path] = CTX.venvs / ".beta.lock"
+    lock_path.unlink(missing_ok=True)
+    lock_path.mkdir()
+    capsys.readouterr()
+
+    exit_code: Final[int] = run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
+
+    document = json.loads(capsys.readouterr().out)
+    assert (
+        exit_code,
+        document["status"],
+        sorted(document["data"]["upgraded"], key=operator.itemgetter("environment")),
+        [(error["code"], error["environment"]) for error in document["errors"]],
+    ) == (
+        1,
+        "partial",
+        [
+            {"environment": "alpha", "old_version": old_version, "new_version": new_version},
+            {"environment": "gamma", "old_version": old_version, "new_version": new_version},
+        ],
+        [("interpreter_upgrade_failed", "beta")],
+    )
+
+
+@pytest.mark.usefixtures("pycowsay_on_fetched_python", "mocked_github_api")
+def test_upgrade_standalone_interpreter_downloads_once_for_shared_minor(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+) -> None:
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=always",
+        "--python",
+        "{}.{}.{}".format(*sys.version_info[:3]),
+        PKG["black"]["spec"],
+    ])
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(
+        f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}"
+    )
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+    download: Final[MockType] = mocker.spy(standalone_python, "download_python_build_standalone")
+
+    assert not run_pipx_cli(["interpreter", "upgrade"])
+
+    interpreter: Final[Path] = (CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION).joinpath(
+        *_STANDALONE_EXECUTABLE
+    )
+    assert (
+        download.call_count,
+        PipxMetadata(CTX.venvs / "pycowsay").source_interpreter,
+        PipxMetadata(CTX.venvs / "black").source_interpreter,
+    ) == (1, interpreter, interpreter)
+
+
+@pytest.mark.parametrize(
+    ("recorded_version", "expected_upgrades"),
+    [
+        pytest.param(f"Python {_TARGET_PYTHON_VERSION}.{sys.version_info.micro}", 1, id="pending-rebuild"),
+        pytest.param(f"Python {_TARGET_PYTHON_VERSION}.{sys.version_info.micro + 1}", 0, id="already-rebuilt"),
+        pytest.param(3142, 0, id="malformed-version"),
+    ],
+)
+@pytest.mark.usefixtures("pycowsay_on_fetched_python", "mocked_github_api")
+def test_upgrade_standalone_interpreter_resumes_with_cached_build(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    fake_process: FakeProcess,
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+    capsys: pytest.CaptureFixture[str],
+    *,
+    recorded_version: str | int,
+    expected_upgrades: int,
+) -> None:
+    new_version: Final[str] = f"{_TARGET_PYTHON_VERSION}.{sys.version_info.micro + 1}"
+    old_version: Final[str] = f"{_TARGET_PYTHON_VERSION}.{sys.version_info.micro}"
+    metadata_file: Final[Path] = CTX.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    payload = json.loads(metadata_file.read_text(encoding="utf-8"))
+    payload["python_version"] = recorded_version
+    metadata_file.write_text(json.dumps(payload), encoding="utf-8")
+    (CTX.venvs / "unrelated").mkdir()
+    (CTX.venvs / ".unrelated.lock").mkdir()
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(new_version)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+    executable: Final[Path] = (CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION).joinpath(
+        *_STANDALONE_EXECUTABLE
+    )
+    fake_process.allow_unregistered(True)
+    fake_process.register([str(executable), "--version"], stdout=f"Python {new_version}\n")
+    download: Final[MockType] = mocker.spy(standalone_python, "download_python_build_standalone")
+
+    assert not run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
+
+    document = json.loads(capsys.readouterr().out)
+    assert (download.call_count, document["data"]["upgraded"]) == (
+        0,
+        [{"environment": "pycowsay", "old_version": old_version, "new_version": new_version}] * expected_upgrades,
+    )
+
+
+@pytest.mark.usefixtures("pycowsay_on_fetched_python", "mocked_github_api")
+def test_upgrade_standalone_interpreter_reports_recorded_version_after_a_later_build(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_process: FakeProcess,
+    standalone_python_index: Callable[[str], dict[str, float | list[tuple[str, str]]]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    recorded: Final[str] = f"{_TARGET_PYTHON_VERSION}.{sys.version_info.micro}"
+    cached: Final[str] = f"{_TARGET_PYTHON_VERSION}.{sys.version_info.micro + 1}"
+    latest: Final[str] = f"{_TARGET_PYTHON_VERSION}.{sys.version_info.micro + 2}"
+    newer_index: Final[dict[str, float | list[tuple[str, str]]]] = standalone_python_index(latest)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+    executable: Final[Path] = (CTX.standalone_python_cachedir / _TARGET_PYTHON_VERSION).joinpath(
+        *_STANDALONE_EXECUTABLE
+    )
+    fake_process.allow_unregistered(True)
+    fake_process.register([str(executable), "--version"], stdout=f"Python {cached}\n")
+
+    assert not run_pipx_cli(["interpreter", "upgrade", "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out)["data"]["upgraded"] == [
+        {"environment": "pycowsay", "old_version": recorded, "new_version": latest}
+    ]

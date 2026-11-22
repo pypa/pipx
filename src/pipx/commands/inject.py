@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pipx.colors import BOLD
+from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
+from pipx.emojis import HAZARD, STARS
+
 __lazy_modules__ = [
     "functools",
     "packaging.utils",
@@ -30,15 +34,12 @@ from packaging.utils import canonicalize_name
 
 from pipx.backends import UV
 from pipx.backends.registry import assert_not_pip_under_uv
-from pipx.colors import BOLD
 from pipx.commands.common import (
     get_expected_venv_resource_paths,
     package_name_from_spec,
     run_post_install_actions,
 )
 from pipx.commands.transaction import marked_unfinished, preserve_venv, runs_from_venv
-from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
-from pipx.emojis import HAZARD, STARS
 from pipx.options import ExposureOptions
 from pipx.package_specifier import add_extras, get_extras, source_without_extras, trusted_recorded_pip_args
 from pipx.paths import CTX
@@ -341,7 +342,7 @@ def _install_into(
         ),
         marked_unfinished(venv_dir),
     ):
-        install: Final = partial(
+        install = partial(
             venv.install_package,
             package_or_url=package_spec,
             pip_args=pip_args,

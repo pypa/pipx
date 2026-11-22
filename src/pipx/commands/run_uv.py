@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "pipx.backends.uv",
     "pipx.paths",
@@ -17,7 +19,6 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, NoReturn
 
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
-from pipx.emojis import HAZARD
 from pipx.paths import CTX
 from pipx.redact import redact_url_credentials
 from pipx.subprocess_runner import exec_app

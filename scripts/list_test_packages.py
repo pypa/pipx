@@ -28,7 +28,7 @@ class _TestPackage:
 
 
 def _main(argv: list[str]) -> int:
-    parser: Final = argparse.ArgumentParser(
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
         description="Create list of needed test packages for pipx tests and local pypiserver."
     )
     parser.add_argument(
@@ -40,7 +40,7 @@ def _main(argv: list[str]) -> int:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Maximum verbosity, especially for pip operations."
     )
-    options: Final = parser.parse_args(argv[1:], namespace=_Options())
+    options: Final[_Options] = parser.parse_args(argv[1:], namespace=_Options())
     return create_test_packages_list(options.package_list_dir, options.primary_package_list)
 
 
