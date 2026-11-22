@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "pathlib",
     "pipx.backends",
@@ -19,7 +21,6 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Final, Self, TypedDict, cast
 
 from pipx.backends import KNOWN_BACKENDS
-from pipx.emojis import HAZARD
 from pipx.options import ExposureOptions
 from pipx.package_specifier import replayable_pip_args
 from pipx.redact import redact_url_credentials
@@ -222,10 +223,11 @@ class PipxMetadata:
     def _package_info(self, data: _RawPackageInfo) -> PackageInfo:
         return replace(PackageInfo.from_dict(data), pip_args=replayable_pip_args(data["pip_args"], self.venv_dir))
 
-    def write(self) -> None:
+    def write(self, *, raise_on_error: bool = False) -> None:
         """Save the metadata to the file, replacing it atomically.
 
-        :raises PipxError: when the metadata has no main package, so it cannot be saved.
+        :param raise_on_error: report a failed write as an error.
+        :raises PipxError: when metadata is incomplete, or when writing fails with ``raise_on_error`` enabled.
         """
         if (
             self.main_package.package is None
@@ -236,7 +238,8 @@ class PipxMetadata:
             msg = "Internal Error: PipxMetadata is corrupt, cannot write."
             raise PipxError(msg)
         self._replace_file(
-            json.dumps(self.to_dict(), indent=4, sort_keys=True, cls=JsonEncoderHandlesPath).encode("utf-8")
+            json.dumps(self.to_dict(), indent=4, sort_keys=True, cls=JsonEncoderHandlesPath).encode("utf-8"),
+            raise_on_error=raise_on_error,
         )
 
     def to_dict(
@@ -258,7 +261,7 @@ class PipxMetadata:
             "pipx_metadata_version": _METADATA_VERSION,
         }
 
-    def _replace_file(self, content: bytes) -> None:
+    def _replace_file(self, content: bytes, *, raise_on_error: bool = False) -> None:
         # replace instead of writing through: uv hard-links installed files to its cache
         temporary_path: Path | None = None
         try:
@@ -271,7 +274,10 @@ class PipxMetadata:
                 temporary_path = Path(pipx_metadata_fh.name)
                 pipx_metadata_fh.write(content)
             temporary_path.replace(self.venv_dir / PIPX_INFO_FILENAME)
-        except OSError:
+        except OSError as error:
+            if raise_on_error:
+                msg = f"Unable to write {PIPX_INFO_FILENAME} for {self.venv_dir.name}. {error}"
+                raise PipxError(msg) from error
             _LOGGER.warning(
                 pipx_wrap(
                     f"""

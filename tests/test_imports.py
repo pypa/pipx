@@ -16,7 +16,7 @@ _LAZY_MODULES_HONORED: Final[pytest.MarkDecorator] = pytest.mark.skipif(
 
 
 def test_importing_util_first_succeeds(root: Path, source_env: dict[str, str]) -> None:
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [sys.executable, "-c", "import pipx.util; print('Success!')"],
         check=False,
         capture_output=True,
@@ -54,7 +54,7 @@ def source_env(root: Path) -> dict[str, str]:
     ],
 )
 def test_importing_main_defers_heavy_module(root: Path, source_env: dict[str, str], module: str) -> None:
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [sys.executable, "-c", f"import sys, pipx.main; print({module!r} in sys.modules)"],
         check=False,
         capture_output=True,
@@ -79,7 +79,7 @@ def test_cli_startup_loads_module(root: Path, source_env: dict[str, str], module
 
 
 def _startup_imports(root: Path, options: list[str], env: dict[str, str]) -> set[str]:
-    result: Final = subprocess.run(
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [sys.executable, *options, "-X", "importtime", "-m", "pipx", "--version"],
         check=True,
         capture_output=True,

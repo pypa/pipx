@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from pipx.constants import FetchPythonOptions
+
 __lazy_modules__ = ["typing"]
 
 from typing import Final
-
-from pipx.constants import FetchPythonOptions
 
 
 def compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tuple[FetchPythonOptions, bool]:

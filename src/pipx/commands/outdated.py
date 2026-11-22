@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import ExitCode
+
 __lazy_modules__ = [
     "concurrent.futures",
     "functools",
@@ -17,7 +19,6 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
-from pipx.constants import ExitCode
 from pipx.options import OutdatedOptions
 from pipx.package_specifier import changeable_recorded_source, extract_index_options, valid_pypi_name
 from pipx.result import (
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Sequence
     from pathlib import Path
 
+    from pipx.backends import OutdatedPackage
     from pipx.pipx_metadata_file import PackageInfo
 
 
@@ -248,7 +250,7 @@ def _collect_outdated(
     package_infos: dict[str, PackageInfo],
 ) -> tuple[list[_OutdatedPackage], list[_FailedEnvironment]]:
     try:
-        outdated: Final = list(venv.list_outdated_packages(list(index_args), package_infos))
+        outdated: Final[list[OutdatedPackage]] = list(venv.list_outdated_packages(list(index_args), package_infos))
     except PipxError as error:
         return [], [_FailedEnvironment(environment=venv.name, error=str(error))]
     return [

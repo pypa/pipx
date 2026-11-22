@@ -19,7 +19,7 @@ def main() -> None:
     if not sys.stdout.isatty():
         sys.exit("Must be run from a terminal, not a script")
 
-    pipsi_home: Final = os.environ.get("PIPSI_HOME", Path("~/.local/venvs/").expanduser())
+    pipsi_home: Final[str | Path] = os.environ.get("PIPSI_HOME", Path("~/.local/venvs/").expanduser())
     if not (packages := [path.name for path in Path(pipsi_home).iterdir()]):
         sys.exit(0)
 

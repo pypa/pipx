@@ -94,7 +94,7 @@ def _rmdir_then_interrupt(path: Path, *, safe_rm: bool = True) -> None:
 
 
 def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path, mocker: MockerFixture) -> None:
-    mocker.patch.object(transaction, "_sleep", autospec=True)
+    mocker.patch.object(transaction, "sleep", autospec=True)
     mocker.patch.object(Path, "rename", autospec=True, side_effect=PermissionError(32, "in use"))
 
     with (
@@ -107,8 +107,8 @@ def test_remove_venv_keeps_the_venv_when_the_rename_keeps_failing(venv_dir: Path
 
 
 def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: Path, mocker: MockerFixture) -> None:
-    mocker.patch.object(transaction, "_sleep", autospec=True)
-    real_rename: Final = Path.rename
+    mocker.patch.object(transaction, "sleep", autospec=True)
+    real_rename = Path.rename
     attempts: Final[list[Path]] = []
 
     def rename_after_one_refusal(source: Path, target: Path) -> Path:
@@ -128,7 +128,7 @@ def test_remove_venv_moves_the_venv_once_the_rename_succeeds_on_retry(venv_dir: 
 
 @pytest.mark.usefixtures("signal_handlers")
 def test_remove_venv_restores_a_venv_moved_just_before_an_interrupt(venv_dir: Path, mocker: MockerFixture) -> None:
-    real_rename: Final = Path.rename
+    real_rename = Path.rename
 
     def rename_then_interrupt(source: Path, target: Path) -> Path:
         moved: Final[Path] = real_rename(source, target)

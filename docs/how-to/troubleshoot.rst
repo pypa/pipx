@@ -67,7 +67,8 @@ Pass package names to limit the repair, and ``--python`` when the rebuilt enviro
     $ pipx repair --python python3.13
 
 ``pipx repair`` reuses the recorded metadata, like ``pipx reinstall``, and leaves healthy environments unchanged. It
-refuses a pinned package because its recorded source may resolve to another release; run ``pipx unpin PACKAGE`` first.
+refuses a pinned package because its recorded source may resolve to another release. Run ``pipx unpin PACKAGE`` first.
+Unpinning only needs writable pipx metadata, so you can unpin an environment whose interpreter is missing.
 To rebuild healthy environments too (for example after an old pipx release), use ``pipx reinstall-all`` (see
 :doc:`manage-installed-apps`).
 

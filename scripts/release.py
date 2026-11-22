@@ -19,10 +19,10 @@ class _Options(argparse.Namespace):
 
 
 def main() -> None:
-    parser: Final = argparse.ArgumentParser(description=__doc__)
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bump", choices=("auto", "major", "minor", "patch"), default="auto")
     parser.add_argument("--dispatch", action="store_true", help="start the protected release workflow on GitHub")
-    args: Final = parser.parse_args(namespace=_Options())
+    args: Final[_Options] = parser.parse_args(namespace=_Options())
     if args.dispatch:
         _run(
             "gh",

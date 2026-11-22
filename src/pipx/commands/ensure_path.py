@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import HAZARD, STARS
+
 __lazy_modules__ = ["pipx.paths", "pipx.util", "pipx.wrap", "re", "shlex", "typing", "userpath"]
 
 import logging
@@ -13,7 +15,6 @@ from typing import Final
 import userpath
 
 from pipx.constants import EXIT_CODE_OK, MACOS, ExitCode
-from pipx.emojis import HAZARD, STARS
 from pipx.paths import CTX
 from pipx.util import PipxError
 from pipx.wrap import pipx_wrap

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import WINDOWS
+
 __lazy_modules__ = [
     "itertools",
     "pathlib",
@@ -16,7 +18,6 @@ from pathlib import Path
 from typing import Final, NoReturn
 
 from pipx.commands.common import exposed_app_names
-from pipx.constants import WINDOWS
 from pipx.subprocess_runner import exec_app
 from pipx.util import PipxError
 from pipx.venv import Venv

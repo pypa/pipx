@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.constants import WINDOWS
+
 __lazy_modules__ = ["concurrent.futures", "functools", "signal"]
 
 import enum
@@ -14,8 +16,6 @@ from dataclasses import dataclass, field
 from functools import partial
 from threading import Condition, Event, RLock, current_thread, main_thread
 from typing import TYPE_CHECKING, Final, TextIO, TypeVar, cast
-
-from pipx.constants import WINDOWS
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
@@ -70,7 +70,7 @@ def stopping_children_on_signals() -> Generator[list[int], None, None]:
         raise KeyboardInterrupt
 
     # Windows has no SIGHUP
-    previous: Final = {
+    previous = {
         number: signal.signal(number, interrupt)
         for number in {signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
     }
@@ -113,7 +113,7 @@ def uninterrupted() -> Generator[None]:
     def record(number: int, _frame: FrameType | None) -> None:
         received.append(number)
 
-    previous: Final = {
+    previous = {
         number: signal.signal(number, record)
         for number in {signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGTERM)}
     }

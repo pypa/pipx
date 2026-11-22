@@ -535,7 +535,7 @@ def test_pip_backend_list_outdated_forwards_index_settings(
         "pipx.backends.pip.run_subprocess", autospec=True, return_value=outdated_process
     )
 
-    result: Final = PipBackend().list_outdated(
+    result: Final[tuple[OutdatedPackage, ...]] = PipBackend().list_outdated(
         venv_root=tmp_path,
         venv_python=tmp_path / "bin" / "python",
         index_args=["--index-url", "https://index.example/simple"],
@@ -566,7 +566,7 @@ def test_uv_backend_list_outdated_forwards_index_settings(
         "pipx.backends.uv.run_subprocess", autospec=True, return_value=outdated_process
     )
 
-    result: Final = UvBackend().list_outdated(
+    result: Final[tuple[OutdatedPackage, ...]] = UvBackend().list_outdated(
         venv_root=tmp_path,
         venv_python=tmp_path / "bin" / "python",
         index_args=["--index-url", "https://index.example/simple"],

@@ -80,7 +80,7 @@ jobs:
           PYTEST_ADDOPTS: "-vv --durations=20"
   check:
     name: 🔍 tox env
-    uses: tox-dev/github-workflows/.github/workflows/check.yaml@ef0cd88bef592260a48345753b8b509b209ab189 # 6.8.3
+    uses: tox-dev/github-workflows/.github/workflows/check.yaml@b34c57a8a06e7b043c2ddd0b6b7a8a778d7aa8f7 # 6.8.5
     permissions:
       contents: read
     with:
@@ -179,7 +179,7 @@ jobs:
       dry-run: true
   hooks:
     name: 🧹 Hooks under the cooldown
-    uses: tox-dev/github-workflows/.github/workflows/cooled-hooks.yaml@ef0cd88bef592260a48345753b8b509b209ab189 # 6.8.3
+    uses: tox-dev/github-workflows/.github/workflows/cooled-hooks.yaml@b34c57a8a06e7b043c2ddd0b6b7a8a778d7aa8f7 # 6.8.5
     permissions:
       contents: read
   gate:
@@ -189,6 +189,6 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - name: 🚦 Require all needed jobs to pass
-        uses: tox-dev/github-workflows/required-checks@6.8.3
+        uses: tox-dev/github-workflows/required-checks@6.8.5
         with:
           needs: ${{ toJSON(needs) }}

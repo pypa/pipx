@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from harness import remove_venv_interpreter, run_pipx_cli, write_wheel
+from harness import SKIP_IF_WINDOWS, remove_venv_interpreter, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -340,7 +343,7 @@ def test_pin_skip_spelling(
     assert not run_pipx_cli(["pin", environment, "--skip", skip, "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / canonicalize_name(environment))
-    data: Final = json.loads(capsys.readouterr().out)["data"]
+    data = json.loads(capsys.readouterr().out)["data"]
     assert (
         metadata.main_package.pinned,
         {name: package.pinned for name, package in metadata.injected_packages.items()},
@@ -370,7 +373,7 @@ def test_pin_skip_non_canonical_injected_package_with_suffix(
     assert not run_pipx_cli(["pin", "pycowsay@1", "--skip", spelling, "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay@1")
-    data: Final = json.loads(capsys.readouterr().out)["data"]
+    data = json.loads(capsys.readouterr().out)["data"]
     assert (
         {name: package.pinned for name, package in metadata.injected_packages.items()},
         [package["package"] for package in data["packages"]],
@@ -401,3 +404,43 @@ def test_pin_broken_interpreter() -> None:
     assert run_pipx_cli(["pin", "pycowsay"]) == 0
 
     assert PipxMetadata(CTX.venvs / "pycowsay").main_package.pinned
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_with_metadata_in_unlistable_environment() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
+    venv_dir.chmod(0o300)
+    try:
+        assert not run_pipx_cli(["pin", "pycowsay"])
+    finally:
+        venv_dir.chmod(0o700)
+    assert PipxMetadata(venv_dir).main_package.pinned
+
+
+@pytest.mark.parametrize(
+    ("command", "pinned"),
+    [pytest.param("pin", False, id="pin"), pytest.param("unpin", True, id="unpin")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_commands_report_metadata_write_failure(
+    capsys: pytest.CaptureFixture[str], mocker: MockerFixture, command: str, *, pinned: bool
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    venv_dir: Final[Path] = CTX.venvs / "pycowsay"
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir)
+    metadata.main_package = replace(metadata.main_package, pinned=pinned)
+    metadata.write()
+    capsys.readouterr()
+    mocker.patch("pipx.pipx_metadata_file.NamedTemporaryFile", autospec=True, side_effect=PermissionError("read-only"))
+
+    exit_code: Final[int] = run_pipx_cli([command, "pycowsay", "--output", "json"])
+
+    document = json.loads(capsys.readouterr().out)
+    assert (
+        exit_code,
+        document["status"],
+        "Unable to write pipx_metadata.json for pycowsay" in document["errors"][0]["message"],
+        PipxMetadata(venv_dir).main_package.pinned,
+    ) == (1, "error", True, pinned)

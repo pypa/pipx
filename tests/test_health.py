@@ -77,7 +77,7 @@ def test_health_json(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str
 def test_health_deduplicates_repeated_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["health", "pycowsay", "PyCowSay", "--output", "json"]) == 0
 
-    environments: Final = json.loads(capsys.readouterr().out)["data"]["environments"]
+    environments = json.loads(capsys.readouterr().out)["data"]["environments"]
     assert [environment["environment"] for environment in environments] == ["pycowsay"]
 
 
@@ -143,7 +143,7 @@ def test_environment_maintenance_reports_unmanaged_package(
 ) -> None:
     assert run_pipx_cli([command, "missing"]) == 1
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (captured.out, captured.err) == output
 
 
@@ -197,7 +197,7 @@ def test_repair_refuses_lost_metadata(capsys: pytest.CaptureFixture[str], lose_r
 
     assert run_pipx_cli(["repair", "pycowsay"]) == 1
 
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert "pycowsay: Not reinstalling pycowsay" in captured.err
     assert "has no internal pipx metadata" in captured.err
 
@@ -261,8 +261,8 @@ def test_repair_json_stays_pure_when_it_reinstalls(capsys: pytest.CaptureFixture
 
     assert not run_pipx_cli(["repair", "--python", sys.executable, "--output", "json"])
 
-    captured: Final = capsys.readouterr()
-    document: Final = json.loads(captured.out)  # the internal reinstall must not print human text before this
+    captured = capsys.readouterr()
+    document = json.loads(captured.out)  # the internal reinstall must not print human text before this
     assert (document["command"], document["status"], captured.err) == (["repair"], "success", "")
 
 
@@ -286,7 +286,7 @@ def test_health_json_reports_broken_environment_as_error(
 
     assert run_pipx_cli(["health", "--output", "json"]) == 1
 
-    document: Final = json.loads(capsys.readouterr().out)
+    document = json.loads(capsys.readouterr().out)
     assert (document["status"], document["errors"]) == (
         status,
         [

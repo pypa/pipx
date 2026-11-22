@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pipx.emojis import HAZARD
+
 __lazy_modules__ = [
     "packaging.specifiers",
     "packaging.utils",
@@ -28,13 +30,13 @@ from packaging.specifiers import SpecifierSet
 from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.backends import PIP
-from pipx.emojis import HAZARD
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
+    from email.header import Header
 
     from packaging.requirements import Requirement
 
@@ -872,7 +874,7 @@ def static_project_name(package_spec: str) -> str | None:
     """
     try:
         with (Path(_split_path_extras(package_spec)[0]) / "pyproject.toml").open("rb") as file:
-            pyproject: Final = tomllib.load(file)
+            pyproject: Final[dict[str, JsonValue]] = tomllib.load(file)
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
         return None
     if not (
@@ -952,7 +954,7 @@ def wheel_project_name(package_spec: str) -> str | None:
         with zipfile.ZipFile(wheel) as archive:
             match [entry for entry in archive.namelist() if _METADATA_PATH.fullmatch(entry)]:
                 case [metadata]:
-                    name: Final = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
+                    name: Final[str | Header | None] = BytesHeaderParser().parsebytes(archive.read(metadata))["Name"]
                 case _:
                     return None
     except (OSError, zipfile.BadZipFile):

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pipx.colors import BOLD, RED
+from pipx.constants import ExitCode
+from pipx.emojis import SLEEP
+
 __lazy_modules__ = [
     "functools",
     "pipx.commands.common",
@@ -28,7 +32,6 @@ from enum import StrEnum
 from functools import partial
 from typing import TYPE_CHECKING, Final
 
-from pipx.colors import BOLD, RED
 from pipx.commands.common import (
     expose_package_resources,
     expose_shared_resources_in_order,
@@ -41,8 +44,6 @@ from pipx.commands.install import install as install_package
 from pipx.commands.outdated import inspect_outdated
 from pipx.commands.reinstall import reinstall
 from pipx.commands.transaction import is_unfinished, marked_unfinished, preserve_venv, runs_from_venv
-from pipx.constants import ExitCode
-from pipx.emojis import SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.options import (
@@ -71,6 +72,7 @@ if TYPE_CHECKING:
 
     from filelock import BaseFileLock
 
+    from pipx.commands.install import InstallData
     from pipx.commands.outdated import OutdatedData
     from pipx.options import BackendOptions, UpgradeOptions
     from pipx.pipx_metadata_file import PackageInfo
@@ -117,7 +119,7 @@ def _upgrade_venv(
 ) -> tuple[_PackageUpgradeResult, ...]:
     if not venv_dir.is_dir():
         if options.install:
-            installed: Final = install_package(
+            installed: Final[OperationResult[InstallData]] = install_package(
                 None,
                 None,
                 # the venv directory only carries the package name; the original argument keeps any version specifier

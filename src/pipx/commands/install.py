@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.emojis import HAZARD, SLEEP
+
 __lazy_modules__ = [
     "functools",
     "json",
@@ -47,8 +50,6 @@ from pipx.commands.common import (
 )
 from pipx.commands.inject import inject
 from pipx.commands.transaction import VenvBackup, marked_unfinished, preserve_venv
-from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojis import HAZARD, SLEEP
 from pipx.fanout import fan_out, locked_in_order
 from pipx.interpreter import get_default_python
 from pipx.options import (
@@ -140,7 +141,7 @@ def install_all(spec_metadata_file: Path, options: InstallOptions) -> ExitCode:
 
 def _extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
     try:
-        spec: Final = load_spec_file(spec_metadata_file)
+        spec = load_spec_file(spec_metadata_file)
     except OSError as exc:
         msg = f"Unable to read the spec metadata file {spec_metadata_file}: {exc.strerror}"
         raise PipxError(msg) from exc

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from pipx.animate import animate
+from pipx.constants import WINDOWS
+
+from ._base import outdated_packages_from_process
+
 __lazy_modules__ = [
     "json",
     "packaging.version",
@@ -20,17 +25,13 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.version import InvalidVersion, Version
 
-from pipx.animate import animate
 from pipx.backends import PIP, Backend, OutdatedPackage
-from pipx.constants import WINDOWS
 from pipx.paths import CTX
 from pipx.redact import redact_command_line
 from pipx.shared_libs import SHARED_LIBS, write_shared_pth
 from pipx.subprocess_runner import get_site_packages, run_subprocess, subprocess_post_check
 from pipx.trash import safe_unlink
 from pipx.util import PipxError, get_venv_paths, open_owner_only
-
-from ._base import outdated_packages_from_process
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -85,7 +86,7 @@ class PipBackend(Backend):
         # only venvs that ship their own pip (`pipx install pip`) reach this; shared-libs venvs upgrade through
         # shared_libs.upgrade
         self._drop_site_config(venv_python.parent.parent)
-        process: Final = run_subprocess(
+        process: Final[CompletedProcess[str]] = run_subprocess(
             [str(venv_python), "-m", "pip", "--no-input", "install", "--upgrade", *pip_args, "pip"],
             run_dir=str(venv_python.parent.parent),
         )
@@ -124,15 +125,22 @@ class PipBackend(Backend):
         :param verbose: show the progress of the creation.
         :raises PipxError: when the environment cannot be created.
         """
-        cmd: Final = [python, "-m", "venv", *([] if include_pip else ["--without-pip"]), *venv_args, str(root)]
+        cmd: Final[list[str]] = [
+            python,
+            "-m",
+            "venv",
+            *([] if include_pip else ["--without-pip"]),
+            *venv_args,
+            str(root),
+        ]
         with animate("creating virtual environment", do_animation=not verbose):
-            venv_process: Final = run_subprocess(cmd, run_dir=str(root))
+            venv_process: Final[CompletedProcess[str]] = run_subprocess(cmd, run_dir=str(root))
         subprocess_post_check(venv_process)
 
         SHARED_LIBS.create(verbose=verbose, pip_args=pip_args)
         if not include_pip:
             _, python_path, _ = get_venv_paths(root)
-            purelib: Final = get_site_packages(python_path)[0]
+            purelib: Final[Path] = get_site_packages(python_path)[0]
             purelib.mkdir(parents=True, exist_ok=True)
             write_shared_pth(root, purelib)
 
@@ -169,7 +177,7 @@ class PipBackend(Backend):
             cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
         self._drop_site_config(venv_root)
-        process: Final = SHARED_LIBS.run_repairing_pip(
+        process: Final[CompletedProcess[str]] = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess(
                 cmd,
                 log_stdout=not log_pip_errors,
@@ -203,7 +211,7 @@ class PipBackend(Backend):
         :returns: the completed pip process.
         :raises PipxError: when pip is missing or older than 26.1.
         """
-        process: Final = SHARED_LIBS.run_repairing_pip(
+        process: Final[CompletedProcess[str]] = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess([str(venv_python), "-m", "pip", "--version"], run_dir=str(venv_root)),
             pip_args=pip_args,
             verbose=verbose,
@@ -251,9 +259,17 @@ class PipBackend(Backend):
         :returns: the completed pip process.
         :raises PipxError: when pip fails.
         """
-        cmd: Final = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages, *([] if verbose else ["-q"])]
+        cmd: Final[list[str]] = [
+            str(venv_python),
+            "-m",
+            "pip",
+            "uninstall",
+            "-y",
+            *packages,
+            *([] if verbose else ["-q"]),
+        ]
         self._drop_site_config(venv_root)
-        process: Final = SHARED_LIBS.run_repairing_pip(
+        process: Final[CompletedProcess[str]] = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess(cmd, run_dir=str(venv_root)), pip_args=[], verbose=verbose
         )
         subprocess_post_check(process)
@@ -278,9 +294,11 @@ class PipBackend(Backend):
             from pipx.venv_inspect import list_not_required_packages  # ruff:ignore[import-outside-top-level]  # pulls in packaging.requirements, slows startup
 
             return list_not_required_packages(venv_python)
-        cmd: Final = [str(venv_python), "-m", "pip", "list", "--format=json"]
+        cmd: Final[list[str]] = [str(venv_python), "-m", "pip", "list", "--format=json"]
         self._drop_site_config(venv_root)
-        process: Final = SHARED_LIBS.run_repairing_pip(lambda: run_subprocess(cmd), pip_args=[], verbose=False)
+        process: Final[CompletedProcess[str]] = SHARED_LIBS.run_repairing_pip(
+            lambda: run_subprocess(cmd), pip_args=[], verbose=False
+        )
         if process.returncode != 0:
             msg = (
                 f"Failed to execute {process.args}.\n"
@@ -307,7 +325,7 @@ class PipBackend(Backend):
         :returns: the outdated packages.
         """
         self._drop_site_config(venv_root)
-        process: Final = SHARED_LIBS.run_repairing_pip(
+        process: Final[CompletedProcess[str]] = SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess(
                 [
                     str(venv_python),
@@ -348,7 +366,7 @@ class PipBackend(Backend):
         :param in_working_dir: run in the current working directory instead of the environment's root.
         :returns: the completed pip process.
         """
-        cmd: Final = [str(venv_python), "-m", "pip", *args, *([] if verbose else ["-q"])]
+        cmd: Final[list[str]] = [str(venv_python), "-m", "pip", *args, *([] if verbose else ["-q"])]
         self._drop_site_config(venv_root)
         return SHARED_LIBS.run_repairing_pip(
             lambda: run_subprocess(

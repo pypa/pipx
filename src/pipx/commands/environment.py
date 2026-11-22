@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.emojis import EMOJI_SUPPORT
+
 __lazy_modules__ = [
     "functools",
     "pipx.backends.registry",
@@ -15,8 +18,6 @@ from typing import TYPE_CHECKING, Final
 
 from pipx.backends.registry import env_default_backend, resolve_backend_name
 from pipx.backends.uv import find_uv_binary
-from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import get_default_python
 from pipx.paths import CTX
 from pipx.shared_libs import (

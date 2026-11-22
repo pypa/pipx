@@ -16,6 +16,8 @@ from pipx.paths import CTX
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture, MockType
 
+    from pipx.constants import ExitCode
+
 _SKIP_GLOBAL_ON_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
     WINDOWS, reason="System-wide ensurepath is unavailable on Windows"
 )
@@ -24,7 +26,7 @@ _SKIP_GLOBAL_ON_WINDOWS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
 @pytest.fixture
 def mock_userpath(mocker: MockerFixture) -> MockType:
     # Python 3.11 ignores dotted-key return values passed to create_autospec for module children.
-    mocked: Final = mocker.create_autospec(userpath)
+    mocked: Final[MockType] = mocker.create_autospec(userpath)
     mocked.need_shell_restart.return_value = False
     mocked.in_current_path.return_value = False
     mocked.append.return_value = True
@@ -65,7 +67,7 @@ def test_ensure_path_non_dry_run_still_appends(
 
 
 def test_ensure_pipx_paths_dry_run_footer(mock_userpath: MockType, capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code: Final = ensure_path_module.ensure_pipx_paths(
+    exit_code: Final[ExitCode] = ensure_path_module.ensure_pipx_paths(
         force=True, prepend=False, all_shells=False, dry_run=True, is_global=False
     )
 
@@ -88,7 +90,7 @@ def test_ensure_pipx_paths_reports_existing_paths(
     mock_userpath.append.return_value = False
     mock_userpath.prepend.return_value = False
     assert run_pipx_cli(["ensurepath", *["--prepend"] * prepend]) == EXIT_CODE_OK
-    captured: Final = capsys.readouterr()
+    captured = capsys.readouterr()
     assert (
         "is already in PATH" in " ".join(captured.out.split()),
         "are already in PATH" in " ".join(captured.err.split()),
