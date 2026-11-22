@@ -202,7 +202,7 @@ class PipxMetadata:
             package_name: Final[str | None] = main_package_data["package"]
             if package_name is not None and package_name != self.venv_dir.name:
                 # 0.1 recorded no suffix, so take it from the venv name
-                main_package_data["suffix"] = self.venv_dir.name.replace(package_name, "")
+                main_package_data["suffix"] = self.venv_dir.name.removeprefix(package_name)
             metadata_dict["source_interpreter"] = None
         elif version not in {_METADATA_VERSION, "0.11", "0.10", "0.9", "0.8", "0.7", "0.6", "0.5"}:
             msg = f"""

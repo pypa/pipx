@@ -6,6 +6,8 @@ from pipx.emojis import SLEEP
 
 __lazy_modules__ = [
     "functools",
+    "packaging.utils",
+    "pathlib",
     "pipx.commands.common",
     "pipx.commands.install",
     "pipx.commands.outdated",
@@ -30,7 +32,10 @@ import logging
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
+
+from packaging.utils import canonicalize_name
 
 from pipx.commands.common import (
     expose_package_resources,
@@ -39,6 +44,7 @@ from pipx.commands.common import (
     locked_package_message,
     remove_stale_venv_resources,
     validate_expected_apps,
+    validate_suffix,
 )
 from pipx.commands.install import install as install_package
 from pipx.commands.outdated import inspect_outdated
@@ -68,7 +74,6 @@ from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Collection
-    from pathlib import Path
 
     from filelock import BaseFileLock
 
@@ -273,8 +278,8 @@ class _PackageUpgradeResult:
     location: str
     interpreter: str | None
     backend: str
+    suffix: str
     source: str | None = None
-    suffix: str = ""
 
 
 class _UpgradeStatus(StrEnum):
@@ -449,28 +454,16 @@ def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> 
         if upgrading_all:
             return ()
         if result.source is not None:
-            # the environment name carries the suffix, which pipx would read as a URL in an install spec
-            package_name: Final[str] = result.package.removesuffix(result.suffix)
-            suffix_option: Final[str] = f"--suffix={result.suffix} " if result.suffix else ""
-            remedy: Final[str] = (
-                ""
-                if result.injected or is_script_spec(result.source)
-                else (
-                    " To track index releases, reinstall by package name: "
-                    f"pipx install --force {suffix_option}{package_name}"
-                )
+            message = pipx_wrap(
+                f"""
+                {result.package} is unchanged at version {result.previous_version}
+                because it is installed from the local source {result.source};
+                no package index was checked.
+                """
             )
-            return (
-                OutputMessage(
-                    text=pipx_wrap(
-                        f"""
-                        {result.package} is unchanged at version {result.previous_version}
-                        because it is installed from the local source {result.source};
-                        no package index was checked.{remedy}
-                        """
-                    )
-                ),
-            )
+            if not result.injected and not is_script_spec(result.source):
+                message += _index_reinstall_hint(result)
+            return (OutputMessage(text=message),)
         return (
             OutputMessage(
                 text=pipx_wrap(
@@ -491,6 +484,18 @@ def _package_messages(result: _PackageUpgradeResult, *, upgrading_all: bool) -> 
             )
         ),
     )
+
+
+def _index_reinstall_hint(result: _PackageUpgradeResult) -> str:
+    if canonicalize_name(result.package) != Path(result.location).name:
+        return ""
+    try:
+        suffix = validate_suffix(result.suffix)
+    except PipxError:
+        return ""
+    package_name: Final[str] = canonicalize_name(result.package.removesuffix(suffix))
+    suffix_option: Final[str] = f"--suffix={suffix} " if suffix else ""
+    return f"\nTo track index releases, reinstall by package name.\npipx install --force {suffix_option}{package_name}"
 
 
 def upgrade_all(venv_container: VenvContainer, options: UpgradeOptions) -> OperationResult[UpgradeData]:
