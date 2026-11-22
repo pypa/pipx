@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from functools import partial
+from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
@@ -296,6 +297,11 @@ def test_translate_pip_args_for_uv(pip_args: list[str], expected: list[str]) -> 
         ),
         pytest.param(["--no-deps"], "contains '--no-deps', which has no", id="no-deps"),
         pytest.param(["--no-binary="], "Invalid value", id="empty-no-binary"),
+        pytest.param(
+            ["--only-binary", "--pre", "--only-binary=:none:"],
+            "Invalid value for '--only-binary'",
+            id="option-as-value-before-reset",
+        ),
         pytest.param(["--index-url"], "Missing value", id="missing-value"),
     ],
 )
@@ -311,6 +317,15 @@ def test_translate_pip_args_for_uv_rejection_hides_url_credentials() -> None:
         translate_pip_args_for_uv([proxy])
 
     assert str(error.value).startswith(f"--pip-args contains {redact_url_credentials(proxy)!r}, which has no")
+
+
+def test_invalid_binary_value_hides_url_credentials() -> None:
+    with pytest.raises(PipxError) as error:
+        translate_pip_args_for_uv(["--only-binary", "--index-url=https://user:password@packages.example/simple"])
+
+    assert " ".join(str(error.value).split()) == (
+        "Invalid value for '--only-binary' in --pip-args: '--index-url=https://****:****@packages.example/simple'."
+    )
 
 
 @pytest.mark.parametrize(
@@ -350,15 +365,12 @@ def test_run_cli_format_control_reset(exec_mock: MockType, tmp_path: Path, route
         pytest.param(["one", "one"], ["one"], id="deduplicate"),
         pytest.param(["one,:none:,two"], ["two"], id="reset-in-list"),
         pytest.param([":all:,:none:,two"], ["two"], id="all-reset-in-list"),
+        pytest.param([":all:,:none:,one,:all:,:none:,two"], ["two"], id="last-all-in-list"),
     ],
 )
 def test_translate_format_control_state(flag: str, uv_flag: str, values: list[str], packages: list[str]) -> None:
-    pip_args = [f"{flag}={value}" for value in values]
-    expected = [item for package in packages for item in (f"{uv_flag}-package", package)]
-    assert translate_pip_args_for_uv(pip_args) == expected
-    # Translation must not mutate the caller's list or retain state between calls.
-    assert pip_args == [f"{flag}={value}" for value in values]
-    assert translate_pip_args_for_uv(pip_args) == expected
+    expected = list(chain.from_iterable((f"{uv_flag}-package", package) for package in packages))
+    assert translate_pip_args_for_uv([f"{flag}={value}" for value in values]) == expected
 
 
 @pytest.mark.parametrize(

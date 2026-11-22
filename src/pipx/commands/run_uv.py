@@ -122,7 +122,8 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         if ":all:" in packages:
             translated.append(all_flag)
         else:
-            translated.extend(item for package in sorted(packages) for item in (package_flag, package))
+            for package in sorted(packages):
+                translated.extend((package_flag, package))
     return translated
 
 
@@ -171,16 +172,15 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
 
 
 def _update_format_control(flag: str, value: str, target: set[str], other: set[str]) -> None:
-    if not all(packages := value.split(",")):
-        msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
+    if value.startswith("-") or not all(packages := value.split(",")):
+        msg = f"Invalid value for {flag!r} in --pip-args: {redact_url_credentials(value)!r}."
         raise PipxError(msg)
-    # Match pip's format-control state before emitting uv flags: :none: resets this
-    # restriction, while :all: also clears the opposite restriction.
-    while ":all:" in packages:
+    # The last :all: erases everything before it, including the opposite restriction.
+    if (last_all := max((index for index, package in enumerate(packages) if package == ":all:"), default=-1)) >= 0:
         target.clear()
         other.clear()
         target.add(":all:")
-        del packages[: packages.index(":all:") + 1]
+        packages = packages[last_all + 1 :]
         if ":none:" not in packages:
             return
     for package in packages:
