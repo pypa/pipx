@@ -14,6 +14,42 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-19-0:
+
+`1.19.0 <https://github.com/pypa/pipx/tree/1.19.0>`_ - 2026-11-23
+=================================================================
+
+.. _release-1-19-0-added:
+
+Added
+-----
+
+- ``pipx list`` shows each environment's shell completions and identifies missing or misplaced completion files
+  (:pr:`2495`) by :user:`gaborbernat` and :user:`kunalkshah1`.
+
+.. _release-1-19-0-fixed:
+
+Fixed
+-----
+
+- Continue ``pipx interpreter upgrade`` across remaining standalone builds and environments when upgrading one fails,
+  and report failed environments alongside any completed upgrades in ``--output json`` (:pr:`2481`) by
+  :user:`Cyber-Marty` and :user:`gaborbernat`.
+- Honor repeated ``--only-binary`` and ``--no-binary`` resets in ``pipx run --backend uv`` for apps and scripts
+  (:pr:`2483`) by :user:`xixi-box` and :user:`gaborbernat`.
+- The reinstall hint from ``pipx upgrade`` keeps ``--suffix`` when the package was installed from a local source. The
+  ``upgrade`` and ``upgrade-all`` JSON results include the recorded package ``suffix`` (:pr:`2489`) by
+  :user:`8hjkkwikl8` and :user:`gaborbernat`.
+- ``--fetch-python=always`` and ``PIPX_FETCH_PYTHON=always`` no longer reject the default interpreter when ``--python``
+  is omitted. Pipx can choose a compatible local interpreter based on the package's Python requirement (:pr:`2494`) by
+  :user:`aravsahni7` and :user:`gaborbernat`.
+- ``pipx list --short`` and ``pipx list --pinned`` print the environment name, including any suffix, such as
+  ``black@22``. This distinguishes side-by-side installations of the same package (:pr:`2487`) by :user:`mansur-akhmadi`
+  and :user:`gaborbernat`.
+- ``pipx pin`` and ``pipx unpin`` now update only the environment's metadata record, so both commands succeed even when
+  the environment's Python interpreter is broken or the original local package source has been removed (:pr:`2479`) by
+  :user:`JeremyL691` and :user:`gaborbernat`.
+
 .. _release-1-18-19:
 
 `1.18.19 <https://github.com/pypa/pipx/tree/1.18.19>`_ - 2026-11-17
