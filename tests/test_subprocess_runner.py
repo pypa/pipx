@@ -190,11 +190,30 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
 
     captured = capsys.readouterr()
     assert (captured.out, captured.err, result.stdout, result.stderr) == (
-        "stdøut 1\rstdøut 2\r",
-        "stdërr 1\rstdërr 2\n",
+        "stdøut 1\r\x1b[Kstdøut 2\r\x1b[K",
+        "stdërr 1\r\x1b[Kstdërr 2\n",
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",
     )
+
+
+def test_subprocess_stream_clears_previous_carriage_return_line(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch("pipx.subprocess_runner.sys.stdout", destination)
+
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.write('4/40 [progress]\\r4/40 [ab]'); sys.stdout.flush()",
+        ],
+        capture_stderr=False,
+        stream_output=True,
+    )
+
+    # A Windows pseudo-terminal may rewrite a lone \r to \r\n
+    assert destination.getvalue() in {"4/40 [progress]\r\x1b[K4/40 [ab]", "4/40 [progress]\n4/40 [ab]"}
+    assert result.stdout == "4/40 [progress]\r4/40 [ab]"
 
 
 @pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])

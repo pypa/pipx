@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pipx.animate import show_cursor
+from pipx.animate import CLEAR_LINE, show_cursor
 
 __lazy_modules__ = [
     "concurrent.futures",
@@ -383,7 +383,7 @@ def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) 
         chunks.append(chunk)
         if write_error is None:
             try:
-                destination.write(chunk)
+                destination.write(chunk.replace("\r", f"\r{CLEAR_LINE}"))
                 destination.flush()
             except (OSError, UnicodeError) as error:
                 write_error = error
