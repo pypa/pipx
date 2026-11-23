@@ -6,14 +6,22 @@
  Developing for pipx
 *********************
 
-To let your users run
+This page helps developers to make their packages more pipx-friendly, making sure that apps, manual pages,
+shell completion scripts provided by the package are automatically *exposed* (made available) to the end
+user after running:
 
 .. code-block:: console
 
     $ pipx install MY_PACKAGE
 
-include ``scripts`` in your main table [#main-table]_ in ``pyproject.toml`` or its legacy equivalents for
-``setup.cfg`` and ``setup.py``. pipx also exposes ``gui-scripts`` entry points, which are useful for GUI applications on
+Package apps
+============
+
+To make sure that apps provided by the package are exposed, just include a ``project.scripts`` table
+in your ``pyproject.toml`` file, or use the ``setuptools`` legacy ``entry_points`` equivalents in
+``setup.cfg`` or ``setup.py`` (see examples below).
+
+pipx also exposes ``gui-scripts`` entry points, which are useful for GUI applications on
 Windows (they launch without opening a console window).
 
 .. tab-set::
@@ -57,8 +65,9 @@ Windows (they launch without opening a console window).
                 },
             )
 
-Here ``foo``, ``bar``, and ``baz`` become applications that pipx exposes after installing the package, invoking their
-corresponding entry point functions.
+Here ``foo``, ``bar``, and ``baz`` become applications that pipx exposes after installing the
+package, invoking their corresponding entry point functions. This is implemented by installing
+proper executable scripts in ``PIPX_BIN_DIR`` (default: ``~/.local/bin``).
 
 .. mermaid::
 
@@ -106,10 +115,16 @@ This entry point takes priority over console scripts when present.
                 my-package = my_package.cli:main
 
 With this declaration, ``pipx run my-package`` invokes ``my_package.cli:main`` even if no console script named
-``my-package`` exists. The `build <https://github.com/pypa/build>`_ package uses this pattern so that ``pipx run build``
-works even though ``build`` names its console script ``pyproject-build``. The uv backend hands ``pipx run build`` to
-``uv tool run``, which reads console scripts only, so this needs ``--backend pip`` there (see
-:doc:`../how-to/use-uv-backend`).
+``my-package`` exists. The `build <https://github.com/pypa/build>`__ package uses this pattern so that ``pipx run build``
+works even though ``build`` names its console script ``pyproject-build``.
+
+.. warning::
+
+    The pipx `uv` backend hands ``pipx run build`` to ``uv tool run``, which reads console scripts only, so
+    this needs ``--backend pip`` there (see :doc:`../how-to/use-uv-backend`).
+
+Read more about entry points in the `setuptools quickstart
+<https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`__.
 
 Detect a pipx installation
 ==========================
@@ -235,8 +250,3 @@ See :doc:`../how-to/shell-completions` for how each shell loads these directorie
 
 Read more about entry points in the `setuptools quickstart
 <https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`_.
-
-.. [#main-table]
-
-    This is often the ``[project]`` table, but it can have a different name. Read more in the `PyPUG
-    <https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#writing-your-pyproject-toml>`_.
