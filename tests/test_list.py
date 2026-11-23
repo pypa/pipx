@@ -398,7 +398,64 @@ def test_list_selected_package_with_suffix(capsys: pytest.CaptureFixture[str]) -
 
     assert not run_pipx_cli(["list", "pycowsay@1", "--short"])
 
-    assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
+    assert capsys.readouterr().out == "pycowsay@1 0.0.0.2\n"
+
+
+@pytest.mark.parametrize(
+    ("flag", "expected"),
+    [
+        pytest.param("--short", "pycowsay 0.0.0.2\npycowsay@1 0.0.0.2\n", id="short"),
+        pytest.param("--pinned", "pycowsay@1 0.0.0.2\n", id="pinned"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_names_suffixed_environment(capsys: pytest.CaptureFixture[str], flag: str, expected: str) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
+    assert not run_pipx_cli(["pin", "pycowsay@1"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", flag])
+
+    assert capsys.readouterr().out == expected
+
+
+@pytest.mark.parametrize("flag", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_keeps_unsuffixed_package_spelling(capsys: pytest.CaptureFixture[str], tmp_path: Path, flag: str) -> None:
+    assert not run_pipx_cli(["install", str(write_wheel(tmp_path, "demo_app", "1"))])
+    assert not run_pipx_cli(["pin", "demo_app"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", flag])
+
+    assert capsys.readouterr().out == "demo_app 1\n"
+
+
+@pytest.mark.parametrize("flag", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_legacy_suffixed_environment(capsys: pytest.CaptureFixture[str], flag: str) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@pycowsay"])
+    mock_legacy_venv("pycowsay@pycowsay", metadata_version="0.1")
+    assert not run_pipx_cli(["pin", "pycowsay@pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", flag])
+
+    assert capsys.readouterr().out == "pycowsay@pycowsay 0.0.0.2\n"
+
+
+@pytest.mark.parametrize("flag", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_injected_in_suffixed_environment(capsys: pytest.CaptureFixture[str], flag: str) -> None:
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"], "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "isort@1", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "isort@1"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", flag, "--include-injected"])
+
+    assert capsys.readouterr().out == "isort@1 5.6.4\nblack 22.8.0 (injected in venv isort@1)\n"
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
