@@ -25,6 +25,9 @@ version.
 ``--skip`` matches injected package names regardless of capitalization or whether they use hyphens, underscores, or
 periods. For a package injected with ``--with-suffix``, pass either its name or its name with the suffix.
 
+Pinning and unpinning update the environment's metadata. Both work when the environment's Python or the original
+wheel is missing, provided pipx can read and update the record.
+
 Pass ``--output json`` to read the changed and skipped packages from a script, or ``--quiet`` to omit confirmations.
 
 .. note::

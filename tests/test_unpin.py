@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from harness import run_pipx_cli
+from harness import remove_venv_interpreter, run_pipx_cli, write_wheel
 from package_info import PKG
 from pipx.paths import CTX
+from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -129,3 +131,26 @@ def test_unpin_reports_only_changed_packages(
         "  - empty-project" in output,
         "  - pycowsay" in output,
     ) == (True, True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_broken_interpreter() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["pin", "pycowsay"])
+    remove_venv_interpreter("pycowsay")
+
+    assert run_pipx_cli(["unpin", "pycowsay"]) == 0
+    assert not PipxMetadata(CTX.venvs / "pycowsay").main_package.pinned
+    assert run_pipx_cli(["repair", "--python", sys.executable, "pycowsay"]) == 0
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_deleted_local_wheel(tmp_path: Path) -> None:
+    wheel: Final[Path] = write_wheel(tmp_path, "demo", "1")
+    assert not run_pipx_cli(["install", str(wheel)])
+    assert not run_pipx_cli(["pin", "demo"])
+    wheel.unlink()
+
+    assert run_pipx_cli(["unpin", "demo"]) == 0
+
+    assert not PipxMetadata(CTX.venvs / "demo").main_package.pinned

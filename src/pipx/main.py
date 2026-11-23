@@ -956,7 +956,7 @@ def _cmd_pin(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResult
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.pin import pin
 
-        return pin(venv_dir, ctx.skip_list, verbose=ctx.verbose, injected_only=args.injected_only)
+        return pin(venv_dir, ctx.skip_list, injected_only=args.injected_only)
 
 
 def _add_unpin(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -976,7 +976,7 @@ def _cmd_unpin(args: argparse.Namespace, ctx: _DispatchContext) -> OperationResu
     with ctx.venv_container.venv_lock(venv_dir):
         from pipx.commands.pin import unpin
 
-        return unpin(venv_dir, verbose=ctx.verbose)
+        return unpin(venv_dir)
 
 
 def _add_upgrade(
