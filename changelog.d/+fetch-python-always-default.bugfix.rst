@@ -1,3 +1,2 @@
-``--fetch-python=always`` (or ``PIPX_FETCH_PYTHON=always``) without ``--python`` no longer fails every command with
-"requires a Python version"; pipx uses the default Python and fetches only when the package needs a version no local
-interpreter has, as documented.
+``--fetch-python=always`` and ``PIPX_FETCH_PYTHON=always`` no longer reject the default interpreter when ``--python`` is
+omitted. Pipx can choose a compatible local interpreter based on the package's Python requirement.
