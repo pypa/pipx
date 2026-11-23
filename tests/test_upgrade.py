@@ -278,14 +278,16 @@ def test_upgrade_unchanged_inline_script_offers_no_index_reinstall(
     assert ("installed from the local source" in upgrade_out, "pipx install --force" in upgrade_out) == (True, False)
 
 
+@pytest.mark.parametrize("suffix", [pytest.param("", id="no-suffix"), pytest.param("@dev", id="with-suffix")])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
+def test_upgrade_json(capsys: pytest.CaptureFixture[str], suffix: str) -> None:
+    assert not run_pipx_cli(["install", f"--suffix={suffix}", "pycowsay"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
+    environment: Final[str] = f"pycowsay{suffix}"
+    assert not run_pipx_cli(["upgrade", environment, "--output", "json"])
 
-    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "pycowsay")
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / environment)
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -293,16 +295,17 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
             "data": {
                 "packages": [
                     {
-                        "environment": "pycowsay",
+                        "environment": environment,
                         "injected": False,
-                        "location": str(CTX.venvs / "pycowsay"),
-                        "package": "pycowsay",
+                        "location": str(CTX.venvs / environment),
+                        "package": environment,
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
                         "version": "0.0.0.2",
                         "interpreter": metadata.python_version,
                         "backend": metadata.backend,
                         "source": None,
+                        "suffix": suffix,
                     }
                 ],
                 "skipped": [],
@@ -456,6 +459,65 @@ def test_upgrade_local_path_does_not_claim_latest(capsys: pytest.CaptureFixture[
         "no package index was checked" in upgrade_out,
         "pipx install --force empty-project" in upgrade_out,
     ) == (False, True, True, True)
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        pytest.param("@dev", id="short-suffix"),
+        pytest.param("@local-build-for-integration-tests", id="long-suffix"),
+        pytest.param("@Dev_test.1", id="normalized-environment"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_path_with_suffix_keeps_suffix_option(
+    capsys: pytest.CaptureFixture[str], empty_project: Path, monkeypatch: pytest.MonkeyPatch, suffix: str
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project.resolve()), f"--suffix={suffix}"])
+    capsys.readouterr()
+    monkeypatch.setenv("COLUMNS", "40")
+
+    assert not run_pipx_cli(["upgrade", f"empty-project{suffix}"])
+    assert capsys.readouterr().out.splitlines()[-1] == f"pipx install --force --suffix={suffix} empty-project"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_path_recovers_repeated_name_in_legacy_suffix(
+    capsys: pytest.CaptureFixture[str], empty_project: Path
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project.resolve()), "--suffix=@empty-project"])
+    mock_legacy_venv("empty-project@empty-project", metadata_version="0.1")
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "empty-project@empty-project"])
+
+    assert capsys.readouterr().out.splitlines()[-1] == "pipx install --force --suffix=@empty-project empty-project"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "environment"),
+    [
+        pytest.param(" dev", "empty-project dev", id="unsupported-suffix"),
+        pytest.param("@", "empty-project@empty-project", id="truncated-suffix"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_path_omits_hint_for_unusable_suffix(
+    capsys: pytest.CaptureFixture[str], empty_project: Path, suffix: str, environment: str
+) -> None:
+    assert not run_pipx_cli(["install", str(empty_project.resolve())])
+    capsys.readouterr()
+    metadata: Final[PipxMetadata] = PipxMetadata(CTX.venvs / "empty-project")
+    metadata.main_package = replace(
+        metadata.main_package, exposure=replace(metadata.main_package.exposure, suffix=suffix)
+    )
+    metadata.write()
+    metadata.venv_dir.rename(CTX.venvs / environment)
+
+    assert not run_pipx_cli(["upgrade", environment])
+
+    output: Final[str] = " ".join(capsys.readouterr().out.split())
+    assert (f"empty-project{suffix} is unchanged" in output, "pipx install --force" in output) == (True, False)
 
 
 @pytest.mark.parametrize(

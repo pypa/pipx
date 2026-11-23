@@ -240,6 +240,7 @@ def test_upgrade_all_json(capsys: pytest.CaptureFixture[str]) -> None:
                         "interpreter": metadata.python_version,
                         "backend": metadata.backend,
                         "source": None,
+                        "suffix": "",
                     }
                 ],
                 "skipped": [],
@@ -284,6 +285,7 @@ def test_upgrade_all_pylock_json(
                 "interpreter": metadata.python_version,
                 "backend": metadata.backend,
                 "source": None,
+                "suffix": "",
             }
         ],
         0,

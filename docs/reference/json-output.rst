@@ -62,7 +62,10 @@ option or a missing argument, print plain text instead: the usage message goes t
 ``reinstall-all``, ``reset``, ``health``, ``repair``, ``manifest lock``, ``manifest sync``, ``interpreter list``,
 ``interpreter prune``, ``interpreter upgrade``, ``cache dir``, ``cache purge``, and ``list --outdated``.
 
-It is not available on ``install-all``, ``run``, ``exec``, ``runpip``, ``ensurepath``, ``environment``,
+The ``upgrade`` and ``upgrade-all`` payloads give each package result a ``suffix`` field. Its value is the recorded
+suffix, or an empty string for a package installed without one.
+
+``--output json`` is unavailable on ``install-all``, ``run``, ``exec``, ``runpip``, ``ensurepath``, ``environment``,
 ``completions``, or ``help``.
 
 ***********************
