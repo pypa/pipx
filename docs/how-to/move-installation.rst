@@ -9,7 +9,7 @@ The snippets below move from a non-default location to the current default. To m
 
 .. warning::
 
-    These snippets delete the cache, log, and trash directories (pipx recreates them) and move ``PIPX_HOME``. Run
+    The macOS and Linux snippets clear the cache, log, and trash directories (pipx recreates them). The snippets move ``PIPX_HOME``. Run
     ``pipx reinstall-all`` afterward so every environment rebuilds at the new location.
 
 ******
@@ -55,18 +55,13 @@ Current default location: ``%LOCALAPPDATA%\pipx\pipx``.
 .. code-block:: powershell
 
     $NEW_LOCATION = Join-Path "$env:LOCALAPPDATA" 'pipx\pipx'
-    $cache_dir = pipx environment --value PIPX_VENV_CACHEDIR
-    $logs_dir = pipx environment --value PIPX_LOG_DIR
-    $trash_dir = pipx environment --value PIPX_TRASH_DIR
+    if (Test-Path -LiteralPath $NEW_LOCATION) {
+        throw "The destination already exists: $NEW_LOCATION. Choose an unused directory."
+    }
     $home_dir = pipx environment --value PIPX_HOME
 
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$cache_dir", "$logs_dir", "$trash_dir"
-
-    # Remove the destination first so Move-Item renames rather than nests
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$NEW_LOCATION"
-    New-Item -ItemType Directory -Force (Split-Path "$NEW_LOCATION") | Out-Null
-
-    Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
+    New-Item -ItemType Directory -Force (Split-Path -Parent $NEW_LOCATION) | Out-Null
+    Move-Item -LiteralPath $home_dir -Destination $NEW_LOCATION -ErrorAction Stop
     pipx reinstall-all
 
 To move it from Git Bash or WSL instead, follow the macOS/Linux steps and set ``NEW_LOCATION`` to the Windows path.
