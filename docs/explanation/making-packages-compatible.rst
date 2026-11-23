@@ -126,33 +126,6 @@ works even though ``build`` names its console script ``pyproject-build``.
 Read more about entry points in the `setuptools quickstart
 <https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`__.
 
-Detect a pipx installation
-==========================
-
-pipx records the environment name in ``pipx_metadata.json`` for packages installed with ``pipx install``. Package code
-can read this name when it needs to give pipx-specific recovery instructions:
-
-.. code-block:: python
-
-    import json
-    import sys
-    from pathlib import Path
-
-
-    def pipx_environment() -> str | None:
-        try:
-            metadata = json.loads((Path(sys.prefix) / "pipx_metadata.json").read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return None
-        environment = metadata.get("environment") if isinstance(metadata, dict) else None
-        return environment if isinstance(environment, str) else None
-
-Use the returned name as the target for commands such as ``pipx inject ENVIRONMENT 'mytool[feature]'``. pipx records the
-extra on the main package, so reinstalling the environment retains it.
-
-``pipx run`` may create internal metadata without setting ``environment``, so check the field value. Treat other keys as
-internal pipx state. If the function returns ``None``, show the package's usual installer-neutral advice.
-
 Manual pages
 ============
 
@@ -250,3 +223,36 @@ See :doc:`../how-to/shell-completions` for how each shell loads these directorie
 
 Read more about entry points in the `setuptools quickstart
 <https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`_.
+
+Detect a pipx installation
+==========================
+
+The ``pipx_metadata.json`` file at the root of each environment in which a package is installed
+by pipx, contains information about the environment itself, e.g. its name, apps and dependencies names and
+paths, etc. Developers can use this information in their code to provide more specific messages to the user
+(e.g. mentioning the name of the environment where the package is currently installed).
+
+The following example shows how a developer can query pipx metadata for the environment name, which
+can then be used to give pipx-specific recovery instructions to the user:
+
+.. code-block:: python
+
+    import json
+    import sys
+    from pathlib import Path
+
+
+    def pipx_environment() -> str | None:
+        try:
+            metadata = json.loads((Path(sys.prefix) / "pipx_metadata.json").read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        environment = metadata.get("environment") if isinstance(metadata, dict) else None
+        return environment if isinstance(environment, str) else None
+
+The returned name can be used as the target for commands such as ``pipx inject ENVIRONMENT 'mytool[feature]'``.
+pipx records the extra on the main package, so reinstalling the environment retains it.
+
+``pipx run`` may create internal metadata without setting ``environment``, so you have to check the
+field value and if the function returns ``None``, show the package's usual installer-neutral advice.
+
