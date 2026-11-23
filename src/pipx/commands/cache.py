@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from pipx.constants import EXIT_CODE_OK, ExitCode
+
 __lazy_modules__ = ["pipx.trash"]
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
-from pipx.result import OperationData, OperationResult, OutputMessage
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import rmdir
 
 if TYPE_CHECKING:
@@ -42,17 +44,36 @@ def purge_cache(venv_container: VenvContainer) -> OperationResult[CacheData]:
     """Remove every cached environment, each while holding its lock.
 
     :param venv_container: the container of the cached environments.
-    :returns: the result listing the removed environments.
+    :returns: the result listing the removed environments and the failures.
     """
     removed: Final[list[str]] = []
+    errors: Final[list[OperationError]] = []
     for venv_dir in venv_container.iter_locked_venv_dirs(tuple(venv_container.iter_venv_dirs())):
         rmdir(venv_dir)
-        removed.append(venv_dir.name)
+        if venv_dir.is_dir():
+            errors.append(
+                OperationError(
+                    code="cache_purge_failed",
+                    message=f"Failed to remove cached environment {venv_dir}.",
+                    environment=venv_dir.name,
+                )
+            )
+        else:
+            removed.append(venv_dir.name)
     noun: Final[str] = "environment" if len(removed) == 1 else "environments"
     return OperationResult(
         command=("cache", "purge"),
         data=CacheData(directory=str(venv_container), removed=tuple(removed)),
-        messages=(OutputMessage(text=f"Removed {len(removed)} cached {noun}."),),
+        messages=(
+            OutputMessage(text=f"Removed {len(removed)} cached {noun}."),
+            *(
+                OutputMessage(text=error.message, stream=OutputStream.STDERR, level=OutputLevel.ERROR)
+                for error in errors
+            ),
+        ),
+        exit_code=ExitCode(1) if errors else EXIT_CODE_OK,
+        errors=tuple(errors),
+        succeeded=bool(removed),
     )
 
 
