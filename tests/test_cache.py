@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import json
+import shutil
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 from harness import run_pipx_cli
 from pipx.paths import CTX
-from pipx.trash import rmdir
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 
@@ -85,24 +84,14 @@ def test_cache_quiet_says_nothing(
         pytest.param(["removed-cache"], "partial", id="partial-failure"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_purge_reports_failed_removals(
     capsys: pytest.CaptureFixture[str],
-    mocker: MockerFixture,
+    blocked_cache: Path,
     removed_names: list[str],
     status: str,
 ) -> None:
-    blocked = CTX.venv_cache / "blocked-cache"
-    blocked.mkdir(parents=True)
     for removed_name in removed_names:
         (CTX.venv_cache / removed_name).mkdir()
-
-    def remove_if_allowed(path: Path) -> None:
-        # rmdir returns without raising when both deletion and moving to the trash fail.
-        if path != blocked:
-            rmdir(path)
-
-    mocker.patch("pipx.commands.cache.rmdir", side_effect=remove_if_allowed, autospec=True)
 
     assert run_pipx_cli(["cache", "purge", "--output", "json"]) == 1
 
@@ -112,8 +101,8 @@ def test_cache_purge_reports_failed_removals(
         "errors": [
             {
                 "code": "cache_purge_failed",
-                "environment": blocked.name,
-                "message": f"Failed to remove cached environment {blocked}.",
+                "environment": blocked_cache.name,
+                "message": f"Failed to remove cached environment {blocked_cache}.",
                 "package": None,
             },
         ],
@@ -121,7 +110,7 @@ def test_cache_purge_reports_failed_removals(
         "pipx_result_version": "1",
         "status": status,
     }
-    assert {path.name for path in CTX.venv_cache.iterdir() if path.is_dir()} == {blocked.name}
+    assert {path.name for path in CTX.venv_cache.iterdir() if path.is_dir()} == {blocked_cache.name}
 
 
 @pytest.mark.parametrize(
@@ -131,18 +120,16 @@ def test_cache_purge_reports_failed_removals(
         pytest.param(["--quiet"], "", id="quiet"),
     ],
 )
-@pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_purge_reports_failure_in_text(
-    capsys: pytest.CaptureFixture[str], mocker: MockerFixture, quiet_args: list[str], expected_stdout: str
+    capsys: pytest.CaptureFixture[str], blocked_cache: Path, quiet_args: list[str], expected_stdout: str
 ) -> None:
-    blocked = CTX.venv_cache / "blocked-cache"
-    blocked.mkdir(parents=True)
-    mocker.patch("pipx.commands.cache.rmdir", autospec=True)
-
     assert run_pipx_cli(["cache", "purge", *quiet_args]) == 1
 
     captured = capsys.readouterr()
-    assert (captured.out, captured.err) == (expected_stdout, f"Failed to remove cached environment {blocked}.\n")
+    assert (captured.out, captured.err.splitlines()[-1:]) == (
+        expected_stdout,
+        [f"Failed to remove cached environment {blocked_cache}."],
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -159,3 +146,19 @@ def test_cache_purge_counts_environment_moved_to_trash(
     assert (result["status"], result["errors"], result["data"]["removed"]) == ("success", [], [cached.name])
     assert not cached.exists()
     assert len(list(CTX.trash.glob(f"*.{cached.name}"))) == 1
+
+
+@pytest.fixture
+def blocked_cache(request: pytest.FixtureRequest, mocker: MockerFixture) -> Path:
+    request.getfixturevalue("pipx_temp_env")
+    blocked = CTX.venv_cache / "blocked-cache"
+    blocked.mkdir(parents=True)
+    rmtree = shutil.rmtree
+
+    def remove_if_allowed(path: Path, *, ignore_errors: bool) -> None:
+        if path != blocked:
+            rmtree(path, ignore_errors=ignore_errors)
+
+    mocker.patch.object(shutil, "rmtree", side_effect=remove_if_allowed, autospec=True)
+    mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"), autospec=True)
+    return blocked

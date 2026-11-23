@@ -65,6 +65,11 @@ option or a missing argument, print plain text instead: the usage message goes t
 The ``upgrade`` and ``upgrade-all`` payloads give each package result a ``suffix`` field. Its value is the recorded
 suffix, or an empty string for a package installed without one.
 
+For ``cache purge``, ``data.removed`` lists the environments removed from the cache, including any moved to the trash.
+An environment that remains after pipx attempts to delete it or move it to the trash has a ``cache_purge_failed`` error.
+If any such error occurs, the status is ``"partial"`` when at least one environment was removed and ``"error"``
+otherwise.
+
 ``--output json`` is unavailable on ``install-all``, ``run``, ``exec``, ``runpip``, ``ensurepath``, ``environment``,
 ``completions``, or ``help``.
 
