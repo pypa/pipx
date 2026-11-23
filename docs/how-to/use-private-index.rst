@@ -82,7 +82,8 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
     Under the uv backend, ``pipx run`` translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
     ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
     ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. pipx raises an error for any other flag instead of
-    dropping it. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
+    dropping it. A later ``--only-binary=:none:`` or ``--no-binary=:none:`` clears the corresponding restriction.
+    Other commands pass ``--pip-args`` to ``uv pip install`` unchanged apart from ``--index-url``
     (``-i``), so uv decides which flags it accepts. Use ``--backend pip`` when you need a pip-only flag. See
     :doc:`use-uv-backend`.
 

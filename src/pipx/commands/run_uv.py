@@ -3,6 +3,7 @@ from __future__ import annotations
 from pipx.emojis import HAZARD
 
 __lazy_modules__ = [
+    "packaging.utils",
     "pipx.backends.uv",
     "pipx.paths",
     "pipx.redact",
@@ -17,6 +18,8 @@ import os
 from shutil import which
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, NoReturn
+
+from packaging.utils import canonicalize_name
 
 from pipx.backends.uv import PIP_TO_UV_INDEX_FLAGS, UvBackend, resolve_uv_binary
 from pipx.paths import CTX
@@ -36,6 +39,20 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _UV_FORMAT_CONTROL_FLAG_MAP: Final[MappingProxyType[str, tuple[str, str]]] = MappingProxyType({
     "--no-binary": ("--no-binary", "--no-binary-package"),
     "--only-binary": ("--no-build", "--no-build-package"),
+})
+
+
+_UV_BOOL_FLAG_MAP: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "--pre": "--prerelease=allow",
+    "--no-cache-dir": "--no-cache",
+    "--upgrade": "--upgrade",
+    "-U": "--upgrade",
+})
+_UV_VALUE_FLAG_MAP: Final[MappingProxyType[str, str]] = MappingProxyType({
+    "--extra-index-url": "--extra-index-url",
+    "--find-links": "--find-links",
+    "-f": "-f",
+    "--trusted-host": "--allow-insecure-host",
 })
 
 
@@ -96,62 +113,55 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
     :returns: the uv arguments.
     :raises PipxError: when an argument has no uv equivalent, such as ``--editable``.
     """
-    translated_bool_flags: Final[dict[str, str]] = {
-        "--pre": "--prerelease=allow",
-        "--no-cache-dir": "--no-cache",
-        "--upgrade": "--upgrade",
-        "-U": "--upgrade",
-    }
-    value_flags: Final[dict[str, str]] = {
-        "--extra-index-url": "--extra-index-url",
-        "--find-links": "--find-links",
-        "-f": "-f",
-        "--trusted-host": "--allow-insecure-host",
-    }
+    format_control: Final[dict[str, set[str]]] = {flag: set() for flag in _UV_FORMAT_CONTROL_FLAG_MAP}
     translated: Final[list[str]] = []
     iterator: Final[Iterator[str]] = iter(pip_args)
     for arg in iterator:
-        if arg in {"-q", "-qq", "--quiet"}:
-            continue
-        if arg in {"--editable", "-e"}:
-            msg = (
-                "`--editable` is not supported by `pipx run --backend uv`.\n"
-                "Use `pipx run --backend pip` for editable installs."
-            )
-            raise PipxError(msg)
-        if (translated_bool := translated_bool_flags.get(arg)) is not None:
-            translated.append(translated_bool)
-            continue
-        flag, separator, attached_value = arg.partition("=")
-        if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
-            translated.extend(
-                _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
-            )
-            continue
-        if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or value_flags.get(flag)) is not None:
-            if separator:
-                translated.append(f"{translated_flag}={attached_value}")
-            else:
-                translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
-            continue
-        msg = (
-            f"--pip-args contains {redact_url_credentials(arg)!r}, which has no `uv tool run` equivalent.\n"
-            "Use `--backend pip` if you need pip-only flags."
-        )
-        raise PipxError(msg)
+        _translate_one_pip_arg(arg, iterator, translated, format_control)
+    for flag, packages in format_control.items():
+        all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
+        if ":all:" in packages:
+            translated.append(all_flag)
+        else:
+            for package in sorted(packages):
+                translated.extend((package_flag, package))
     return translated
 
 
-def _translate_format_control(flag: str, value: str) -> list[str]:
-    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
-    if value == ":all:":
-        return [all_flag]
-    if value == ":none:":
-        return []
-    if not all(packages := value.split(",")):
-        msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
+def _translate_one_pip_arg(
+    arg: str,
+    iterator: Iterator[str],
+    translated: list[str],
+    format_control: dict[str, set[str]],
+) -> None:
+    if arg in {"-q", "-qq", "--quiet"}:
+        return
+    if arg in {"--editable", "-e"}:
+        msg = (
+            "`--editable` is not supported by `pipx run --backend uv`.\n"
+            "Use `pipx run --backend pip` for editable installs."
+        )
         raise PipxError(msg)
-    return [item for package in packages for item in (package_flag, package)]
+    if (translated_bool := _UV_BOOL_FLAG_MAP.get(arg)) is not None:
+        translated.append(translated_bool)
+        return
+    flag, separator, attached_value = arg.partition("=")
+    if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
+        value = attached_value if separator else _next_pip_arg(flag, iterator)
+        other_flag = "--only-binary" if flag == "--no-binary" else "--no-binary"
+        _update_format_control(flag, value, format_control[flag], format_control[other_flag])
+        return
+    if (translated_flag := PIP_TO_UV_INDEX_FLAGS.get(flag) or _UV_VALUE_FLAG_MAP.get(flag)) is not None:
+        if separator:
+            translated.append(f"{translated_flag}={attached_value}")
+        else:
+            translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
+        return
+    msg = (
+        f"--pip-args contains {redact_url_credentials(arg)!r}, which has no `uv tool run` equivalent.\n"
+        "Use `--backend pip` if you need pip-only flags."
+    )
+    raise PipxError(msg)
 
 
 def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
@@ -160,6 +170,27 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
     except StopIteration as exc:
         msg = f"Missing value for {flag!r} in --pip-args."
         raise PipxError(msg) from exc
+
+
+def _update_format_control(flag: str, value: str, target: set[str], other: set[str]) -> None:
+    if value.startswith("-") or not all(packages := value.split(",")):
+        msg = f"Invalid value for {flag!r} in --pip-args: {redact_url_credentials(value)!r}."
+        raise PipxError(msg)
+    # The last :all: erases everything before it, including the opposite restriction.
+    if (last_all := max((index for index, package in enumerate(packages) if package == ":all:"), default=-1)) >= 0:
+        target.clear()
+        other.clear()
+        target.add(":all:")
+        packages = packages[last_all + 1 :]
+        if ":none:" not in packages:
+            return
+    for package in packages:
+        if package == ":none:":
+            target.clear()
+        else:
+            name = canonicalize_name(package)
+            other.discard(name)
+            target.add(name)
 
 
 def run_script_via_uv_run(script_path: Path, venv_dir: Path, options: RunOptions) -> NoReturn:
