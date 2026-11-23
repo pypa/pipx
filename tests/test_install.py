@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ from harness import (
     app_name,
     current_log_file,
     drop_extra_app,
+    pipx_subprocess_env,
     run_pipx_cli,
     unwrap_log_text,
 )
@@ -1921,6 +1923,32 @@ def test_install_fetch_missing_python_invalid(
         f"No executable for the provided Python version '{python_version}' found" in captured.out,
         "--fetch-missing-python is deprecated" in captured.err,
     ) == (True, expect_deprecation)
+
+
+@pytest.mark.parametrize(
+    ("fetch_args", "fetch_env"),
+    [
+        pytest.param(["--fetch-python=always"], {}, id="flag"),
+        pytest.param([], {"PIPX_FETCH_PYTHON": "always"}, id="environment"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_fetch_python_always_without_python_uses_default(
+    fetch_args: list[str], fetch_env: dict[str, str]
+) -> None:
+    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
+        [sys.executable, "-m", "pipx", "install", *fetch_args, PKG["pycowsay"]["spec"]],
+        env=pipx_subprocess_env() | fetch_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert (
+        PipxMetadata(CTX.venvs / "pycowsay").python_version,
+        list(CTX.standalone_python_cachedir.glob("[0-9]*")),
+    ) == (f"Python {platform.python_version()}", [])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

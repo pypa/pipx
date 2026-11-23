@@ -533,7 +533,7 @@ def _add_python_options(parser: argparse.ArgumentParser) -> None:
         default=_FETCH_PYTHON,
         help=(
             f"When to fetch a standalone Python build from python-build-standalone. "
-            f"'{FetchPythonOptions.ALWAYS}' uses a standalone build even when a system Python matches; "
+            f"'{FetchPythonOptions.ALWAYS}' uses a standalone build for a version passed with --python; "
             f"'{FetchPythonOptions.MISSING}' downloads only when the requested version is not found locally; "
             f"'{FetchPythonOptions.NEVER}' never downloads. "
             "Defaults to PIPX_FETCH_PYTHON, or 'never'."
@@ -2173,9 +2173,10 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
 
     output: Final[OutputFormat] = _output_format(args)
     python = get_default_python()
-    if "python" in args:
+    requested_python: Final[str | None] = getattr(args, "python", None)
+    if requested_python:
         try:
-            python = find_python_interpreter(args.python or python, fetch_python=args.fetch_python)
+            python = find_python_interpreter(requested_python, fetch_python=args.fetch_python)
         except InterpreterResolutionError as error:
             _LOGGER.debug("Failed to resolve interpreter:", exc_info=True)
             if output is OutputFormat.JSON:
@@ -2198,7 +2199,7 @@ def _run_pipx_command(args: argparse.Namespace) -> ExitCode:
         venv_container=VenvContainer(CTX.venvs),
         skip_list=[canonicalize_name(name) for name in args.skip] if "skip" in args else [],
         python=python,
-        python_flag_passed=bool(getattr(args, "python", None)),
+        python_flag_passed=bool(requested_python),
         spec=spec,
         backend=backend,
         cooldown=CooldownOptions(
