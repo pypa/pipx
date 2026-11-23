@@ -21,6 +21,8 @@ Print the instructions for your shell and follow them:
 A package can ship the completion script for its own command, the way it ships a man page. pipx links that script out
 of the environment it installed into, so the completions arrive with the package and leave with it.
 
+Run ``pipx list`` to see which completion scripts each environment exposes and which are missing or misplaced.
+
 pipx picks up the three directories a wheel installs completion scripts into and links each under
 ``PIPX_COMPLETION_DIR`` (default ``~/.local/share``):
 

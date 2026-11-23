@@ -1135,6 +1135,8 @@ def _get_list_output(venv: Venv, package_name: str, *, new_install: bool, includ
         output.extend(
             f"    - {RED(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_man_pages
         )
+        if not new_install:
+            output.extend(_list_completion_lines(venv))
     else:
         output.append("    apps and manual pages are not exposed")
     if include_injected and (injected_packages := venv.pipx_metadata.injected_packages):
@@ -1183,6 +1185,36 @@ class _ExposedResourceNames(NamedTuple):
     unavailable_binary_names: list[str]
     exposed_man_pages: list[str]
     unavailable_man_pages: list[str]
+
+
+def _list_completion_lines(venv: Venv) -> list[str]:
+    packages = venv.package_metadata.values()
+    expected = {name for package in packages for name in package.completions_to_expose}
+    if not expected:
+        return []
+
+    exposed: set[str] = set()
+    for package in packages:
+        for source in package.completion_paths_to_expose:
+            name = f"{source.parent.parent.name}/{source.parent.name}/{source.name}"
+            if name in expected and _completion_is_exposed(CTX.completion_dir / name, source):
+                exposed.add(name)
+    return [
+        "    Shell completions:",
+        *(f"      - {name}" for name in sorted(exposed)),
+        *(f"      - {RED(name)} (missing or pointing to unexpected location)" for name in sorted(expected - exposed)),
+    ]
+
+
+def _completion_is_exposed(destination: Path, source: Path) -> bool:
+    try:
+        if not destination.is_file():
+            return False
+        if destination.is_symlink():
+            return _link_target(destination) == source.parent.resolve() / source.name
+        return filecmp.cmp(destination, source, shallow=False)
+    except (OSError, RuntimeError):  # Path.resolve() raises RuntimeError on symlink loops before Python 3.13
+        return False
 
 
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:

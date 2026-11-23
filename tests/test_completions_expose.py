@@ -8,13 +8,16 @@ from typing import TYPE_CHECKING, Final
 import pytest
 from flit_core.wheel import make_wheel_in
 
-from harness import run_pipx_cli
+from harness import SKIP_IF_WINDOWS, run_pipx_cli
+from pipx.commands import common
 from pipx.paths import CTX
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -82,6 +85,111 @@ def test_install_exposes_the_completion_script(
 @pytest.fixture
 def completion_wheel(local_completion_wheel: Path) -> str:
     return str(local_completion_wheel)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_shows_shell_completions(completion_wheel: str, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    (CTX.completion_dir / "bash-completion/completions/local-completion").unlink()
+
+    assert not run_pipx_cli(["list"])
+    output = capsys.readouterr().out
+    assert output.splitlines()[-4:] == [
+        "    Shell completions:",
+        "      - fish/vendor_completions.d/local-completion.fish",
+        "      - zsh/site-functions/_local-completion",
+        "      - bash-completion/completions/local-completion (missing or pointing to unexpected location)",
+    ]
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_reports_completion_section_replaced_by_file(
+    completion_wheel: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    section: Final[Path] = CTX.completion_dir / "bash-completion/completions"
+    (section / "local-completion").unlink()
+    section.rmdir()
+    section.touch()
+
+    assert not run_pipx_cli(["list"])
+    assert (
+        "      - bash-completion/completions/local-completion (missing or pointing to unexpected location)\n"
+        in capsys.readouterr().out
+    )
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_reports_completion_link_to_wrong_file(completion_wheel: str, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    link: Final[Path] = CTX.completion_dir / "bash-completion/completions/local-completion"
+    other: Final[Path] = link.readlink().with_name("other-completion")
+    other.touch()
+    link.unlink()
+    link.symlink_to(other)
+
+    assert not run_pipx_cli(["list"])
+    assert (
+        "      - bash-completion/completions/local-completion (missing or pointing to unexpected location)\n"
+        in capsys.readouterr().out
+    )
+
+
+@SKIP_IF_WINDOWS
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_reports_completion_with_loop_in_source_path(
+    completion_wheel: str, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    link: Final[Path] = CTX.completion_dir / "bash-completion/completions/local-completion"
+    source: Final[Path] = link.readlink()
+    link.unlink()
+    other: Final[Path] = tmp_path / source.name
+    other.touch()
+    link.symlink_to(other)
+    source.unlink()
+    source.parent.rmdir()
+    source.parent.symlink_to(source.parent, target_is_directory=True)
+
+    assert not run_pipx_cli(["list"])
+    assert (
+        "      - bash-completion/completions/local-completion (missing or pointing to unexpected location)\n"
+        in capsys.readouterr().out
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_accepts_copied_completion(
+    completion_wheel: str, capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+) -> None:
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(common, "can_symlink", mocker.create_autospec(common.can_symlink, return_value=False))
+        assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+    assert "      - bash-completion/completions/local-completion\n" in capsys.readouterr().out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_reports_copied_completion_without_source(
+    completion_wheel: str, capsys: pytest.CaptureFixture[str], mocker: MockerFixture
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", completion_wheel])
+    capsys.readouterr()
+    (CTX.venvs / "local-completion/share/bash-completion/completions/local-completion").unlink()
+
+    assert not run_pipx_cli(["list"])
+    assert (
+        "      - bash-completion/completions/local-completion (missing or pointing to unexpected location)\n"
+        in capsys.readouterr().out
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
