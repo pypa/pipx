@@ -14,6 +14,27 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-19-1:
+
+`1.19.1 <https://github.com/pypa/pipx/tree/1.19.1>`_ - 2026-11-23
+=================================================================
+
+.. _release-1-19-1-fixed:
+
+Fixed
+-----
+
+- Return a nonzero exit code and report failed removals when ``pipx cache purge`` cannot remove a cached environment
+  (:pr:`2499`) by :user:`gaborbernat` and :user:`tolgacodes-dev`.
+
+.. _release-1-19-1-documentation:
+
+Documentation
+-------------
+
+- Preserve existing destinations in the Windows move guide and rebuild environments from the new pipx home (:pr:`2500`)
+  by :user:`gaborbernat` and :user:`xhl123XHL352`.
+
 .. _release-1-19-0:
 
 `1.19.0 <https://github.com/pypa/pipx/tree/1.19.0>`_ - 2026-11-23
