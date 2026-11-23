@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pipx.animate import animate
+from pipx.constants import ExitCode
 
 __lazy_modules__ = [
     "packaging",
@@ -8,14 +9,16 @@ __lazy_modules__ = [
     "pipx.commands.reinstall",
     "pipx.options",
     "pipx.paths",
+    "pipx.pipx_metadata_file",
     "pipx.trash",
+    "pipx.util",
     "pipx.venv",
     "subprocess",
 ]
 
 import logging
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final
 
 from packaging import version
@@ -24,12 +27,16 @@ from pipx import constants
 from pipx.commands.reinstall import reinstall
 from pipx.options import ReinstallOptions
 from pipx.paths import CTX
-from pipx.result import OperationData, OperationResult, OutputMessage
+from pipx.pipx_metadata_file import PipxMetadata
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.trash import rmdir
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from filelock import BaseFileLock
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -153,75 +160,33 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
         parsed for raw_version in latest_pythons if (parsed := _parse_python_version(raw_version)) is not None
     ]
 
-    upgraded: Final[list[tuple[str, str, version.Version]]] = []
-    venvs: list[Venv] | None = None
+    state: Final[_UpgradeState] = _UpgradeState()
+    if upgrades := _build_upgrades(parsed_latest_python_versions, state):
+        retry_only = all(upgrade.old_version == upgrade.new_version for upgrade in upgrades.values())
+        for venv_dir in venv_container.iter_venv_dirs():
+            # Metadata is replaced atomically. Check again under lock before rebuilding.
+            if not retry_only or _pending_upgrade(PipxMetadata(venv_dir), upgrades) is not None:
+                _upgrade_venv_interpreter(venv_container, venv_dir, upgrades, state, verbose=verbose)
 
-    for interpreter_dir in _installed_standalone_interpreters():
-        interpreter_python = (
-            interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
-        )
-        try:
-            interpreter_full_version = (
-                subprocess
-                .run([str(interpreter_python), "--version"], stdout=subprocess.PIPE, check=True, text=True)
-                .stdout.removeprefix("Python ")
-                .strip()
-            )
-            parsed_interpreter_full_version = version.parse(interpreter_full_version)
-        except (OSError, subprocess.CalledProcessError, version.InvalidVersion):
-            _LOGGER.info("Cannot read the interpreter version at %s. Skipping.", interpreter_dir)
-            continue
-        latest_micro_version = _latest_micro_version(parsed_interpreter_full_version, parsed_latest_python_versions)
-        if latest_micro_version > parsed_interpreter_full_version:
-            # the new build lands in py/X.Y, so venvs on a patch-pinned py/X.Y.Z build must move to it
-            upgraded_python = standalone_python.download_python_build_standalone(
-                f"{latest_micro_version.major}.{latest_micro_version.minor}",
-                override=True,
-            )
-
-            if venvs is None:
-                venvs = _venvs_using_standalone_interpreter(venv_container)
-            for venv in _interpreter_users(interpreter_dir, venvs):
-                with venv_container.venv_lock(venv.root) as venv_lock:
-                    _LOGGER.info(
-                        "Upgrade the interpreter of %s from %s to %s",
-                        venv.name,
-                        interpreter_full_version,
-                        latest_micro_version,
-                    )
-                    reinstall(
-                        venv.root,
-                        ReinstallOptions(
-                            local_bin_dir=CTX.bin_dir,
-                            local_man_dir=CTX.man_dir,
-                            python=upgraded_python,
-                            verbose=verbose,
-                            # the new build is what this rebuild is for, so a package whose Requires-Python rules it
-                            # out fails (and keeps its environment) instead of moving to another Python from PATH
-                            python_flag_passed=True,
-                        ),
-                        venv_lock=venv_lock,
-                    )
-                    upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
-
-    if upgraded:
+    if state.upgraded:
         report = "\n".join([
             "Successfully upgraded the interpreter(s):",
-            *(f" - {name}: {old} -> {new}" for name, old, new in upgraded),
+            *(f" - {item.environment}: {item.old_version} -> {item.new_version}" for item in state.upgraded),
         ])
-    else:
-        report = "Nothing to upgrade"
+        state.messages.append(OutputMessage(text=report))
+    elif not state.errors:
+        state.messages.append(OutputMessage(text="Nothing to upgrade"))
     return OperationResult(
         command=("interpreter", "upgrade"),
         data=InterpreterData(
             interpreters=(),
             removed=(),
-            upgraded=tuple(
-                _UpgradedInterpreter(environment=name, old_version=old, new_version=str(new))
-                for name, old, new in upgraded
-            ),
+            upgraded=tuple(state.upgraded),
         ),
-        messages=(OutputMessage(text=report),),
+        messages=tuple(state.messages),
+        exit_code=ExitCode(1 if state.errors else 0),
+        errors=tuple(state.errors),
+        succeeded=bool(state.upgraded),
     )
 
 
@@ -230,6 +195,59 @@ def _parse_python_version(raw_version: str) -> version.Version | None:
         return version.parse(raw_version)
     except version.InvalidVersion:
         _LOGGER.info("Invalid version found in latest pythons: %s. Skipping.", raw_version)
+        return None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _UpgradeState:
+    upgraded: list[_UpgradedInterpreter] = field(default_factory=list)
+    errors: list[OperationError] = field(default_factory=list)
+    messages: list[OutputMessage] = field(default_factory=list)
+
+
+def _build_upgrades(latest_python_versions: list[version.Version], state: _UpgradeState) -> dict[str, _BuildUpgrade]:
+    from pipx import standalone_python  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
+    # Downloading a minor build replaces it in place. Probe every cached build before any download.
+    installed = {
+        interpreter_dir.name: current
+        for interpreter_dir in _installed_standalone_interpreters()
+        if (current := _read_interpreter_version(interpreter_dir)) is not None
+    }
+    fetched: dict[tuple[int, int], str | None] = {}
+    upgrades: dict[str, _BuildUpgrade] = {}
+    for build, current in installed.items():
+        latest = _latest_micro_version(current, latest_python_versions)
+        minor = (latest.major, latest.minor)
+        minor_name = f"{latest.major}.{latest.minor}"
+        if latest <= current:
+            if build == minor_name:
+                # A previous invocation can replace the shared build before all rebuilds finish.
+                python = str(_cached_interpreter_executable(CTX.standalone_python_cachedir / build))
+                upgrades[build] = _BuildUpgrade(python=python, old_version=current, new_version=current)
+            continue
+        if minor not in fetched:
+            try:
+                fetched[minor] = standalone_python.download_python_build_standalone(
+                    minor_name, override=installed.get(minor_name) != latest
+                )
+            except (OSError, PipxError) as error:
+                _record_upgrade_error(error, subject=f"Python {latest}", environment=None, state=state)
+                fetched[minor] = None
+        if python := fetched[minor]:
+            upgrades[build] = _BuildUpgrade(python=python, old_version=current, new_version=latest)
+    return upgrades
+
+
+def _read_interpreter_version(interpreter_dir: Path) -> version.Version | None:
+    interpreter_python = _cached_interpreter_executable(interpreter_dir)
+    try:
+        reported = subprocess.run(
+            [str(interpreter_python), "--version"], stdout=subprocess.PIPE, check=True, text=True
+        ).stdout
+        return version.parse(reported.removeprefix("Python ").strip())
+    except (OSError, subprocess.CalledProcessError, version.InvalidVersion):
+        _LOGGER.info("Cannot read the interpreter version at %s. Skipping.", interpreter_dir)
         return None
 
 
@@ -243,6 +261,99 @@ def _latest_micro_version(
         ):
             return latest_python_version
     return current_version
+
+
+def _cached_interpreter_executable(interpreter_dir: Path) -> Path:
+    return interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _BuildUpgrade:
+    python: str
+    old_version: version.Version
+    new_version: version.Version
+
+
+def _record_upgrade_error(
+    error: PipxError | OSError, *, subject: str, environment: str | None, state: _UpgradeState
+) -> None:
+    text = f"Could not upgrade {subject}. {error}"
+    backend_output = error.backend_output if isinstance(error, PipxError) else ""
+    state.errors.append(
+        OperationError(
+            code="interpreter_upgrade_failed",
+            message=f"{text}\n{backend_output}" if backend_output else text,
+            environment=environment,
+        )
+    )
+    state.messages.append(OutputMessage(text=text, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+
+def _pending_upgrade(
+    metadata: PipxMetadata, upgrades: dict[str, _BuildUpgrade]
+) -> tuple[_BuildUpgrade, version.Version] | None:
+    source = metadata.source_interpreter
+    if source is None or not source.is_relative_to(CTX.standalone_python_cachedir):
+        return None
+    if (upgrade := upgrades.get(next(iter(source.relative_to(CTX.standalone_python_cachedir).parts), ""))) is None:
+        return None
+    old = upgrade.old_version
+    if isinstance(recorded := metadata.python_version, str):
+        parsed = _parse_python_version(recorded.removeprefix("Python "))
+        if parsed is not None and parsed.release[:2] == upgrade.new_version.release[:2]:
+            old = parsed
+    return (upgrade, old) if old < upgrade.new_version else None
+
+
+def _upgrade_venv_interpreter(
+    venv_container: VenvContainer,
+    venv_dir: Path,
+    upgrades: dict[str, _BuildUpgrade],
+    state: _UpgradeState,
+    *,
+    verbose: bool,
+) -> None:
+    try:
+        with venv_container.venv_lock(venv_dir) as venv_lock:
+            _rebuild_venv(venv_dir, upgrades, state, venv_lock=venv_lock, verbose=verbose)
+    except (OSError, PipxError) as error:
+        _record_upgrade_error(error, subject=venv_dir.name, environment=venv_dir.name, state=state)
+
+
+def _rebuild_venv(
+    venv_dir: Path,
+    upgrades: dict[str, _BuildUpgrade],
+    state: _UpgradeState,
+    *,
+    venv_lock: BaseFileLock,
+    verbose: bool,
+) -> None:
+    venv = Venv(venv_dir)
+    if (pending := _pending_upgrade(venv.pipx_metadata, upgrades)) is None:
+        return
+    upgrade, old_version = pending
+    _LOGGER.info("Upgrade the interpreter of %s from %s to %s", venv.name, old_version, upgrade.new_version)
+    outcome = reinstall(
+        venv_dir,
+        ReinstallOptions(
+            local_bin_dir=CTX.bin_dir,
+            local_man_dir=CTX.man_dir,
+            python=upgrade.python,
+            verbose=verbose,
+            # Requires-Python can reject this build, so do not fall back to a different interpreter.
+            python_flag_passed=True,
+        ),
+        venv_lock=venv_lock,
+    )
+    if outcome.errors:
+        state.errors.extend(outcome.errors)
+        state.messages.extend(outcome.messages)
+    else:
+        state.upgraded.append(
+            _UpgradedInterpreter(
+                environment=venv.name, old_version=str(old_version), new_version=str(upgrade.new_version)
+            )
+        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

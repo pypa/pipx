@@ -82,10 +82,13 @@ pipx unpacks each interpreter into its standalone cache. Manage them with:
     $ pipx interpreter prune
     $ pipx interpreter upgrade
 
-``interpreter upgrade`` moves every environment on a standalone build to the newest patch release of its minor version,
-including environments installed with an exact version such as ``--python 3.14.8``. If the package's newest release
-has a ``Requires-Python`` that rules out the new build, the command fails and leaves that environment where it was,
-rather than moving it to another Python.
+``interpreter upgrade`` moves environments on standalone builds to the newest patch release of their minor version,
+including environments installed with an exact version such as ``--python 3.14.8``. If a build cannot be downloaded,
+pipx reports the failure and continues with other builds. If an environment cannot be rebuilt, pipx reports it and
+continues with the other environments. This includes a package whose ``Requires-Python`` rules out the new build.
+
+The command exits with an error if any upgrade fails. Use ``--output json`` to read the failures alongside the
+completed environment upgrades. Rerun the command after resolving a failure to finish rebuilding affected environments.
 
 .. note::
 
