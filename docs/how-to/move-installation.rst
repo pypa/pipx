@@ -9,8 +9,8 @@ The snippets below move from a non-default location to the current default. To m
 
 .. warning::
 
-    The macOS and Linux snippets clear the cache, log, and trash directories (pipx recreates them). The snippets move ``PIPX_HOME``. Run
-    ``pipx reinstall-all`` afterward so every environment rebuilds at the new location.
+    The macOS and Linux snippets clear the cache, log, and trash directories. Pipx recreates them. Each snippet
+    includes ``pipx reinstall-all`` to rebuild the environments at the new location.
 
 ******
  macOS
@@ -50,21 +50,33 @@ Current default location: ``~/.local/share/pipx`` (``$XDG_DATA_HOME/pipx`` when 
  Windows
 ********
 
-Current default location: ``%LOCALAPPDATA%\pipx\pipx``.
+Current default location: ``%LOCALAPPDATA%\pipx\pipx``. Set ``$home_dir`` to your current pipx home. The example
+uses the legacy ``%USERPROFILE%\pipx`` location. For a custom destination, use an absolute path on the same drive.
+
+Pipx may have created the default destination for logs or cache files. If it holds only those files, rename the
+directory to an unused name before running the example. For any other contents, choose a different destination.
 
 .. code-block:: powershell
 
-    $NEW_LOCATION = Join-Path "$env:LOCALAPPDATA" 'pipx\pipx'
-    if (Test-Path -LiteralPath $NEW_LOCATION) {
-        throw "The destination already exists: $NEW_LOCATION. Choose an unused directory."
+    & {
+        $ErrorActionPreference = 'Stop'
+        $home_dir = Join-Path $env:USERPROFILE 'pipx'
+        $NEW_LOCATION = Join-Path $env:LOCALAPPDATA 'pipx\pipx'
+        if (Test-Path -LiteralPath $NEW_LOCATION) {
+            throw "The destination already exists: $NEW_LOCATION. Choose an unused directory."
+        }
+
+        [System.IO.Directory]::CreateDirectory((Split-Path -Parent $NEW_LOCATION)) | Out-Null
+        [System.IO.Directory]::Move($home_dir, $NEW_LOCATION)
+
+        $env:PIPX_HOME = $NEW_LOCATION
+        pipx reinstall-all
     }
-    $home_dir = pipx environment --value PIPX_HOME
 
-    New-Item -ItemType Directory -Force (Split-Path -Parent $NEW_LOCATION) | Out-Null
-    Move-Item -LiteralPath $home_dir -Destination $NEW_LOCATION -ErrorAction Stop
-    pipx reinstall-all
+The example sets ``PIPX_HOME`` for the current session. Save the new path in your user environment variables if
+you have a custom destination, a saved ``PIPX_HOME``, or a remaining :ref:`legacy home <platformdirs-migration>`.
 
-To move it from Git Bash or WSL instead, follow the macOS/Linux steps and set ``NEW_LOCATION`` to the Windows path.
+From Git Bash or WSL, open Windows PowerShell and follow these steps to move a Windows pipx installation.
 
 **********
  Verify it
