@@ -10,6 +10,9 @@ exits non-zero. The named codes below come from ``pipx.constants``; each maps to
 interpreter belongs to that environment. With ``--output json``, failed environments appear in ``errors`` and only
 successfully reinstalled environments appear in ``data.environments``.
 
+``cache purge`` exits with ``1`` if it fails to remove a cached environment. See :doc:`json-output` for the result
+format.
+
 .. list-table::
     :header-rows: 1
     :widths: 12 48 40
