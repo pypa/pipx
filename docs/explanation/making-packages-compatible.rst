@@ -126,11 +126,75 @@ works even though ``build`` names its console script ``pyproject-build``.
 Read more about entry points in the `setuptools quickstart
 <https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`__.
 
-Manual pages
-============
+Manual pages and shell completions
+==================================
 
-To provide documentation via ``man`` pages on UNIX-like systems, ship them as data files. pipx exposes them the same way
-it exposes apps.
+On UNIX-like systems, pipx can also expose ``man`` pages and shell completion scripts for the apps
+provided by the package; those should be shipped in the package as *data files*, that will be
+installed in a ``share/`` directory in the python virtual environment used for the package.
+
+.. note::
+
+    Shell completion scripts are supported by pipx starting from version 1.16.0.
+
+At install time, pipx will install the data files and make sure that these are correctly *exposed*,
+so that the ``man`` command can find the provided man pages, and the user's shell can use the
+completion script for the apps provided by the package. This is implemented by symlinking them into
+the proper directories: ``PIPX_MAN_DIR`` (default: ``~/.local/share/man``) and
+``PIPX_COMPLETION_DIR`` (default: ``~/.local/share``).
+
+.. list-table::
+    :header-rows: 1
+    :widths: 40 40 20
+
+    - - Shipped by the package
+      - Exposed to
+      - Used by
+    - - ``share/man/``
+      - ``~/.local/share/man/``
+      - man
+    - - ``share/bash-completion/completions/``
+      - ``~/.local/share/bash-completion/completions/``
+      - bash
+    - - ``share/fish/vendor_completions.d/``
+      - ``~/.local/share/fish/vendor_completions.d/``
+      - fish
+    - - ``share/zsh/site-functions/``
+      - ``~/.local/share/zsh/site-functions/``
+      - zsh
+
+.. note::
+    Completion scripts for ``zsh`` require a change in the user's ``~/.zshrc`` to be activated, see
+    the instructions in :doc:`../how-to/shell-completions`
+
+Data files are included in python wheel packages using the standard *packagename-version.data/data* directory,
+as defined by the `wheel distribution format
+<https://packaging.python.org/en/latest/specifications/binary-distribution-format/#the-data-directory>`__.
+
+Below you can find configuration examples for different *build backends* to make sure that data files
+are packaged into the proper directories, so that pipx will be able to find them, install them
+and expose them correctly.
+
+The examples assume that the package build procedure creates data files in a ``build`` subtree
+having the same structure that will be replicated in the root of the python environment:
+
+.. code-block:: text
+
+  ./build
+      |
+      /share
+        |
+        /man/man1/myapp.1
+        |
+        /bash-completion/completions/myapp
+        |
+        /fish/vendor_completions.d/myapp.fish
+        |
+        /zsh/site-functions/_myapp
+
+This is the easiest way to make sure that data files will be installed in the correct locations, it
+requires minimal configuration and it's supported by all major build backends (some of them actually
+*require* it, others allow for greater flexibility in file arrangement, see the notes below).
 
 .. tab-set::
 
@@ -140,31 +204,39 @@ it exposes apps.
 
             # pyproject.toml
             [tool.setuptools.data-files]
-            "share/man/man1" = [
-              "manpage.1",
-            ]
+            "share/man/man1" = ["build/share/man/man1/myapp.1"]
+            "share/bash-completion/completions" = ["build/share/bash-completion/completions/myapp"]
+            "share/fish/vendor_completions.d" = ["build/share/fish/vendor_completions.d/myapp.fish"]
+            "share/zsh/site-functions" = ["build/share/zsh/site-functions/_myapp"]
 
         .. code-block:: ini
 
             # setup.cfg
             [options.data_files]
-            share/man/man1 =
-                manpage.1
+            share/man/man1 = build/share/man/man1/myapp.1
+            share/bash-completion/completions = build/share/bash-completion/completions/myapp
+            share/fish/vendor_completions.d = build/share/fish/vendor_completions.d/myapp.fish
+            share/zsh/site-functions = build/share/zsh/site-functions/_myapp
 
         .. code-block:: python
 
             # setup.py
             setup(
-                # other arguments here...
-                data_files=[("share/man/man1", ["manpage.1"])],
+                data_files=[
+                    ("share/man/man1", ["build/share/man/man1/myapp.1"]),
+                    ("share/bash-completion/completions", ["build/share/bash-completion/completions/myapp"]),
+                    ("share/fish/vendor_completions.d", ["build/share/fish/vendor_completions.d/myapp.fish"]),
+                    ("share/zsh/site-functions", ["build/share/zsh/site-functions/_myapp"])
+                ],
             )
 
-        .. warning::
+        .. note::
 
-            The `setuptools documentation
-            <https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration>`_
-            calls the ``data-files`` keyword "discouraged", but it has no alternative when you need to ship ``man``
-            pages.
+            ``setuptools`` requires a configuration setting *for each data file*, there is no way to
+            configure the whole ``share`` tree as a data file source. Also, the `setuptools documentation
+            <https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration>`__
+            calls the ``data-files`` keyword "discouraged", but it has no alternative when you need to ship files to
+            be installed in the target environment but outside the package tree.
 
     .. tab-item:: pdm-backend
 
@@ -172,57 +244,66 @@ it exposes apps.
 
             # pyproject.toml
             [tool.pdm.build]
-            source-includes = ["share"]
+            source-includes = ["build/share"]
 
             [tool.pdm.build.wheel-data]
             data = [
-              { path = "share/man/man1/*", relative-to = "." },
+              { path = "build/share/**/*", relative-to = "build/" },
             ]
 
-After installing the package, ``man manpage`` opens ``manpage.1``. For a real-world example, see `pycowsay's setup.py
-<https://github.com/cs01/pycowsay/blob/master/setup.py>`_.
+        .. note::
 
-Shell completions
-=================
+            Optionally, ``pdm-backend`` allows to use more ``{ path = ... }`` directives, if you prefer
+            to map each data file/directory explicitly.
 
-A package can ship the completion script for its own command the same way it ships a man page. pipx picks up the three
-directories a wheel installs completion scripts into and links each one under ``PIPX_COMPLETION_DIR`` (default
-``~/.local/share``), so the completions arrive with the package and leave with it.
+            For more information and examples, see: `PDM-Backend - Wheel data files
+            <https://backend.pdm-project.org/build_config/#wheel-data-files>`__
 
-.. list-table::
-    :header-rows: 1
-    :widths: 40 40 20
+    .. tab-item:: uv_build
 
-    - - Shipped by the package
-      - Exposed to
-      - Loaded by
-    - - ``share/bash-completion/completions/``
-      - ``~/.local/share/bash-completion/completions/``
-      - bash
-    - - ``share/fish/vendor_completions.d/``
-      - ``~/.local/share/fish/vendor_completions.d/``
-      - fish
-    - - ``share/zsh/site-functions/``
-      - ``~/.local/share/zsh/site-functions/``
-      - zsh (with the directory on ``fpath``)
+        .. code-block:: toml
 
-Declare them through the data files of your build backend, exactly as with man pages:
+            # pyproject.toml
+            [tool.uv.build-backend]
+            data = { data = "build" }
 
-.. code-block:: python
+        .. note::
 
-    setup(
-        name="your-tool",
-        data_files=[
-            ("share/bash-completion/completions", ["completions/your-tool"]),
-            ("share/zsh/site-functions", ["completions/_your-tool"]),
-            ("share/fish/vendor_completions.d", ["completions/your-tool.fish"]),
-        ],
-    )
+            ``uv_build`` requires to indicate the directory *whose contents* will be shipped
+            (i.e. ``build`` in our example, so that the ``share`` subtree will be shipped).
 
-See :doc:`../how-to/shell-completions` for how each shell loads these directories.
+            For more information and examples, see:
 
-Read more about entry points in the `setuptools quickstart
-<https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation>`_.
+            * `The uv build backend - file inclusion and exclusion
+              <https://docs.astral.sh/uv/concepts/build-backend/#file-inclusion-and-exclusion>`__
+            * `The uv build backend - the "data" setting
+              <https://docs.astral.sh/uv/reference/settings/#build-backend_data>`__
+
+    .. tab-item:: hatchling.build
+
+        .. code-block:: toml
+
+            # pyproject.toml
+            #
+            # Include the "build/share" tree in the sdist package; this is needed
+            # since "build" is usually in .gitignore, so it would be excluded from
+            # the package
+            [tool.hatch.build.targets.sdist]
+            artifacts = ["build/share"]
+
+            # Include the "share" subtree in the wheel data.data dir
+            [tool.hatch.build.targets.wheel.shared-data]
+            "build/share" = "share"
+
+        .. note::
+
+            ``hatchling.build`` also allows to freely arrange the data files in the package building
+            environment and map each file to its specific destination.
+
+            For more information and examples, see:
+
+            * `hatch - Build configuration <https://hatch.pypa.io/latest/config/build/>`__
+            * `hatch - Wheel builder <https://hatch.pypa.io/latest/plugins/builder/wheel/>`__
 
 Detect a pipx installation
 ==========================
