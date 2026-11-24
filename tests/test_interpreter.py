@@ -56,6 +56,16 @@ def test_get_default_python_resolves_configured_value(monkeypatch: pytest.Monkey
     assert pipx.interpreter.get_default_python() == str(Path(sys.executable).resolve())
 
 
+@pytest.mark.usefixtures("uncached_default_python")
+def test_get_default_python_treats_empty_value_as_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PIPX_DEFAULT_PYTHON", raising=False)
+    unset: Final[str] = pipx.interpreter.get_default_python()
+    pipx.interpreter.get_default_python.cache_clear()
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", "")
+
+    assert pipx.interpreter.get_default_python() == unset
+
+
 def test_has_venv_leaves_venv_unimported() -> None:
     result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
         [
