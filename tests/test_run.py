@@ -1351,6 +1351,39 @@ def test_run_local_path_entry_point(
     assert "Using discovered entry point for 'pipx run'" in caplog.text
 
 
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_local_dir_without_special_chars_infers_app(
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    backend: str,
+) -> None:
+    # A lowercase-and-hyphen relative dir path like dist/my-app has canonicalize_name(app) == app;
+    # pipx must still treat it as a local target so it infers the sole entry point instead of looking up 'dist/my-app'.
+    project_dir: Final[Path] = tmp_path / "dist" / "my-app"
+    shutil.copytree(root / "testdata" / "empty_project", project_dir)
+    pyproject: Final[Path] = project_dir / "pyproject.toml"
+    declared: Final[str] = (
+        'scripts.empty-project = "empty_project.main:cli"\n'
+        'entry-points."pipx.run".empty-project = "empty_project.main:cli"'
+    )
+    pyproject.write_text(pyproject.read_text().replace(declared, 'scripts.renamed = "empty_project.main:main"'))
+    monkeypatch.chdir(tmp_path)
+    caplog.set_level(logging.INFO)
+
+    target: Final[str] = f"dist{os.sep}my-app"
+    run_pipx_cli_exit(["run", "--backend", backend, target], assert_exit=0)
+
+    assert "NOTE: running app 'renamed' from 'empty-project'" in capsys.readouterr().out
+
+    run_pipx_cli_exit(["run", "--backend", backend, target], assert_exit=0)
+    assert "Reusing cached venv" in caplog.text
+
+
 @pytest.fixture
 def vcs_project(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str, str], str]:
     def create(old: str, new: str) -> str:
