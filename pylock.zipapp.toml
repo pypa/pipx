@@ -90,28 +90,28 @@ sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"
 
 [[packages]]
 name = "filelock"
-version = "4.2.10"
+version = "4.2.11"
 marker = "\"project-runtime\" in dependency_groups"
 requires-python = ">=3.11"
 index = "https://pypi.org/simple/"
 
 [packages.sdist]
-name = "filelock-4.2.10.tar.gz"
-upload-time = 2026-11-09T18:58:00.540598+00:00
-url = "https://files.pythonhosted.org/packages/a1/cf/05bcdacabdc0aec7dc8e19d76281bd82325df62dae3b6430e9ba57397689/filelock-4.2.10.tar.gz"
-size = 670595
+name = "filelock-4.2.11.tar.gz"
+upload-time = 2026-11-17T06:35:26.056585+00:00
+url = "https://files.pythonhosted.org/packages/bf/9d/7ec738e68764703d07eb4da4b43aabf0ae6f969f34cb3792a88af400abc5/filelock-4.2.11.tar.gz"
+size = 680235
 
 [packages.sdist.hashes]
-sha256 = "fcc3c0cb8bfe7f4b3bb0e231c04b15dbad068cb3c2515f343d8fde4dce93bd5d"
+sha256 = "0cb84119fb8dce17898e1f69c974d5019daa59c4d7656be390a5fa59ccced912"
 
 [[packages.wheels]]
-name = "filelock-4.2.10-py3-none-any.whl"
-upload-time = 2026-11-09T18:57:59.088963+00:00
-url = "https://files.pythonhosted.org/packages/ef/90/5d0096a325aa0f83ba7a3968bfb485b67e32c947bdf9cd0fcb4b485be718/filelock-4.2.10-py3-none-any.whl"
-size = 218040
+name = "filelock-4.2.11-py3-none-any.whl"
+upload-time = 2026-11-17T06:35:24.668005+00:00
+url = "https://files.pythonhosted.org/packages/ed/50/efc158a54b0046104b546f24b28ca1bf25b72969adb960032252a1687a96/filelock-4.2.11-py3-none-any.whl"
+size = 222003
 
 [packages.wheels.hashes]
-sha256 = "9479aaeb4db20b5a53e3da28493edd24720b66b8a0b84030aa56ccdf243d6857"
+sha256 = "020e229e4bb9d410fc799c07ddf45fa217cba970278f40b30751d94f309b69e2"
 
 [[packages]]
 name = "packaging"
@@ -192,8 +192,8 @@ size = 9065
 sha256 = "2cbf01a23d655a1ff8fc166dfb78da1b641d1ceabf0fe5f970767d380b14e89d"
 
 [tool.nab]
-nab-version = "0.0.28"
-created-at = 2026-11-17T08:04:05.465875+00:00
+nab-version = "0.0.30"
+created-at = 2026-11-24T08:04:19.675873+00:00
 command-line = [
     "nab",
     "lock",
@@ -227,6 +227,6 @@ cli-project-overrides = [
 
 [tool.nab.validation]
 version = 1
-all-inputs-sha256 = "2da6563049a3cfcc9434cf1421fcef2ecb0aec8169eacf9d70855302874b8fe0"
-selection-inputs-sha256 = "f94a9af3fe379bc678900eb3021b3fec1b59d9f8eb3a3c3d14ce98233531a31c"
-contents-sha256 = "530719d7ffb568445627ca25e9a2be4285dc75dc6dba02d6c210ead799a4ba98"
+all-inputs-sha256 = "5c35c71fa2e9c69c33cbcb08a51177248ad35770dd30fea96895c61ac4aff23e"
+selection-inputs-sha256 = "ab22db3ba8ec25bba763aac3fbcbff144aa2da5b9a9efea179571e4d4c0455a7"
+contents-sha256 = "fa120e168dfb6562155f1c69159b1f8deb4d01fb26000a2cc5c17c08b76496e8"
