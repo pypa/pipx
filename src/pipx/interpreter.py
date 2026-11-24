@@ -301,7 +301,7 @@ def read_pyvenv_cfg(pyvenv_cfg: Path) -> dict[str, str]:
     :param pyvenv_cfg: the file to read.
     :returns: the keys and values, empty when the file cannot be read.
     """
-    config: Final[ConfigParser] = ConfigParser()
+    config: Final[ConfigParser] = ConfigParser(interpolation=None)
     try:
         # pyvenv.cfg has no section header, which ConfigParser requires
         config.read_string(f"[DEFAULT]\n{pyvenv_cfg.read_text(encoding='utf-8')}")
