@@ -148,15 +148,6 @@ def _is_path_or_url(value: str) -> bool:
         return False
 
 
-def _is_vcs_url(value: str) -> bool:
-    try:
-        scheme: Final[str] = urllib.parse.urlparse(value).scheme
-    except ValueError:
-        return False
-    vcs, separator, _ = scheme.partition("+")
-    return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
-
-
 def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
     if spec is None:
         return True
@@ -215,6 +206,15 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
         return download_script(app)
 
     return None
+
+
+def _is_vcs_url(value: str) -> bool:
+    try:
+        scheme: Final[str] = urllib.parse.urlparse(value).scheme
+    except ValueError:
+        return False
+    vcs, separator, _ = scheme.partition("+")
+    return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
 
 
 def _run_script(
