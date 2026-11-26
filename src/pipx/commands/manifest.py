@@ -124,7 +124,7 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
     except FileNotFoundError as error:
         msg = f"Manifest does not exist: {path}"
         raise PipxError(msg) from error
-    except (OSError, tomllib.TOMLDecodeError) as error:
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         msg = f"Cannot read manifest {path}: {error}"
         raise PipxError(msg) from error
 

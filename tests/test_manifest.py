@@ -435,6 +435,11 @@ def test_sync_manifest_rejects_invalid_input(
     [
         pytest.param(lambda _: None, "does not exist", id="missing"),
         pytest.param(Path.mkdir, "Cannot read manifest", id="directory"),
+        pytest.param(
+            lambda path: path.write_bytes('[project]\nname = "caf\u00e9"\n'.encode("latin-1")),
+            "Cannot read manifest",
+            id="not-utf-8",
+        ),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
