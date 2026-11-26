@@ -526,7 +526,8 @@ def _exec_script(
     if isinstance(content, Path):
         exec_app([python_path, *python_args, content, *app_args])
     else:
-        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
+        # Python skips a UTF-8 byte order mark that starts a file, but reads one in -c source as a syntax error
+        exec_app([python_path, "-P", *python_args, "-c", content.removeprefix("\ufeff"), *app_args])
 
 
 @contextmanager
