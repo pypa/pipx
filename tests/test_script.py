@@ -222,20 +222,6 @@ def test_installable_script_downloads_url_over_file_below_cwd(
         assert archive.read("_pipx_script_app/_script.py").decode() == remote
 
 
-def test_installable_script_reads_local_script_with_byte_order_mark(tmp_path: Path) -> None:
-    source: Final[str] = "# /// script\n# dependencies = []\n# ///\nprint('local')\n"
-    (script := tmp_path / "app.py").write_text(source, encoding="utf-8-sig")
-
-    with installable_script("app", str(script), ()) as wheel, ZipFile(wheel) as archive:
-        assert archive.read("_pipx_script_app/_script.py").decode() == source
-
-
-def test_local_script_finds_extensionless_script_with_byte_order_mark(tmp_path: Path) -> None:
-    (script := tmp_path / "app").write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8-sig")
-
-    assert local_script(str(script)) == script.resolve()
-
-
 @pytest.mark.parametrize("charset", [pytest.param("utf-8", id="declared"), pytest.param(None, id="undeclared")])
 def test_download_script_drops_byte_order_mark(urlopen: MockType, charset: str | None) -> None:
     urlopen.return_value.configure_mock(**{

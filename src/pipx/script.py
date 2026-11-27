@@ -135,10 +135,10 @@ def local_script(package_spec: str) -> Path | None:
 
 def _has_inline_script_metadata(path: Path) -> bool:
     try:
-        content: Final[str] = path.read_text(encoding="utf-8-sig")
+        content: Final[str] = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return False
-    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content))
+    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("﻿")))
 
 
 def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
@@ -150,10 +150,10 @@ def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
 
 def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
     content: Final[str] = (
-        script.read_text(encoding="utf-8-sig")
+        script.read_text(encoding="utf-8")
         if (script := local_script(package_or_url)) is not None
         else download_script(package_or_url)
-    )
+    ).removeprefix("﻿")
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
@@ -214,8 +214,10 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     :raises PipxError: when the metadata cannot be parsed.
     """
     normalized_text: Final[str] = (
-        content.read_text(encoding="utf-8-sig") if isinstance(content, Path) else content
-    ).replace("\r\n", "\n")
+        (content.read_text(encoding="utf-8") if isinstance(content, Path) else content)
+        .removeprefix("﻿")
+        .replace("\r\n", "\n")
+    )
     matches: Final[list[re.Match[str]]] = [
         match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
     ]
