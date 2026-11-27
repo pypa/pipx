@@ -173,7 +173,7 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
         return app_path
     # a named pipe yields its content once, so read it here for both the metadata check and the interpreter
     if local_path and app_path.is_fifo():
-        return app_path.read_text(encoding="utf-8")
+        return app_path.read_text(encoding="utf-8-sig")
 
     if is_path:
         msg = f"The specified path {app} does not exist"
@@ -526,8 +526,7 @@ def _exec_script(
     if isinstance(content, Path):
         exec_app([python_path, *python_args, content, *app_args])
     else:
-        # Python skips a UTF-8 byte order mark that starts a file, but reads one in -c source as a syntax error
-        exec_app([python_path, "-P", *python_args, "-c", content.removeprefix("\ufeff"), *app_args])
+        exec_app([python_path, "-P", *python_args, "-c", content, *app_args])
 
 
 @contextmanager

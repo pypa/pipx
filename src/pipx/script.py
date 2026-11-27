@@ -135,10 +135,10 @@ def local_script(package_spec: str) -> Path | None:
 
 def _has_inline_script_metadata(path: Path) -> bool:
     try:
-        content: Final[str] = path.read_text(encoding="utf-8")
+        content: Final[str] = path.read_text(encoding="utf-8-sig")
     except UnicodeDecodeError:
         return False
-    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("﻿")))
+    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content))
 
 
 def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
@@ -150,10 +150,10 @@ def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
 
 def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
     content: Final[str] = (
-        script.read_text(encoding="utf-8")
+        script.read_text(encoding="utf-8-sig")
         if (script := local_script(package_or_url)) is not None
         else download_script(package_or_url)
-    ).removeprefix("﻿")
+    )
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
@@ -185,7 +185,9 @@ def download_script(url: str) -> str:
         with urlopen(url, timeout=30) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
             data: Final[bytes] = response.read(_MAX_SCRIPT_BYTES + 1)
             _reject_incomplete_script(url, response, data)
-            return data.decode(response.headers.get_content_charset() or "utf-8")
+            # Python reads a byte order mark at the start of a source file as an encoding marker; the script's text
+            # must not carry it, as ``python -c`` rejects it as a character
+            return data.decode(response.headers.get_content_charset() or "utf-8").removeprefix("\ufeff")
     # a body in another encoding than declared or an unknown charset name fails the decode, not the download
     except (OSError, HTTPException, UnicodeDecodeError, LookupError) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
@@ -212,10 +214,8 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     :raises PipxError: when the metadata cannot be parsed.
     """
     normalized_text: Final[str] = (
-        (content.read_text(encoding="utf-8") if isinstance(content, Path) else content)
-        .removeprefix("﻿")
-        .replace("\r\n", "\n")
-    )
+        content.read_text(encoding="utf-8-sig") if isinstance(content, Path) else content
+    ).replace("\r\n", "\n")
     matches: Final[list[re.Match[str]]] = [
         match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
     ]
