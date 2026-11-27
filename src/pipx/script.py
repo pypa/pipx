@@ -90,7 +90,10 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
     try:
         return canonicalize_name(app, validate=True)
     except InvalidName as error:
-        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
+        msg = (
+            f"Invalid script app name {app!r}: use ASCII letters, digits, '.', '_' and '-', and start and end with a"
+            " letter or digit. Pass --app to choose another name."
+        )
         raise PipxError(msg) from error
 
 

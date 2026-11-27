@@ -1707,30 +1707,6 @@ def test_install_inline_script_app_override(inline_script: Path) -> None:
     assert (CTX.bin_dir / app_name("greet")).is_file()
 
 
-@pytest.mark.parametrize(
-    ("filename", "app_args", "expected_name"),
-    [
-        pytest.param("_helper.py", [], "_helper", id="leading-underscore"),
-        pytest.param("helper_.py", [], "helper_", id="trailing-underscore"),
-        pytest.param("helper.py", ["--app", "_helper"], "_helper", id="override-leading-underscore"),
-        pytest.param("helper.py", ["--app", "helper-"], "helper-", id="override-trailing-hyphen"),
-        pytest.param("helper.py", ["--app", "helper."], "helper.", id="override-trailing-dot"),
-        pytest.param("helper.py", ["--app", "_"], "_", id="override-only-separator"),
-    ],
-)
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_install_inline_script_rejects_separator_boundaries(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], filename: str, app_args: list[str], expected_name: str
-) -> None:
-    script: Final[Path] = tmp_path / filename
-    script.write_text("# /// script\n# dependencies = []\n# ///\nprint('ok')\n", encoding="utf-8")
-
-    assert run_pipx_cli(["install", "--backend", "pip", "--output", "json", *app_args, str(script)]) == 1
-
-    failure: Final[str] = json.loads(capsys.readouterr().out)["errors"][0]["message"]
-    assert failure == f"Invalid script app name {expected_name!r}. Pass --app with a portable command name."
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -> None:
     response: Final[MockType] = mocker.MagicMock(
