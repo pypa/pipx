@@ -93,9 +93,11 @@ copybutton_prompt_is_regexp: Final[bool] = False
 # the clone depth and degrades to the build date otherwise.
 suppress_warnings = ["git.too_shallow"]
 
-# sphinx-reredirects maps a moved page's old docname to its new location. The MkDocs-to-Sphinx move kept every docname,
-# so there is nothing to redirect yet; add an entry here whenever a page's path changes.
-redirects: Final[dict[str, str]] = {}
+# sphinx-reredirects maps a moved page's old docname to its new location; add an entry here whenever a page's path
+# changes.
+redirects: Final[dict[str, str]] = {
+    "explanation/making-packages-compatible": "../how-to/make-packages-compatible.html",
+}
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 nitpicky: Final[bool] = True

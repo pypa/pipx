@@ -82,7 +82,7 @@ Run the one you want with ``--spec``:
     $ pipx run --spec esptool==4.6.2 esptool.py
 
 Package authors can remove this requirement by declaring a :doc:`pipx.run entry point
-<../explanation/making-packages-compatible>` in their metadata.
+<../how-to/make-packages-compatible>` in their metadata.
 
 .. _tutorial-run-cache:
 

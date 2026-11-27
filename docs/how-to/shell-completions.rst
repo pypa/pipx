@@ -14,16 +14,15 @@ Print the instructions for your shell and follow them:
 
     $ pipx completions
 
-To verify if the setup is correct: open a new shell and press ``Tab`` after typing ``pipx``; you
-should see a list of pipx subcommands available for completion.
+To check the setup, open a new shell and press ``Tab`` after typing ``pipx``. The shell lists the pipx subcommands.
 
 *******************************
  Completions for installed apps
 *******************************
 
-A package can ship the completion script for its own app, in the same way it ships a man page.
-To make the script available to the user, pipx *exposes* it by linking it into the proper directory,
-and keeps track of it, so the completions arrive with the package and leave with it.
+A package can ship the completion script for its own app, the way it ships a man page. pipx *exposes* the script by
+linking or copying it into the directory your shell reads, and tracks it, so the completions arrive with the package and
+leave with it.
 
 Run ``pipx list`` to see which completion scripts each environment exposes and which are missing or misplaced.
 
@@ -57,6 +56,4 @@ bash and fish read their directories without further help. zsh needs the directo
 ``pipx uninstall`` takes the links away, and ``pipx unexpose`` removes them while leaving the package in place (see
 :doc:`expose-apps`).
 
-.. note::
-   For package developers: you can learn how to ship completions for your apps in a pipx-friendly way at
-   :doc:`../explanation/making-packages-compatible`
+To ship completion scripts from your own package, see :doc:`make-packages-compatible`.
