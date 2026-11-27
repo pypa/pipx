@@ -14,6 +14,17 @@ user after running:
 
     $ pipx install MY_PACKAGE
 
+At any time, you can check the state of exposed resources for each package installed with pipx by
+running:
+
+.. code-block:: console
+
+    $ pipx list
+
+.. note::
+
+    The state of available shell completion scripts is reported by pipx starting from version 1.19.0.
+
 Package apps
 ============
 
@@ -305,6 +316,15 @@ requires minimal configuration and it's supported by all major build backends (s
             * `hatch - Build configuration <https://hatch.pypa.io/latest/config/build/>`__
             * `hatch - Wheel builder <https://hatch.pypa.io/latest/plugins/builder/wheel/>`__
 
+.. warning::
+   So far, the ``poetry`` project management tool doesn't support shipping data files (see
+   `this issue <https://github.com/python-poetry/poetry/issues/8867>`__) when using the internal
+   ``poetry-core`` build backend, but only allows exposing package apps through the
+   ``project.scripts`` directive described above. You can ship man pages and/or shell completion
+   scripts while using ``poetry`` by choosing an alternate build backend (e.g. ``hatchling.build``)
+   via the `build-system.build-backend directive
+   <https://python-poetry.org/docs/pyproject/#poetry-and-pep-517>`__.
+
 Detect a pipx installation
 ==========================
 
@@ -312,6 +332,7 @@ The ``pipx_metadata.json`` file at the root of each environment in which a packa
 by pipx, contains information about the environment itself, e.g. its name, apps and dependencies names and
 paths, etc. Developers can use this information in their code to provide more specific messages to the user
 (e.g. mentioning the name of the environment where the package is currently installed).
+For more information about the metadata file, see :doc:`../reference/metadata`.
 
 The following example shows how a developer can query pipx metadata for the environment name, which
 can then be used to give pipx-specific recovery instructions to the user:
