@@ -81,7 +81,8 @@ directories, wheels, and git URLs. Any package that declares `console script ent
  Highlights
 ***********
 
-- Install CLI apps into isolated environments with ``pipx install``.
+- Install CLI apps into isolated environments with ``pipx install``, with access to related man
+  pages and shell completion scripts.
 - List, upgrade, and uninstall managed apps in one command.
 - Run the latest version of any app in a temporary environment with ``pipx run``, without installing it first.
 
