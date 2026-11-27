@@ -336,4 +336,3 @@ pipx records the extra on the main package, so reinstalling the environment reta
 
 ``pipx run`` may create internal metadata without setting ``environment``, so you have to check the
 field value and if the function returns ``None``, show the package's usual installer-neutral advice.
-
