@@ -14,12 +14,16 @@ Print the instructions for your shell and follow them:
 
     $ pipx completions
 
+To verify if the setup is correct: open a new shell and press ``Tab`` after typing ``pipx``; you
+should see a list of pipx subcommands available for completion.
+
 *******************************
  Completions for installed apps
 *******************************
 
-A package can ship the completion script for its own command, the way it ships a man page. pipx links that script out
-of the environment it installed into, so the completions arrive with the package and leave with it.
+A package can ship the completion script for its own app, in the same way it ships a man page.
+To make the script available to the user, pipx *exposes* it by linking it into the proper directory,
+and keeps track of it, so the completions arrive with the package and leave with it.
 
 Run ``pipx list`` to see which completion scripts each environment exposes and which are missing or misplaced.
 
@@ -53,26 +57,6 @@ bash and fish read their directories without further help. zsh needs the directo
 ``pipx uninstall`` takes the links away, and ``pipx unexpose`` removes them while leaving the package in place (see
 :doc:`expose-apps`).
 
-***********************************
- Ship completions from your package
-***********************************
-
-Install completion scripts through your build backend's data files. With `setuptools
-<https://setuptools.pypa.io/>`__:
-
-.. code-block:: python
-
-    setup(
-        name="your-tool",
-        data_files=[
-            ("share/bash-completion/completions", ["completions/your-tool"]),
-            ("share/zsh/site-functions", ["completions/_your-tool"]),
-            ("share/fish/vendor_completions.d", ["completions/your-tool.fish"]),
-        ],
-    )
-
-**********
- Verify it
-**********
-
-Open a new shell and press ``Tab`` after typing ``pipx``. The subcommands complete when the setup took effect.
+.. note::
+   For package developers: you can learn how to ship completions for your apps in a pipx-friendly way at
+   :doc:`../explanation/making-packages-compatible`
