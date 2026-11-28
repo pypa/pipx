@@ -239,15 +239,20 @@ def test_installable_script_rejects_name_mismatch() -> None:
 
 
 @pytest.mark.parametrize(
-    ("expected_apps", "message"),
+    ("spec", "expected_apps", "message"),
     [
-        pytest.param(("first", "second"), "one --app", id="multiple"),
-        pytest.param(("bad/app",), "portable command name", id="invalid"),
+        pytest.param("https://example.invalid/app.py", ("first", "second"), "one --app", id="multiple"),
+        pytest.param("https://example.invalid/app.py", ("bad/app",), "'bad/app'", id="slash"),
+        pytest.param("https://example.invalid/_helper.py", (), "'_helper'", id="leading-underscore"),
+        pytest.param("https://example.invalid/helper_.py", (), "'helper_'", id="trailing-underscore"),
+        pytest.param("https://example.invalid/app.py", ("helper-",), "'helper-'", id="trailing-hyphen"),
+        pytest.param("https://example.invalid/app.py", ("helper.",), r"'helper\.'", id="trailing-dot"),
+        pytest.param("https://example.invalid/app.py", ("_",), "'_'", id="only-separator"),
     ],
 )
-def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: str) -> None:
+def test_script_name_from_spec_invalid(spec: str, expected_apps: tuple[str, ...], message: str) -> None:
     with pytest.raises(PipxError, match=message):
-        script_name_from_spec("https://example.invalid/app.py", expected_apps)
+        script_name_from_spec(spec, expected_apps)
 
 
 def test_download_script_bounds_the_response_size(urlopen: MockType) -> None:

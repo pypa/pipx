@@ -49,12 +49,13 @@ Install from a :pep:`723` script or a lock file:
     pipx install --lock pylock.toml .
 
 For a local script, the filename without its extension supplies the command name. A script without the ``.py``
-extension needs a path such as ``./script``; a bare ``script`` names the package on the index. Pass ``--app`` to choose
-a different name:
+extension needs a path such as ``./script``; a bare ``script`` names the package on the index. The command name must
+start and end with an ASCII letter or digit and can contain periods, underscores, and hyphens between them. Use
+``--app`` to choose a valid command name for a file such as ``_helper.py``:
 
 .. code-block:: bash
 
-    pipx install --app greet ./script.py
+    pipx install --app helper ./_helper.py
 
 Pass arguments through to `pip <https://pip.pypa.io>`_, or install globally for all users:
 

@@ -24,7 +24,7 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Final, cast
 
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
-from packaging.utils import canonicalize_name
+from packaging.utils import InvalidName, canonicalize_name
 
 from pipx.redact import redact_url_credentials
 from pipx.util import PipxError
@@ -46,7 +46,6 @@ _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE | re.MULTILINE,
 )
-_SCRIPT_APP: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _DISTRIBUTION_SEPARATOR: Final[re.Pattern[str]] = re.compile(r"[-_.]+")
 
 
@@ -80,7 +79,7 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
     :param package_spec: the package spec, which may be a script.
     :param expected_apps: the apps the user expects, at most one.
     :returns: the canonical name of the script, or None when the spec is not a script.
-    :raises PipxError: when more than one app is expected or the app name is not portable.
+    :raises PipxError: when more than one app is expected or the app name is not a valid distribution name.
     """
     if not is_script_spec(package_spec):
         return None
@@ -88,10 +87,14 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
         msg = "A script can provide one --app name."
         raise PipxError(msg)
     app: Final[str] = _script_app(package_spec, expected_apps)
-    if _SCRIPT_APP.fullmatch(app) is None:
-        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
-        raise PipxError(msg)
-    return canonicalize_name(app)
+    try:
+        return canonicalize_name(app, validate=True)
+    except InvalidName as error:
+        msg = (
+            f"Invalid script app name {app!r}: use ASCII letters, digits, '.', '_' and '-', and start and end with a"
+            " letter or digit. Pass --app to choose another name."
+        )
+        raise PipxError(msg) from error
 
 
 def is_script_spec(package_spec: str) -> bool:
