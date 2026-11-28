@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import logging
 import os
 import subprocess
@@ -340,16 +341,23 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
 @SKIP_IF_WINDOWS
 @pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c() -> None:
-    # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
-    with pytest.raises(KeyboardInterrupt):
-        run_subprocess(
-            [
-                sys.executable,
-                "-c",
-                "import os, signal; os.kill(os.getppid(), signal.SIGINT); os.kill(os.getpid(), signal.SIGINT)",
-            ],
-            stream_output=True,
-        )
+    # the interpreter drops a KeyboardInterrupt raised inside a weakref callback, which a collection of earlier tests'
+    # garbage can run just as the signal lands, so collect it first and keep the collector off until the signal is in
+    gc.collect()
+    gc.disable()
+    try:
+        # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
+        with pytest.raises(KeyboardInterrupt):
+            run_subprocess(
+                [
+                    sys.executable,
+                    "-c",
+                    "import os, signal; os.kill(os.getppid(), signal.SIGINT); os.kill(os.getpid(), signal.SIGINT)",
+                ],
+                stream_output=True,
+            )
+    finally:
+        gc.enable()
 
 
 class _Task(Protocol):
