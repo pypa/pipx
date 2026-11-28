@@ -24,4 +24,5 @@ effect. They assume pipx is already installed unless the guide is about installi
     use-private-index
     use-uv-backend
     use-with-pre-commit
+    make-packages-compatible
     troubleshoot
