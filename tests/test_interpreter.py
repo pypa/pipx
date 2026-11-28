@@ -542,6 +542,7 @@ def test_interpreter_quiet_says_nothing(
         pytest.param(b"home = {missing}\n", None, id="home-without-interpreter"),
         pytest.param(b"version = 3.14.0\n", None, id="no-home"),
         pytest.param(b"home = \xff\n", None, id="undecodable"),
+        pytest.param(b"home = {base_dir}\ncommand = python3 -m venv /50%home/venv\n", "python3", id="percent-sign"),
     ],
 )
 def test_recordable_interpreter_inside_venv(tmp_path: Path, pyvenv_cfg: bytes, expected: str | None) -> None:
