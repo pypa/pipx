@@ -14,6 +14,38 @@ fragments below; the tracked released history changes only when the release is p
 
 .. towncrier release notes start
 
+.. _release-1-19-2:
+
+`1.19.2 <https://github.com/pypa/pipx/tree/1.19.2>`_ - 2026-11-28
+=================================================================
+
+.. _release-1-19-2-fixed:
+
+Fixed
+-----
+
+- A manifest that is not valid UTF-8 now reports that pipx cannot read it, instead of ending in a traceback (:pr:`2512`)
+  by :user:`qianeric-backup` and :user:`gaborbernat`.
+- Report invalid PEP 723 script command names before installation and suggest using ``--app`` with a valid name
+  (:pr:`2511`) by :user:`xixi-box` and :user:`gaborbernat`.
+- Run a script from a URL or a named pipe that starts with a UTF-8 byte order mark, instead of failing with a
+  ``SyntaxError`` (:pr:`2513`) by :user:`DheerajPiduru52` and :user:`gaborbernat`.
+- Stop pipx from crashing with ``InterpolationSyntaxError`` when the pipx home, or the virtual environment given to
+  ``--python``, has a ``%`` in its path (:pr:`2504`) by :user:`DheerajPiduru52` and :user:`gaborbernat`.
+- Treat an empty ``PIPX_DEFAULT_PYTHON`` as unset again, as pipx does for its path variables, instead of failing every
+  command with an interpreter error (:pr:`2505`) by :user:`DheerajPiduru52`.
+- ``pipx run`` now infers entry points for local project paths whose names contain no normalization characters (such as
+  ``dist/my-app``) on both the ``pip`` and ``uv`` backends (:pr:`2502`) by :user:`Cyber-Marty` and :user:`gaborbernat`.
+
+.. _release-1-19-2-documentation:
+
+Documentation
+-------------
+
+- Move the package author guide to the how-to section as ``Make packages compatible`` and document shipping man pages
+  and shell completion scripts with setuptools, pdm-backend, uv_build and hatchling (:pr:`2514`) by :user:`Vrihub` and
+  :user:`gaborbernat`.
+
 .. _release-1-19-1:
 
 `1.19.1 <https://github.com/pypa/pipx/tree/1.19.1>`_ - 2026-11-23
