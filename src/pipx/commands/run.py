@@ -90,18 +90,15 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
     """
     try:
         requirement_name = Requirement(app).name
+        is_path_or_url = False
     except InvalidRequirement:
         requirement_name = app
-        is_target_spec = _is_path_or_url(app)
-    else:
-        is_target_spec = False
-    package_name: Final[str] = (
-        canonicalize_name(requirement_name) if spec is None and not is_target_spec else requirement_name
-    )
-    # a local path or URL names no explicit script, and a normalized name is no longer the one on disk (`pip_search`
-    # installs a `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from the installed
-    # entry points
-    infer_app_name: Final[bool] = spec is None and (is_target_spec or package_name != requirement_name)
+        is_path_or_url = "/" in app or os.sep in app or Path(app).expanduser().exists()
+    package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
+    # a path or URL (`dist/my-app`, a VCS URL) names no script at all, and a normalized name is no longer the one on
+    # disk (`pip_search` installs a `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from
+    # the installed entry points
+    infer_app_name: Final[bool] = spec is None and (is_path_or_url or package_name != requirement_name)
 
     # the resolved backend only picks the route, uv tool run or a venv; the venv still gets the CLI and environment
     # values apart, so it attributes the backend to the right source
@@ -132,20 +129,6 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
             infer_app_name=infer_app_name,
             resolved_backend=resolved_backend,
         )
-
-
-def _is_path_or_url(value: str) -> bool:
-    if "/" in value or os.sep in value:
-        return True
-    try:
-        if len(urllib.parse.urlparse(value).scheme) > 1:
-            return True
-    except ValueError:
-        pass
-    try:
-        return Path(value).expanduser().exists()
-    except OSError:
-        return False
 
 
 def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
