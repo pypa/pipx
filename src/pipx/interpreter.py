@@ -227,7 +227,7 @@ def get_default_python() -> str:
 
     :returns: the path of the interpreter.
     """
-    if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
+    if not (python := get_environment_value("PIPX_DEFAULT_PYTHON")):
         if WINDOWS:
             return _find_default_windows_python()
         return str(Path(sys.executable).resolve())
