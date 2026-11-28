@@ -90,12 +90,15 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
     """
     try:
         requirement_name = Requirement(app).name
+        is_path_or_url = False
     except InvalidRequirement:
         requirement_name = app
+        is_path_or_url = "/" in app or os.sep in app or Path(app).expanduser().exists()
     package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
-    # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
-    # `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from the installed entry points
-    infer_app_name: Final[bool] = spec is None and (_is_vcs_url(app) or package_name != requirement_name)
+    # a path or URL (`dist/my-app`, a VCS URL) names no script at all, and a normalized name is no longer the one on
+    # disk (`pip_search` installs a `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from
+    # the installed entry points
+    infer_app_name: Final[bool] = spec is None and (is_path_or_url or package_name != requirement_name)
 
     # the resolved backend only picks the route, uv tool run or a venv; the venv still gets the CLI and environment
     # values apart, so it attributes the backend to the right source
@@ -126,15 +129,6 @@ def run(app: str, options: RunOptions, *, spec: str | None) -> NoReturn:
             infer_app_name=infer_app_name,
             resolved_backend=resolved_backend,
         )
-
-
-def _is_vcs_url(value: str) -> bool:
-    try:
-        scheme: Final[str] = urllib.parse.urlparse(value).scheme
-    except ValueError:
-        return False
-    vcs, separator, _ = scheme.partition("+")
-    return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
 
 
 def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
@@ -195,6 +189,15 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
         return download_script(app)
 
     return None
+
+
+def _is_vcs_url(value: str) -> bool:
+    try:
+        scheme: Final[str] = urllib.parse.urlparse(value).scheme
+    except ValueError:
+        return False
+    vcs, separator, _ = scheme.partition("+")
+    return bool(separator) and vcs in {"bzr", "git", "hg", "svn"}
 
 
 def _run_script(

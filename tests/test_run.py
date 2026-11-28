@@ -1377,6 +1377,32 @@ def test_run_local_path_entry_point(
     assert "Using discovered entry point for 'pipx run'" in caplog.text
 
 
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_local_dir_without_special_chars_infers_app(
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    backend: str,
+) -> None:
+    # canonicalize_name leaves dist/my-app unchanged, so only its path separator marks it as a local project
+    project_dir: Final[Path] = tmp_path / "dist" / "my-app"
+    shutil.copytree(root / "testdata" / "empty_project", project_dir)
+    pyproject: Final[Path] = project_dir / "pyproject.toml"
+    declared: Final[str] = (
+        'scripts.empty-project = "empty_project.main:cli"\n'
+        'entry-points."pipx.run".empty-project = "empty_project.main:cli"'
+    )
+    pyproject.write_text(pyproject.read_text().replace(declared, 'scripts.renamed = "empty_project.main:main"'))
+    monkeypatch.chdir(tmp_path)
+
+    run_pipx_cli_exit(["run", "--backend", backend, f"dist{os.sep}my-app"], assert_exit=0)
+
+    assert "NOTE: running app 'renamed' from 'empty-project'" in capsys.readouterr().out
+
+
 @pytest.fixture
 def vcs_project(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str, str], str]:
     def create(old: str, new: str) -> str:
