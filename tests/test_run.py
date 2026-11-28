@@ -464,6 +464,32 @@ def test_run_script_from_url_ignores_working_directory_modules(
     assert capfd.readouterr().out.splitlines() == ['"ok"']
 
 
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_script_from_url_with_byte_order_mark(
+    served_script: str, tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "bom.py").write_text("print('ok')\n", encoding="utf-8-sig")
+
+    run_pipx_cli_exit(["run", served_script.replace("pipx-demo.py", "bom.py")], assert_exit=0)
+
+    assert capfd.readouterr().out.splitlines() == ["ok"]
+
+
+@pytest.mark.skipif(WIN, reason="Windows has no named pipes in the file system")
+@pytest.mark.usefixtures("pipx_temp_env", "exec_via_subprocess")
+def test_run_script_from_named_pipe_with_byte_order_mark(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    os.mkfifo(pipe := tmp_path / "bom.py")
+    writer: Final[Thread] = Thread(
+        target=pipe.write_text, args=("print('ok')\n",), kwargs={"encoding": "utf-8-sig"}, daemon=True
+    )
+    writer.start()
+
+    run_pipx_cli_exit(["run", str(pipe)], assert_exit=0)
+
+    writer.join()
+    assert capfd.readouterr().out.splitlines() == ["ok"]
+
+
 @pytest.mark.usefixtures("pipx_temp_env", "planted_json_cwd", "exec_via_subprocess")
 def test_run_entry_point_ignores_working_directory_modules(
     empty_project: Path, capfd: pytest.CaptureFixture[str]

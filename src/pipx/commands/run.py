@@ -173,7 +173,7 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
         return app_path
     # a named pipe yields its content once, so read it here for both the metadata check and the interpreter
     if local_path and app_path.is_fifo():
-        return app_path.read_text(encoding="utf-8")
+        return app_path.read_text(encoding="utf-8-sig")
 
     if is_path:
         msg = f"The specified path {app} does not exist"

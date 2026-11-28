@@ -222,6 +222,17 @@ def test_installable_script_downloads_url_over_file_below_cwd(
         assert archive.read("_pipx_script_app/_script.py").decode() == remote
 
 
+@pytest.mark.parametrize("charset", [pytest.param("utf-8", id="declared"), pytest.param(None, id="undeclared")])
+def test_download_script_drops_byte_order_mark(urlopen: MockType, charset: str | None) -> None:
+    urlopen.return_value.configure_mock(**{
+        "read.return_value": "print('ok')\n".encode("utf-8-sig"),
+        "headers.get_content_charset.return_value": charset,
+        "length": 0,
+    })
+
+    assert download_script("https://example.invalid/app.py") == "print('ok')\n"
+
+
 @pytest.fixture
 def urlopen(mocker: MockerFixture) -> MockType:
     response: Final[MockType] = mocker.create_autospec(HTTPResponse, instance=True)

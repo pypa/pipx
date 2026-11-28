@@ -188,7 +188,9 @@ def download_script(url: str) -> str:
         with urlopen(url, timeout=30) as response:  # ruff:ignore[suspicious-url-open-usage]  # callers choose the allowed schemes
             data: Final[bytes] = response.read(_MAX_SCRIPT_BYTES + 1)
             _reject_incomplete_script(url, response, data)
-            return data.decode(response.headers.get_content_charset() or "utf-8")
+            # Python reads a byte order mark at the start of a source file as an encoding marker; the script's text
+            # must not carry it, as ``python -c`` rejects it as a character
+            return data.decode(response.headers.get_content_charset() or "utf-8").removeprefix("\ufeff")
     # a body in another encoding than declared or an unknown charset name fails the decode, not the download
     except (OSError, HTTPException, UnicodeDecodeError, LookupError) as error:
         msg = f"Unable to read script {redact_url_credentials(url)}: {error}"
