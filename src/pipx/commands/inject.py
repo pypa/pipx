@@ -142,11 +142,16 @@ def inject(
 
 
 def _parse_requirements(filename: str) -> Iterator[str]:
+    try:
+        # pip skips the byte order mark that Windows tools such as PowerShell 5 write
+        content: Final[str] = Path(filename).read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError) as error:
+        msg = f"Cannot read requirements file {filename}: {error}"
+        raise PipxError(msg) from error
     # strips comments the way pip does: https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    with Path(filename).open(encoding="utf-8") as requirements:
-        for line in requirements:
-            if spec := _REQUIREMENT_COMMENT.sub("", line).strip():
-                yield spec
+    for line in content.splitlines():
+        if spec := _REQUIREMENT_COMMENT.sub("", line).strip():
+            yield spec
 
 
 def _finish_inject(

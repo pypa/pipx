@@ -573,6 +573,34 @@ def test_inject_with_req_file(
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
+def test_inject_req_file_with_byte_order_mark(tmp_path: Path) -> None:
+    (req_file := tmp_path / "inject-requirements.txt").write_text(f"{PKG['black']['spec']}\n", encoding="utf-8-sig")
+
+    assert not run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
+
+    assert list(PipxMetadata(CTX.venvs / "pycowsay").injected_packages) == ["black"]
+
+
+@pytest.mark.parametrize(
+    "create",
+    [
+        pytest.param(lambda _: None, id="missing"),
+        pytest.param(Path.mkdir, id="directory"),
+        pytest.param(lambda path: path.write_bytes(b"\xe9\n"), id="not-utf-8"),
+    ],
+)
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_inject_reports_unreadable_req_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], create: Callable[[Path], None]
+) -> None:
+    create(req_file := tmp_path / "inject-requirements.txt")
+
+    assert run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
+
+    assert "Cannot read requirements file" in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_force_inject_keeps_injected_pin() -> None:
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
